@@ -14,19 +14,20 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent", // This allows content to go under the status bar
+    statusBarStyle: "black-translucent", // Critical for the gradient to go behind battery/wifi
     title: "Pelvic Floor",
   },
 };
 
 export const viewport: Viewport = {
-  // MATCHES THE DARK TOP OF THE WELCOME GRADIENT
-  themeColor: "#2E1A20", 
+  // This matches the Dark Plum top of your gradient (#2E1A20)
+  // This makes the battery/wifi area blend in perfectly.
+  themeColor: "#2E1A20",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover", // Forces content to edges
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
