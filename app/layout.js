@@ -13,13 +13,17 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-black sm:bg-gray-100 flex justify-center items-center min-h-screen`}>
-        {/* FIX: 
-           1. 'w-full h-[100dvh]' ensures it fills a real phone screen exactly.
-           2. 'sm:h-[850px] sm:w-[400px]' restricts it ONLY on desktop/tablets.
-           3. 'sm:rounded-[40px]' adds corners ONLY on desktop.
+      {/* LOGIC:
+        1. Mobile (default): Background is 'app-background', flex col, full width/height.
+        2. Desktop (sm+): Background is gray-100, flex center to show the "phone frame".
+      */}
+      <body className={`${inter.className} bg-app-background sm:bg-gray-100 flex flex-col sm:justify-center sm:items-center min-h-screen`}>
+        
+        {/* THE FRAME CONTAINER:
+           - Mobile: w-full, min-h-[100dvh] (fills screen exactly, respects address bar)
+           - Desktop: Fixed width/height, rounded corners, border (the "phone look")
         */}
-        <div className="w-full h-[100dvh] sm:h-[850px] sm:w-[400px] bg-app-background relative overflow-hidden sm:rounded-[40px] sm:border-[8px] sm:border-gray-900 shadow-2xl">
+        <div className="w-full min-h-[100dvh] sm:min-h-0 sm:h-[850px] sm:w-[400px] bg-app-background relative overflow-hidden sm:rounded-[40px] sm:border-[8px] sm:border-gray-900 shadow-2xl flex flex-col">
           <UserDataProvider>
             {children}
           </UserDataProvider>
