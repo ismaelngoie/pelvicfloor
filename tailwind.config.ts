@@ -2,44 +2,30 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        appPrimaryAccent: "#E65473", // The exact Rose Pink from your extension
-        appTextPrimary: "#1A1A26",   // The dark navy/gray
-        appTextSecondary: "#737380", // The soft gray
-        appSurface: "#FFFFFF",
+        // EXACT MATCH from ColorExtensions.swift
+        appPrimaryAccent: "#E65473",
+        appBackground: "#FAF9FA",
+        appTextPrimary: "#1A1A26",
+        appTextSecondary: "#737380",
         appBorderIdle: "#EBEBF0",
+        appPositiveFeedback: "#33B373",
+      },
+      boxShadow: {
+        // Matches CTA button shadow: CGSize(width: 0, height: 4), Radius 10, Opacity 0.25
+        'cta': '0 4px 10px rgba(0, 0, 0, 0.25)',
+        // Matches pressed state: Radius 15, Opacity 0.6, Color Pink
+        'cta-pressed': '0 0 15px rgba(230, 84, 115, 0.6)',
       },
       fontFamily: {
-        // THIS IS THE SECRET SAUCE: Uses the native OS font (San Francisco on iOS)
-        sans: [
-          "-apple-system", 
-          "BlinkMacSystemFont", 
-          "Segoe UI", 
-          "Roboto", 
-          "Helvetica", 
-          "Arial", 
-          "sans-serif"
-        ],
-      },
-      animation: {
-        'slide-up': 'slideUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards', // Smoother iOS easing
-        'fade-in': 'fadeIn 0.5s ease-out forwards',
-      },
-      keyframes: {
-        slideUp: {
-          '0%': { transform: 'translateY(20px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        }
+        // iOS System Font approximation
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
       }
     },
   },
