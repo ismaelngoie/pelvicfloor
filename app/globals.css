@@ -6,7 +6,7 @@
   --foreground-rgb: 26, 26, 38;
 }
 
-/* 1. NREMT-STYLE RESET & LOCK */
+/* 1. RESET & FULL BLEED */
 * {
   box-sizing: border-box;
   padding: 0;
@@ -14,15 +14,16 @@
 }
 
 html {
-  height: 100%;
-  width: 100%;
-  -webkit-text-size-adjust: 100%;
-  background-color: #FFFFFF;
+  /* Allow scrolling if content is long, but remove standard scrollbars */
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
 }
 
 body {
-  /* SWIFT MATCH: System Pink (0.1) -> White at 50% */
-  /* RGBA(255, 45, 85, 0.1) is roughly #FF2D55 at 10% opacity */
+  margin: 0;
+  padding: 0;
+  
+  /* SWIFT GRADIENT: Pink Tint (Top) -> White (Middle/Bottom) */
   background: linear-gradient(
     to bottom,
     rgba(255, 45, 85, 0.1) 0%,
@@ -30,14 +31,14 @@ body {
     rgba(255, 255, 255, 1) 100%
   );
   
-  /* LOCK THE SCREEN */
-  min-height: 100dvh; /* Dynamic Height handles Safari bars */
-  width: 100vw;
-  overflow: hidden;
-  overscroll-behavior: none;
-  -webkit-font-smoothing: antialiased;
+  /* Critical: Forces background to fill the dynamic viewport (including URL bar area) */
+  min-height: 100dvh;
+  
+  /* Prevents the white "bounce" background from showing */
+  overscroll-behavior: none; 
+  
   color: rgb(var(--foreground-rgb));
-  touch-action: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Hide scrollbars */
@@ -46,9 +47,10 @@ body {
   background: transparent;
 }
 
-/* --- REALISTIC BUTTERFLY ENGINE --- */
+/* --- BUTTERFLY ENGINE --- */
+/* Fixed ensures they stay on screen even if you scroll content */
 .butterfly-container {
-  position: absolute;
+  position: fixed; 
   inset: 0;
   pointer-events: none;
   z-index: 0;
@@ -65,7 +67,7 @@ body {
   will-change: transform;
 }
 
-/* Wings using Pink Fill (#FF2D55) to match SystemPink */
+/* Wings using Pink Fill (#FF2D55) */
 .butterfly::before, .butterfly::after {
   content: "";
   position: absolute;
