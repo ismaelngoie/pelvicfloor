@@ -41,8 +41,8 @@ export default function WelcomeStep() {
     }, []);
 
     return (
-        // Main Container: Locked to screen, Apple font stack
-        <div className="relative h-screen w-full flex flex-col items-center overflow-hidden font-sans">
+        // Main Container: Locked to screen
+        <div className="relative h-screen w-full flex flex-col justify-between overflow-hidden font-sans">
             
             {/* --- BUTTERFLY LAYER --- */}
             <div className="butterfly-container">
@@ -61,70 +61,69 @@ export default function WelcomeStep() {
                 ))}
             </div>
 
-            {/* --- TOP SECTION (Logo, Headline, Benefits) --- */}
-            {/* UPDATED: Added 'pt-20' (80px) to push content below the Dynamic Island */}
-            {/* This keeps the spacing BETWEEN elements the same, but moves the whole block down */}
-            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg px-8 pt-20 pb-10 z-10">
+            {/* --- TOP SECTION --- */}
+            {/* pt-32 pushes content well below the Dynamic Island / Notch */}
+            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto px-8 pt-32 z-10">
                 
                 {/* Logo */}
-                <div className="relative w-20 h-20 mb-6 shadow-xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
+                <div className="relative w-24 h-24 mb-6 shadow-2xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
                     <Image src="/icon.png" alt="Logo" fill className="object-cover" priority />
                 </div>
                 
-                {/* Headline */}
-                <h1 className="text-[32px] leading-tight font-bold text-appTextPrimary text-center mb-3 animate-slide-up tracking-tight shrink-0">
+                {/* Headline - Dark, almost black color */}
+                <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-3 animate-slide-up tracking-tight shrink-0">
                     Strength & Confidence<br />
                     From Your Core Outward.
                 </h1>
                 
-                {/* Subheadline */}
-                <p className="text-[17px] text-appTextSecondary text-center leading-relaxed mb-10 animate-slide-up px-2 shrink-0">
+                {/* Subheadline - Gray */}
+                <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-12 animate-slide-up px-2 shrink-0">
                     Your personal AI physio-coach for leaks, pain, and confidence.
                 </p>
 
                 {/* Benefits Stack */}
-                <div className="w-full space-y-5 animate-slide-up pl-4 shrink-0">
+                <div className="w-full space-y-6 animate-slide-up pl-2 shrink-0">
+                    {/* The icons here use 'fill' to look like solid circles as in the screenshot */}
                     <BenefitRow 
-                        icon={<Activity className="w-6 h-6 text-[#E65473]" strokeWidth={2.5} />}
+                        icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><Activity className="w-4 h-4 text-white" strokeWidth={3} /></div>}
                         text="A new 5-minute plan, just for you, every day."
                     />
                     <BenefitRow 
-                        icon={<Play className="w-6 h-6 text-[#E65473]" strokeWidth={2.5} fill="currentColor" />}
+                        icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><Play className="w-4 h-4 text-white fill-white" /></div>}
                         text="300+ physio-approved videos for total wellness."
                     />
                     <BenefitRow 
-                        icon={<MessageCircle className="w-6 h-6 text-[#E65473]" strokeWidth={2.5} />}
+                        icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><MessageCircle className="w-4 h-4 text-white" strokeWidth={3} /></div>}
                         text="Chat with your AI Coach, Mia™, 24/7."
                     />
                 </div>
             </div>
 
-            {/* --- BOTTOM SECTION (Reviews & CTA) --- */}
-            {/* Added a subtle gradient background behind the bottom area to ensure readability */}
-            <div className="z-10 w-full max-w-md px-6 pb-12 pt-4 bg-gradient-to-t from-white via-white/90 to-transparent">
+            {/* --- BOTTOM SECTION --- */}
+            <div className="z-10 w-full max-w-md mx-auto px-8 pb-12 pt-4">
                 
                 {/* Review Ticker */}
                 <div className="h-14 flex items-center justify-center relative mb-5">
-                    <div key={reviewIndex} className="absolute w-full text-center transition-all duration-500 animate-fade-in">
-                        <p className="text-[15px] italic text-appTextPrimary/90 leading-snug">
+                    <div key={reviewIndex} className="absolute w-full text-center transition-all duration-700 animate-fade-in">
+                        <p className="text-[15px] italic text-[#1A1A26] leading-snug font-medium">
                             “{reviews[reviewIndex].text}”
                         </p>
-                        <p className="text-[15px] font-bold text-appTextSecondary mt-1">
+                        <p className="text-[14px] font-bold text-[#737380] mt-1">
                             – {reviews[reviewIndex].author}
                         </p>
                     </div>
                 </div>
 
-                {/* CTA Button */}
+                {/* CTA Button - Matches the vivid Red/Pink from screenshot */}
                 <button 
                     onClick={nextStep} 
-                    className="w-full h-[56px] bg-[#E65473] text-white text-[18px] font-bold rounded-[28px] shadow-lg shadow-pink-500/25 breathing-button active:scale-95 transition-transform flex items-center justify-center"
+                    className="w-full h-[56px] bg-[#FF2D55] text-white text-[19px] font-bold rounded-[28px] shadow-xl shadow-pink-500/30 breathing-button active:scale-95 transition-transform flex items-center justify-center"
                 >
                     Start My 5-Min Journey
                 </button>
 
-                {/* Social Proof */}
-                <p className="text-center text-appTextSecondary text-[15px] mt-4 font-medium">
+                {/* Social Proof Label */}
+                <p className="text-center text-[#737380] text-[14px] mt-4">
                     Join {socialCount.toLocaleString()}+ members finding confidence.
                 </p>
             </div>
@@ -135,10 +134,10 @@ export default function WelcomeStep() {
 function BenefitRow({ icon, text }: { icon: React.ReactNode, text: string }) {
     return (
         <div className="flex items-start space-x-4">
-            <div className="w-7 flex-shrink-0 flex justify-center pt-0.5">
+            <div className="flex-shrink-0 pt-0.5">
                 {icon}
             </div>
-            <p className="text-appTextPrimary text-[16px] font-medium leading-snug">
+            <p className="text-[#1A1A26] text-[16px] font-semibold leading-snug">
                 {text}
             </p>
         </div>
