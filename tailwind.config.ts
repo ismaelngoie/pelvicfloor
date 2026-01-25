@@ -9,22 +9,36 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        appPrimaryAccent: "#E65473",
-        appBackground: "#FAF9FA",
-        appTextPrimary: "#1A1A26",
-        appTextSecondary: "#737380",
+        appPrimaryAccent: "#E65473", // The exact Rose Pink from your extension
+        appTextPrimary: "#1A1A26",   // The dark navy/gray
+        appTextSecondary: "#737380", // The soft gray
         appSurface: "#FFFFFF",
         appBorderIdle: "#EBEBF0",
       },
+      fontFamily: {
+        // THIS IS THE SECRET SAUCE: Uses the native OS font (San Francisco on iOS)
+        sans: [
+          "-apple-system", 
+          "BlinkMacSystemFont", 
+          "Segoe UI", 
+          "Roboto", 
+          "Helvetica", 
+          "Arial", 
+          "sans-serif"
+        ],
+      },
       animation: {
-        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        'pulse-slow': 'pulse 3s infinite',
-        'spin-slow': 'spin 8s linear infinite',
+        'slide-up': 'slideUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards', // Smoother iOS easing
+        'fade-in': 'fadeIn 0.5s ease-out forwards',
       },
       keyframes: {
         slideUp: {
           '0%': { transform: 'translateY(20px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         }
       }
     },
