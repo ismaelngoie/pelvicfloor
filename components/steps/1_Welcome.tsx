@@ -41,8 +41,12 @@ export default function WelcomeStep() {
     }, []);
 
     return (
-        <div className="relative h-screen w-full flex flex-col font-sans bg-welcome-gradient overflow-hidden">
+        <div className="relative h-[100dvh] w-full flex flex-col font-sans overflow-hidden">
             
+            {/* --- FIX: FIXED WALLPAPER BACKGROUND --- */}
+            {/* This div sits behind everything and ignores scroll/keyboard */}
+            <div className="bg-welcome-gradient" />
+
             {/* --- BUTTERFLY LAYER --- */}
             <div className="butterfly-container absolute inset-0 pointer-events-none z-0">
                 {butterflies.map((b) => (
@@ -60,7 +64,7 @@ export default function WelcomeStep() {
                 ))}
             </div>
 
-            {/* --- TOP CONTENT (Centered vertically in the available space) --- */}
+            {/* --- TOP CONTENT --- */}
             <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto px-8 z-10">
                 
                 {/* Logo */}
@@ -69,7 +73,7 @@ export default function WelcomeStep() {
                 </div>
                 
                 {/* Headline */}
-                <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-4 animate-slide-up tracking-tight shrink-0">
+                <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-4 animate-slide-up tracking-tight shrink-0 drop-shadow-sm">
                     Strength & Confidence<br />
                     From Your Core Outward.
                 </h1>
@@ -96,8 +100,8 @@ export default function WelcomeStep() {
                 </div>
             </div>
 
-            {/* --- BOTTOM CONTENT (Pinned to bottom) --- */}
-            <div className="z-10 w-full max-w-md mx-auto px-8 pb-safe-bottom pt-4">
+            {/* --- BOTTOM CONTENT --- */}
+            <div className="z-10 w-full max-w-md mx-auto px-8 pb-safe-bottom pt-4 mb-4">
                 
                 {/* Review Ticker */}
                 <div className="h-14 flex items-center justify-center relative mb-5">
@@ -112,15 +116,22 @@ export default function WelcomeStep() {
                 </div>
 
                 {/* CTA Button */}
+                {/* UPGRADED: Added active:scale-95 and active:bg-[#D64463] for real click feel */}
                 <button 
                     onClick={nextStep} 
-                    className="w-full h-[56px] bg-[#E65473] text-white text-[19px] font-bold rounded-[28px] shadow-xl shadow-pink-500/30 breathing-button active:scale-95 transition-transform flex items-center justify-center"
+                    className="w-full h-[56px] bg-[#E65473] text-white text-[19px] font-bold rounded-[28px] 
+                               shadow-xl shadow-pink-500/30 
+                               breathing-button 
+                               active:scale-95 active:bg-[#D64463] active:shadow-none
+                               transition-all duration-100 ease-out
+                               flex items-center justify-center
+                               touch-manipulation"
                 >
                     Start My 5-Min Journey
                 </button>
 
                 {/* Social Proof */}
-                <p className="text-center text-[#737380] text-[14px] mt-4 mb-4">
+                <p className="text-center text-[#737380] text-[14px] mt-4">
                     Join {socialCount.toLocaleString()}+ members finding confidence.
                 </p>
             </div>
