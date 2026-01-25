@@ -41,8 +41,8 @@ export default function WelcomeStep() {
     }, []);
 
     return (
-        // Simple Container matching NREMT style constraint
-        <div className="relative h-full w-full flex flex-col justify-between overflow-hidden font-sans pt-safe-top pb-safe-bottom">
+        // Open Container: min-h-dvh ensures full screen, but allows natural growth/scrolling if needed.
+        <div className="relative min-h-[100dvh] w-full flex flex-col justify-between font-sans">
             
             {/* --- BUTTERFLIES --- */}
             <div className="butterfly-container">
@@ -61,21 +61,22 @@ export default function WelcomeStep() {
                 ))}
             </div>
 
-            {/* --- TOP SECTION (Centered content) --- */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto px-8 z-10 pt-10">
+            {/* --- TOP SECTION --- */}
+            {/* Standard padding ensures it clears the status bar naturally */}
+            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto px-8 pt-12 pb-8 z-10">
                 
                 {/* Logo */}
                 <div className="relative w-24 h-24 mb-6 shadow-xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
                     <Image src="/icon.png" alt="Logo" fill className="object-cover" priority />
                 </div>
                 
-                {/* Headline - Exact IOS Black */}
+                {/* Headline */}
                 <h1 className="text-[32px] leading-tight font-bold text-[#1A1A26] text-center mb-3 animate-slide-up tracking-tight shrink-0">
                     Strength & Confidence<br />
                     From Your Core Outward.
                 </h1>
                 
-                {/* Subheadline - IOS Gray */}
+                {/* Subheadline */}
                 <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-10 animate-slide-up px-2 shrink-0">
                     Your personal AI physio-coach for leaks, pain, and confidence.
                 </p>
@@ -112,7 +113,7 @@ export default function WelcomeStep() {
                     </div>
                 </div>
 
-                {/* CTA Button - System Pink */}
+                {/* CTA Button */}
                 <button 
                     onClick={nextStep} 
                     className="w-full h-[56px] bg-[#E65473] text-white text-[18px] font-bold rounded-[28px] shadow-lg shadow-pink-500/25 breathing-button active:scale-95 transition-transform flex items-center justify-center"
