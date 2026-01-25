@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { useOnboarding } from '@/app/context/OnboardingContext';
-import { Icons } from '@/components/Icons';
 import Image from 'next/image';
 
 const reviews = [
@@ -17,37 +16,31 @@ export default function WelcomeStep() {
     const [reviewIndex, setReviewIndex] = useState(0);
     const [butterflies, setButterflies] = useState<Array<{id: number, left: string, duration: string, delay: string, size: number, type: string}>>([]);
 
-    // 1. Generate Random Butterflies on Mount
     useEffect(() => {
-        const newButterflies = Array.from({ length: 15 }).map((_, i) => ({
+        const newButterflies = Array.from({ length: 12 }).map((_, i) => ({
             id: i,
-            left: `${Math.random() * 100}%`, // Random horizontal position
-            duration: `${15 + Math.random() * 20}s`, // Random speed (15s to 35s)
-            delay: `${Math.random() * -20}s`, // Start at different times (negative starts them mid-flight)
-            size: 20 + Math.random() * 40, // Random size (20px to 60px)
-            type: Math.random() > 0.5 ? 'fly-left' : '' // Random direction
+            left: `${Math.random() * 100}%`,
+            duration: `${15 + Math.random() * 15}s`,
+            delay: `${Math.random() * -20}s`,
+            size: 24 + Math.random() * 24, // Optimized size
+            type: Math.random() > 0.5 ? 'fly-left' : ''
         }));
         setButterflies(newButterflies);
     }, []);
 
-    // 2. Social Proof Counter
     useEffect(() => {
-        const interval = setInterval(() => {
-            setSocialCount(prev => (prev >= 10200 ? 10200 : prev + 17));
-        }, 30);
+        const interval = setInterval(() => setSocialCount(p => (p >= 10200 ? 10200 : p + 17)), 30);
         return () => clearInterval(interval);
     }, []);
 
-    // 3. Review Ticker
     useEffect(() => {
-        const interval = setInterval(() => {
-            setReviewIndex(prev => (prev + 1) % reviews.length);
-        }, 3500);
+        const interval = setInterval(() => setReviewIndex(p => (p + 1) % reviews.length), 3500);
         return () => clearInterval(interval);
     }, []);
 
     return (
-        <div className="relative min-h-screen w-full flex flex-col items-center justify-between overflow-hidden">
+        // MAIN CONTAINER: Locked to screen height, absolutely no scroll
+        <div className="relative h-screen w-full flex flex-col justify-between overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
             
             {/* --- BUTTERFLY LAYER --- */}
             <div className="butterfly-container">
@@ -62,78 +55,72 @@ export default function WelcomeStep() {
                             width: b.size,
                             height: b.size
                         }}
-                    >
-                        <Icons.Butterfly />
-                    </div>
+                    />
                 ))}
             </div>
 
-            {/* --- MAIN CONTENT LAYER --- */}
-            {/* This container centers everything nicely on desktop but gives space on mobile */}
-            <div className="z-10 flex flex-col items-center justify-center flex-grow w-full max-w-2xl px-6 pt-12 md:pt-0">
+            {/* --- TOP SECTION (Logo & Title) --- */}
+            {/* Uses flex-1 to take available space but centers content */}
+            <div className="flex-1 flex flex-col items-center justify-center px-6 z-10 pt-4 min-h-0">
                 
-                {/* Logo */}
-                <div className="mb-8 relative w-24 h-24 md:w-32 md:h-32 shadow-2xl rounded-3xl overflow-hidden animate-slide-up">
+                {/* Logo: Adjusted size to prevent taking too much vertical space */}
+                <div className="relative w-20 h-20 md:w-24 md:h-24 shadow-2xl rounded-2xl overflow-hidden mb-4 md:mb-6 animate-slide-up shrink-0">
                     <Image 
                         src="/icon.png" 
-                        alt="Pelvic Floor Coach Logo" 
+                        alt="Logo" 
                         fill 
                         className="object-cover"
                         priority
                     />
                 </div>
                 
-                {/* Headline */}
-                <h1 className="text-4xl md:text-6xl font-black text-appTextPrimary text-center leading-tight tracking-tight mb-4 animate-slide-up">
-                    Strength & Confidence<br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-600">
-                        From Your Core.
-                    </span>
+                {/* Compact Headline */}
+                <h1 className="text-3xl md:text-5xl font-black text-appTextPrimary text-center leading-tight mb-2 animate-slide-up shrink-0">
+                    Strength &<br />Confidence
                 </h1>
                 
-                {/* Subheadline */}
-                <p className="text-appTextSecondary text-center text-lg md:text-xl max-w-lg mb-10 animate-slide-up" style={{animationDelay: '0.1s'}}>
-                    Your personal AI physio-coach for leaks, pain, and total confidence.
+                <p className="text-appTextSecondary text-center text-base md:text-lg mb-4 md:mb-8 animate-slide-up shrink-0">
+                    Your personal AI physio-coach.
                 </p>
 
-                {/* Benefits List */}
-                <div className="space-y-5 w-full max-w-md animate-slide-up" style={{animationDelay: '0.2s'}}>
+                {/* Benefits: Compact layout for small screens */}
+                <div className="w-full max-w-sm space-y-2 md:space-y-3 animate-slide-up overflow-y-auto no-scrollbar">
                     {[
-                        "A new 5-minute plan, just for you, every day.",
-                        "300+ physio-approved videos for wellness.",
-                        "Chat with your AI Coach, Mia™, 24/7."
+                        "5-min daily plan, just for you.",
+                        "300+ physio-approved videos.",
+                        "24/7 AI Coach Chat."
                     ].map((text, i) => (
-                        <div key={i} className="flex items-center space-x-4 bg-white/60 backdrop-blur-sm p-3 rounded-2xl border border-white/50 shadow-sm">
-                            <div className="w-8 h-8 rounded-full bg-pink-100 flex-shrink-0 flex items-center justify-center text-appPrimaryAccent font-bold">✓</div>
-                            <span className="text-appTextPrimary font-medium text-base md:text-lg">{text}</span>
+                        <div key={i} className="flex items-center space-x-3 bg-white/70 backdrop-blur-sm p-2.5 rounded-xl border border-white/60 shadow-sm">
+                            <div className="w-6 h-6 rounded-full bg-pink-100 flex-shrink-0 flex items-center justify-center text-appPrimaryAccent font-bold text-xs">✓</div>
+                            <span className="text-appTextPrimary font-medium text-sm md:text-base">{text}</span>
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* --- BOTTOM CTA LAYER --- */}
-            <div className="z-10 w-full max-w-md px-6 pb-10 mt-8 space-y-6">
+            {/* --- BOTTOM SECTION (Actions) --- */}
+            {/* Fixed at bottom, padding ensures it's safe on iPhone X+ */}
+            <div className="z-10 w-full max-w-md mx-auto px-6 pb-8 pt-2 shrink-0">
                 
-                {/* Review Ticker */}
-                <div className="h-16 flex items-center justify-center relative bg-white/40 backdrop-blur-md rounded-2xl border border-white/30 shadow-sm">
-                    <p className="text-center text-appTextPrimary w-full px-4 animate-fade-in transition-all duration-500" key={reviewIndex}>
-                        <span className="italic font-medium text-gray-800">“{reviews[reviewIndex].text}”</span>
-                        <br />
-                        <span className="font-bold text-xs text-appPrimaryAccent uppercase tracking-wider mt-1 block">– {reviews[reviewIndex].author}</span>
+                {/* Review Ticker: Fixed height container */}
+                <div className="h-12 flex items-center justify-center relative bg-white/50 backdrop-blur-md rounded-xl border border-white/40 shadow-sm mb-4">
+                    <p className="text-center text-appTextPrimary w-full px-2 text-xs md:text-sm animate-fade-in truncate" key={reviewIndex}>
+                        <span className="italic">“{reviews[reviewIndex].text}”</span>
+                        <span className="font-bold text-appPrimaryAccent ml-2">– {reviews[reviewIndex].author}</span>
                     </p>
                 </div>
 
-                {/* Big Button */}
+                {/* Main CTA */}
                 <button 
                     onClick={nextStep} 
-                    className="w-full h-16 bg-appPrimaryAccent text-white text-xl font-bold rounded-full shadow-xl shadow-pink-500/30 breathing-button active:scale-95 transition-transform flex items-center justify-center"
+                    className="w-full h-14 bg-appPrimaryAccent text-white text-lg font-bold rounded-full shadow-lg shadow-pink-500/20 breathing-button active:scale-95 transition-transform"
                 >
                     Start My 5-Min Journey
                 </button>
 
-                {/* Social Proof Text */}
-                <p className="text-center text-appTextSecondary text-sm font-medium">
-                    Join <span className="font-bold text-appTextPrimary">{socialCount.toLocaleString()}+</span> members finding confidence.
+                {/* Social Proof */}
+                <p className="text-center text-appTextSecondary text-xs mt-3 font-medium">
+                    Join <span className="font-bold text-appTextPrimary">{socialCount.toLocaleString()}+</span> members.
                 </p>
             </div>
         </div>
