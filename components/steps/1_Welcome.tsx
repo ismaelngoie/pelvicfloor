@@ -41,18 +41,16 @@ export default function WelcomeStep() {
     }, []);
 
     return (
-        // Added 'bg-welcome-gradient' here ONLY. 
-        // Other screens will default to the white background in globals.css
-        <div className="relative h-screen w-full flex flex-col justify-between overflow-hidden font-sans bg-welcome-gradient">
+        <div className="relative h-screen w-full flex flex-col font-sans bg-welcome-gradient overflow-hidden">
             
             {/* --- BUTTERFLY LAYER --- */}
-            <div className="butterfly-container">
+            <div className="butterfly-container absolute inset-0 pointer-events-none z-0">
                 {butterflies.map((b) => (
                     <div 
                         key={b.id} 
                         className="butterfly"
                         style={{ 
-                            left: b.left,
+                            left: b.left, 
                             animationDuration: b.duration, 
                             animationDelay: b.delay,
                             transform: `scale(${b.scale})`,
@@ -62,22 +60,22 @@ export default function WelcomeStep() {
                 ))}
             </div>
 
-            {/* --- TOP SECTION --- */}
-            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto px-8 pt-24 z-10">
+            {/* --- TOP CONTENT (Centered vertically in the available space) --- */}
+            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto px-8 z-10">
                 
                 {/* Logo */}
-                <div className="relative w-24 h-24 mb-6 shadow-2xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
+                <div className="relative w-24 h-24 mb-8 shadow-2xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
                     <Image src="/icon.png" alt="Logo" fill className="object-cover" priority />
                 </div>
                 
-                {/* Headline - Dark color matches screenshot text */}
-                <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-3 animate-slide-up tracking-tight shrink-0">
+                {/* Headline */}
+                <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-4 animate-slide-up tracking-tight shrink-0">
                     Strength & Confidence<br />
                     From Your Core Outward.
                 </h1>
                 
                 {/* Subheadline */}
-                <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-10 animate-slide-up px-2 shrink-0">
+                <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-12 animate-slide-up px-2 shrink-0">
                     Your personal AI physio-coach for leaks, pain, and confidence.
                 </p>
 
@@ -98,8 +96,8 @@ export default function WelcomeStep() {
                 </div>
             </div>
 
-            {/* --- BOTTOM SECTION --- */}
-            <div className="z-10 w-full max-w-md mx-auto px-8 pb-10 pt-4">
+            {/* --- BOTTOM CONTENT (Pinned to bottom) --- */}
+            <div className="z-10 w-full max-w-md mx-auto px-8 pb-safe-bottom pt-4">
                 
                 {/* Review Ticker */}
                 <div className="h-14 flex items-center justify-center relative mb-5">
@@ -116,13 +114,13 @@ export default function WelcomeStep() {
                 {/* CTA Button */}
                 <button 
                     onClick={nextStep} 
-                    className="w-full h-[56px] bg-[#FF2D55] text-white text-[19px] font-bold rounded-[28px] shadow-xl shadow-pink-500/30 breathing-button active:scale-95 transition-transform flex items-center justify-center"
+                    className="w-full h-[56px] bg-[#E65473] text-white text-[19px] font-bold rounded-[28px] shadow-xl shadow-pink-500/30 breathing-button active:scale-95 transition-transform flex items-center justify-center"
                 >
                     Start My 5-Min Journey
                 </button>
 
                 {/* Social Proof */}
-                <p className="text-center text-[#737380] text-[14px] mt-4">
+                <p className="text-center text-[#737380] text-[14px] mt-4 mb-4">
                     Join {socialCount.toLocaleString()}+ members finding confidence.
                 </p>
             </div>
