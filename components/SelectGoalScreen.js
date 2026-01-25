@@ -1,17 +1,27 @@
 "use client";
 import React, { useState } from 'react';
 import { useUserData } from '@/context/UserDataContext';
+import { 
+  Baby, 
+  Activity, 
+  Zap, 
+  Droplets, 
+  Heart, 
+  Trophy, 
+  Accessibility, 
+  CheckCircle2 
+} from 'lucide-react'; // High-quality SF Symbol equivalents
 
-// Options mapped from Swift
+// Mapped Data: Exact match to Swift "OptionsType.selectGoals()"
 const goals = [
-  { id: 'pregnancy', title: "Prepare for Pregnancy", icon: "figure.child" },
-  { id: 'postpartum', title: "Recover Postpartum", icon: "figure.baby" },
-  { id: 'core', title: "Build Core Strength", icon: "bolt.fill" },
-  { id: 'leaks', title: "Stop Bladder Leaks", icon: "drop.fill" },
-  { id: 'pain', title: "Ease Pelvic Pain", icon: "bandage.fill" },
-  { id: 'intimacy', title: "Improve Intimacy", icon: "heart.fill" },
-  { id: 'fitness', title: "Support My Fitness", icon: "figure.run" },
-  { id: 'stability', title: "Boost Stability & Posture", icon: "figure.stand" },
+  { id: 'pregnancy', title: "Prepare for Pregnancy", icon: <Baby size={32} /> },
+  { id: 'postpartum', title: "Recover Postpartum", icon: <Activity size={32} /> }, // Closest to 'figure.baby' concept
+  { id: 'core', title: "Build Core Strength", icon: <Zap size={32} /> }, // 'bolt.fill'
+  { id: 'leaks', title: "Stop Bladder Leaks", icon: <Droplets size={32} /> }, // 'drop.fill'
+  { id: 'pain', title: "Ease Pelvic Pain", icon: <Accessibility size={32} /> }, // 'bandage.fill' / accessibility represents care
+  { id: 'intimacy', title: "Improve Intimacy", icon: <Heart size={32} /> }, // 'heart.fill'
+  { id: 'fitness', title: "Support My Fitness", icon: <Trophy size={32} /> }, // 'figure.run' -> Trophy for goals
+  { id: 'stability', title: "Boost Stability", icon: <Activity size={32} /> }, // 'figure.stand'
 ];
 
 export default function SelectGoalScreen({ onNext }) {
@@ -20,65 +30,87 @@ export default function SelectGoalScreen({ onNext }) {
 
   const handleSelect = (goal) => {
     setSelectedId(goal.id);
-    saveUserData('selectedTarget', goal); // Save to context
+    saveUserData('selectedTarget', goal);
   };
 
   return (
-    <div className="w-full h-full flex flex-col pt-12 px-6 pb-8 animate-fade-in">
+    <div className="w-full h-full flex flex-col pt-10 px-6 pb-8 animate-fade-in relative">
       
-      {/* Header */}
-      <h1 className="text-2xl font-bold text-center text-app-textPrimary mb-3">
-        Let's set your primary goal.
-      </h1>
-      <p className="text-center text-app-textSecondary text-[15px] mb-8">
-        This is the most important step. Your choice will shape every workout.
-      </p>
-
-      {/* Grid */}
-      <div className="grid grid-cols-2 gap-4 flex-1 overflow-y-auto no-scrollbar pb-4">
-        {goals.map((goal) => (
-          <div
-            key={goal.id}
-            onClick={() => handleSelect(goal)}
-            className={`
-              relative flex flex-col items-center justify-center p-4 rounded-3xl border-[1.5px] transition-all duration-300 cursor-pointer h-36 shadow-sm
-              ${selectedId === goal.id 
-                ? 'border-app-primary bg-white shadow-lg shadow-app-primary/10 scale-105 z-10' 
-                : 'border-app-borderIdle bg-white'}
-            `}
-          >
-            {/* Selection Checkmark */}
-            {selectedId === goal.id && (
-              <div className="absolute top-3 right-3 text-app-primary animate-pop-in">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-              </div>
-            )}
-
-            {/* Icon Placeholder (Replace with Images later if needed) */}
-            <div className={`mb-3 ${selectedId === goal.id ? 'text-app-primary' : 'text-app-textPrimary'}`}>
-               {/* Using a generic SVG here, you would use Image component with goal.imageName */}
-               <svg width="32" height="32" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.5"/></svg>
-            </div>
-
-            <span className={`text-[14px] font-semibold text-center leading-tight ${selectedId === goal.id ? 'text-app-primary' : 'text-app-textPrimary'}`}>
-              {goal.title}
-            </span>
-          </div>
-        ))}
+      {/* Background Spotlights (Static decoration) */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] right-[-10%] w-[300px] h-[300px] bg-app-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-app-primary/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Button */}
-      <button 
-        onClick={onNext}
-        disabled={!selectedId}
-        className={`w-full h-14 font-bold text-lg rounded-full transition-all duration-300 mt-4
-          ${selectedId 
-            ? 'bg-app-primary text-white shadow-lg shadow-app-primary/30 animate-breathe' 
-            : 'bg-app-borderIdle text-app-textSecondary cursor-not-allowed'}
-        `}
-      >
-        Set My Goal
-      </button>
+      {/* Header */}
+      <div className="z-10 mb-6 shrink-0">
+        <h1 className="text-[26px] font-extrabold text-center text-app-textPrimary mb-3 leading-tight">
+          Let's set your primary goal.
+        </h1>
+        <p className="text-center text-app-textSecondary text-[15px] leading-relaxed px-2">
+          This is the most important step. Your choice will shape every workout.
+        </p>
+      </div>
+
+      {/* Grid Container - Scrollable if screen is small */}
+      <div className="z-10 flex-1 overflow-y-auto no-scrollbar pb-4 min-h-0">
+        <div className="grid grid-cols-2 gap-4 auto-rows-fr">
+          {goals.map((goal) => {
+            const isSelected = selectedId === goal.id;
+            
+            return (
+              <div
+                key={goal.id}
+                onClick={() => handleSelect(goal)}
+                className={`
+                  relative flex flex-col items-center justify-center p-4 rounded-[24px] border-[1.5px] 
+                  transition-all duration-300 cursor-pointer aspect-square shadow-sm active:scale-95
+                  ${isSelected 
+                    ? 'border-app-primary bg-white shadow-xl shadow-app-primary/15 scale-[1.02] z-10' 
+                    : 'border-app-borderIdle bg-white hover:border-app-borderIdle/80'}
+                `}
+              >
+                {/* "Spotlight" Gradient Background for Selected State */}
+                {isSelected && (
+                  <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-app-primary/5 to-transparent pointer-events-none" />
+                )}
+
+                {/* Checkmark Badge */}
+                <div 
+                  className={`absolute top-3 right-3 text-app-primary transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                >
+                  <CheckCircle2 size={22} fill="currentColor" className="text-white" />
+                </div>
+
+                {/* Icon */}
+                <div className={`mb-4 transition-colors duration-300 ${isSelected ? 'text-app-primary' : 'text-app-textPrimary'}`}>
+                   {goal.icon}
+                </div>
+
+                {/* Title */}
+                <span className={`text-[14px] font-semibold text-center leading-tight transition-colors duration-300 ${isSelected ? 'text-app-primary' : 'text-app-textPrimary'}`}>
+                  {goal.title}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Footer / CTA */}
+      <div className="z-20 mt-4 shrink-0">
+        <button 
+          onClick={onNext}
+          disabled={!selectedId}
+          className={`w-full h-14 font-bold text-[17px] rounded-full transition-all duration-300
+            ${selectedId 
+              ? 'bg-app-primary text-white shadow-lg shadow-app-primary/30 animate-breathe active:scale-95' 
+              : 'bg-app-borderIdle text-app-textSecondary/50 cursor-not-allowed'}
+          `}
+        >
+          Set My Goal
+        </button>
+      </div>
     </div>
   );
 }
