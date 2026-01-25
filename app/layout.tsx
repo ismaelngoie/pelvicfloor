@@ -14,15 +14,13 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent", // Critical for the gradient to go behind battery/wifi
+    statusBarStyle: "black-translucent", // Forces content under the notch
     title: "Pelvic Floor",
   },
 };
 
 export const viewport: Viewport = {
-  // This matches the Dark Plum top of your gradient (#2E1A20)
-  // This makes the battery/wifi area blend in perfectly.
-  themeColor: "#2E1A20",
+  themeColor: "#2E1A20", // EXACT MATCH to top of gradient
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
