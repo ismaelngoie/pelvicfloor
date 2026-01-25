@@ -41,91 +41,96 @@ export default function WelcomeStep() {
     }, []);
 
     return (
-        // Wrapper needs relative to contain content, but background is handled by the fixed div below
-        <div className="relative h-[100dvh] w-full flex flex-col justify-between overflow-hidden font-sans">
-            
-            {/* --- NUCLEAR OPTION BACKGROUND --- */}
-            {/* Fixed position ensures it ignores all margins and fills the screen 100% */}
+        <>
+            {/* --- NUCLEAR BACKGROUND WALL --- */}
+            {/* position: fixed, z-index: -50 ensures it stays behind EVERYTHING and ignores scroll/flex */}
             <div 
-                className="fixed inset-0 w-full h-full pointer-events-none z-[-1]"
+                className="fixed top-0 left-0 w-[100vw] h-[100vh] z-[-50] pointer-events-none"
                 style={{
-                    background: `linear-gradient(180deg, #2E1A20 0%, #E6A8B5 45%, #FFFFFF 80%)`
+                    background: `linear-gradient(180deg, #2E1A20 0%, #E6A8B5 45%, #FFFFFF 80%)`,
+                    backgroundSize: 'cover',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundAttachment: 'fixed'
                 }}
             />
 
-            {/* --- BUTTERFLY LAYER --- */}
-            <div className="butterfly-container">
-                {butterflies.map((b) => (
-                    <div 
-                        key={b.id} 
-                        className="butterfly"
-                        style={{ 
-                            left: b.left,
-                            animationDuration: b.duration, 
-                            animationDelay: b.delay,
-                            transform: `scale(${b.scale})`,
-                            animationName: b.type
-                        }}
-                    />
-                ))}
-            </div>
-
-            {/* --- TOP SECTION --- */}
-            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto px-8 pt-24 z-10">
-                <div className="relative w-24 h-24 mb-6 shadow-2xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
-                    <Image src="/icon.png" alt="Logo" fill className="object-cover" priority />
-                </div>
+            {/* Main Content Container */}
+            <div className="relative h-[100dvh] w-full flex flex-col justify-between overflow-hidden font-sans">
                 
-                <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-3 animate-slide-up tracking-tight shrink-0">
-                    Strength & Confidence<br />
-                    From Your Core Outward.
-                </h1>
-                
-                <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-10 animate-slide-up px-2 shrink-0">
-                    Your personal AI physio-coach for leaks, pain, and confidence.
-                </p>
-
-                <div className="w-full space-y-6 animate-slide-up pl-2 shrink-0">
-                    <BenefitRow 
-                        icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><Activity className="w-4 h-4 text-white" strokeWidth={3} /></div>}
-                        text="A new 5-minute plan, just for you, every day."
-                    />
-                    <BenefitRow 
-                        icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><Play className="w-4 h-4 text-white fill-white" /></div>}
-                        text="300+ physio-approved videos for total wellness."
-                    />
-                    <BenefitRow 
-                        icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><MessageCircle className="w-4 h-4 text-white" strokeWidth={3} /></div>}
-                        text="Chat with your AI Coach, Mia™, 24/7."
-                    />
+                {/* --- BUTTERFLY LAYER --- */}
+                <div className="butterfly-container">
+                    {butterflies.map((b) => (
+                        <div 
+                            key={b.id} 
+                            className="butterfly"
+                            style={{ 
+                                left: b.left,
+                                animationDuration: b.duration, 
+                                animationDelay: b.delay,
+                                transform: `scale(${b.scale})`,
+                                animationName: b.type
+                            }}
+                        />
+                    ))}
                 </div>
-            </div>
 
-            {/* --- BOTTOM SECTION --- */}
-            <div className="z-10 w-full max-w-md mx-auto px-8 pb-12 pt-4">
-                <div className="h-14 flex items-center justify-center relative mb-5">
-                    <div key={reviewIndex} className="absolute w-full text-center transition-all duration-700 animate-fade-in">
-                        <p className="text-[15px] italic text-[#1A1A26] leading-snug font-medium">
-                            “{reviews[reviewIndex].text}”
-                        </p>
-                        <p className="text-[14px] font-bold text-[#737380] mt-1">
-                            – {reviews[reviewIndex].author}
-                        </p>
+                {/* --- TOP SECTION --- */}
+                <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto px-8 pt-24 z-10">
+                    <div className="relative w-24 h-24 mb-6 shadow-2xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
+                        <Image src="/icon.png" alt="Logo" fill className="object-cover" priority />
+                    </div>
+                    
+                    <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-3 animate-slide-up tracking-tight shrink-0">
+                        Strength & Confidence<br />
+                        From Your Core Outward.
+                    </h1>
+                    
+                    <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-12 animate-slide-up px-2 shrink-0">
+                        Your personal AI physio-coach for leaks, pain, and confidence.
+                    </p>
+
+                    <div className="w-full space-y-6 animate-slide-up pl-2 shrink-0">
+                        <BenefitRow 
+                            icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><Activity className="w-4 h-4 text-white" strokeWidth={3} /></div>}
+                            text="A new 5-minute plan, just for you, every day."
+                        />
+                        <BenefitRow 
+                            icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><Play className="w-4 h-4 text-white fill-white" /></div>}
+                            text="300+ physio-approved videos for total wellness."
+                        />
+                        <BenefitRow 
+                            icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><MessageCircle className="w-4 h-4 text-white" strokeWidth={3} /></div>}
+                            text="Chat with your AI Coach, Mia™, 24/7."
+                        />
                     </div>
                 </div>
 
-                <button 
-                    onClick={nextStep} 
-                    className="w-full h-[56px] bg-[#FF2D55] text-white text-[19px] font-bold rounded-[28px] shadow-xl shadow-pink-500/30 breathing-button active:scale-95 transition-transform flex items-center justify-center"
-                >
-                    Start My 5-Min Journey
-                </button>
+                {/* --- BOTTOM SECTION --- */}
+                <div className="z-10 w-full max-w-md mx-auto px-8 pb-10 pt-4">
+                    <div className="h-14 flex items-center justify-center relative mb-5">
+                        <div key={reviewIndex} className="absolute w-full text-center transition-all duration-700 animate-fade-in">
+                            <p className="text-[15px] italic text-[#1A1A26] leading-snug font-medium">
+                                “{reviews[reviewIndex].text}”
+                            </p>
+                            <p className="text-[14px] font-bold text-[#737380] mt-1">
+                                – {reviews[reviewIndex].author}
+                            </p>
+                        </div>
+                    </div>
 
-                <p className="text-center text-[#737380] text-[14px] mt-4">
-                    Join {socialCount.toLocaleString()}+ members finding confidence.
-                </p>
+                    <button 
+                        onClick={nextStep} 
+                        className="w-full h-[56px] bg-[#FF2D55] text-white text-[19px] font-bold rounded-[28px] shadow-xl shadow-pink-500/30 breathing-button active:scale-95 transition-transform flex items-center justify-center"
+                    >
+                        Start My 5-Min Journey
+                    </button>
+
+                    <p className="text-center text-[#737380] text-[14px] mt-4">
+                        Join {socialCount.toLocaleString()}+ members finding confidence.
+                    </p>
+                </div>
             </div>
-        </div>
+        </>
     );
 }
 
