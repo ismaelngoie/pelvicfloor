@@ -4,46 +4,68 @@
 
 :root {
   --foreground-rgb: 26, 26, 38;
-  --background-start-rgb: 250, 249, 250;
-  --background-end-rgb: 255, 255, 255;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom, #FCE7EB 0%, #FAF9FA 50%);
+  background: linear-gradient(to bottom, #FCE7EB 0%, #FAF9FA 40%, #FFFFFF 100%);
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: hidden; /* Stops horizontal scrolling */
 }
 
-/* Butterfly Animation Classes */
+/* --- THE BUTTERFLY ENGINE --- */
+.butterfly-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none; /* Let clicks pass through */
+  z-index: 0;
+}
+
 .butterfly {
   position: absolute;
-  pointer-events: none;
-  z-index: 0;
-  animation: fly 15s linear infinite;
+  opacity: 0;
+  animation-name: fly-up;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
 }
 
-@keyframes fly {
-  0% { transform: translate(0, 100vh) rotate(0deg) scale(0.5); opacity: 0; }
-  20% { opacity: 0.6; }
-  80% { opacity: 0.6; }
-  100% { transform: translate(100px, -100px) rotate(45deg) scale(1); opacity: 0; }
+/* Flight Path 1 (Drifts Right) */
+@keyframes fly-up {
+  0% { transform: translateY(110vh) translateX(0) scale(0.5) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(-10vh) translateX(100px) scale(0.8) rotate(15deg); opacity: 0; }
 }
 
-/* Custom Scrollbar for collection views */
+/* Flight Path 2 (Drifts Left) */
+.fly-left {
+  animation-name: fly-left;
+}
+@keyframes fly-left {
+  0% { transform: translateY(110vh) translateX(0) scale(0.6) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.7; }
+  90% { opacity: 0.7; }
+  100% { transform: translateY(-10vh) translateX(-100px) scale(0.9) rotate(-15deg); opacity: 0; }
+}
+
+/* Breathing Button Effect */
+.breathing-button {
+  animation: breath 3s infinite ease-in-out;
+}
+@keyframes breath {
+  0%, 100% { transform: scale(1); box-shadow: 0 10px 15px -3px rgba(230, 84, 115, 0.3); }
+  50% { transform: scale(1.03); box-shadow: 0 20px 25px -5px rgba(230, 84, 115, 0.5); }
+}
+
+/* Hide Scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
-  -ms-overflow-style: none; 
-  scrollbar-width: none; 
-}
-
-/* Breathing Button Animation */
-.breathing-button {
-  animation: breath 2.5s infinite ease-in-out;
-}
-@keyframes breath {
-  0%, 100% { transform: scale(1); box-shadow: 0 4px 10px rgba(0,0,0,0.25); }
-  50% { transform: scale(1.04); box-shadow: 0 10px 25px rgba(230, 84, 115, 0.4); }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
