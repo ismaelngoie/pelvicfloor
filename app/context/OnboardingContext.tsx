@@ -1,15 +1,12 @@
 "use client";
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-// Define the User Data Structure
 type UserData = {
   name: string;
   age: number;
   weight: number;
   height: number;
   goal: string;
-  healthConditions: string[];
-  activityLevel: string;
 };
 
 type OnboardingContextType = {
@@ -27,9 +24,7 @@ const defaultData: UserData = {
   age: 30,
   weight: 140,
   height: 65,
-  goal: "Build Core Strength", // Default
-  healthConditions: [],
-  activityLevel: "",
+  goal: "Build Core Strength",
 };
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
