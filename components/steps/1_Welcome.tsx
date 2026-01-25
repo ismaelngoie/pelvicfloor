@@ -41,20 +41,20 @@ export default function WelcomeStep() {
     }, []);
 
     return (
-        <div className="relative h-[100dvh] w-full flex flex-col font-sans overflow-hidden">
+        // USE h-[100dvh] to match browser height perfectly.
+        <div className="relative h-[100dvh] w-full flex flex-col justify-between overflow-hidden font-sans">
             
-            {/* --- FIX: FIXED WALLPAPER BACKGROUND --- */}
-            {/* This div sits behind everything and ignores scroll/keyboard */}
-            <div className="bg-welcome-gradient" />
+            {/* --- FIXED BACKGROUND LAYER --- */}
+            <div className="welcome-screen-bg" />
 
             {/* --- BUTTERFLY LAYER --- */}
-            <div className="butterfly-container absolute inset-0 pointer-events-none z-0">
+            <div className="butterfly-container">
                 {butterflies.map((b) => (
                     <div 
                         key={b.id} 
                         className="butterfly"
                         style={{ 
-                            left: b.left, 
+                            left: b.left,
                             animationDuration: b.duration, 
                             animationDelay: b.delay,
                             transform: `scale(${b.scale})`,
@@ -64,26 +64,21 @@ export default function WelcomeStep() {
                 ))}
             </div>
 
-            {/* --- TOP CONTENT --- */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto px-8 z-10">
-                
-                {/* Logo */}
-                <div className="relative w-24 h-24 mb-8 shadow-2xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
+            {/* --- TOP SECTION --- */}
+            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto px-8 pt-24 z-10">
+                <div className="relative w-24 h-24 mb-6 shadow-2xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
                     <Image src="/icon.png" alt="Logo" fill className="object-cover" priority />
                 </div>
                 
-                {/* Headline */}
-                <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-4 animate-slide-up tracking-tight shrink-0 drop-shadow-sm">
+                <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-3 animate-slide-up tracking-tight shrink-0">
                     Strength & Confidence<br />
                     From Your Core Outward.
                 </h1>
                 
-                {/* Subheadline */}
                 <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-12 animate-slide-up px-2 shrink-0">
                     Your personal AI physio-coach for leaks, pain, and confidence.
                 </p>
 
-                {/* Benefits Stack */}
                 <div className="w-full space-y-6 animate-slide-up pl-2 shrink-0">
                     <BenefitRow 
                         icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><Activity className="w-4 h-4 text-white" strokeWidth={3} /></div>}
@@ -100,10 +95,8 @@ export default function WelcomeStep() {
                 </div>
             </div>
 
-            {/* --- BOTTOM CONTENT --- */}
-            <div className="z-10 w-full max-w-md mx-auto px-8 pb-safe-bottom pt-4 mb-4">
-                
-                {/* Review Ticker */}
+            {/* --- BOTTOM SECTION --- */}
+            <div className="z-10 w-full max-w-md mx-auto px-8 pb-12 pt-4">
                 <div className="h-14 flex items-center justify-center relative mb-5">
                     <div key={reviewIndex} className="absolute w-full text-center transition-all duration-700 animate-fade-in">
                         <p className="text-[15px] italic text-[#1A1A26] leading-snug font-medium">
@@ -115,22 +108,13 @@ export default function WelcomeStep() {
                     </div>
                 </div>
 
-                {/* CTA Button */}
-                {/* UPGRADED: Added active:scale-95 and active:bg-[#D64463] for real click feel */}
                 <button 
                     onClick={nextStep} 
-                    className="w-full h-[56px] bg-[#E65473] text-white text-[19px] font-bold rounded-[28px] 
-                               shadow-xl shadow-pink-500/30 
-                               breathing-button 
-                               active:scale-95 active:bg-[#D64463] active:shadow-none
-                               transition-all duration-100 ease-out
-                               flex items-center justify-center
-                               touch-manipulation"
+                    className="w-full h-[56px] bg-[#FF2D55] text-white text-[19px] font-bold rounded-[28px] shadow-xl shadow-pink-500/30 breathing-button active:scale-95 transition-transform flex items-center justify-center"
                 >
                     Start My 5-Min Journey
                 </button>
 
-                {/* Social Proof */}
                 <p className="text-center text-[#737380] text-[14px] mt-4">
                     Join {socialCount.toLocaleString()}+ members finding confidence.
                 </p>
