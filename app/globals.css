@@ -2,91 +2,414 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================
+   GLOBAL BASE
+   ========================= */
+
 :root {
-  --foreground-rgb: 26, 26, 38;
-  --app-pink: #E65473;
+  --foreground-rgb: 26, 26, 38; /* iOS-like dark text */
+  --system-pink: #ff2d55;
 }
 
-/* 1. LOCK THE SCREEN (No Scroll) */
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
-  /* Matches the Swift Gradient: systemPink (0.1 alpha) -> White */
-  background: linear-gradient(to bottom, rgba(230, 84, 115, 0.12) 0%, #FFFFFF 60%, #FFFFFF 100%);
-  height: 100vh;
+  /* Prevent scrolling globally on the welcome screen like iOS */
+  height: 100svh;
   width: 100vw;
-  overflow: hidden; /* This stops the scrolling */
-  touch-action: none; /* Disables drag scrolling on phones */
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Keep your original global background behavior (welcome adds its own overlay too) */
+  background: linear-gradient(to bottom, #fce7eb 0%, #faf9fa 40%, #ffffff 100%);
 }
 
-/* 2. REALISTIC 3D BUTTERFLIES */
-.butterfly-container {
+/* Utility: hide scrollbars (if you use it elsewhere) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* =========================
+   WELCOME SCREEN (PIXEL MATCH iOS)
+   Drop-in styles for WelcomeStep
+   ========================= */
+
+/* Root container */
+.pf-welcome {
+  position: relative;
+  height: 100svh;
+  width: 100%;
+  overflow: hidden; /* no scroll */
+  background: #000; /* helps the subtle pink overlay read like iOS */
+  color: rgb(var(--foreground-rgb));
+  touch-action: none; /* enables pan-like parallax */
+}
+
+/* iOS-style gradient layer:
+   Swift: [systemPink alpha 0.1, white], locations [0.0, 0.5]
+   On web we approximate with a top-heavy fade to white.
+*/
+.pf-welcome::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 45, 85, 0.1) 0%,
+    rgba(255, 45, 85, 0.06) 28%,
+    #ffffff 55%,
+    #ffffff 100%
+  );
+  z-index: 0;
+}
+
+/* =========================
+   BUTTERFLIES (2 layers + respawn)
+   ========================= */
+
+.pf-butterfly-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  transition: transform 500ms ease-out; /* on pan end */
+}
+
+/* behind and front layering like Swift:
+   behind butterflies are inserted at lower z (zPosition 0)
+   front butterflies are above content (zPosition 2-ish)
+*/
+.pf-butterfly-layer-behind {
   z-index: 0;
-  overflow: hidden;
-  perspective: 1000px; /* Gives depth to the wings */
+}
+.pf-butterfly-layer-front {
+  z-index: 3;
 }
 
-.butterfly {
+/* Butterfly itself (static silhouette like UIImageView with tintColor) */
+.pf-butterfly {
   position: absolute;
-  width: 30px; 
-  height: 30px;
-  transform-style: preserve-3d;
-  animation-iteration-count: infinite;
-  animation-timing-function: linear;
+  width: var(--pf-size);
+  height: var(--pf-size);
+
+  background-color: var(--pf-tint);
+  opacity: 0;
+
+  /* Butterfly silhouette mask (so "tintColor" works) */
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 4C8 0 2 2 2 8c0 6 6 8 10 14 4-6 10-8 10-14 0-6-6-8-10-4Z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 4C8 0 2 2 2 8c0 6 6 8 10 14 4-6 10-8 10-14 0-6-6-8-10-4Z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+
+  animation: pf-fly var(--pf-dur) linear forwards;
 }
 
-/* The Wings (Left and Right) */
-.butterfly::before, .butterfly::after {
-  content: "";
+/* Flight matches Swift:
+   start: y = view.height + size, x random [-40..width+40]
+   end:   y = -size, x random [-40..width+40]
+   scale 1.5, small rotate drift, alpha varies
+*/
+@keyframes pf-fly {
+  0% {
+    transform: translate3d(var(--pf-sx), calc(100svh + var(--pf-size)), 0)
+      rotate(var(--pf-rot))
+      scale(1);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--pf-alpha);
+  }
+  90% {
+    opacity: var(--pf-alpha);
+  }
+  100% {
+    transform: translate3d(
+        var(--pf-ex),
+        calc(-1 * var(--pf-size)),
+        0
+      )
+      rotate(calc(var(--pf-rot) + 0.2rad))
+      scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* =========================
+   MAIN STACK (centerY - 60, 32 side padding)
+   ========================= */
+
+.pf-main {
   position: absolute;
-  top: 0;
   left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(calc(-50% - 60px));
+  padding-left: 32px;
+  padding-right: 32px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Logo: height 70 */
+.pf-logo {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.pf-logo-img {
+  object-fit: cover;
+}
+
+/* Headline: size 32, 2 lines, centered */
+.pf-headline {
+  margin-top: 24px; /* setCustomSpacing 24 after logo */
+  font-size: 32px;
+  line-height: 38px;
+  font-weight: 800;
+  text-align: center;
+  color: rgb(var(--foreground-rgb));
+}
+
+/* Subheadline: size 17, secondary */
+.pf-subheadline {
+  margin-top: 12px; /* setCustomSpacing 12 after headline */
+  font-size: 17px;
+  line-height: 22px;
+  text-align: center;
+  color: rgba(26, 26, 38, 0.55);
+}
+
+/* Benefits: leading alignment, spacing 18, icon spacing 14 */
+.pf-benefits {
+  margin-top: 40px; /* setCustomSpacing 40 after subheadline */
   width: 100%;
-  height: 100%;
-  /* High quality butterfly SVG shape */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23E65473' opacity='0.7'%3E%3Cpath d='M12 3c-1.2 0-2.4.6-3 1.2-.6.6-1.8 1.2-2.4 1.2-1.2 0-2.4-1.2-2.4-2.4 0-.6-.6-1.2-1.2-1.2-.6 0-1.2.6-1.2 1.2 0 1.8 1.2 3 2.4 3 .6 0 1.2.6 1.2 1.2 0 .6-.6 1.2-1.2 1.2-1.8 0-3 1.2-3 3 0 .6.6 1.2 1.2 1.2.6 0 1.2-.6 1.2-1.2 0-1.2 1.2-1.8 2.4-1.8.6 0 1.2.6 1.2 1.2 0 1.2-1.2 2.4-2.4 2.4-.6 0-1.2.6-1.2 1.2 0 1.2 1.2 2.4 2.4 2.4 1.8 0 3-1.2 3-2.4 0-.6.6-1.2 1.2-1.2.6 0 1.2.6 1.2 1.2 0 1.2 1.2 2.4 2.4 2.4 1.2 0 2.4-1.2 2.4-2.4 0-.6.6-1.2 1.2-1.2 1.2 0 2.4 1.2 2.4 2.4 0 .6.6 1.2 1.2 1.2.6 0 1.2-.6 1.2-1.2 0-1.8-1.2-3-3-3-.6 0-1.2-.6-1.2-1.2 0-.6.6-1.2 1.2-1.2 1.8 0 3-1.2 3-3 0-.6-.6-1.2-1.2-1.2-.6 0-1.2.6-1.2 1.2 0 1.2-1.2 2.4-2.4 2.4-.6 0-1.2-.6-1.2-1.2 0-1.2-1.2-2.4-2.4-2.4-.6 0-1.2.6-1.8 1.2-.6-.6-1.8-1.2-3-1.2z'/%3E%3C/svg%3E");
-  background-size: contain;
-  background-repeat: no-repeat;
-  animation: flap 0.3s infinite alternate ease-in-out;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: flex-start;
 }
 
-/* Right Wing Settings */
-.butterfly::after {
-  transform-origin: left center;
-  animation-delay: -0.15s; /* Sync offset */
+.pf-benefit {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-/* Left Wing Settings (Mirrored) */
-.butterfly::before {
-  transform-origin: right center;
-  transform: scaleX(-1);
+.pf-icon {
+  width: 28px; /* iOS constraint width 28 */
+  height: 28px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
 }
 
-/* The Flapping Animation */
-@keyframes flap {
-  0% { transform: rotateY(0deg); opacity: 0.9; }
-  100% { transform: rotateY(70deg); opacity: 0.6; }
+.pf-benefit-text {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600; /* medium-ish */
+  color: rgb(var(--foreground-rgb));
 }
 
-/* Floating Path Animation */
-@keyframes float {
-  0% { transform: translate3d(var(--x-start), 110vh, 0) scale(0.6) rotate(0deg); opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translate3d(var(--x-end), -10vh, 0) scale(0.9) rotate(var(--r-end)); opacity: 0; }
+/* =========================
+   BOTTOM STACK (40 side padding, safe bottom + 20)
+   ========================= */
+
+.pf-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-left: 40px;
+  padding-right: 40px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
+  z-index: 4;
 }
 
-/* Breathing Button (Matches iOS opacity/shadow) */
-.breathing-button {
-  animation: breath 3s infinite ease-in-out;
-}
-@keyframes breath {
-  0%, 100% { transform: scale(1); box-shadow: 0 4px 10px rgba(0,0,0,0.25); }
-  50% { transform: scale(1.04); box-shadow: 0 10px 20px rgba(230, 84, 115, 0.4); }
+/* Review container: height 40, clips (NO background card) */
+.pf-review {
+  height: 40px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 40px; /* reviewContainer bottom to CTA top = -40 */
+  text-align: center;
 }
 
-/* Scrollbar hiding (Just in case) */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+/* Current & next label positions mimic Swift constraints:
+   current centerY, next top=container.bottom
+*/
+.pf-review-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  color: rgba(26, 26, 38, 0.8);
+  font-size: 15px; /* Swift italic 15 */
+  line-height: 20px;
+  padding: 0 4px;
+}
+
+.pf-review-next {
+  top: calc(100% + 0px); /* start just below */
+  transform: translateY(0);
+}
+
+.pf-review-quote {
+  font-style: italic;
+}
+
+.pf-review-author {
+  font-weight: 700; /* semi-bold-ish */
+}
+
+/* Slide animation states (up by container height 40) */
+.pf-review-out {
+  transform: translateY(calc(-50% - 40px));
+}
+
+.pf-review-in {
+  transform: translateY(-40px);
+  top: 50%;
+}
+
+/* CTA button: height 56, corner radius 28, iOS shadow */
+.pf-cta {
+  width: 100%;
+  height: 56px;
+  border-radius: 28px;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  background: var(--system-pink);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  outline: none;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  margin-bottom: 16px; /* cta bottom to social top = -16 */
+}
+
+/* Press glow like Swift ctaButtonPressed */
+.pf-cta:active {
+  box-shadow: 0 4px 15px rgba(255, 45, 85, 0.6);
+  transform: scale(0.99);
+}
+
+/* Social proof label */
+.pf-social {
+  font-size: 15px;
+  line-height: 20px;
+  color: rgba(26, 26, 38, 0.55);
+  text-align: center;
+}
+
+/* =========================
+   INTRO ANIMATION (Swift: alpha 0 + translateY 30; stagger)
+   ========================= */
+
+@keyframes pf-riseIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pf-rise {
+  opacity: 0;
+  animation-name: pf-riseIn;
+  animation-duration: 800ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-fill-mode: forwards;
+}
+
+/* delay helpers (match the TS: 0.2, 0.32, 0.44, 0.56, 0.68, 0.80, 0.92) */
+.pf-rise-delay-200 {
+  animation-delay: 200ms;
+}
+.pf-rise-delay-320 {
+  animation-delay: 320ms;
+}
+.pf-rise-delay-440 {
+  animation-delay: 440ms;
+}
+.pf-rise-delay-560 {
+  animation-delay: 560ms;
+}
+.pf-rise-delay-680 {
+  animation-delay: 680ms;
+}
+.pf-rise-delay-800 {
+  animation-delay: 800ms;
+}
+.pf-rise-delay-920 {
+  animation-delay: 920ms;
+}
+
+/* =========================
+   BREATHING CTA (Swift: scale 1.04, duration 2.5, repeat + autoreverse)
+   ========================= */
+
+@keyframes pf-breath {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.pf-breathe {
+  /* start after it appears */
+  animation: pf-breath 2.5s ease-in-out 1.7s infinite alternate;
+}
+
+/* =========================
+   REDUCED MOTION
+   ========================= */
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    overflow: auto;
+  }
+  .pf-butterfly {
+    animation: none !important;
+    opacity: 0.25;
+  }
+  .pf-rise {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .pf-breathe {
+    animation: none !important;
+  }
+  .pf-review-line {
+    transition: none !important;
+  }
+  .pf-butterfly-layer {
+    transition: none !important;
+  }
+}
