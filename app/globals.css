@@ -3,49 +3,69 @@
 @tailwind utilities;
 
 :root {
-  --background: #FAF9FA;
-  --foreground: #1A1A26;
+  /* Exact Colors from ColorExtensions.swift */
+  --app-accent: #E65473;
+  --app-bg: #FAF9FA;
+  --app-text-primary: #1A1A26;
+  --app-text-secondary: #737380;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  /* Prevent scroll bouncing on mobile to feel like a native app */
-  overscroll-behavior: none; 
+  color: var(--app-text-primary);
+  background-color: var(--app-bg);
+  /* iOS Gradient: System Pink (Accent) at 0.1 alpha fading to White at 50% */
+  background: linear-gradient(
+    180deg, 
+    rgba(230, 84, 115, 0.1) 0%, 
+    rgba(255, 255, 255, 1) 50%
+  );
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; 
 }
 
-/* --- BUTTERFLY ANIMATIONS --- */
+/* --- REFINED BUTTERFLY ANIMATION --- */
 .butterfly-container {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0; /* Behind everything */
-  perspective: 1000px;
+  overflow: hidden;
 }
+
+/* Z-Index Layers matching iOS */
+.butterfly-layer-behind { z-index: 0; }
+.butterfly-layer-front { z-index: 20; } /* Above bg, below CTA */
 
 .butterfly {
   position: absolute;
   transform-style: preserve-3d;
-  animation-name: float-path;
-  animation-iteration-count: infinite;
   animation-timing-function: linear;
+  will-change: transform, opacity;
 }
 
-/* Wings */
+/* Wings using SVG mask for exact tinting */
 .butterfly::before, .butterfly::after {
   content: "";
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  /* Using the Pink tint from Swift code */
-  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 4C8 0 2 2 2 8C2 14 8 16 12 22C16 16 22 14 22 8C22 2 16 0 12 4Z' fill='%23E65473' fill-opacity='0.6'/%3E%3C/svg%3E");
-  background-size: contain;
-  background-repeat: no-repeat;
-  transform-origin: center center;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: currentColor; /* Allows setting color via inline style */
+  mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 4C8 0 2 2 2 8C2 14 8 16 12 22C16 16 22 14 22 8C22 2 16 0 12 4Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 4C8 0 2 2 2 8C2 14 8 16 12 22C16 16 22 14 22 8C22 2 16 0 12 4Z' fill='black'/%3E%3C/svg%3E");
+  mask-size: contain;
+  mask-repeat: no-repeat;
   animation: flap 0.2s infinite alternate ease-in-out;
 }
 
-.butterfly::after { transform-origin: left center; animation-delay: -0.1s; opacity: 0.8; }
-.butterfly::before { transform-origin: right center; transform: scaleX(-1); opacity: 0.8; }
+.butterfly::after {
+  transform-origin: left center;
+  animation-delay: -0.1s;
+}
+
+.butterfly::before {
+  transform-origin: right center;
+  transform: scaleX(-1);
+}
 
 @keyframes flap {
   0% { transform: rotateY(0deg); }
@@ -54,28 +74,29 @@ body {
 
 @keyframes float-path {
   0% { transform: translate3d(0, 110vh, 0) scale(0.5) rotate(0deg); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translate3d(50vw, -10vh, 0) scale(0.8) rotate(20deg); opacity: 0; }
+  10% { opacity: var(--bf-opacity); }
+  90% { opacity: var(--bf-opacity); }
+  100% { transform: translate3d(100px, -10vh, 0) scale(0.8) rotate(20deg); opacity: 0; }
 }
 
-/* Swift breathing animation: scale 1.04 */
-.animate-breathe {
-  animation: breathe 2.5s infinite ease-in-out;
+/* --- REVIEW TICKER ANIMATION (Slide Up) --- */
+.ticker-slide-up {
+  animation: slideUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* Spring-like bezier */
 }
 
-@keyframes breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.04); }
+@keyframes slideUp {
+  from { transform: translateY(0); }
+  to { transform: translateY(-100%); }
 }
 
-/* Swift Entrance Animations */
-.animate-enter-up {
-  animation: enterUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  opacity: 0;
-  transform: translateY(30px);
+/* Breathing Button (Matches iOS scale 1.04) */
+.breathing-button {
+  animation: breath 2.5s infinite ease-in-out;
+}
+@keyframes breath {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 10px rgba(0,0,0,0.25); }
+  50% { transform: scale(1.04); box-shadow: 0 4px 15px rgba(230, 84, 115, 0.6); }
 }
 
-@keyframes enterUp {
-  to { opacity: 1; transform: translateY(0); }
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
