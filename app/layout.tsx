@@ -9,6 +9,12 @@ export const metadata: Metadata = {
   description: 'Your personal AI physio-coach.',
   manifest: '/manifest.json',
   icons: { apple: '/icon.png' },
+  // These stop the user from pinching/zooming which breaks the layout
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Pelvic Floor',
+  },
 };
 
 export const viewport: Viewport = {
@@ -16,9 +22,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: 'cover',
-  // THIS IS THE FIX: The color matches the top of the new gradient
-  themeColor: '#2E1A20', 
+  viewportFit: 'cover', // Forces content to go BEHIND the notch
+  themeColor: '#4A2B36', // MATCHES THE DARK TOP GRADIENT
 };
 
 export default function RootLayout({
