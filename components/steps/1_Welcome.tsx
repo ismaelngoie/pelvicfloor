@@ -41,11 +41,17 @@ export default function WelcomeStep() {
     }, []);
 
     return (
-        // USE h-[100dvh] to match browser height perfectly.
+        // Wrapper needs relative to contain content, but background is handled by the fixed div below
         <div className="relative h-[100dvh] w-full flex flex-col justify-between overflow-hidden font-sans">
             
-            {/* --- FIXED BACKGROUND LAYER --- */}
-            <div className="welcome-screen-bg" />
+            {/* --- NUCLEAR OPTION BACKGROUND --- */}
+            {/* Fixed position ensures it ignores all margins and fills the screen 100% */}
+            <div 
+                className="fixed inset-0 w-full h-full pointer-events-none z-[-1]"
+                style={{
+                    background: `linear-gradient(180deg, #2E1A20 0%, #E6A8B5 45%, #FFFFFF 80%)`
+                }}
+            />
 
             {/* --- BUTTERFLY LAYER --- */}
             <div className="butterfly-container">
@@ -75,7 +81,7 @@ export default function WelcomeStep() {
                     From Your Core Outward.
                 </h1>
                 
-                <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-12 animate-slide-up px-2 shrink-0">
+                <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-10 animate-slide-up px-2 shrink-0">
                     Your personal AI physio-coach for leaks, pain, and confidence.
                 </p>
 
