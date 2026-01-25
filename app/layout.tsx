@@ -1,41 +1,22 @@
-import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { UserDataProvider } from "@/context/UserDataContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "Pelvic Floor Coach",
-  description: "Your personal AI physio-coach.",
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Pelvic Floor",
-  },
+export const metadata = {
+  title: "Pelvic Floor & Core Coach",
+  description: "Strength & Confidence From Your Core Outward.",
 };
 
-export const viewport: Viewport = {
-  themeColor: "#FFF0F3", // Matches the top pink tint
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <UserDataProvider>
+          {children}
+        </UserDataProvider>
+      </body>
     </html>
   );
 }
