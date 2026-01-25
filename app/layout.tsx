@@ -11,15 +11,14 @@ export const metadata: Metadata = {
   icons: { apple: '/icon.png' },
 };
 
-// THIS IS THE FIX FOR THE WHITE BAR:
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  // "cover" tells iOS to extend the background color under the status bar (battery/wifi)
   viewportFit: 'cover',
-  themeColor: '#FCE7EB', // Matches your top gradient color
+  // THIS IS THE FIX: The color matches the top of the new gradient
+  themeColor: '#2E1A20', 
 };
 
 export default function RootLayout({
