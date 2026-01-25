@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 26, 26, 38; /* appTextPrimary */
-  --background-rgb: 250, 249, 250; /* appBackground */
+  --foreground-rgb: 26, 26, 38;
+  --background-rgb: 250, 249, 250;
 }
 
 body {
@@ -12,14 +12,22 @@ body {
   background: rgb(var(--background-rgb));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden; /* Prevent scroll bounce from animations */
+  overflow-x: hidden;
 }
 
-/* Hide scrollbar for cleaner UI in lists */
+/* Utilities */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Text Gradients for premium feel */
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(135deg, #E65473 0%, #C23A5B 100%);
 }
