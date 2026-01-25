@@ -50,7 +50,7 @@ const ChatBubble = ({ text, isTyping }) => (
   <div className="flex items-end gap-3 mb-6 animate-fade-in-up">
     {/* Avatar */}
     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0">
-       <img src="/coachMiaAvatar.png" alt="Mia" className="w-full h-full object-cover" />
+       <img src="/CoachMiaAvatar.jpg" alt="Mia" className="w-full h-full object-cover" />
     </div>
     
     {/* Bubble */}
