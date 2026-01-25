@@ -25,7 +25,7 @@ export default function WelcomeStep() {
             duration: `${12 + Math.random() * 18}s`,
             delay: `${Math.random() * -20}s`,
             scale: 0.6 + Math.random() * 0.4,
-            type: Math.random() > 0.5 ? 'fly-left' : ''
+            type: Math.random() > 0.5 ? 'fly-left' : 'fly-up'
         }));
         setButterflies(b);
     }, []);
@@ -41,8 +41,9 @@ export default function WelcomeStep() {
     }, []);
 
     return (
-        // Main Container: Locked to screen
-        <div className="relative h-screen w-full flex flex-col justify-between overflow-hidden font-sans">
+        // Added 'bg-welcome-gradient' here ONLY. 
+        // Other screens will default to the white background in globals.css
+        <div className="relative h-screen w-full flex flex-col justify-between overflow-hidden font-sans bg-welcome-gradient">
             
             {/* --- BUTTERFLY LAYER --- */}
             <div className="butterfly-container">
@@ -55,35 +56,33 @@ export default function WelcomeStep() {
                             animationDuration: b.duration, 
                             animationDelay: b.delay,
                             transform: `scale(${b.scale})`,
-                            animationName: b.type === 'fly-left' ? 'fly-left' : 'fly-up'
+                            animationName: b.type
                         }}
                     />
                 ))}
             </div>
 
             {/* --- TOP SECTION --- */}
-            {/* pt-32 pushes content well below the Dynamic Island / Notch */}
-            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto px-8 pt-10 z-10">
+            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto px-8 pt-24 z-10">
                 
                 {/* Logo */}
                 <div className="relative w-24 h-24 mb-6 shadow-2xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
                     <Image src="/icon.png" alt="Logo" fill className="object-cover" priority />
                 </div>
                 
-                {/* Headline - Dark, almost black color */}
+                {/* Headline - Dark color matches screenshot text */}
                 <h1 className="text-[34px] leading-tight font-extrabold text-[#1A1A26] text-center mb-3 animate-slide-up tracking-tight shrink-0">
                     Strength & Confidence<br />
                     From Your Core Outward.
                 </h1>
                 
-                {/* Subheadline - Gray */}
-                <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-12 animate-slide-up px-2 shrink-0">
+                {/* Subheadline */}
+                <p className="text-[17px] text-[#737380] text-center leading-relaxed mb-10 animate-slide-up px-2 shrink-0">
                     Your personal AI physio-coach for leaks, pain, and confidence.
                 </p>
 
                 {/* Benefits Stack */}
                 <div className="w-full space-y-6 animate-slide-up pl-2 shrink-0">
-                    {/* The icons here use 'fill' to look like solid circles as in the screenshot */}
                     <BenefitRow 
                         icon={<div className="w-7 h-7 rounded-full bg-[#E65473] flex items-center justify-center"><Activity className="w-4 h-4 text-white" strokeWidth={3} /></div>}
                         text="A new 5-minute plan, just for you, every day."
@@ -100,7 +99,7 @@ export default function WelcomeStep() {
             </div>
 
             {/* --- BOTTOM SECTION --- */}
-            <div className="z-10 w-full max-w-md mx-auto px-8 pb-12 pt-4">
+            <div className="z-10 w-full max-w-md mx-auto px-8 pb-10 pt-4">
                 
                 {/* Review Ticker */}
                 <div className="h-14 flex items-center justify-center relative mb-5">
@@ -114,7 +113,7 @@ export default function WelcomeStep() {
                     </div>
                 </div>
 
-                {/* CTA Button - Matches the vivid Red/Pink from screenshot */}
+                {/* CTA Button */}
                 <button 
                     onClick={nextStep} 
                     className="w-full h-[56px] bg-[#FF2D55] text-white text-[19px] font-bold rounded-[28px] shadow-xl shadow-pink-500/30 breathing-button active:scale-95 transition-transform flex items-center justify-center"
@@ -122,7 +121,7 @@ export default function WelcomeStep() {
                     Start My 5-Min Journey
                 </button>
 
-                {/* Social Proof Label */}
+                {/* Social Proof */}
                 <p className="text-center text-[#737380] text-[14px] mt-4">
                     Join {socialCount.toLocaleString()}+ members finding confidence.
                 </p>
