@@ -7,15 +7,22 @@
   --background-rgb: 250, 249, 250;
 }
 
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* Stops the body from scrolling */
+  overscroll-behavior: none; /* Stops the "rubber band" bounce on iOS */
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-rgb));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
 
-/* Utilities */
+/* Hide scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -24,7 +31,10 @@ body {
   scrollbar-width: none;
 }
 
-/* Text Gradients for premium feel */
+.animate-draw-line {
+  animation: drawLine 1.5s ease-out forwards;
+}
+
 .text-gradient {
   background-clip: text;
   -webkit-background-clip: text;
