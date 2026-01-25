@@ -7,21 +7,22 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata = {
   title: "Pelvic Floor & Core Coach",
   description: "Strength & Confidence From Your Core Outward.",
-  // FIX 1: 'viewport-fit=cover' tells iOS Safari to extend content underneath the Notch/Dynamic Island and Home Indicator.
+  manifest: "/manifest.json", // <--- TELLS DEVICES IT IS A PWA
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover",
-  // FIX 2: These settings help it look like an app when saved to home screen
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: "black-translucent",
+    title: "Pelvic Coach",
+  },
+  // This forces the "Add to Home Screen" icon to look right on iOS
+  icons: {
+    apple: "/logo.png",
   },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      {/* FIX 3: 'fixed inset-0' locks the body to the screen edges, ignoring browser bars. 
-         'h-[100dvh]' handles the height dynamic.
-      */}
       <body className={`${inter.className} bg-black sm:bg-gray-100 flex flex-col sm:justify-center sm:items-center fixed inset-0 w-full h-[100dvh]`}>
         
         {/* THE FRAME CONTAINER:
