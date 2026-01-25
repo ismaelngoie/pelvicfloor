@@ -3,7 +3,9 @@ import React, { useState } from 'react';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import SelectGoalScreen from '@/components/SelectGoalScreen';
 import HowItHelpsScreen from '@/components/HowItHelpsScreen';
-import PersonalIntakeScreen from '@/components/PersonalIntakeScreen'; // <--- NEW IMPORT
+import PersonalIntakeScreen from '@/components/PersonalIntakeScreen';
+import PlanRevealScreen from '@/components/PlanRevealScreen';
+import PaywallScreen from '@/components/PaywallScreen'; // <--- NEW IMPORT
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState('welcome');
@@ -13,8 +15,8 @@ export default function Home() {
   };
 
   return (
-    // h-[100dvh] is CRITICAL for mobile browsers
-    <main className="w-full h-[100dvh] overflow-hidden bg-app-background">
+    // h-[100dvh] is crucial for mobile browsers to handle address bars correctly
+    <main className="w-full h-[100dvh] overflow-hidden bg-app-background flex flex-col">
       
       {currentStep === 'welcome' && (
         <WelcomeScreen onNext={() => handleNext('select_goal')} />
@@ -33,9 +35,11 @@ export default function Home() {
       )}
 
       {currentStep === 'plan_reveal' && (
-        <div className="w-full h-full flex items-center justify-center text-app-textPrimary font-bold animate-fade-in">
-          Plan Reveal Screen (Coming Next)
-        </div>
+        <PlanRevealScreen onNext={() => handleNext('paywall')} />
+      )}
+
+      {currentStep === 'paywall' && (
+        <PaywallScreen />
       )}
 
     </main>
