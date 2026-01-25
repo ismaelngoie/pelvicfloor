@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // This allows us to use images from other domains if needed later
+  output: 'export', // <--- This fixes the "out" directory error
   images: {
-    domains: [],
+    unoptimized: true, // <--- This allows images to show up without a Node server
   },
 }
 
