@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 
-// --- DATA: Mia's Logic (Exact copy from your Swift code) ---
-const miaLogic = {
+// --- A. DATA: Exact Copy from Swift MiaCopyProvider ---
+const MIA_COPY = {
   "Prepare for Pregnancy": {
     ack: "Beautiful choice, {name}. We will gently prepare your pelvic floor and core so you feel supported every step of pregnancy.",
     age: "At {age}, we focus on calm breath, steady endurance, and safe strength so your body feels ready and held.",
@@ -28,93 +28,115 @@ const miaLogic = {
     weight: "Thank you. I will scale impact and pressure so you stay dry while you move.",
     height: "Noted. Your height guides setup so alignment and breath cues land perfectly."
   },
-  "default": {
+  "Ease Pelvic Pain": {
+    ack: "I am with you, {name}. We will release what is tight and strengthen what supports, gently and steadily.",
+    age: "At {age}, we favor calming patterns and gradual load so relief lasts beyond the session.",
+    weight: "Thanks. I will choose positions that lower strain and invite real ease.",
+    height: "Got it. Your height helps me fine tune angles so sitting, standing, and walking feel softer."
+  },
+  "Improve Intimacy": {
+    ack: "Let’s make this feel good again, {name}. We will build comfort, confidence, and sensation at your pace.",
+    age: "At {age}, I balance relaxation and activation to support arousal and more reliable orgasms.",
+    weight: "Thank you. I will set intensities that build tone without bracing for better blood flow and sensation.",
+    height: "Noted. I will cue supportive positions and angles so comfort stays high and climax is not cut short by tension."
+  },
+  "Support My Fitness": {
+    ack: "Nice, {name}. We will turn your core into a quiet engine that powers every workout.",
+    age: "At {age}, we pair stability with power so lifts and cardio feel solid and repeatable.",
+    weight: "Thanks. I will set loads and tempos that build performance without extra fatigue.",
+    height: "Great. Your height lets me tune stance and range so reps feel clean and strong."
+  },
+  "Boost Stability": { 
     ack: "Excellent, {name}. We will stack you tall and steady so your body feels organized again.",
     age: "At {age}, we train deep core timing and endurance for all day support, not just during workouts.",
     weight: "Thank you. I will set progressions that protect your back while strength builds.",
     height: "Noted. Your height guides stance and reach so alignment clicks quickly and stays with you."
+  },
+  // Fallback
+  "default": {
+    ack: "Excellent choice, {name}. We will stack you tall and steady.",
+    age: "At {age}, we train deep core timing for all-day support.",
+    weight: "Thank you. I will set progressions that protect your back.",
+    height: "Noted. Your height guides stance so alignment clicks quickly."
   }
 };
 
-// --- COMPONENT: Typing Indicator ---
+// --- B. HELPER: Typing Indicator ---
 const TypingIndicator = () => (
-  <div className="flex space-x-1 p-2">
+  <div className="flex space-x-1.5 p-1">
     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
   </div>
 );
 
-// --- COMPONENT: Chat Bubble ---
-const ChatBubble = ({ text, isTyping }) => (
-  <div className="flex items-end gap-3 mb-6 animate-fade-in-up">
-    {/* Avatar */}
-    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0">
-       <img src="/CoachMiaAvatar.jpg" alt="Mia" className="w-full h-full object-cover" />
-    </div>
+// --- C. COMPONENT: Chat Bubble ---
+const ChatBubble = ({ text, isTyping, isUser }) => (
+  <div className={`flex w-full mb-6 animate-fade-in-up ${isUser ? 'justify-end' : 'justify-start'}`}>
+    {!isUser && (
+      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 mr-3 mt-auto">
+         <img src="/coachMiaAvatar.png" alt="Mia" className="w-full h-full object-cover" />
+      </div>
+    )}
     
-    {/* Bubble */}
-    <div className="bg-white px-5 py-3 rounded-2xl rounded-bl-none shadow-sm border border-app-borderIdle max-w-[85%]">
-      {isTyping ? (
-        <TypingIndicator />
-      ) : (
-        <p className="text-[16px] text-app-textPrimary leading-relaxed">
-          {text}
-        </p>
-      )}
+    <div className={`px-5 py-3.5 shadow-sm max-w-[85%] text-[16px] leading-relaxed font-medium
+      ${isUser 
+        ? 'bg-app-primary text-white rounded-2xl rounded-br-none' 
+        : 'bg-white border border-app-borderIdle text-app-textPrimary rounded-2xl rounded-bl-none'}
+    `}>
+      {isTyping ? <TypingIndicator /> : text}
     </div>
   </div>
 );
 
-// --- COMPONENT: Wheel Picker (The "Million Dollar" Input) ---
-const WheelPicker = ({ range, value, onChange, unit }) => {
+// --- D. COMPONENT: Million Dollar Wheel Picker ---
+const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
   const scrollerRef = useRef(null);
-  const ITEM_HEIGHT = 50; // Height of each number in px
+  const ITEM_HEIGHT = 54; // Height of each number in px
 
-  // Handle Scroll Snap Logic
   const handleScroll = () => {
     if (!scrollerRef.current) return;
     const scrollY = scrollerRef.current.scrollTop;
-    const index = Math.round(scrollY / ITEM_HEIGHT);
-    const newValue = range[index];
+    const centerIndex = Math.round(scrollY / ITEM_HEIGHT);
+    const newValue = range[centerIndex];
     
-    if (newValue && newValue !== value) {
+    if (newValue !== undefined && newValue !== value) {
       onChange(newValue);
     }
   };
 
-  // Initial Scroll Position
+  // Initial Scroll
   useEffect(() => {
     if (scrollerRef.current) {
       const index = range.indexOf(value);
       if (index !== -1) {
-        scrollerRef.current.scrollTop = index * ITEM_HEIGHT;
+        scrollerRef.current.scrollTo({ top: index * ITEM_HEIGHT, behavior: 'auto' });
       }
     }
-  }, []); // Run once on mount
+  }, []);
 
   return (
-    <div className="relative h-[250px] w-full max-w-[300px] mx-auto overflow-hidden mt-4">
-      {/* Selection Highlight (Center Bar) */}
-      <div className="absolute top-1/2 left-0 w-full h-[50px] -translate-y-1/2 border-t-2 border-b-2 border-app-primary/20 bg-app-primary/5 pointer-events-none z-10" />
+    <div className="relative h-[220px] w-full max-w-[320px] mx-auto overflow-hidden mt-2">
+      {/* Selection Highlight */}
+      <div className="absolute top-1/2 left-0 w-full h-[54px] -translate-y-1/2 border-t-2 border-b-2 border-app-primary/10 bg-app-primary/5 pointer-events-none z-10" />
       
-      {/* Gradient Masks */}
-      <div className="absolute top-0 left-0 w-full h-[80px] bg-gradient-to-b from-app-background to-transparent z-20 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-[80px] bg-gradient-to-t from-app-background to-transparent z-20 pointer-events-none" />
+      {/* Gradients */}
+      <div className="absolute top-0 left-0 w-full h-[80px] bg-gradient-to-b from-white via-white/90 to-transparent z-20 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-[80px] bg-gradient-to-t from-white via-white/90 to-transparent z-20 pointer-events-none" />
 
-      {/* Scrollable List */}
       <div 
         ref={scrollerRef}
         onScroll={handleScroll}
-        className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar py-[100px]" // Padding creates empty space top/bottom
+        className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar py-[83px]"
       >
         {range.map((num) => (
           <div 
             key={num} 
-            className={`h-[50px] flex items-center justify-center snap-center transition-all duration-200 ${num === value ? 'scale-125 font-bold text-app-primary' : 'scale-100 text-app-textSecondary/40'}`}
+            className={`h-[54px] flex items-center justify-center snap-center transition-all duration-200 
+              ${num === value ? 'scale-110 font-bold text-app-primary text-2xl' : 'scale-90 text-app-textSecondary/40 text-xl'}`}
           >
-            <span className="text-3xl">{num}</span>
-            {unit && <span className="text-sm ml-1 mt-2 font-medium">{unit}</span>}
+            {formatLabel ? formatLabel(num) : num}
+            {unit && <span className="text-sm ml-1.5 mt-1 font-medium text-app-textSecondary/60">{unit}</span>}
           </div>
         ))}
       </div>
@@ -122,74 +144,103 @@ const WheelPicker = ({ range, value, onChange, unit }) => {
   );
 };
 
-// --- MAIN SCREEN ---
+// --- E. MAIN SCREEN ---
 export default function PersonalIntakeScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
   const [step, setStep] = useState('name'); 
   const [isTyping, setIsTyping] = useState(false);
-  const [history, setHistory] = useState([]); // Stores chat history
+  const [history, setHistory] = useState([]); 
+  const chatBottomRef = useRef(null);
   
-  // Input States
+  // Data
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
   const [weight, setWeight] = useState(140);
-  const [height, setHeight] = useState(65);
+  const [height, setHeight] = useState(65); // Stored as inches
 
   // Logic Lookup
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  const copy = miaLogic[goalTitle] || miaLogic["default"];
+  // Robust fallback logic
+  const copy = MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
-  // --- Helper: Add Message to History with Delay ---
-  const addMessage = (text, delay = 800) => {
-    setIsTyping(true);
+  // Helper: Auto Scroll
+  const scrollToBottom = () => {
     setTimeout(() => {
-      setIsTyping(false);
-      setHistory(prev => [...prev, { text, sender: 'mia' }]);
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
+
+  // Helper: Add Message
+  const addMessage = (text, sender, delay = 0) => {
+    if (sender === 'mia') setIsTyping(true);
+    
+    setTimeout(() => {
+      if (sender === 'mia') setIsTyping(false);
+      setHistory(prev => [...prev, { text, sender }]);
+      scrollToBottom();
     }, delay);
   };
 
-  // --- Initial Load ---
+  // Initial Greeting
   useEffect(() => {
-    addMessage("Hi there! I'm Coach Mia. What should I call you?", 500);
+    addMessage("Hi there! I'm Coach Mia, your personal physio-coach. What should I call you?", 'mia', 600);
   }, []);
 
   // --- Step Handlers ---
   const handleNext = () => {
+    if (isTyping) return; // Prevent double taps
+
+    // 1. NAME STEP
     if (step === 'name') {
       if (name.length < 2) return;
       saveUserData('name', name);
-      setHistory(prev => [...prev, { text: name, sender: 'user' }]); // Add user bubble
+      addMessage(name, 'user'); // Show user reply immediately
       
       const nextText = copy.ack.replace("{name}", name) + " To start, what's your age?";
-      addMessage(nextText, 1200);
+      addMessage(nextText, 'mia', 1000); // Mia thinks for 1s
       setStep('age');
     } 
+    // 2. AGE STEP
     else if (step === 'age') {
       saveUserData('age', age);
+      addMessage(`${age}`, 'user');
+      
       const nextText = copy.age.replace("{age}", age) + " Now, what's your current weight?";
-      addMessage(nextText, 1200);
+      addMessage(nextText, 'mia', 1000);
       setStep('weight');
     } 
+    // 3. WEIGHT STEP
     else if (step === 'weight') {
       saveUserData('weight', weight);
+      addMessage(`${weight} lbs`, 'user');
+      
       const nextText = copy.weight + " And what's your height?";
-      addMessage(nextText, 1200);
+      addMessage(nextText, 'mia', 1200);
       setStep('height');
     } 
+    // 4. HEIGHT STEP (Final)
     else if (step === 'height') {
       saveUserData('height', height);
-      onNext();
+      // Format height for chat bubble (5'5")
+      const feet = Math.floor(height / 12);
+      const inches = height % 12;
+      addMessage(`${feet}'${inches}"`, 'user');
+      
+      // Short delay before transition
+      setTimeout(() => {
+        onNext();
+      }, 800);
     }
   };
 
-  // --- Render Input Area Based on Step ---
+  // --- Render Input ---
   const renderInput = () => {
-    if (isTyping) return null; // Hide inputs while Mia is typing
+    if (isTyping) return <div className="h-[220px] flex items-center justify-center text-app-textSecondary/50 text-sm animate-pulse">Mia is thinking...</div>;
 
     switch (step) {
       case 'name':
         return (
-          <div className="w-full animate-slide-up">
+          <div className="w-full animate-slide-up py-10">
             <input 
               type="text" 
               value={name}
@@ -202,11 +253,19 @@ export default function PersonalIntakeScreen({ onNext }) {
           </div>
         );
       case 'age':
-        return <WheelPicker range={Array.from({length: 80}, (_, i) => i + 16)} value={age} onChange={setAge} unit="yrs" />;
+        return <WheelPicker range={Array.from({length: 80}, (_, i) => i + 16)} value={age} onChange={setAge} unit="years old" />;
       case 'weight':
         return <WheelPicker range={Array.from({length: 300}, (_, i) => i + 80)} value={weight} onChange={setWeight} unit="lbs" />;
       case 'height':
-        return <WheelPicker range={Array.from({length: 40}, (_, i) => i + 48)} value={height} onChange={setHeight} unit="in" />;
+        return (
+          <WheelPicker 
+            range={Array.from({length: 40}, (_, i) => i + 48)} 
+            value={height} 
+            onChange={setHeight} 
+            // Fix: Show 5'5" format
+            formatLabel={(val) => `${Math.floor(val / 12)}'${val % 12}"`}
+          />
+        );
       default:
         return null;
     }
@@ -218,28 +277,21 @@ export default function PersonalIntakeScreen({ onNext }) {
       {/* 1. Chat History Area */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
         {history.map((msg, index) => (
-          msg.sender === 'mia' ? (
-            <ChatBubble key={index} text={msg.text} isTyping={false} />
-          ) : (
-            // User Bubble
-            <div key={index} className="self-end bg-app-primary text-white px-5 py-3 rounded-2xl rounded-br-none shadow-sm mb-6 max-w-[80%] animate-fade-in-up">
-              {msg.text}
-            </div>
-          )
+          <ChatBubble key={index} text={msg.text} isTyping={false} isUser={msg.sender === 'user'} />
         ))}
         
-        {/* Active Typing Indicator Bubble */}
-        {isTyping && <ChatBubble text="" isTyping={true} />}
+        {/* Active Typing Indicator */}
+        {isTyping && <ChatBubble isTyping={true} isUser={false} />}
         
-        {/* Spacer to push content up */}
-        <div className="h-4" />
+        {/* Invisible spacer to scroll to */}
+        <div ref={chatBottomRef} className="h-4" />
       </div>
 
       {/* 2. Input Area (Fixed Bottom) */}
-      <div className="w-full bg-white rounded-t-[30px] shadow-[0_-5px_30px_rgba(0,0,0,0.05)] p-6 pb-8 transition-all duration-500 ease-in-out z-20">
+      <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20">
         
-        {/* Dynamic Input Component */}
-        <div className="mb-6 min-h-[100px] flex items-center justify-center">
+        {/* Input Component */}
+        <div className="mb-6">
           {renderInput()}
         </div>
 
@@ -247,13 +299,13 @@ export default function PersonalIntakeScreen({ onNext }) {
         <button 
           onClick={handleNext}
           disabled={isTyping || (step === 'name' && name.length < 2)}
-          className={`w-full h-14 font-bold text-lg rounded-full shadow-lg transition-all duration-300
+          className={`w-full h-14 font-bold text-lg rounded-full shadow-xl transition-all duration-300
             ${isTyping || (step === 'name' && name.length < 2)
-              ? 'bg-app-borderIdle text-app-textSecondary cursor-not-allowed opacity-50' 
-              : 'bg-app-primary text-white shadow-app-primary/30 active:scale-95 animate-pulse-slow'}
+              ? 'bg-app-borderIdle text-app-textSecondary cursor-not-allowed opacity-50 shadow-none' 
+              : 'bg-app-primary text-white shadow-app-primary/30 active:scale-95 animate-breathe'}
           `}
         >
-          {step === 'height' ? 'Generate Plan' : 'Continue'}
+          {step === 'height' ? 'Continue' : 'Next'}
         </button>
       </div>
 
