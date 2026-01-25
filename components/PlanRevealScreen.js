@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 import { 
-  Check, Circle, HeartHandshake, Baby, Droplets, User, 
-  Activity, Sparkles, Lock, ChevronRight, X
+  Check, HeartHandshake, Baby, Droplets, User, 
+  Activity, Sparkles, Lock
 } from 'lucide-react';
 
 // --- DATA: Options ---
@@ -23,7 +23,6 @@ const ACTIVITIES = [
 // --- HELPER: Analysis Copy (Swift Logic) ---
 const getPersonalizedCopy = (goal, name) => {
   const safeName = name || "there";
-  // Logic from Swift 'personalizingCopy'
   const map = {
     "Improve Intimacy": {
       title: `Designing your intimacy plan, ${safeName}`,
@@ -249,12 +248,16 @@ export default function PlanRevealScreen({ onNext }) {
                   <button
                     key={c.id}
                     onClick={() => toggleCondition(c.id)}
-                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-[1.5px] transition-all duration-200 active:scale-95 h-28
-                      ${active ? 'border-app-primary bg-white shadow-md' : 'border-app-borderIdle bg-white'}`}
+                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-[1.5px] transition-all duration-200 active:scale-95 h-28 outline-none
+                      ${active ? 'border-app-primary bg-white shadow-md z-10' : 'border-app-borderIdle bg-white'}`}
                   >
                     <div className={`mb-2 ${active ? 'text-app-primary' : 'text-app-textPrimary'}`}>{c.icon}</div>
                     <span className="text-[13px] font-bold text-center leading-tight">{c.title}</span>
-                    {active && <div className="absolute top-2 right-2 text-app-primary"><CheckCircleIcon size={18} /></div>}
+                    {active && (
+                      <div className="absolute top-2 right-2 text-app-primary">
+                        <CheckCircleIcon size={18} />
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -263,7 +266,7 @@ export default function PlanRevealScreen({ onNext }) {
             {/* None Button */}
             <button 
               onClick={toggleNone}
-              className={`w-full py-3 rounded-full border-[1.5px] font-medium text-[15px] mb-8 transition-colors
+              className={`w-full py-3 rounded-full border-[1.5px] font-medium text-[15px] mb-8 transition-colors outline-none
                 ${isNone ? 'border-app-primary text-app-primary bg-app-primary/5' : 'border-app-borderIdle text-app-textSecondary bg-white'}`}
             >
               None of the above
@@ -278,7 +281,7 @@ export default function PlanRevealScreen({ onNext }) {
                   <button
                     key={a.id}
                     onClick={() => setActivity(a.id)}
-                    className={`w-full py-3.5 px-5 rounded-xl border-[1.5px] text-left flex items-center justify-between transition-all duration-200 active:scale-95
+                    className={`w-full py-3.5 px-5 rounded-xl border-[1.5px] text-left flex items-center justify-between transition-all duration-200 active:scale-95 outline-none
                       ${active ? 'border-app-primary bg-white shadow-sm' : 'border-app-borderIdle bg-white'}`}
                   >
                     <span className={`font-semibold ${active ? 'text-app-primary' : 'text-app-textPrimary'}`}>
@@ -297,8 +300,8 @@ export default function PlanRevealScreen({ onNext }) {
               )}
             </div>
             
-            {/* Spacer for button visibility on scroll */}
-            <div className="h-24"></div>
+            {/* Spacer for button visibility on scroll - CRITICAL */}
+            <div className="h-24 w-full"></div>
           </div>
 
           {/* Sticky Footer Button */}
@@ -308,8 +311,8 @@ export default function PlanRevealScreen({ onNext }) {
               disabled={(!isNone && selectedConditions.length === 0) || !activity}
               className={`w-full h-14 font-bold text-lg rounded-full transition-all duration-300 shadow-lg
                 ${((isNone || selectedConditions.length > 0) && activity)
-                  ? 'bg-app-primary text-white animate-breathe' 
-                  : 'bg-app-borderIdle text-app-textSecondary/50 cursor-not-allowed'}
+                  ? 'bg-app-primary text-white animate-breathe shadow-app-primary/30' 
+                  : 'bg-app-borderIdle text-app-textSecondary/50 cursor-not-allowed shadow-none'}
               `}
             >
               {healthText.cta}
@@ -339,15 +342,15 @@ export default function PlanRevealScreen({ onNext }) {
 
           {/* Text */}
           <h2 className="text-2xl font-bold text-center mb-2 leading-tight animate-slide-up">
-            {analysisCopy.title}
+            {copy.title}
           </h2>
           <p className="text-center text-white/60 text-[15px] mb-8 animate-slide-up">
-            {analysisCopy.subtitle}
+            {copy.subtitle}
           </p>
 
           {/* Checklist */}
           <div className="w-full max-w-xs space-y-4 mb-auto">
-            {analysisCopy.checklist.map((item, idx) => (
+            {copy.checklist.map((item, idx) => (
               <div 
                 key={idx} 
                 className={`flex items-center gap-4 transition-all duration-500
