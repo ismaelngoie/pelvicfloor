@@ -14,13 +14,13 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent", // Forces content under the notch
+    statusBarStyle: "default", // Black text for light background
     title: "Pelvic Floor",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2E1A20", // EXACT MATCH to top of gradient
+  themeColor: "#FFF0F3", // Matches the very top pink tint
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
