@@ -8,25 +8,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Mapped from ColorExtensions.swift
         app: {
-          primary: '#E65473', // "Rose" accent
-          background: '#FAF9FA', // Off-white background
-          textPrimary: '#1A1A26', // Dark gray
-          textSecondary: '#737380', // Light gray
+          primary: '#E65473', // Your "SystemPink" / Rose Accent
+          background: '#FAF9FA', // Your "AppBackground"
+          textPrimary: '#1A1A26', // Your "AppTextPrimary"
+          textSecondary: '#737380', // Your "AppTextSecondary"
           surface: '#FFFFFF',
           borderIdle: '#EBEBF0',
-          positive: '#33B373', // Green
+          positive: '#33B373',
         }
-      },
-      fontFamily: {
-        sans: ['Inter', 'sans-serif'], // Standard high-end web font
       },
       animation: {
         'float': 'float 15s ease-in-out infinite',
         'breathe': 'breathe 2.5s ease-in-out infinite',
         'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        'fade-in-up': 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'fade-in': 'fadeIn 0.5s ease-out forwards',
+        'draw-line': 'drawLine 0.8s ease-out forwards',
+        'pop-in': 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
       },
       keyframes: {
         float: {
@@ -41,9 +39,17 @@ module.exports = {
           '0%': { transform: 'translateY(100%)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
-        fadeInUp: {
-          '0%': { transform: 'translateY(30px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        drawLine: {
+          '0%': { strokeDashoffset: '100' },
+          '100%': { strokeDashoffset: '0' },
+        },
+        popIn: {
+          '0%': { opacity: '0', transform: 'scale(0.5)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         }
       }
     },
