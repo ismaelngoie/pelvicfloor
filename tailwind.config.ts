@@ -1,6 +1,5 @@
-import type { Config } from "tailwindcss";
-
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,40 +8,45 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        appPrimaryAccent: "#E65473", // The exact Rose Pink from your extension
-        appTextPrimary: "#1A1A26",   // The dark navy/gray
-        appTextSecondary: "#737380", // The soft gray
-        appSurface: "#FFFFFF",
-        appBorderIdle: "#EBEBF0",
+        // Mapped from ColorExtensions.swift
+        app: {
+          primary: '#E65473', // "Rose" accent
+          background: '#FAF9FA', // Off-white background
+          textPrimary: '#1A1A26', // Dark gray
+          textSecondary: '#737380', // Light gray
+          surface: '#FFFFFF',
+          borderIdle: '#EBEBF0',
+          positive: '#33B373', // Green
+        }
       },
       fontFamily: {
-        // THIS IS THE SECRET SAUCE: Uses the native OS font (San Francisco on iOS)
-        sans: [
-          "-apple-system", 
-          "BlinkMacSystemFont", 
-          "Segoe UI", 
-          "Roboto", 
-          "Helvetica", 
-          "Arial", 
-          "sans-serif"
-        ],
+        sans: ['Inter', 'sans-serif'], // Standard high-end web font
       },
       animation: {
-        'slide-up': 'slideUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards', // Smoother iOS easing
-        'fade-in': 'fadeIn 0.5s ease-out forwards',
+        'float': 'float 15s ease-in-out infinite',
+        'breathe': 'breathe 2.5s ease-in-out infinite',
+        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'fade-in-up': 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       },
       keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+          '50%': { transform: 'translateY(-20px) rotate(5deg)' },
+        },
+        breathe: {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.04)' },
+        },
         slideUp: {
-          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '0%': { transform: 'translateY(100%)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+        fadeInUp: {
+          '0%': { transform: 'translateY(30px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
         }
       }
     },
   },
   plugins: [],
 };
-export default config;
