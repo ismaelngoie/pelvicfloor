@@ -8,10 +8,10 @@ import {
 // Mapped Data - Intimacy First!
 const goals = [
   { id: 'intimacy', title: "Improve Intimacy", icon: <Heart size={32} strokeWidth={1.5} /> }, // Moved to #1
+  { id: 'leaks', title: "Stop Bladder Leaks", icon: <Droplets size={32} strokeWidth={1.5} /> },
   { id: 'pregnancy', title: "Prepare for Pregnancy", icon: <Baby size={32} strokeWidth={1.5} /> },
   { id: 'postpartum', title: "Recover Postpartum", icon: <Activity size={32} strokeWidth={1.5} /> },
   { id: 'core', title: "Build Core Strength", icon: <Zap size={32} strokeWidth={1.5} /> },
-  { id: 'leaks', title: "Stop Bladder Leaks", icon: <Droplets size={32} strokeWidth={1.5} /> },
   { id: 'pain', title: "Ease Pelvic Pain", icon: <HeartHandshake size={32} strokeWidth={1.5} /> },
   { id: 'fitness', title: "Support My Fitness", icon: <Dumbbell size={32} strokeWidth={1.5} /> },
   { id: 'stability', title: "Boost Stability", icon: <Activity size={32} strokeWidth={1.5} /> },
