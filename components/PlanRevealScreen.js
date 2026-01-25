@@ -3,15 +3,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 import { 
   Check, HeartHandshake, Baby, Droplets, User, 
-  Activity, Sparkles, Lock
+  Activity, Sparkles, Lock, CheckCircle2
 } from 'lucide-react';
 
 // --- DATA: Options ---
 const CONDITIONS = [
-  { id: 'pain', title: 'Pelvic Pain', icon: <HeartHandshake size={28} /> },
-  { id: 'postpartum', title: 'Postpartum Issues', icon: <Baby size={28} /> },
-  { id: 'leaks', title: 'Urinary Incontinence', icon: <Droplets size={28} /> },
-  { id: 'prostate', title: 'Prostate Issues', icon: <User size={28} /> },
+  { id: 'pain', title: 'Pelvic Pain', icon: <HeartHandshake size={32} /> },
+  { id: 'postpartum', title: 'Postpartum Issues', icon: <Baby size={32} /> },
+  { id: 'leaks', title: 'Urinary Incontinence', icon: <Droplets size={32} /> },
+  { id: 'prostate', title: 'Prostate Issues', icon: <User size={32} /> },
 ];
 
 const ACTIVITIES = [
@@ -19,6 +19,17 @@ const ACTIVITIES = [
   { id: 'moderate', title: 'Lightly Active', sub: '(daily walks)' },
   { id: 'active', title: 'Very Active', sub: '(regular workouts)' },
 ];
+
+// --- THEME: Unified Rose Theme ---
+const THEME = {
+  activeBorder: "border-rose-500",
+  activeBg: "bg-rose-50",
+  activeText: "text-rose-500",
+  glow: "shadow-rose-200",
+  inactiveBorder: "border-gray-200",
+  inactiveBg: "bg-white",
+  inactiveText: "text-gray-500"
+};
 
 // --- HELPER: Analysis Copy (Swift Logic) ---
 const getPersonalizedCopy = (goal, name) => {
@@ -224,15 +235,15 @@ export default function PlanRevealScreen({ onNext }) {
 
 
   return (
-    <div className={`relative w-full h-full flex flex-col transition-colors duration-700 ease-in-out
+    <div className={`relative w-full h-full flex flex-col transition-colors duration-700 ease-in-out overflow-hidden
       ${phase === 'health' ? 'bg-app-background' : 'bg-slate-950'}
     `}>
       
       {/* ---------------- PHASE 1: HEALTH INTAKE ---------------- */}
       {phase === 'health' && (
-        <div className="flex flex-col h-full w-full">
+        <div className="flex flex-col h-full w-full bg-app-background">
           {/* Scrollable Content */}
-          <div className="flex-1 px-6 pt-10 pb-4 overflow-y-auto no-scrollbar animate-fade-in">
+          <div className="flex-1 px-6 pt-10 pb-4 overflow-y-auto no-scrollbar animate-fade-in relative z-10">
             <h1 className="text-2xl font-extrabold text-center text-app-textPrimary mb-2 leading-tight">
               {healthText.headline}
             </h1>
@@ -248,14 +259,28 @@ export default function PlanRevealScreen({ onNext }) {
                   <button
                     key={c.id}
                     onClick={() => toggleCondition(c.id)}
-                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-[1.5px] transition-all duration-200 active:scale-95 h-28 outline-none
-                      ${active ? 'border-app-primary bg-white shadow-md z-10' : 'border-app-borderIdle bg-white'}`}
+                    className={`relative flex flex-col items-center justify-center p-4 rounded-[24px] border-[2px] transition-all duration-300 active:scale-95 h-32 outline-none
+                      ${active 
+                        ? `bg-white ${THEME.activeBorder} shadow-lg ${THEME.glow} scale-[1.02] z-20` 
+                        : `bg-white ${THEME.inactiveBorder} hover:bg-gray-50 z-10`}`}
                   >
-                    <div className={`mb-2 ${active ? 'text-app-primary' : 'text-app-textPrimary'}`}>{c.icon}</div>
-                    <span className="text-[13px] font-bold text-center leading-tight">{c.title}</span>
+                    {/* Background Tint when Active */}
+                    {active && <div className={`absolute inset-0 rounded-[22px] ${THEME.activeBg} opacity-20 pointer-events-none`} />}
+
+                    {/* Icon */}
+                    <div className={`mb-2 transition-colors duration-300 ${active ? THEME.activeText : THEME.inactiveText}`}>
+                      {c.icon}
+                    </div>
+
+                    {/* Title */}
+                    <span className={`text-[13px] font-bold text-center leading-tight transition-colors duration-300 ${active ? 'text-app-textPrimary' : 'text-gray-500'}`}>
+                      {c.title}
+                    </span>
+
+                    {/* Checkmark */}
                     {active && (
-                      <div className="absolute top-2 right-2 text-app-primary">
-                        <CheckCircleIcon size={18} />
+                      <div className={`absolute top-3 right-3 ${THEME.activeText}`}>
+                        <CheckCircle2 size={20} className="fill-current text-white" />
                       </div>
                     )}
                   </button>
@@ -266,8 +291,10 @@ export default function PlanRevealScreen({ onNext }) {
             {/* None Button */}
             <button 
               onClick={toggleNone}
-              className={`w-full py-3 rounded-full border-[1.5px] font-medium text-[15px] mb-8 transition-colors outline-none
-                ${isNone ? 'border-app-primary text-app-primary bg-app-primary/5' : 'border-app-borderIdle text-app-textSecondary bg-white'}`}
+              className={`w-full py-3.5 rounded-full border-[1.5px] font-semibold text-[15px] mb-8 transition-all active:scale-95 outline-none
+                ${isNone 
+                  ? `${THEME.activeBorder} ${THEME.activeText} ${THEME.activeBg} shadow-sm` 
+                  : `${THEME.inactiveBorder} ${THEME.inactiveText} bg-white`}`}
             >
               None of the above
             </button>
@@ -281,13 +308,21 @@ export default function PlanRevealScreen({ onNext }) {
                   <button
                     key={a.id}
                     onClick={() => setActivity(a.id)}
-                    className={`w-full py-3.5 px-5 rounded-xl border-[1.5px] text-left flex items-center justify-between transition-all duration-200 active:scale-95 outline-none
-                      ${active ? 'border-app-primary bg-white shadow-sm' : 'border-app-borderIdle bg-white'}`}
+                    className={`w-full py-4 px-5 rounded-[20px] border-[2px] text-left flex items-center justify-between transition-all duration-300 active:scale-95 outline-none relative overflow-hidden
+                      ${active 
+                        ? `bg-white ${THEME.activeBorder} shadow-md ${THEME.glow} z-20 scale-[1.02]` 
+                        : `bg-white ${THEME.inactiveBorder} z-10`}`}
                   >
-                    <span className={`font-semibold ${active ? 'text-app-primary' : 'text-app-textPrimary'}`}>
-                      {a.title} <span className="font-normal opacity-70">{a.sub}</span>
+                     {/* Background Tint */}
+                     {active && <div className={`absolute inset-0 ${THEME.activeBg} opacity-30 pointer-events-none`} />}
+
+                    <span className={`font-bold text-[15px] relative z-10 ${active ? 'text-app-textPrimary' : 'text-gray-500'}`}>
+                      {a.title} <span className="font-normal opacity-70 text-sm ml-1">{a.sub}</span>
                     </span>
-                    {active && <CheckCircleIcon size={20} className="text-app-primary" />}
+                    
+                    {active && (
+                       <CheckCircle2 size={22} className={`relative z-10 fill-current ${THEME.activeText} text-white`} />
+                    )}
                   </button>
                 );
               })}
@@ -296,22 +331,22 @@ export default function PlanRevealScreen({ onNext }) {
             {/* Helper Text */}
             <div className="h-6 flex items-center justify-center mb-4">
               {helperText && (
-                <p className="text-app-positive text-sm font-medium animate-fade-in">{helperText}</p>
+                <p className="text-rose-500 text-sm font-semibold animate-fade-in">{helperText}</p>
               )}
             </div>
             
             {/* Spacer for button visibility on scroll - CRITICAL */}
-            <div className="h-24 w-full"></div>
+            <div className="h-32 w-full"></div>
           </div>
 
-          {/* Sticky Footer Button */}
-          <div className="absolute bottom-0 w-full px-6 pb-8 pt-6 bg-gradient-to-t from-app-background via-app-background/95 to-transparent z-20">
+          {/* Sticky Footer Button - Always Visible on Top */}
+          <div className="absolute bottom-0 w-full px-6 pb-8 pt-6 bg-gradient-to-t from-app-background via-app-background/95 to-transparent z-[50]">
             <button 
               onClick={handleHealthContinue}
               disabled={(!isNone && selectedConditions.length === 0) || !activity}
-              className={`w-full h-14 font-bold text-lg rounded-full transition-all duration-300 shadow-lg
+              className={`w-full h-14 font-bold text-lg rounded-full transition-all duration-300 shadow-xl
                 ${((isNone || selectedConditions.length > 0) && activity)
-                  ? 'bg-app-primary text-white animate-breathe shadow-app-primary/30' 
+                  ? 'bg-app-primary text-white animate-breathe shadow-app-primary/30 active:scale-95' 
                   : 'bg-app-borderIdle text-app-textSecondary/50 cursor-not-allowed shadow-none'}
               `}
             >
@@ -324,7 +359,7 @@ export default function PlanRevealScreen({ onNext }) {
 
       {/* ---------------- PHASE 2: ANALYZING (7 Seconds) ---------------- */}
       {phase === 'analyzing' && (
-        <div className="flex flex-col items-center justify-center h-full px-8 pt-12 pb-10 text-white animate-fade-in relative overflow-hidden">
+        <div className="flex flex-col items-center justify-center h-full px-8 pt-12 pb-10 text-white animate-fade-in relative overflow-hidden bg-slate-950">
           
           {/* Animated Background Rings */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
@@ -342,15 +377,15 @@ export default function PlanRevealScreen({ onNext }) {
 
           {/* Text */}
           <h2 className="text-2xl font-bold text-center mb-2 leading-tight animate-slide-up">
-            {copy.title}
+            {analysisCopy.title}
           </h2>
           <p className="text-center text-white/60 text-[15px] mb-8 animate-slide-up">
-            {copy.subtitle}
+            {analysisCopy.subtitle}
           </p>
 
           {/* Checklist */}
           <div className="w-full max-w-xs space-y-4 mb-auto">
-            {copy.checklist.map((item, idx) => (
+            {analysisCopy.checklist.map((item, idx) => (
               <div 
                 key={idx} 
                 className={`flex items-center gap-4 transition-all duration-500
@@ -435,7 +470,7 @@ export default function PlanRevealScreen({ onNext }) {
             </div>
             
             {/* Spacer */}
-            <div className="h-24" />
+            <div className="h-32" />
           </div>
 
           {/* Sticky Footer */}
