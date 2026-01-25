@@ -63,7 +63,7 @@ export default function WelcomeStep() {
 
             {/* --- TOP SECTION --- */}
             {/* pt-32 pushes content well below the Dynamic Island / Notch */}
-            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto px-8 pt-32 z-10">
+            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto px-8 pt-20 z-10">
                 
                 {/* Logo */}
                 <div className="relative w-24 h-24 mb-6 shadow-2xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
