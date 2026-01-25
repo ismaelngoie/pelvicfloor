@@ -1,0 +1,22 @@
+{
+  "name": "Pelvic Floor Coach",
+  "short_name": "Pelvic Coach",
+  "description": "Strength & Confidence From Your Core Outward.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF9FA",
+  "theme_color": "#FAF9FA",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "orientation": "portrait"
+}
