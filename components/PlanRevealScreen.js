@@ -54,6 +54,49 @@ const getPersonalizedCopy = (goal, name) => {
   return map[goal] || map["default"];
 };
 
+// --- HELPER: Health Copy (Swift Logic) ---
+const getHealthCopy = (goal) => {
+  const map = {
+    "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
+    "Ease Pelvic Pain": { headline: "Any health notes before we ease pain?", subtitle: "I’ll protect sensitive ranges and focus on release first.", cta: "Build My Pain-Relief Plan" },
+    "Improve Intimacy": { headline: "Any health notes before we boost intimacy?", subtitle: "I’ll tailor for comfort, arousal, and pelvic tone.", cta: "Build My Intimacy Plan" },
+    "Recover Postpartum": { headline: "Any health notes before we rebuild gently?", subtitle: "I’ll keep everything postpartum-safe and progressive.", cta: "Build My Postpartum Plan" },
+    "Prepare for Pregnancy": { headline: "Any health notes before we prep for pregnancy?", subtitle: "I’ll prioritize circulation, breath, and core support.", cta: "Build My Prep Plan" },
+    "Build Core Strength": { headline: "Any health notes before we strengthen your core?", subtitle: "This ensures smart progressions and safe loading.", cta: "Build My Core Plan" },
+    "Support My Fitness": { headline: "Any health notes before we support your training?", subtitle: "I’ll sync to your routine and recovery needs.", cta: "Build My Fitness Plan" },
+    "default": { headline: "Last step! Any health notes?", subtitle: "This ensures every exercise is safe and perfectly tailored to you.", cta: "Build My Custom Plan" }
+  };
+  return map[goal] || map["default"];
+};
+
+// --- HELPER: Timeline Copy (Swift Logic) ---
+const getTimelineCopy = (goal) => {
+  const map = {
+    "Prepare for Pregnancy": {
+      subtitle: "Feel ready to carry and move with ease by {date}.",
+      insights: ["Built for your body (BMI {bmi}) so joints and pelvic floor stay happy.", "Because you’re {activity}, sessions are short, steady, and stick.", "At {age}, we train calm breath and deep core for a growing belly.", "Safe for {condition} with low-pressure positions."],
+      cta: "Unlock My Pregnancy Prep"
+    },
+    "Recover Postpartum": {
+      subtitle: "Feel steady holding your baby again by {date}.",
+      insights: ["Calibrated for your body (BMI {bmi}) to protect healing tissue.", "Matched to {activity}—works on low-sleep days.", "At {age}, we rebuild core connection so feeds and lifts feel easier.", "Adjusted for {condition} including scar or tender areas."],
+      cta: "Unlock My Postpartum Plan"
+    },
+    "Stop Bladder Leaks": {
+      subtitle: "Confident coughs, laughs, and workouts by {date}.",
+      insights: ["Tuned to your body (BMI {bmi}) to manage pressure.", "With {activity}, we train quick squeezes you can use anywhere.", "At {age}, we blend long holds with fast pulses for real control.", "Plan respects {condition} while we rebuild trust."],
+      cta: "Unlock My Leak-Free Plan"
+    },
+    "default": {
+      subtitle: "Your personalized plan is set. Expect to feel a real difference by {date}.",
+      insights: ["Your plan is calibrated for a BMI of {bmi}, ensuring perfect intensity.", "Because you have a {activity} activity level, we'll build foundation safely.", "At {age} years old, your plan focuses on neuro-muscular connection.", "We've modified your plan to be safe for your {condition}."],
+      cta: "Unlock My Personal Plan"
+    }
+  };
+  return map[goal] || map["default"];
+};
+
+
 export default function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
   
@@ -73,6 +116,10 @@ export default function PlanRevealScreen({ onNext }) {
 
   // Phase 3: Timeline
   const [showTimeline, setShowTimeline] = useState(false);
+
+  // Get Goal Data
+  const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
+  const healthText = getHealthCopy(goalTitle);
 
   // --- LOGIC: Phase 1 (Health) ---
   const toggleCondition = (id) => {
@@ -150,9 +197,32 @@ export default function PlanRevealScreen({ onNext }) {
     }, intervalTime);
   };
 
-  // --- RENDER ---
-  const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  const copy = getPersonalizedCopy(goalTitle, userDetails.name);
+  // --- LOGIC: Phase 3 (Timeline Data) ---
+  const calculateBMI = () => {
+    if (!userDetails.weight || !userDetails.height) return "22.5";
+    const heightM = userDetails.height * 0.0254;
+    const weightKg = userDetails.weight * 0.453592;
+    return (weightKg / (heightM * heightM)).toFixed(1);
+  };
+
+  // Get Date 7 days from now
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  const dateString = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  const timelineCopy = getTimelineCopy(goalTitle);
+  const timelineSubtitle = timelineCopy.subtitle.replace("{date}", dateString);
+  
+  // Format Insights
+  const formattedInsights = timelineCopy.insights.map(t => {
+    return t.replace("{bmi}", calculateBMI())
+            .replace("{activity}", activity ? ACTIVITIES.find(a => a.id === activity)?.title.toLowerCase() : "active")
+            .replace("{age}", userDetails.age || "30")
+            .replace("{condition}", selectedConditions.length > 0 ? "unique needs" : "body");
+  });
+
+  const analysisCopy = getPersonalizedCopy(goalTitle, userDetails.name);
+
 
   return (
     <div className={`relative w-full h-full flex flex-col transition-colors duration-700 ease-in-out
@@ -161,82 +231,88 @@ export default function PlanRevealScreen({ onNext }) {
       
       {/* ---------------- PHASE 1: HEALTH INTAKE ---------------- */}
       {phase === 'health' && (
-        <div className="flex flex-col h-full px-6 pt-10 pb-8 animate-fade-in">
-          <h1 className="text-2xl font-extrabold text-center text-app-textPrimary mb-2">
-            Any health notes?
-          </h1>
-          <p className="text-center text-app-textSecondary text-[15px] mb-8">
-            This ensures every exercise is safe and perfectly tailored to you.
-          </p>
+        <div className="flex flex-col h-full w-full">
+          {/* Scrollable Content */}
+          <div className="flex-1 px-6 pt-10 pb-4 overflow-y-auto no-scrollbar animate-fade-in">
+            <h1 className="text-2xl font-extrabold text-center text-app-textPrimary mb-2 leading-tight">
+              {healthText.headline}
+            </h1>
+            <p className="text-center text-app-textSecondary text-[15px] mb-8">
+              {healthText.subtitle}
+            </p>
 
-          {/* Conditions Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            {CONDITIONS.map((c) => {
-              const active = selectedConditions.includes(c.id);
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => toggleCondition(c.id)}
-                  className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-[1.5px] transition-all duration-200 active:scale-95 h-28
-                    ${active ? 'border-app-primary bg-white shadow-md' : 'border-app-borderIdle bg-white'}`}
-                >
-                  <div className={`mb-2 ${active ? 'text-app-primary' : 'text-app-textPrimary'}`}>{c.icon}</div>
-                  <span className="text-[13px] font-bold text-center leading-tight">{c.title}</span>
-                  {active && <div className="absolute top-2 right-2 text-app-primary"><CheckCircleIcon size={18} /></div>}
-                </button>
-              );
-            })}
+            {/* Conditions Grid */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {CONDITIONS.map((c) => {
+                const active = selectedConditions.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => toggleCondition(c.id)}
+                    className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-[1.5px] transition-all duration-200 active:scale-95 h-28
+                      ${active ? 'border-app-primary bg-white shadow-md' : 'border-app-borderIdle bg-white'}`}
+                  >
+                    <div className={`mb-2 ${active ? 'text-app-primary' : 'text-app-textPrimary'}`}>{c.icon}</div>
+                    <span className="text-[13px] font-bold text-center leading-tight">{c.title}</span>
+                    {active && <div className="absolute top-2 right-2 text-app-primary"><CheckCircleIcon size={18} /></div>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* None Button */}
+            <button 
+              onClick={toggleNone}
+              className={`w-full py-3 rounded-full border-[1.5px] font-medium text-[15px] mb-8 transition-colors
+                ${isNone ? 'border-app-primary text-app-primary bg-app-primary/5' : 'border-app-borderIdle text-app-textSecondary bg-white'}`}
+            >
+              None of the above
+            </button>
+
+            {/* Activity Level */}
+            <h3 className="text-lg font-bold text-center mb-4 text-app-textPrimary">Your typical activity level</h3>
+            <div className="flex flex-col gap-3 mb-4">
+              {ACTIVITIES.map((a) => {
+                const active = activity === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => setActivity(a.id)}
+                    className={`w-full py-3.5 px-5 rounded-xl border-[1.5px] text-left flex items-center justify-between transition-all duration-200 active:scale-95
+                      ${active ? 'border-app-primary bg-white shadow-sm' : 'border-app-borderIdle bg-white'}`}
+                  >
+                    <span className={`font-semibold ${active ? 'text-app-primary' : 'text-app-textPrimary'}`}>
+                      {a.title} <span className="font-normal opacity-70">{a.sub}</span>
+                    </span>
+                    {active && <CheckCircleIcon size={20} className="text-app-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Helper Text */}
+            <div className="h-6 flex items-center justify-center mb-4">
+              {helperText && (
+                <p className="text-app-positive text-sm font-medium animate-fade-in">{helperText}</p>
+              )}
+            </div>
+            
+            {/* Spacer for button visibility on scroll */}
+            <div className="h-24"></div>
           </div>
 
-          {/* None Button */}
-          <button 
-            onClick={toggleNone}
-            className={`w-full py-3 rounded-full border-[1.5px] font-medium text-[15px] mb-8 transition-colors
-              ${isNone ? 'border-app-primary text-app-primary bg-app-primary/5' : 'border-app-borderIdle text-app-textSecondary bg-white'}`}
-          >
-            None of the above
-          </button>
-
-          {/* Activity Level */}
-          <h3 className="text-lg font-bold text-center mb-4 text-app-textPrimary">Your typical activity level</h3>
-          <div className="flex flex-col gap-3 mb-4">
-            {ACTIVITIES.map((a) => {
-              const active = activity === a.id;
-              return (
-                <button
-                  key={a.id}
-                  onClick={() => setActivity(a.id)}
-                  className={`w-full py-3.5 px-5 rounded-xl border-[1.5px] text-left flex items-center justify-between transition-all duration-200 active:scale-95
-                    ${active ? 'border-app-primary bg-white shadow-sm' : 'border-app-borderIdle bg-white'}`}
-                >
-                  <span className={`font-semibold ${active ? 'text-app-primary' : 'text-app-textPrimary'}`}>
-                    {a.title} <span className="font-normal opacity-70">{a.sub}</span>
-                  </span>
-                  {active && <CheckCircleIcon size={20} className="text-app-primary" />}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Helper Text */}
-          <div className="h-6 flex items-center justify-center mb-4">
-            {helperText && (
-              <p className="text-app-positive text-sm font-medium animate-fade-in">{helperText}</p>
-            )}
-          </div>
-
-          {/* Button */}
-          <div className="mt-auto">
+          {/* Sticky Footer Button */}
+          <div className="absolute bottom-0 w-full px-6 pb-8 pt-6 bg-gradient-to-t from-app-background via-app-background/95 to-transparent z-20">
             <button 
               onClick={handleHealthContinue}
               disabled={(!isNone && selectedConditions.length === 0) || !activity}
-              className={`w-full h-14 font-bold text-lg rounded-full transition-all duration-300
+              className={`w-full h-14 font-bold text-lg rounded-full transition-all duration-300 shadow-lg
                 ${((isNone || selectedConditions.length > 0) && activity)
-                  ? 'bg-app-primary text-white shadow-lg animate-breathe' 
+                  ? 'bg-app-primary text-white animate-breathe' 
                   : 'bg-app-borderIdle text-app-textSecondary/50 cursor-not-allowed'}
               `}
             >
-              Build My Custom Plan
+              {healthText.cta}
             </button>
           </div>
         </div>
@@ -263,15 +339,15 @@ export default function PlanRevealScreen({ onNext }) {
 
           {/* Text */}
           <h2 className="text-2xl font-bold text-center mb-2 leading-tight animate-slide-up">
-            {copy.title}
+            {analysisCopy.title}
           </h2>
           <p className="text-center text-white/60 text-[15px] mb-8 animate-slide-up">
-            {copy.subtitle}
+            {analysisCopy.subtitle}
           </p>
 
           {/* Checklist */}
           <div className="w-full max-w-xs space-y-4 mb-auto">
-            {copy.checklist.map((item, idx) => (
+            {analysisCopy.checklist.map((item, idx) => (
               <div 
                 key={idx} 
                 className={`flex items-center gap-4 transition-all duration-500
@@ -318,6 +394,9 @@ export default function PlanRevealScreen({ onNext }) {
             <h1 className="text-3xl font-extrabold text-white text-center mb-3 leading-tight drop-shadow-xl">
               <span className="text-app-primary">{userDetails.name || "Your"}</span> path to<br/>{goalTitle} is ready.
             </h1>
+            <p className="text-center text-white/80 text-[15px] mb-4">
+               {timelineSubtitle}
+            </p>
             
             {/* Holographic Graph Container */}
             <div className="w-full h-56 relative my-6">
@@ -347,20 +426,24 @@ export default function PlanRevealScreen({ onNext }) {
             {/* Insights Stack */}
             <div className="w-full space-y-4">
               <h3 className="text-white font-bold text-lg mb-2">Your Personal Insights</h3>
-              <InsightRow icon={<Activity size={18}/>} text={`Calibrated for your specific body type.`} delay={1.2} />
-              <InsightRow icon={<Lock size={18}/>} text={`Builds foundation safely to prevent injury.`} delay={1.4} />
-              <InsightRow icon={<Sparkles size={18}/>} text={`Neuro-muscular connection focus.`} delay={1.6} />
+              {formattedInsights.map((insight, index) => (
+                <InsightRow key={index} icon={<Sparkles size={18}/>} text={insight} delay={1.2 + (index * 0.2)} />
+              ))}
             </div>
+            
+            {/* Spacer */}
+            <div className="h-24" />
           </div>
 
           {/* Sticky Footer */}
-          <div className="absolute bottom-0 w-full px-6 pb-8 pt-6 bg-gradient-to-t from-slate-900 to-transparent z-20">
+          <div className="absolute bottom-0 w-full px-6 pb-8 pt-6 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent z-20">
             <button 
               onClick={onNext}
               className="w-full h-14 bg-gradient-to-r from-app-primary to-rose-600 text-white font-bold text-lg rounded-full shadow-lg shadow-app-primary/40 flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform"
             >
-              <Lock size={18} /> Unlock My Personal Plan
+              <Lock size={18} /> {timelineCopy.cta}
             </button>
+            <p className="text-center text-white/40 text-xs mt-3">Secure checkout • 100% Money-back guarantee</p>
           </div>
         </div>
       )}
