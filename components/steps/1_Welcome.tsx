@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { useOnboarding } from '@/app/context/OnboardingContext';
-import { Icons } from '@/components/Icons';
 import Image from 'next/image';
 import { Play, MessageCircle, Activity } from 'lucide-react';
 
@@ -20,7 +19,6 @@ export default function WelcomeStep() {
     const [butterflies, setButterflies] = useState<any[]>([]);
 
     useEffect(() => {
-        // Generating butterflies with slightly randomized flight paths
         const b = Array.from({ length: 14 }).map((_, i) => ({
             id: i,
             left: `${Math.random() * 100}%`,
@@ -54,39 +52,38 @@ export default function WelcomeStep() {
                         className="butterfly"
                         style={{ 
                             left: b.left,
-                            // CSS variable hack to pass random values to keyframes if needed, 
-                            // but here we rely on standard animation logic
                             animationDuration: b.duration, 
                             animationDelay: b.delay,
                             transform: `scale(${b.scale})`,
-                            animationName: b.type === 'fly-left' ? 'fly-left' : 'fly-up' // We define these in CSS
+                            animationName: b.type === 'fly-left' ? 'fly-left' : 'fly-up'
                         }}
                     />
                 ))}
             </div>
 
-            {/* --- TOP CONTENT (Logo, Headline, Benefits) --- */}
-            {/* Swift Code: centerYAnchor constant -60. We simulate this with padding-bottom. */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg px-8 pb-20 z-10">
+            {/* --- TOP SECTION (Logo, Headline, Benefits) --- */}
+            {/* UPDATED: Added 'pt-20' (80px) to push content below the Dynamic Island */}
+            {/* This keeps the spacing BETWEEN elements the same, but moves the whole block down */}
+            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg px-8 pt-20 pb-10 z-10">
                 
                 {/* Logo */}
-                <div className="relative w-20 h-20 mb-6 shadow-xl rounded-2xl overflow-hidden animate-slide-up">
+                <div className="relative w-20 h-20 mb-6 shadow-xl rounded-2xl overflow-hidden animate-slide-up shrink-0">
                     <Image src="/icon.png" alt="Logo" fill className="object-cover" priority />
                 </div>
                 
-                {/* Headline - SF Pro Rounded Style */}
-                <h1 className="text-[32px] leading-tight font-bold text-appTextPrimary text-center mb-3 animate-slide-up tracking-tight">
+                {/* Headline */}
+                <h1 className="text-[32px] leading-tight font-bold text-appTextPrimary text-center mb-3 animate-slide-up tracking-tight shrink-0">
                     Strength & Confidence<br />
                     From Your Core Outward.
                 </h1>
                 
                 {/* Subheadline */}
-                <p className="text-[17px] text-appTextSecondary text-center leading-relaxed mb-10 animate-slide-up px-2">
+                <p className="text-[17px] text-appTextSecondary text-center leading-relaxed mb-10 animate-slide-up px-2 shrink-0">
                     Your personal AI physio-coach for leaks, pain, and confidence.
                 </p>
 
                 {/* Benefits Stack */}
-                <div className="w-full space-y-5 animate-slide-up pl-4">
+                <div className="w-full space-y-5 animate-slide-up pl-4 shrink-0">
                     <BenefitRow 
                         icon={<Activity className="w-6 h-6 text-[#E65473]" strokeWidth={2.5} />}
                         text="A new 5-minute plan, just for you, every day."
@@ -102,8 +99,9 @@ export default function WelcomeStep() {
                 </div>
             </div>
 
-            {/* --- BOTTOM CONTENT (Reviews & CTA) --- */}
-            <div className="w-full max-w-md px-6 pb-12 z-10">
+            {/* --- BOTTOM SECTION (Reviews & CTA) --- */}
+            {/* Added a subtle gradient background behind the bottom area to ensure readability */}
+            <div className="z-10 w-full max-w-md px-6 pb-12 pt-4 bg-gradient-to-t from-white via-white/90 to-transparent">
                 
                 {/* Review Ticker */}
                 <div className="h-14 flex items-center justify-center relative mb-5">
