@@ -1,10 +1,17 @@
 /** @type {import('next').NextConfig} */
+const withPWA = require("next-pwa")({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === "development",
+});
+
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export', // <--- This fixes the "out" directory error
+  output: 'export',
   images: {
-    unoptimized: true, // <--- This allows images to show up without a Node server
+    unoptimized: true,
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = withPWA(nextConfig);
