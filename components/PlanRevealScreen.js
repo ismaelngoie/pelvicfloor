@@ -6,18 +6,15 @@ import {
   Activity, Sparkles, Lock, CheckCircle2, Circle
 } from 'lucide-react';
 
-// --- MARK: - Theme Configuration ---
-
+// --- THEME & ASSETS ---
 const THEME = {
-  // Base Colors
+  // Base
   bg: 'bg-app-background',
   text: 'text-app-textPrimary',
-  brand: '#E65473', 
-  brandGradient: 'from-[#E65473] to-[#C23A5B]',
   
   // Selection States (Rose Theme)
-  unselected: "bg-white border-gray-200 shadow-sm",
-  selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
+  unselected: "bg-white border-gray-200 shadow-sm transition-all duration-200",
+  selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20 transition-all duration-200",
   
   // Text Colors
   textUnselected: "text-slate-900",
@@ -29,6 +26,9 @@ const THEME = {
 
   // Helper Text (Vibrant Green)
   helper: "text-[#33B373]", 
+  
+  // Brand Gradient
+  brandGradient: "from-[#E65473] to-[#C23A5B]",
 };
 
 // --- DATA ---
@@ -51,8 +51,7 @@ const PersonalizingConstants = {
   phase2Scale: 0.20,
 };
 
-// --- MARK: - Copy Providers (COMPLETE) ---
-
+// --- COPY PROVIDERS ---
 const getHealthCopy = (goal) => {
   const safeGoal = goal || "default";
   const map = {
@@ -79,7 +78,6 @@ const getHelperCopy = (selected, goal) => {
     if (g.includes("Pregnancy")) return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
     if (g.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
     if (g.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
-    if (g.includes("Stability")) return "✓ Noted. Deep core + alignment for steady posture wins.";
     return "✓ Understood. I'll tailor your plan accordingly.";
   } else {
     return "✓ Great! We'll start with a foundational plan.";
@@ -88,8 +86,6 @@ const getHelperCopy = (selected, goal) => {
 
 const getPersonalizingCopy = (goal, name) => {
   const safeGoal = goal || "default";
-  const safeName = name || "there";
-  
   const map = {
     "Improve Intimacy": { title: `Designing your intimacy plan`, subtitle: "Comfort, sensation, confidence—gently built for your body.", connecting: "Checking your profile for arousal flow and comfort…", calibrating: "Balancing relax/contract patterns for stronger orgasms…", checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for stronger orgasms", "Partner-friendly positions"] },
     "Stop Bladder Leaks": { title: "Personalizing your leak-control plan", subtitle: "Train reflexes so sneezes and laughs don’t own your day.", connecting: "Mapping urge delays and quick-contract sets…", calibrating: "Dialing breath and pressure control for real-life moments…", checklist: ["Urge-delay reflex training", "Fast-twitch squeezes", "Breath + pressure control", "Run/jump confidence drills"] },
@@ -106,7 +102,6 @@ const getPersonalizingCopy = (goal, name) => {
 
 const getTimelineCopy = (goal) => {
   const safeGoal = goal || "default";
-  
   const map = {
     "Prepare for Pregnancy": { subtitle: "Feel ready to carry and move with ease by **{date}**.", insights: ["Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.", "Because you’re **{activity}**, sessions are short, steady, and stick.", "At **{age}**, we train calm breath and deep core for a growing belly.", "Safe for **{condition}** with low-pressure positions."], cta: "Unlock My Pregnancy Prep" },
     "Stop Bladder Leaks": { subtitle: "Confident coughs, laughs, and workouts by **{date}**.", insights: ["Tuned to your body (BMI **{bmi}**) to manage pressure.", "With **{activity}**, we train quick squeezes and urge delay you can use anywhere.", "At **{age}**, we blend long holds with fast pulses for real control.", "Plan respects **{condition}** while we rebuild trust."], cta: "Unlock My Leak-Free Plan" },
@@ -121,19 +116,23 @@ const getTimelineCopy = (goal) => {
   return map[safeGoal] || map["default"];
 };
 
-// --- MARK: - Sub-Components (Animation) ---
+// --- MARK: - SUB-COMPONENTS (JIT Animations) ---
 
-// 1. AICoreView
+// 1. AI Core View - Using JIT classes to ensure spinning works
 const AICoreView = () => (
   <div className="relative w-40 h-40 flex items-center justify-center">
-    {/* Outer Ring */}
-    <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full animate-ai-spin border-t-transparent border-l-transparent" />
-    {/* Middle Ring */}
-    <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full animate-ai-spin-reverse border-b-transparent border-r-transparent" />
-    {/* Inner Ring */}
-    <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full animate-ai-spin border-t-transparent" />
+    {/* Outer Ring - 8s Spin */}
+    <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full animate-[spin_8s_linear_infinite] border-t-transparent border-l-transparent" />
+    
+    {/* Middle Ring - 12s Reverse Spin */}
+    <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full animate-[spin_12s_linear_infinite_reverse] border-b-transparent border-r-transparent" />
+    
+    {/* Inner Ring - 15s Spin */}
+    <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full animate-[spin_15s_linear_infinite] border-t-transparent" />
+    
     {/* Core Glow */}
     <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md animate-pulse" />
+    
     {/* Solid Center */}
     <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
   </div>
@@ -191,7 +190,7 @@ const ChecklistItem = ({ text, delay, onComplete }) => {
   );
 };
 
-// 4. Holographic Timeline
+// 4. Holographic Timeline - Using SVG SMIL for zero-dependency animation
 const HolographicTimeline = () => {
   const [show, setShow] = useState(false);
   useEffect(() => setTimeout(() => setShow(true), 500), []);
@@ -205,8 +204,23 @@ const HolographicTimeline = () => {
           </linearGradient>
           <filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
         </defs>
+        
+        {/* The Line */}
         <path d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="url(#lineGradient)" strokeWidth="3" strokeLinecap="round" filter="url(#glow)"
           className={`transition-all duration-[2000ms] ease-out ${show ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`} />
+        
+        {/* The Rider Dot (SVG Native Animation) */}
+        <circle r="6" fill="white" className={show ? "opacity-100" : "opacity-0"}>
+          {show && (
+            <animateMotion dur="2s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1">
+              <mpath href="#pathGuide" />
+            </animateMotion>
+          )}
+        </circle>
+        
+        {/* Invisible Path for the Rider */}
+        <path id="pathGuide" d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="none" />
+
         <g className={`transition-opacity duration-1000 delay-1000 ${show ? 'opacity-100' : 'opacity-0'}`}>
             <circle cx="10" cy="100" r="4" fill="white" />
             <text x="10" y="125" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">Today</text>
