@@ -6,26 +6,30 @@ import {
   Activity, Sparkles, Lock, CheckCircle2, Circle
 } from 'lucide-react';
 
-// --- MARK: - Theme & Data Config ---
+// --- MARK: - Theme Configuration ---
 
 const THEME = {
+  // Base Colors
   bg: 'bg-[rgb(250,249,250)]',
   text: 'text-[rgb(26,26,38)]',
-  brand: '#E65473', 
-  brandGradient: 'from-[#E65473] to-[#C23A5B]',
   
   // Selection States
   unselected: "bg-white border-gray-200 shadow-sm",
   selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
   
+  // Text Colors
   textUnselected: "text-slate-900",
   textSelected: "text-[#E65473]",
   
+  // Icon Colors
   iconUnselected: "text-[#E65473] opacity-80", 
   iconSelected: "text-[#E65473] scale-110",
 
-  // Helper Text (Vibrant Green)
+  // Helper Text (Your App Green)
   helper: "text-[#33B373]", 
+  
+  // Brand Gradient
+  brandGradient: "from-[#E65473] to-[#C23A5B]",
 };
 
 // --- DATA ---
@@ -103,14 +107,13 @@ const getPersonalizingCopy = (goal, name) => {
 
 const getTimelineCopy = (goal) => {
   const safeGoal = goal || "default";
-  
   const map = {
     "Prepare for Pregnancy": { subtitle: "Feel ready to carry and move with ease by **{date}**.", insights: ["Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.", "Because you’re **{activity}**, sessions are short, steady, and stick.", "At **{age}**, we train calm breath and deep core for a growing belly.", "Safe for **{condition}** with low-pressure positions."], cta: "Unlock My Pregnancy Prep" },
+    "Recover Postpartum": { subtitle: "Feel steady holding your baby again by **{date}**.", insights: ["Calibrated for your body (BMI **{bmi}**) to protect healing tissue.", "Matched to **{activity}**—works on low-sleep days.", "At **{age}**, we rebuild core connection so feeds, lifts, and stroller walks feel easier.", "Adjusted for **{condition}** including scar or tender areas."], cta: "Unlock My Postpartum Plan" },
+    "Build Core Strength": { subtitle: "Feel solid through your middle by **{date}**.", insights: ["Built for your body (BMI **{bmi}**)—strong, not stressful.", "Because you’re **{activity}**, sessions slot right into your day.", "At **{age}**, we focus on clean form and deep bracing you can feel.", "Respects **{condition}** with safe ranges."], cta: "Unlock My Core Plan" },
     "Stop Bladder Leaks": { subtitle: "Confident coughs, laughs, and workouts by **{date}**.", insights: ["Tuned to your body (BMI **{bmi}**) to manage pressure.", "With **{activity}**, we train quick squeezes and urge delay you can use anywhere.", "At **{age}**, we blend long holds with fast pulses for real control.", "Plan respects **{condition}** while we rebuild trust."], cta: "Unlock My Leak-Free Plan" },
     "Ease Pelvic Pain": { subtitle: "Less ache sitting, standing, and at bedtime by **{date}**.", insights: ["Built for your body (BMI **{bmi}**) to lower strain.", "**{activity}** friendly—start quiet, calm the system first.", "At **{age}**, we pair soft release with light strength that lasts.", "Guided by **{condition}** so every range feels safe."], cta: "Unlock My Pain Relief Plan" },
     "Improve Intimacy": { subtitle: "More arousal, easy comfort, and reliable orgasm by **{date}**.", insights: ["Paced for your body (BMI **{bmi}**) to boost blood flow without pressure.", "With **{activity}**, we build relaxed release *and* strong tone for better sensation.", "At **{age}**, we tune reflexes so arousal starts sooner and orgasm lands stronger.", "Positions and pacing adjusted for **{condition}** so comfort stays high."], cta: "Unlock My Intimacy Plan" },
-    "Recover Postpartum": { subtitle: "Feel steady holding your baby again by **{date}**.", insights: ["Calibrated for your body (BMI **{bmi}**) to protect healing tissue.", "Matched to **{activity}**—works on low-sleep days.", "At **{age}**, we rebuild core connection so feeds, lifts, and stroller walks feel easier.", "Adjusted for **{condition}** including scar or tender areas."], cta: "Unlock My Postpartum Plan" },
-    "Build Core Strength": { subtitle: "Feel solid through your middle by **{date}**.", insights: ["Built for your body (BMI **{bmi}**)—strong, not stressful.", "Because you’re **{activity}**, sessions slot right into your day.", "At **{age}**, we focus on clean form and deep bracing you can feel.", "Respects **{condition}** with safe ranges."], cta: "Unlock My Core Plan" },
     "Support My Fitness": { subtitle: "More power in lifts, runs, and classes by **{date}**.", insights: ["Calibrated for your body (BMI **{bmi}**) so intensity helps, not hurts.", "Synced to **{activity}**—easy to stack with training.", "At **{age}**, we pair stability with power you feel next workout.", "Safeguards in place for **{condition}**."], cta: "Unlock My Fitness Plan" },
     "Boost Stability": { subtitle: "Feel taller and steady from desk to steps by **{date}**.", insights: ["Built for your body (BMI **{bmi}**)—steady holds you can keep all day.", "Because you’re **{activity}**, we target sitting time, walks, and carrying.", "At **{age}**, we train deep timing so standing and stairs feel smooth.", "Aligned with **{condition}**—easy on back, hips, and neck."], cta: "Unlock My Stability Plan" },
     "default": { subtitle: "Your personalized plan is set. Expect to feel a real difference by **{date}**.", insights: ["Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.", "Because you have a **{activity}** activity level, we'll build your foundation safely.", "At **{age} years old**, your plan focuses on neuro-muscular connection.", "We've modified your plan to be safe and effective for your **{condition}**."], cta: "Unlock My Personal Plan" }
@@ -118,7 +121,33 @@ const getTimelineCopy = (goal) => {
   return map[safeGoal] || map["default"];
 };
 
-// --- MARK: - Sub-Components (Animation) ---
+// --- MARK: - Sub-Components (Safe Animations) ---
+
+// 1. AICoreView - Hardcoded styles to fix dark screen issues
+const AICoreView = () => {
+  return (
+    <div className="relative w-40 h-40 flex items-center justify-center">
+      <style jsx>{`
+        @keyframes spin-slow { to { transform: rotate(360deg); } }
+        @keyframes spin-rev { to { transform: rotate(-360deg); } }
+        @keyframes pulse-core { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
+      `}</style>
+      
+      {/* Rings */}
+      <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full border-t-transparent border-l-transparent" 
+           style={{ animation: 'spin-slow 8s linear infinite' }} />
+      <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full border-b-transparent border-r-transparent" 
+           style={{ animation: 'spin-rev 12s linear infinite' }} />
+      <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full border-t-transparent" 
+           style={{ animation: 'spin-slow 15s linear infinite' }} />
+      
+      {/* Core */}
+      <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md" 
+           style={{ animation: 'pulse-core 2s infinite' }} />
+      <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
+    </div>
+  );
+};
 
 // 2. Typewriter Effect
 const TypewriterText = ({ text }) => {
@@ -172,7 +201,7 @@ const ChecklistItem = ({ text, delay, onComplete }) => {
   );
 };
 
-// 4. Holographic Timeline - Using SVG SMIL for zero-dependency animation
+// 4. Holographic Timeline - SVG SMIL Animation
 const HolographicTimeline = () => {
   const [show, setShow] = useState(false);
   useEffect(() => setTimeout(() => setShow(true), 500), []);
@@ -191,7 +220,7 @@ const HolographicTimeline = () => {
         <path d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="url(#lineGradient)" strokeWidth="3" strokeLinecap="round" filter="url(#glow)"
           className={`transition-all duration-[2000ms] ease-out ${show ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`} />
         
-        {/* The Rider Dot (SVG Native Animation) */}
+        {/* The Rider Dot */}
         <circle r="6" fill="white" className={show ? "opacity-100" : "opacity-0"}>
           {show && (
             <animateMotion dur="2s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1">
@@ -200,7 +229,6 @@ const HolographicTimeline = () => {
           )}
         </circle>
         
-        {/* Invisible Path for the Rider */}
         <path id="pathGuide" d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="none" />
 
         <g className={`transition-opacity duration-1000 delay-1000 ${show ? 'opacity-100' : 'opacity-0'}`}>
@@ -319,13 +347,14 @@ export default function PlanRevealScreen({ onNext }) {
 
   // --- RENDER ---
   return (
+    // FIX: Using relative to contain within phone frame
     <div className={`relative w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? 'bg-app-background' : 'bg-black'}`}>
       
-      {/* ---------------- PHASE 1: HEALTH INFO (One Screen) ---------------- */}
+      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
       {phase === 'askingHealthInfo' && (
         <div className="flex flex-col h-full w-full animate-in fade-in duration-700 px-5 pt-8 pb-6">
             
-            {/* Header - Moved Higher */}
+            {/* Header */}
             <div className="mb-2 shrink-0 text-center">
               <h1 className={`text-[26px] font-extrabold text-center ${THEME.text} mb-1 leading-tight`}>{healthCopy.headline}</h1>
               <p className="text-center text-[rgb(26,26,38)]/60 text-sm">{healthCopy.subtitle}</p>
@@ -346,7 +375,7 @@ export default function PlanRevealScreen({ onNext }) {
                       >
                         <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME.iconSelected : THEME.iconUnselected}`}>{item.icon}</div>
                         <span className={`text-[13px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${isSelected ? THEME.textSelected : THEME.textUnselected}`}>{item.title}</span>
-                        {/* Badge Logic: Checkmark if selected, Circle if unselected */}
+                        {/* Checkmark Logic */}
                         <div className="absolute top-3 right-3">
                            {isSelected 
                              ? <CheckCircle2 size={20} className="fill-[#E65473] text-white" /> 
@@ -358,7 +387,7 @@ export default function PlanRevealScreen({ onNext }) {
                   })}
                 </div>
 
-                 {/* Helper 1: GREEN */}
+                 {/* Helper: Green */}
                  <div className={`text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
                   {helperText}
                 </div>
@@ -395,7 +424,6 @@ export default function PlanRevealScreen({ onNext }) {
                     );
                   })}
                 </div>
-                 {/* Helper 2: GREEN */}
                  <div className={`text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 h-4 mt-2 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
                   {activityHelperText}
                 </div>
@@ -415,7 +443,7 @@ export default function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
-      {/* ---------------- PHASE 2: ANALYSIS (7s Animation) ---------------- */}
+      {/* ---------------- PHASE 2: ANALYSIS ---------------- */}
       {phase === 'analyzing' && (
         <div className="flex flex-col items-center justify-center h-full px-8 text-white relative bg-slate-950">
           <AICoreView />
@@ -452,7 +480,7 @@ export default function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
-      {/* ---------------- PHASE 3: TIMELINE (Paywall Transition) ---------------- */}
+      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === 'showingTimeline' && (
         <div className={`flex flex-col h-full bg-slate-950 relative transition-opacity duration-1000 ${showTimeline ? 'opacity-100' : 'opacity-0'}`}>
           <div className="flex-1 flex flex-col items-center px-6 pt-10 pb-6 z-10">
@@ -475,6 +503,7 @@ export default function PlanRevealScreen({ onNext }) {
           </div>
 
           <div className="px-6 pb-8 pt-4 bg-slate-950 z-20 shrink-0">
+            {/* The crucial onNext call */}
             <button onClick={onNext} className="w-full h-12 bg-gradient-to-r from-[#E65473] to-[#C23A5B] text-white font-bold text-lg rounded-full shadow-lg shadow-pink-900/50 flex items-center justify-center gap-2 animate-breathe active:scale-95">
               <Lock size={18} /> {timelineCopy.cta}
             </button>
