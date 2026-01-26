@@ -1,26 +1,18 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 import { 
   Check, HeartHandshake, Baby, Droplets, User, 
-  Activity, Sparkles, Lock, CheckCircle2
+  Sparkles, Lock, ArrowRight, Activity, ShieldCheck
 } from 'lucide-react';
 
-// --- THEME: "Million Dollar" Rose Theme ---
-// Unselected: Rose tint background, rose text.
-// Selected: White background, strong rose border, shadow "pop".
-const THEME = {
-  unselected: "bg-rose-50 border-rose-100 text-rose-500",
-  selected: "bg-white border-rose-500 text-rose-600 shadow-lg shadow-rose-200 z-10 scale-[1.02]",
-  glow: "shadow-rose-200"
-};
+// --- MARK: - Data & Copy Config (Replicated from Swift) ---
 
-// --- DATA ---
 const CONDITIONS = [
-  { id: 'pain', title: 'Pelvic Pain', icon: <HeartHandshake size={24} /> },
-  { id: 'postpartum', title: 'Postpartum', icon: <Baby size={24} /> },
-  { id: 'leaks', title: 'Incontinence', icon: <Droplets size={24} /> },
-  { id: 'prostate', title: 'Prostate', icon: <User size={24} /> },
+  { id: 'pain', title: 'Pelvic Pain', icon: <HeartHandshake size={32} /> },
+  { id: 'postpartum', title: 'Postpartum Issues', icon: <Baby size={32} /> },
+  { id: 'leaks', title: 'Urinary Incontinence', icon: <Droplets size={32} /> },
+  { id: 'prostate', title: 'Prostate Issues', icon: <User size={32} /> },
 ];
 
 const ACTIVITIES = [
@@ -29,288 +21,622 @@ const ACTIVITIES = [
   { id: 'active', title: 'Very Active', sub: '(regular workouts)' },
 ];
 
-// --- LOGIC: Copy Providers ---
-const getPersonalizedCopy = (goal, name) => {
-  const safeName = name || "there";
+const PersonalizingConstants = {
+  primaryColor: '#ec4899', // systemPink
+  totalDuration: 7000,
+  phase1Scale: 0.25,
+  phase2Scale: 0.20,
+};
+
+// --- MARK: - Copy Providers ---
+
+const getHealthCopy = (goal) => {
   const map = {
-    "Improve Intimacy": { title: `Designing your intimacy plan, ${safeName}`, subtitle: "Maximizing comfort & sensation.", checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for sensation", "Partner positions"] },
-    "Stop Bladder Leaks": { title: "Personalizing your leak-control plan", subtitle: "Reflex training for dry days.", checklist: ["Urge-delay reflexes", "Fast-twitch squeezes", "Breath control", "Run/jump confidence"] },
-    "default": { title: `Personalizing your plan, ${safeName}`, subtitle: "Crafting your custom routine.", checklist: ["Custom exercises", "Deep insights", "Expert tips", "Community support"] }
+    "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
+    "Ease Pelvic Pain": { headline: "Any health notes before we ease pain?", subtitle: "I’ll protect sensitive ranges and focus on release first.", cta: "Build My Pain-Relief Plan" },
+    "Improve Intimacy": { headline: "Any health notes before we boost intimacy?", subtitle: "I’ll tailor for comfort, arousal, and pelvic tone.", cta: "Build My Intimacy Plan" },
+    "Recover Postpartum": { headline: "Any health notes before we rebuild gently?", subtitle: "I’ll keep everything postpartum-safe and progressive.", cta: "Build My Postpartum Plan" },
+    "Prepare for Pregnancy": { headline: "Any health notes before we prep for pregnancy?", subtitle: "I’ll prioritize circulation, breath, and core support.", cta: "Build My Prep Plan" },
+    "Build Core Strength": { headline: "Any health notes before we strengthen your core?", subtitle: "This ensures smart progressions and safe loading.", cta: "Build My Core Plan" },
+    "Support My Fitness": { headline: "Any health notes before we support your training?", subtitle: "I’ll sync to your routine and recovery needs.", cta: "Build My Fitness Plan" },
+    "default": { headline: "Last step! Any health notes?", subtitle: "This ensures every exercise is safe and perfectly tailored to you.", cta: "Build My Custom Plan" }
   };
   return map[goal] || map["default"];
 };
 
-const getHealthCopy = (goal) => {
+const getHelperCopy = (selected, goal) => {
+  if (selected) {
+    if (goal.includes("Leak")) return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
+    if (goal.includes("Pain")) return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
+    if (goal.includes("Intimacy")) return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
+    if (goal.includes("Postpartum")) return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
+    if (goal.includes("Pregnancy")) return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
+    if (goal.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
+    if (goal.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
+    return "✓ Understood. I'll tailor your plan accordingly.";
+  } else {
+    // None selected logic
+    if (goal.includes("Leak")) return "✓ Great. We’ll start with core reflexes for leak control.";
+    if (goal.includes("Pain")) return "✓ Great. Gentle release + support from day one.";
+    if (goal.includes("Intimacy")) return "✓ Great. Comfort, sensation, and confidence from the start.";
+    if (goal.includes("Core")) return "✓ Great. Clean technique and deep core activation.";
+    return "✓ Great! We'll start with a foundational plan.";
+  }
+};
+
+const getPersonalizingCopy = (goal, name) => {
+  const safeName = name || "love";
   const map = {
-    "Stop Bladder Leaks": { headline: "Any health notes?", subtitle: "I'll map safe sessions.", cta: "Build My Leak-Free Plan" },
-    "Ease Pelvic Pain": { headline: "Any health notes?", subtitle: "I’ll protect sensitive ranges.", cta: "Build My Pain-Relief Plan" },
-    "default": { headline: "Any health notes?", subtitle: "Ensures every move is safe.", cta: "Build My Custom Plan" }
+    "Improve Intimacy": {
+      title: `Designing your intimacy plan, ${safeName}`,
+      subtitle: "Comfort, sensation, confidence—gently built for your body.",
+      connecting: "Checking your profile for arousal flow and comfort…",
+      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
+      checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for stronger orgasms", "Partner-friendly positions"]
+    },
+    "Stop Bladder Leaks": {
+      title: "Personalizing your leak-control plan",
+      subtitle: "Train reflexes so sneezes and laughs don’t own your day.",
+      connecting: "Mapping urge delays and quick-contract sets…",
+      calibrating: "Dialing breath and pressure control for real-life moments…",
+      checklist: ["Urge-delay reflex training", "Fast-twitch squeezes", "Breath + pressure control", "Run/jump confidence drills"]
+    },
+    "Ease Pelvic Pain": {
+      title: "Personalizing your pain-relief plan",
+      subtitle: "Release tension, add support, and keep comfort front and center.",
+      connecting: "Identifying tight patterns and sensitive ranges…",
+      calibrating: "Layering gentle strength for lasting relief…",
+      checklist: ["Down-train tight muscles", "Nerve-calming breath", "Gentle glute + core support", "Daily posture resets"]
+    },
+    "Recover Postpartum": {
+      title: "Personalizing your postpartum plan",
+      subtitle: "Kind, steady rebuilding for your core, hips, and back.",
+      connecting: "Checking diastasis-safe progressions…",
+      calibrating: "Tuning lifts and carries so daily life feels stable…",
+      checklist: ["Core connection breath", "Diastasis-safe moves", "Hip + back relief", "Lift-and-carry practice"]
+    },
+    "default": {
+      title: `Personalizing your stability plan`,
+      subtitle: "Tall, steady, and organized all day.",
+      connecting: "Stacking rib-to-pelvis alignment…",
+      calibrating: "Endurance for postural muscles…",
+      checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"]
+    }
   };
   return map[goal] || map["default"];
 };
 
 const getTimelineCopy = (goal) => {
   const map = {
-    "Stop Bladder Leaks": { subtitle: "Confident coughs & laughs by {date}.", insights: ["Tuned to your BMI to manage pressure.", "Quick squeeze training for urge delay.", "Fast-twitch pulses for real control.", "Rebuilds trust in your body."], cta: "Unlock My Leak-Free Plan" },
-    "default": { subtitle: "Feel the difference by {date}.", insights: ["Calibrated for your body type.", "Builds foundation safely.", "Neuro-muscular connection focus.", "Modified for your specific needs."], cta: "Unlock My Personal Plan" }
+    "Prepare for Pregnancy": {
+      subtitle: "Feel ready to carry and move with ease by **{date}**.",
+      insights: [
+        "Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.",
+        "Because you’re **{activity}**, sessions are short, steady, and stick.",
+        "At **{age}**, we train calm breath and deep core for a growing belly.",
+        "Safe for **{condition}** with low-pressure positions."
+      ],
+      cta: "Unlock My Pregnancy Prep"
+    },
+    "Stop Bladder Leaks": {
+      subtitle: "Confident coughs, laughs, and workouts by **{date}**.",
+      insights: [
+        "Tuned to your body (BMI **{bmi}**) to manage pressure.",
+        "With **{activity}**, we train quick squeezes and urge delay you can use anywhere.",
+        "At **{age}**, we blend long holds with fast pulses for real control.",
+        "Plan respects **{condition}** while we rebuild trust."
+      ],
+      cta: "Unlock My Leak-Free Plan"
+    },
+    "Ease Pelvic Pain": {
+      subtitle: "Less ache sitting, standing, and at bedtime by **{date}**.",
+      insights: [
+        "Built for your body (BMI **{bmi}**) to lower strain.",
+        "**{activity}** friendly—start quiet, calm the system first.",
+        "At **{age}**, we pair soft release with light strength that lasts.",
+        "Guided by **{condition}** so every range feels safe."
+      ],
+      cta: "Unlock My Pain Relief Plan"
+    },
+    "default": {
+      subtitle: "Your personalized plan is set. Expect to feel a real difference by **{date}**.",
+      insights: [
+        "Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.",
+        "Because you have a **{activity}** activity level, we'll build your foundation safely.",
+        "At **{age} years old**, your plan focuses on neuro-muscular connection.",
+        "We've modified your plan to be safe and effective for your **{condition}**."
+      ],
+      cta: "Unlock My Personal Plan"
+    }
   };
   return map[goal] || map["default"];
 };
 
+// --- MARK: - Sub-Components (Phase 2 & 3) ---
+
+// 1. AICoreView (Replicating CALayers)
+const AICoreView = () => {
+  return (
+    <div className="relative w-40 h-40 flex items-center justify-center">
+      {/* Ring 1 */}
+      <div className="absolute w-[80px] h-[80px] border-[3px] border-pink-500/80 rounded-full animate-spin [animation-duration:8s] border-t-transparent border-l-transparent" />
+      {/* Ring 2 */}
+      <div className="absolute w-[110px] h-[110px] border-[2px] border-pink-500/60 rounded-full animate-spin [animation-duration:12s] [animation-direction:reverse] border-b-transparent border-r-transparent" />
+      {/* Ring 3 */}
+      <div className="absolute w-[140px] h-[140px] border-[1px] border-pink-500/40 rounded-full animate-spin [animation-duration:15s] border-t-transparent" />
+      {/* Orb */}
+      <div className="absolute w-10 h-10 bg-pink-500/50 rounded-full blur-md animate-pulse" />
+      <div className="absolute w-6 h-6 bg-pink-500 rounded-full shadow-[0_0_15px_rgba(236,72,153,0.8)]" />
+    </div>
+  );
+};
+
+// 2. ChecklistItemView (Replicating ProgressLayer)
+const ChecklistItem = ({ text, delay, onComplete }) => {
+  const [status, setStatus] = useState('waiting'); // waiting, processing, completed
+
+  useEffect(() => {
+    // Start processing after delay
+    const startTimer = setTimeout(() => {
+      setStatus('processing');
+    }, delay);
+
+    return () => clearTimeout(startTimer);
+  }, [delay]);
+
+  useEffect(() => {
+    if (status === 'processing') {
+      // Simulate processing time then complete
+      const processTimer = setTimeout(() => {
+        setStatus('completed');
+        if (onComplete) onComplete();
+      }, 1500); 
+      return () => clearTimeout(processTimer);
+    }
+  }, [status, onComplete]);
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all duration-500 ${status === 'waiting' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
+      {/* Background Progress Fill */}
+      <div 
+        className={`absolute inset-0 bg-white/10 transition-transform duration-[1500ms] ease-out origin-left ${status === 'processing' ? 'scale-x-100' : status === 'completed' ? 'scale-x-100 opacity-0' : 'scale-x-0'}`} 
+      />
+      
+      <div className="relative flex items-center p-4 gap-4 z-10">
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${status === 'completed' ? 'bg-pink-500 scale-110' : 'bg-white/10'}`}>
+          {status === 'completed' ? <Check size={14} className="text-white" strokeWidth={3} /> : <div className="w-2 h-2 bg-pink-500/60 rounded-full" />}
+        </div>
+        <span className="text-[15px] font-medium text-white/90">{text}</span>
+      </div>
+    </div>
+  );
+};
+
+// 3. HolographicTimelineView (Replicating Bezier Path)
+const HolographicTimeline = ({ goal }) => {
+  // Simple "fade in" animation for milestones
+  const [visible, setVisible] = useState(false);
+  useEffect(() => setTimeout(() => setVisible(true), 500), []);
+
+  return (
+    <div className="w-full h-48 relative my-4">
+       {/* Gradient Defs */}
+       <svg className="absolute inset-0 w-full h-full overflow-visible">
+        <defs>
+          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="rgba(236, 72, 153, 0.2)" />
+            <stop offset="100%" stopColor="rgba(236, 72, 153, 1)" />
+          </linearGradient>
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+
+        {/* Bezier Curve: Replicating Swift Control Points
+            Start: (20, 80%) -> Control1: (20%, 90%) -> Control2: (80%, 10%) -> End: (Width-20, 20%) 
+        */}
+        <path 
+          d="M 10,120 C 80,140 200,20 320,30" 
+          fill="none" 
+          stroke="url(#lineGradient)" 
+          strokeWidth="3" 
+          strokeLinecap="round"
+          filter="url(#glow)"
+          className={`transition-all duration-[2000ms] ease-out ${visible ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`}
+        />
+
+        {/* Milestones */}
+        <g className={`transition-opacity duration-1000 delay-1000 ${visible ? 'opacity-100' : 'opacity-0'}`}>
+            {/* Start Node */}
+            <circle cx="10" cy="120" r="4" fill="white" />
+            <text x="10" y="145" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">Today</text>
+
+            {/* Mid Node */}
+            <circle cx="160" cy="75" r="4" fill="white" />
+            <text x="160" y="100" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">Relief</text>
+
+            {/* End Node */}
+            <circle cx="320" cy="30" r="6" fill="#ec4899" stroke="white" strokeWidth="2" />
+            <text x="310" y="15" textAnchor="end" fill="#ec4899" fontSize="12" fontWeight="bold">Goal</text>
+        </g>
+       </svg>
+    </div>
+  );
+};
+
+
+// --- MARK: - Main Controller ---
+
 export default function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
-  const [phase, setPhase] = useState('health'); 
+  const [phase, setPhase] = useState('askingHealthInfo'); // askingHealthInfo -> personalizing -> showingTimeline
   
   // Phase 1 State
   const [selectedConditions, setSelectedConditions] = useState([]);
-  const [isNone, setIsNone] = useState(false);
-  const [activity, setActivity] = useState(null);
+  const [noneSelected, setNoneSelected] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState(null);
   const [helperText, setHelperText] = useState("");
+  const [activityHelperText, setActivityHelperText] = useState("");
 
   // Phase 2 State
-  const [progress, setProgress] = useState(0);
-  const [analysisStatus, setAnalysisStatus] = useState("Connecting...");
-  const [checklistVisible, setChecklistVisible] = useState(0);
+  const [personalizingStatus, setPersonalizingStatus] = useState("");
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [showChecklist, setShowChecklist] = useState(false);
 
-  // Phase 3 State
-  const [showTimeline, setShowTimeline] = useState(false);
-
-  // Get Data
+  // Goal Data
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  const healthText = getHealthCopy(goalTitle);
-
-  // --- LOGIC Phase 1 ---
-  const toggleCondition = (id) => {
-    setIsNone(false);
-    setSelectedConditions(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
-  };
-  const toggleNone = () => { setIsNone(!isNone); setSelectedConditions([]); };
-  
-  useEffect(() => {
-    if (selectedConditions.length > 0) setHelperText("✓ Noted. I'll adjust for your needs.");
-    else if (isNone) setHelperText("✓ Great. We'll start with a standard plan.");
-    else setHelperText(""); 
-    
-    if (activity) setHelperText(prev => prev ? prev + " Matching your pace." : "✓ I'll match your pace.");
-  }, [selectedConditions, isNone, activity]);
-
-  const handleHealthContinue = () => {
-    saveUserData('healthConditions', selectedConditions);
-    saveUserData('activityLevel', activity);
-    startAnalysis();
-  };
-
-  // --- LOGIC Phase 2 (7 Seconds) ---
-  const startAnalysis = () => {
-    setPhase('analyzing');
-    const TOTAL_DURATION = 7000;
-    const intervalTime = 50; 
-    let currentStep = 0;
-    const steps = TOTAL_DURATION / intervalTime;
-
-    const timer = setInterval(() => {
-      currentStep++;
-      const pct = Math.round((currentStep / steps) * 100);
-      setProgress(pct);
-
-      if (pct === 20) setAnalysisStatus("Syncing goals...");
-      if (pct === 50) setAnalysisStatus("Calibrating plan...");
-      
-      if (pct > 20 && pct < 30) setChecklistVisible(1);
-      if (pct > 40 && pct < 50) setChecklistVisible(2);
-      if (pct > 60 && pct < 70) setChecklistVisible(3);
-      if (pct > 80 && pct < 90) setChecklistVisible(4);
-
-      if (currentStep >= steps) {
-        clearInterval(timer);
-        setPhase('timeline');
-        setTimeout(() => setShowTimeline(true), 100);
-      }
-    }, intervalTime);
-  };
-
-  // --- LOGIC Phase 3 ---
-  const date = new Date(); date.setDate(date.getDate() + 7);
-  const dateString = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const healthCopy = getHealthCopy(goalTitle);
+  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails.name);
   const timelineCopy = getTimelineCopy(goalTitle);
-  const formattedInsights = timelineCopy.insights.slice(0, 3); // Limit to 3 to fit one screen
+
+  // --- Logic: Phase 1 ---
+
+  const toggleCondition = (id) => {
+    setNoneSelected(false);
+    setSelectedConditions(prev => {
+      const newSet = prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id];
+      updateHelperText(newSet.length > 0, selectedActivity);
+      return newSet;
+    });
+  };
+
+  const toggleNone = () => {
+    const newVal = !noneSelected;
+    setNoneSelected(newVal);
+    if (newVal) setSelectedConditions([]);
+    updateHelperText(newVal, selectedActivity);
+  };
+
+  const selectActivity = (act) => {
+    setSelectedActivity(act);
+    updateHelperText(selectedConditions.length > 0 || noneSelected, act);
+    setActivityHelperText("✓ Perfect, I'll match your pace & recovery.");
+  };
+
+  const updateHelperText = (hasCondition, hasActivity) => {
+    setHelperText(getHelperCopy(hasCondition, goalTitle));
+  };
+
+  const canContinue = (selectedConditions.length > 0 || noneSelected) && selectedActivity;
+
+  const handlePhase1Continue = () => {
+    saveUserData('healthConditions', selectedConditions);
+    saveUserData('activityLevel', selectedActivity);
+    setPhase('personalizing');
+  };
+
+  // --- Logic: Phase 2 (Sequence) ---
+
+  useEffect(() => {
+    if (phase === 'personalizing') {
+      let startTime = Date.now();
+      
+      // 1. Connecting Status
+      setPersonalizingStatus(personalizingCopy.connecting);
+
+      // Progress Bar Loop
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const p = Math.min(99, Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100));
+        setProgressPercent(p);
+      }, 50);
+
+      // 2. Calibrating Status (after 25% of time)
+      const t1 = setTimeout(() => {
+        setPersonalizingStatus(personalizingCopy.calibrating);
+      }, PersonalizingConstants.totalDuration * PersonalizingConstants.phase1Scale);
+
+      // 3. Show Checklist (after 45% of time)
+      const t2 = setTimeout(() => {
+        setPersonalizingStatus(""); // Hide text, show checklist
+        setShowChecklist(true);
+      }, PersonalizingConstants.totalDuration * (PersonalizingConstants.phase1Scale + PersonalizingConstants.phase2Scale));
+
+      return () => {
+        clearInterval(progressInterval);
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [phase]);
+
+  // Phase 2 Completion
+  const onChecklistComplete = () => {
+    setProgressPercent(100);
+    setPersonalizingStatus("Your plan is locked in—let’s go!");
+    setTimeout(() => {
+      setPhase('showingTimeline');
+    }, 1200);
+  };
+
+
+  // --- Logic: Phase 3 (Timeline Helpers) ---
+  const calculateBMI = () => {
+    if (!userDetails.weight || !userDetails.height) return "22.5";
+    const h = userDetails.height * 0.0254;
+    const w = userDetails.weight * 0.453592;
+    return (w / (h * h)).toFixed(1);
+  };
+
+  const getFutureDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  };
+
+  const formatRichText = (text) => {
+    // Replaces **text** with bold spans
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        let content = part.slice(2, -2);
+        // Hydrate variables
+        if (content === '{date}') content = getFutureDate();
+        if (content === '{bmi}') content = calculateBMI();
+        if (content === '{activity}') content = selectedActivity ? ACTIVITIES.find(a => a.id === selectedActivity)?.title.toLowerCase() : "active";
+        if (content === '{age}') content = userDetails.age || "30";
+        if (content === '{condition}') content = selectedConditions.length > 0 ? "unique needs" : "body";
+        
+        return <span key={i} className="text-white font-bold">{content}</span>;
+      }
+      return <span key={i} className="text-white/80">{part}</span>;
+    });
+  };
+
+  // --- RENDER ---
 
   return (
-    <div className={`relative w-full h-full flex flex-col transition-colors duration-700 ease-in-out overflow-hidden
-      ${phase === 'health' ? 'bg-app-background' : 'bg-slate-950'}
+    <div className={`relative w-full h-full flex flex-col transition-colors duration-700 overflow-hidden
+      ${phase === 'askingHealthInfo' ? 'bg-[#f8f9fa]' : 'bg-black'}
     `}>
       
-      {/* ================= PHASE 1: HEALTH INTAKE (One Screen Optimized) ================= */}
-      {phase === 'health' && (
-        <div className="flex flex-col h-full w-full px-6 pt-6 pb-6 animate-fade-in relative z-10 bg-app-background">
-          
-          {/* Header */}
-          <div className="text-center mb-3 shrink-0">
-            <h1 className="text-2xl font-extrabold text-app-textPrimary mb-1 leading-tight">{healthText.headline}</h1>
-            <p className="text-app-textSecondary text-sm">{healthText.subtitle}</p>
-          </div>
+      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
+      {phase === 'askingHealthInfo' && (
+        <div className="flex flex-col h-full w-full animate-in fade-in duration-700">
+          <div className="flex-1 px-6 pt-12 overflow-y-auto no-scrollbar pb-32">
+            
+            {/* Header */}
+            <h1 className="text-[28px] font-bold text-center text-slate-900 mb-2 leading-tight">
+              {healthCopy.headline}
+            </h1>
+            <p className="text-center text-slate-500 text-[16px] mb-8">
+              {healthCopy.subtitle}
+            </p>
 
-          {/* Conditions Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-3 shrink-0">
-            {CONDITIONS.map((c) => {
-              const active = selectedConditions.includes(c.id);
-              return (
-                <button key={c.id} onClick={() => toggleCondition(c.id)}
-                  className={`relative flex flex-col items-center justify-center p-3 rounded-2xl border-[2px] transition-all duration-300 active:scale-95 h-24 outline-none
-                    ${active ? THEME.selected : THEME.unselected}`}
-                >
-                  <div className="mb-1">{c.icon}</div>
-                  <span className="text-xs font-bold text-center leading-tight">{c.title}</span>
-                  {active && <div className="absolute top-2 right-2 text-rose-500"><CheckCircle2 size={18} fill="currentColor" className="text-white" /></div>}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* None Button */}
-          <button onClick={toggleNone}
-            className={`w-full py-3 rounded-xl border-[2px] font-semibold text-sm mb-3 transition-all outline-none shrink-0 active:scale-95
-              ${isNone ? THEME.selected : THEME.unselected}`}
-          >
-            None of the above
-          </button>
-
-          {/* Activity Section */}
-          <div className="flex-1 min-h-0 flex flex-col">
-            <h3 className="text-sm font-bold text-center mb-2 text-app-textPrimary shrink-0">Your activity level</h3>
-            <div className="flex flex-col gap-2 overflow-y-auto no-scrollbar pb-2">
-              {ACTIVITIES.map((a) => {
-                const active = activity === a.id;
+            {/* Conditions Grid */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {CONDITIONS.map((item) => {
+                const isSelected = selectedConditions.includes(item.id);
                 return (
-                  <button key={a.id} onClick={() => setActivity(a.id)}
-                    className={`w-full py-3 px-4 rounded-xl border-[2px] text-left flex items-center justify-between transition-all duration-300 active:scale-95 outline-none shrink-0
-                      ${active ? THEME.selected : THEME.unselected}`}
+                  <button
+                    key={item.id}
+                    onClick={() => toggleCondition(item.id)}
+                    className={`relative flex flex-col items-center justify-center p-4 rounded-[24px] border-[1.5px] h-[115px] transition-all duration-300
+                      ${isSelected 
+                        ? 'bg-white border-[3px] border-pink-500 shadow-[0_5px_14px_rgba(0,0,0,0.1)] scale-[1.04] z-10' 
+                        : 'bg-white border-slate-200 shadow-[0_5px_10px_rgba(0,0,0,0.04)]'}
+                    `}
                   >
-                    <span className="font-bold text-sm">
-                      {a.title} <span className="font-normal opacity-70 text-xs">{a.sub}</span>
+                    <div className={`mb-3 ${isSelected ? 'text-pink-500' : 'text-pink-500'}`}>
+                      {item.icon}
+                    </div>
+                    <span className="text-[15px] font-semibold text-center text-slate-900 leading-tight">
+                      {item.title}
                     </span>
-                    {active && <CheckCircle2 size={20} className="text-rose-500 fill-current text-white" />}
+                    {/* Checkmark */}
+                    <div className={`absolute top-3 right-3 transition-opacity duration-300 ${isSelected ? 'opacity-100' : 'opacity-0'}`}>
+                       <Check size={20} className="text-pink-500 fill-current" strokeWidth={4} />
+                    </div>
                   </button>
                 );
               })}
             </div>
-          </div>
 
-          {/* Helper Text */}
-          <div className="h-5 flex items-center justify-center shrink-0 mt-1">
-            <p className="text-rose-500 text-xs font-bold animate-fade-in">{helperText}</p>
-          </div>
+            {/* Helper Text 1 */}
+            <div className={`h-6 text-center text-sm font-medium text-emerald-600 transition-opacity duration-300 mb-4 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
+              {helperText}
+            </div>
 
-          {/* Footer Button (Floating above to ensure visibility) */}
-          <div className="mt-2 shrink-0 z-50">
-            <button onClick={handleHealthContinue} disabled={(!isNone && selectedConditions.length === 0) || !activity}
-              className={`w-full h-12 font-bold text-lg rounded-full transition-all duration-300 shadow-lg
-                ${((isNone || selectedConditions.length > 0) && activity) ? 'bg-app-primary text-white animate-breathe shadow-rose-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            {/* None Button */}
+            <button
+              onClick={toggleNone}
+              className={`w-full py-4 rounded-full border-[1.5px] font-medium text-[16px] mb-8 transition-all duration-300
+                ${noneSelected 
+                  ? 'bg-white border-[3px] border-pink-500 text-pink-500' 
+                  : 'bg-white border-slate-200 text-slate-500'}
+              `}
             >
-              {healthText.cta}
+              ✓ None of the Above
+            </button>
+
+            {/* Activity */}
+            <h3 className="text-[18px] font-bold text-center text-slate-900 mb-4">Your typical activity level</h3>
+            <div className="flex flex-col gap-3">
+              {ACTIVITIES.map((act) => {
+                const isSelected = selectedActivity === act.id;
+                return (
+                  <button
+                    key={act.id}
+                    onClick={() => selectActivity(act.id)}
+                    className={`w-full py-4 rounded-[25px] border-[1.5px] text-[16px] font-medium transition-all duration-300
+                      ${isSelected
+                        ? 'bg-white border-[3px] border-pink-500 text-pink-500'
+                        : 'bg-white border-slate-200 text-slate-500'}
+                    `}
+                  >
+                    {act.title} <span className="text-sm opacity-70 font-normal">{act.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+             {/* Helper Text 2 */}
+             <div className={`h-6 text-center text-sm font-medium text-emerald-600 transition-opacity duration-300 mt-3 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
+              {activityHelperText}
+            </div>
+
+          </div>
+
+          {/* Footer Button */}
+          <div className="p-6 bg-[#f8f9fa]">
+            <button
+              onClick={handlePhase1Continue}
+              disabled={!canContinue}
+              className={`w-full h-14 rounded-full font-bold text-lg text-white transition-all duration-300
+                ${canContinue 
+                  ? 'bg-gradient-to-b from-pink-500 to-pink-600 shadow-lg translate-y-0' 
+                  : 'bg-slate-300 shadow-none cursor-not-allowed'}
+              `}
+            >
+              {healthCopy.cta}
             </button>
           </div>
         </div>
       )}
 
-      {/* ================= PHASE 2: ANALYSIS (7s Animation) ================= */}
-      {phase === 'analyzing' && (
-        <div className="flex flex-col items-center justify-center h-full px-8 text-white relative overflow-hidden bg-slate-950">
-          {/* Animated Background */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-             <div className="w-[600px] h-[600px] border border-rose-500/30 rounded-full animate-[ping_3s_ease-in-out_infinite]" />
-             <div className="absolute w-[400px] h-[400px] border border-white/20 rounded-full animate-[ping_4s_ease-in-out_infinite_1s]" />
-          </div>
 
-          {/* AI Core */}
-          <div className="relative mb-8">
-            <div className="absolute inset-0 bg-rose-500/40 rounded-full blur-2xl animate-pulse" />
-            <div className="relative w-28 h-28 bg-gradient-to-tr from-rose-500 to-purple-600 rounded-full shadow-2xl flex items-center justify-center animate-[spin_10s_linear_infinite]">
-               <Sparkles size={48} className="text-white animate-pulse" />
-            </div>
-          </div>
-
-          <h2 className="text-xl font-bold text-center mb-2 animate-slide-up">Designing your plan...</h2>
+      {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
+      {phase === 'personalizing' && (
+        <div className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000">
           
-          {/* Checklist */}
-          <div className="w-full max-w-xs space-y-3 mb-8 min-h-[160px]">
-            {getPersonalizedCopy(goalTitle).checklist.map((item, idx) => (
-              <div key={idx} className={`flex items-center gap-3 transition-all duration-500 ${idx < checklistVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
-                <div className="w-5 h-5 rounded-full bg-rose-500 flex items-center justify-center shrink-0">
-                  <Check size={12} strokeWidth={3} className="text-white" />
-                </div>
-                <span className="text-sm font-medium text-white/90">{item}</span>
-              </div>
-            ))}
+          {/* AI Core Animation */}
+          <div className={`transition-all duration-500 ${showChecklist ? 'scale-75 -translate-y-8 opacity-0' : 'scale-100 opacity-100'}`}>
+            <AICoreView />
           </div>
 
-          {/* Progress */}
-          <div className="w-full max-w-xs">
-            <div className="flex justify-between text-xs text-white/60 mb-1">
-              <span>{analysisStatus}</span>
-              <span>{progress}%</span>
+          {/* Status Text (Typing effect simulation via simple opacity fade here for React perf) */}
+          {!showChecklist && (
+             <div className="mt-12 text-center h-20">
+               <h2 className="text-[22px] font-medium text-white/90 mb-2 animate-pulse">{personalizingStatus}</h2>
+             </div>
+          )}
+
+          {/* Checklist Mode */}
+          {showChecklist && (
+            <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
+               <h2 className="text-2xl font-bold text-white text-center mb-2">{personalizingCopy.title}</h2>
+               <p className="text-center text-gray-400 text-sm mb-8">{personalizingCopy.subtitle}</p>
+               
+               <div className="space-y-4">
+                  {personalizingCopy.checklist.map((item, idx) => (
+                    <ChecklistItem 
+                      key={idx} 
+                      text={item} 
+                      delay={idx * 800} // Stagger start
+                      onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined}
+                    />
+                  ))}
+               </div>
+               
+               <div className="mt-8 text-center text-pink-500 font-medium text-sm animate-pulse">
+                 {progressPercent === 100 ? "Ready!" : "Fine-tuning for: " + (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent/25))] || "Results")}
+               </div>
             </div>
-            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-rose-500 transition-all duration-100 ease-linear" style={{ width: `${progress}%` }} />
+          )}
+
+          {/* Bottom Progress */}
+          <div className="absolute bottom-10 left-0 w-full px-8">
+            <div className="flex justify-between items-end mb-3">
+              <span className="text-white/60 font-medium">Progress</span>
+              <span className="text-white font-mono text-2xl font-bold">{progressPercent}%</span>
             </div>
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-pink-500 transition-all duration-100 ease-linear"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <p className="text-center text-pink-500 text-sm mt-3 font-medium min-h-[20px]">
+               {progressPercent < 30 ? "Syncing your goals..." : progressPercent < 100 ? "Preparing exercises..." : "Your plan is locked in—let’s go!"}
+            </p>
           </div>
         </div>
       )}
 
-      {/* ================= PHASE 3: REVEAL (Holographic) ================= */}
-      {phase === 'timeline' && (
-        <div className={`flex flex-col h-full bg-slate-950 relative overflow-hidden transition-opacity duration-1000 ${showTimeline ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="flex-1 flex flex-col items-center px-6 pt-10 pb-6 z-10">
-            <h1 className="text-2xl font-extrabold text-white text-center mb-2 leading-tight">
-              <span className="text-rose-500">{userDetails.name || "Your"}</span> path to<br/>{goalTitle} is ready.
+
+      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
+      {phase === 'showingTimeline' && (
+        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-slate-900 relative">
+          
+          {/* Particle Background */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {[...Array(15)].map((_, i) => (
+               <div key={i} className="absolute bg-white/30 rounded-full w-1 h-1 animate-ping" 
+                    style={{
+                      left: `${Math.random()*100}%`, 
+                      top: `${Math.random()*100}%`, 
+                      animationDuration: `${2+Math.random()*3}s`,
+                      animationDelay: `${Math.random()*2}s`
+                    }} 
+               />
+            ))}
+          </div>
+
+          <div className="flex-1 px-6 pt-12 overflow-y-auto no-scrollbar pb-32 z-10">
+            {/* Headline */}
+            <h1 className="text-[30px] font-bold text-center text-white mb-2 leading-tight">
+               <span className="text-white/90">{userDetails.name ? `${userDetails.name}, your` : "Your"} path to</span><br/>
+               <span className="text-white">{goalTitle}</span> is ready.
             </h1>
-            <p className="text-center text-white/70 text-sm mb-4">{getTimelineCopy(goalTitle).subtitle.replace("{date}", dateString)}</p>
             
-            {/* Holographic Graph with "Rider" Animation */}
-            <div className="w-full h-48 relative my-2">
-               <svg viewBox="0 0 300 150" className="w-full h-full overflow-visible drop-shadow-[0_0_15px_rgba(244,63,94,0.5)]">
-                 <defs>
-                   <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                     <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.2" />
-                     <stop offset="100%" stopColor="#f43f5e" stopOpacity="1" />
-                   </linearGradient>
-                 </defs>
-                 {/* The Line */}
-                 <path d="M 0,140 C 80,130 120,80 300,20" fill="none" stroke="url(#lineGrad)" strokeWidth="4" strokeLinecap="round" 
-                       className="animate-draw-line" strokeDasharray="400" strokeDashoffset="400" />
-                 
-                 {/* Moving Rider Dot */}
-                 <circle r="6" fill="white" className="animate-ride-line">
-                    <animateMotion dur="1.5s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1">
-                       <mpath href="#path" /> {/* Using CSS trick for path motion */}
-                    </animateMotion>
-                 </circle>
-                 {/* Manual CSS Animation substitute for Rider */}
-                 <circle cx="300" cy="20" r="6" fill="#f43f5e" stroke="white" strokeWidth="2" className="animate-fade-in delay-1000" />
-                 <text x="250" y="10" fill="#f43f5e" fontSize="10" fontWeight="bold">Goal</text>
-               </svg>
-            </div>
+            {/* Subtitle */}
+            <p className="text-center text-white/80 text-[16px] mb-8 leading-relaxed">
+              {formatRichText(timelineCopy.subtitle)}
+            </p>
+
+            {/* Holographic Chart */}
+            <HolographicTimeline goal={goalTitle} />
 
             {/* Insights */}
-            <div className="w-full space-y-3 mt-4">
-              {formattedInsights.map((insight, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm animate-slide-up" style={{ animationDelay: `${1.2 + (index*0.2)}s` }}>
-                  <div className="bg-rose-500/20 p-1.5 rounded-full text-rose-500 shrink-0"><Sparkles size={16}/></div>
-                  <span className="text-xs text-white/90 font-medium leading-relaxed">{insight}</span>
+            <div className="mt-6 space-y-5">
+              <h3 className="text-lg font-semibold text-white mb-2">Your Personal Insights</h3>
+              {timelineCopy.insights.map((insight, idx) => (
+                <div key={idx} className="flex items-start gap-4 animate-in slide-in-from-bottom-4 fade-in duration-700" style={{ animationDelay: `${idx * 150}ms` }}>
+                  <div className="mt-1 text-purple-400">
+                    <Sparkles size={20} />
+                  </div>
+                  <p className="text-[14px] leading-relaxed">
+                    {formatRichText(insight)}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="px-6 pb-8 pt-4 bg-slate-950 z-20 shrink-0">
-            <button onClick={onNext} className="w-full h-12 bg-gradient-to-r from-rose-500 to-purple-600 text-white font-bold text-lg rounded-full shadow-lg shadow-rose-900/50 flex items-center justify-center gap-2 animate-breathe active:scale-95">
-              <Lock size={18} /> {getTimelineCopy(goalTitle).cta}
-            </button>
-            <p className="text-center text-white/40 text-xs mt-3">Secure checkout • 100% Money-back guarantee</p>
+          {/* Sticky CTA */}
+          <div className="p-6 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent z-20">
+             <button
+               onClick={onNext}
+               className="w-full h-14 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-lg shadow-[0_0_20px_rgba(236,72,153,0.4)] hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] transition-all transform active:scale-95"
+             >
+               {timelineCopy.cta}
+             </button>
           </div>
+
         </div>
       )}
+
     </div>
   );
 }
