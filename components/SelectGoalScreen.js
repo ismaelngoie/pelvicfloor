@@ -2,18 +2,25 @@
 import React, { useState } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 import { 
-  Baby, Activity, Zap, Droplets, HeartHandshake, Heart, Dumbbell, CheckCircle2 
+  Baby, Activity, Zap, Droplets, HeartHandshake, Heart, Dumbbell, CheckCircle2, Circle 
 } from 'lucide-react'; 
 
-// --- UNIFIED ROSE THEME (Applied to ALL) ---
+// --- THEME CONFIGURATION ---
 const THEME = {
-  unselected: "bg-rose-50 border-rose-100 text-rose-400",
-  selected: "bg-white border-rose-500 text-rose-500 shadow-xl shadow-rose-200 scale-[1.05] z-50",
-  iconUnselected: "text-rose-400",
-  iconSelected: "text-rose-500 scale-110",
+  // Unselected: White BG, Grey Border, Black Text
+  unselected: "bg-white border-gray-200",
+  textUnselected: "text-slate-900",
+  
+  // Selected: White BG, Rose Border, Rose Text, Glow
+  selected: "bg-white border-rose-500 shadow-xl shadow-rose-200 scale-[1.05] z-50",
+  textSelected: "text-rose-600",
+
+  // Icons: Always Rose, but pop more when selected
+  iconUnselected: "text-rose-500",
+  iconSelected: "text-rose-600 scale-110 drop-shadow-sm",
 };
 
-// --- DATA (Intimacy #1, Leaks #2) ---
+// --- DATA ---
 const goals = [
   { id: 'intimacy', title: "Improve Intimacy", icon: <Heart size={28} strokeWidth={2} /> },
   { id: 'leaks', title: "Stop Bladder Leaks", icon: <Droplets size={28} strokeWidth={2} /> },
@@ -53,7 +60,7 @@ export default function SelectGoalScreen({ onNext }) {
         </p>
       </div>
 
-      {/* Grid Container (Flex-1 ensures it takes available space) */}
+      {/* Grid Container */}
       <div className="z-10 flex-1 min-h-0 flex flex-col justify-center"> 
         <div className="grid grid-cols-2 gap-3">
           {goals.map((goal) => {
@@ -66,19 +73,18 @@ export default function SelectGoalScreen({ onNext }) {
                 className={`
                   relative flex flex-col items-center justify-center p-3 rounded-[24px] border-[2px] 
                   transition-all duration-300 ease-out h-[100px] w-full outline-none active:scale-95
-                  ${isSelected ? THEME.selected : `border-rose-100 bg-rose-50/50 hover:bg-rose-50 z-10`}
+                  ${isSelected ? THEME.selected : `${THEME.unselected} hover:bg-gray-50 z-10`}
                 `}
               >
-                {/* Background Tint for Unselected */}
-                {!isSelected && (
-                  <div className="absolute inset-0 rounded-[22px] bg-rose-50 opacity-40 pointer-events-none" />
-                )}
-
-                {/* Checkmark Badge */}
+                {/* Badge: Checkmark if selected, Empty Circle if not */}
                 <div 
-                  className={`absolute top-2 right-2 transition-all duration-300 transform ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                  className={`absolute top-2 right-2 transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-100 scale-100'}`}
                 >
-                  <CheckCircle2 size={20} className="fill-rose-500 text-white" />
+                  {isSelected ? (
+                    <CheckCircle2 size={20} className="fill-rose-500 text-white" />
+                  ) : (
+                    <Circle size={20} className="text-gray-200" strokeWidth={1.5} />
+                  )}
                 </div>
 
                 {/* Icon */}
@@ -87,7 +93,7 @@ export default function SelectGoalScreen({ onNext }) {
                 </div>
 
                 {/* Title */}
-                <span className={`text-[13px] font-bold text-center leading-tight transition-colors duration-300 ${isSelected ? 'text-app-textPrimary' : 'text-rose-400'}`}>
+                <span className={`text-[13px] font-bold text-center leading-tight transition-colors duration-300 ${isSelected ? THEME.textSelected : THEME.textUnselected}`}>
                   {goal.title}
                 </span>
               </button>
