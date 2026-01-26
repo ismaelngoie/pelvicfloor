@@ -487,7 +487,12 @@ export default function PlanRevealScreen({ onNext }) {
               </div>
             </div>
              <div className="mt-4">
-               <button onClick={onNext} className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}>{timelineCopy.cta}</button>
+               <button 
+  onClick={onNext} // <--- This MUST be here
+  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+>
+  {timelineCopy.cta}
+</button>
             </div>
           </div>
         </div>
