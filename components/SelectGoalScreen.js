@@ -5,73 +5,24 @@ import {
   Baby, Activity, Zap, Droplets, HeartHandshake, Heart, Dumbbell, CheckCircle2 
 } from 'lucide-react'; 
 
-// --- DATA & THEME CONFIGURATION ---
-// Unified "Million Dollar" Rose Theme for all items
-const UNIFIED_THEME = {
-  color: "text-rose-500",
-  bg: "bg-rose-50",
-  border: "border-rose-100",
-  selectedBorder: "border-rose-500",
-  glow: "shadow-rose-200"
+// --- UNIFIED ROSE THEME (Applied to ALL) ---
+const THEME = {
+  unselected: "bg-rose-50 border-rose-100 text-rose-400",
+  selected: "bg-white border-rose-500 text-rose-500 shadow-xl shadow-rose-200 scale-[1.05] z-50",
+  iconUnselected: "text-rose-400",
+  iconSelected: "text-rose-500 scale-110",
 };
 
+// --- DATA (Intimacy #1, Leaks #2) ---
 const goals = [
-  // 1. Intimacy
-  { 
-    id: 'intimacy', 
-    title: "Improve Intimacy", 
-    icon: <Heart size={32} strokeWidth={1.8} />,
-    ...UNIFIED_THEME
-  },
-  // 2. Leaks
-  { 
-    id: 'leaks', 
-    title: "Stop Bladder Leaks", 
-    icon: <Droplets size={32} strokeWidth={1.8} />,
-    ...UNIFIED_THEME
-  },
-  // 3. Pregnancy
-  { 
-    id: 'pregnancy', 
-    title: "Prepare for Pregnancy", 
-    icon: <Baby size={32} strokeWidth={1.8} />,
-    ...UNIFIED_THEME
-  },
-  // 4. Postpartum
-  { 
-    id: 'postpartum', 
-    title: "Recover Postpartum", 
-    icon: <Activity size={32} strokeWidth={1.8} />,
-    ...UNIFIED_THEME
-  },
-  // 5. Core
-  { 
-    id: 'core', 
-    title: "Build Core Strength", 
-    icon: <Zap size={32} strokeWidth={1.8} />,
-    ...UNIFIED_THEME
-  },
-  // 6. Pain
-  { 
-    id: 'pain', 
-    title: "Ease Pelvic Pain", 
-    icon: <HeartHandshake size={32} strokeWidth={1.8} />,
-    ...UNIFIED_THEME
-  },
-  // 7. Fitness
-  { 
-    id: 'fitness', 
-    title: "Support My Fitness", 
-    icon: <Dumbbell size={32} strokeWidth={1.8} />,
-    ...UNIFIED_THEME
-  },
-  // 8. Stability
-  { 
-    id: 'stability', 
-    title: "Boost Stability", 
-    icon: <Activity size={32} strokeWidth={1.8} />,
-    ...UNIFIED_THEME
-  },
+  { id: 'intimacy', title: "Improve Intimacy", icon: <Heart size={28} strokeWidth={2} /> },
+  { id: 'leaks', title: "Stop Bladder Leaks", icon: <Droplets size={28} strokeWidth={2} /> },
+  { id: 'pregnancy', title: "Prepare for Pregnancy", icon: <Baby size={28} strokeWidth={2} /> },
+  { id: 'postpartum', title: "Recover Postpartum", icon: <Activity size={28} strokeWidth={2} /> },
+  { id: 'core', title: "Build Core Strength", icon: <Zap size={28} strokeWidth={2} /> },
+  { id: 'pain', title: "Ease Pelvic Pain", icon: <HeartHandshake size={28} strokeWidth={2} /> },
+  { id: 'fitness', title: "Support My Fitness", icon: <Dumbbell size={28} strokeWidth={2} /> },
+  { id: 'stability', title: "Boost Stability", icon: <Activity size={28} strokeWidth={2} /> },
 ];
 
 export default function SelectGoalScreen({ onNext }) {
@@ -84,7 +35,7 @@ export default function SelectGoalScreen({ onNext }) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col pt-8 px-5 pb-6 animate-fade-in relative bg-white/50">
+    <div className="w-full h-full flex flex-col px-5 pt-8 pb-6 animate-fade-in relative bg-white/50">
       
       {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
@@ -93,18 +44,18 @@ export default function SelectGoalScreen({ onNext }) {
       </div>
 
       {/* Header */}
-      <div className="z-10 mb-4 shrink-0 relative">
-        <h1 className="text-[28px] font-extrabold text-center text-app-textPrimary mb-2 leading-tight tracking-tight">
+      <div className="z-10 mb-2 shrink-0">
+        <h1 className="text-[26px] font-extrabold text-center text-app-textPrimary mb-1 leading-tight">
           Let's set your primary goal.
         </h1>
-        <p className="text-center text-app-textSecondary text-[15px] leading-relaxed px-4 font-medium">
+        <p className="text-center text-app-textSecondary text-[14px] leading-snug px-4 font-medium">
           This is the most important step. Your choice will shape every workout.
         </p>
       </div>
 
-      {/* Grid Container */}
-      <div className="z-10 flex-1 overflow-y-auto no-scrollbar min-h-0 pt-2 pb-24 px-1"> 
-        <div className="grid grid-cols-2 gap-4">
+      {/* Grid Container (Flex-1 ensures it takes available space) */}
+      <div className="z-10 flex-1 min-h-0 flex flex-col justify-center"> 
+        <div className="grid grid-cols-2 gap-3">
           {goals.map((goal) => {
             const isSelected = selectedId === goal.id;
             
@@ -113,30 +64,30 @@ export default function SelectGoalScreen({ onNext }) {
                 key={goal.id}
                 onClick={() => handleSelect(goal)}
                 className={`
-                  relative flex flex-col items-center justify-center p-4 rounded-[28px] border-[2px] 
-                  transition-all duration-300 ease-out aspect-[1/1] outline-none shadow-sm active:scale-95
-                  ${isSelected 
-                    ? `bg-white ${goal.selectedBorder} shadow-xl ${goal.glow} scale-[1.05] z-20` 
-                    : `bg-white ${goal.border} hover:bg-rose-50/50 z-10`}
+                  relative flex flex-col items-center justify-center p-3 rounded-[24px] border-[2px] 
+                  transition-all duration-300 ease-out h-[100px] w-full outline-none active:scale-95
+                  ${isSelected ? THEME.selected : `border-rose-100 bg-rose-50/50 hover:bg-rose-50 z-10`}
                 `}
               >
-                {/* Subtle Background Tint (Visible on selection, faint otherwise) */}
-                <div className={`absolute inset-0 rounded-[26px] transition-opacity duration-300 ${goal.bg} pointer-events-none ${isSelected ? 'opacity-20' : 'opacity-0'}`} />
+                {/* Background Tint for Unselected */}
+                {!isSelected && (
+                  <div className="absolute inset-0 rounded-[22px] bg-rose-50 opacity-40 pointer-events-none" />
+                )}
 
-                {/* Checkmark Badge - Only visible when selected */}
+                {/* Checkmark Badge */}
                 <div 
-                  className={`absolute top-3 right-3 transition-all duration-300 transform ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                  className={`absolute top-2 right-2 transition-all duration-300 transform ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
                 >
-                  <CheckCircle2 size={24} className={`fill-current ${goal.color} text-white`} />
+                  <CheckCircle2 size={20} className="fill-rose-500 text-white" />
                 </div>
 
                 {/* Icon */}
-                <div className={`mb-3 transition-all duration-300 transform ${isSelected ? 'scale-110' : 'scale-100'} ${goal.color}`}>
+                <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME.iconSelected : THEME.iconUnselected}`}>
                    {goal.icon}
                 </div>
 
                 {/* Title */}
-                <span className={`text-[15px] font-bold text-center leading-tight transition-colors duration-300 ${isSelected ? 'text-app-textPrimary' : 'text-app-textSecondary'}`}>
+                <span className={`text-[13px] font-bold text-center leading-tight transition-colors duration-300 ${isSelected ? 'text-app-textPrimary' : 'text-rose-400'}`}>
                   {goal.title}
                 </span>
               </button>
@@ -145,14 +96,14 @@ export default function SelectGoalScreen({ onNext }) {
         </div>
       </div>
 
-      {/* Footer / CTA - Floating above content */}
-      <div className="absolute bottom-0 left-0 w-full px-6 pb-8 pt-10 bg-gradient-to-t from-white via-white/95 to-transparent z-[60]">
+      {/* Footer / CTA */}
+      <div className="z-20 mt-2 shrink-0">
         <button 
           onClick={onNext}
           disabled={!selectedId}
           className={`w-full h-14 font-bold text-[18px] rounded-full transition-all duration-300 shadow-xl
             ${selectedId 
-              ? `bg-app-primary text-white shadow-app-primary/30 animate-breathe active:scale-95 transform` 
+              ? 'bg-app-primary text-white shadow-app-primary/30 animate-breathe active:scale-95 transform' 
               : 'bg-app-borderIdle text-app-textSecondary/50 cursor-not-allowed shadow-none'}
           `}
         >
