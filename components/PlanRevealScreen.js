@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 import { 
   Check, HeartHandshake, Baby, Droplets, User, 
-  Sparkles, ArrowRight, Activity
+  Sparkles
 } from 'lucide-react';
 
 // --- MARK: - Data & Copy Config ---
@@ -54,7 +54,6 @@ const getHelperCopy = (selected, goal) => {
     if (goal.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
     return "✓ Understood. I'll tailor your plan accordingly.";
   } else {
-    // None selected logic
     if (goal.includes("Leak")) return "✓ Great. We’ll start with core reflexes for leak control.";
     if (goal.includes("Pain")) return "✓ Great. Gentle release + support from day one.";
     if (goal.includes("Intimacy")) return "✓ Great. Comfort, sensation, and confidence from the start.";
@@ -217,7 +216,6 @@ const HolographicTimeline = () => {
           </filter>
         </defs>
 
-        {/* Compact Bezier Curve replicating Swift shape */}
         <path 
           d="M 10,100 C 80,110 200,10 320,20" 
           fill="none" 
@@ -374,13 +372,20 @@ export default function PlanRevealScreen({ onNext }) {
   // --- RENDER ---
 
   return (
-    <div className={`relative w-full h-full flex flex-col transition-colors duration-700 overflow-hidden
+    // Fixed inset-0 ensures background covers entire viewport including safe areas
+    <div className={`fixed inset-0 w-full h-[100dvh] flex flex-col transition-colors duration-700 overflow-hidden
       ${phase === 'askingHealthInfo' ? 'bg-[#f8f9fa]' : 'bg-black'}
     `}>
       
-      {/* ---------------- PHASE 1: HEALTH INFO (Single Screen Layout) ---------------- */}
+      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
       {phase === 'askingHealthInfo' && (
-        <div className="flex flex-col h-full w-full animate-in fade-in duration-700 px-6 pt-6 pb-4">
+        <div 
+          className="flex flex-col h-full w-full animate-in fade-in duration-700 px-6"
+          style={{ 
+            paddingTop: 'calc(env(safe-area-inset-top) + 24px)', 
+            paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' 
+          }}
+        >
             
             {/* Header */}
             <h1 className="text-2xl font-extrabold text-center text-slate-900 mb-1 leading-tight">
@@ -487,7 +492,7 @@ export default function PlanRevealScreen({ onNext }) {
       )}
 
 
-      {/* ---------------- PHASE 2: PERSONALIZING (Improved Typography) ---------------- */}
+      {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
       {phase === 'personalizing' && (
         <div className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000">
           
@@ -497,7 +502,7 @@ export default function PlanRevealScreen({ onNext }) {
 
           {!showChecklist && (
              <div className="mt-12 text-center h-20 px-4">
-               {/* MILLION DOLLAR TYPOGRAPHY UPGRADE: Gradient Text */}
+               {/* UPDATED: Gradient Text Title */}
                <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-white via-pink-100 to-pink-300 drop-shadow-sm mb-2 animate-pulse leading-tight">
                  {personalizingStatus}
                </h2>
@@ -526,7 +531,10 @@ export default function PlanRevealScreen({ onNext }) {
             </div>
           )}
 
-          <div className="absolute bottom-8 left-0 w-full px-8">
+          <div 
+            className="absolute left-0 w-full px-8"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 40px)' }}
+          >
             <div className="flex justify-between items-end mb-2">
               <span className="text-white/60 font-medium text-sm">Progress</span>
               <span className="text-white font-mono text-xl font-bold">{progressPercent}%</span>
@@ -545,7 +553,7 @@ export default function PlanRevealScreen({ onNext }) {
       )}
 
 
-      {/* ---------------- PHASE 3: TIMELINE (Single Screen Layout) ---------------- */}
+      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === 'showingTimeline' && (
         <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-slate-900 relative">
           
@@ -561,8 +569,14 @@ export default function PlanRevealScreen({ onNext }) {
             ))}
           </div>
 
-          {/* Main Content - Distributes space */}
-          <div className="flex-1 flex flex-col justify-between px-6 pt-10 pb-4 z-10 min-h-0">
+          {/* Main Content */}
+          <div 
+            className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0"
+            style={{ 
+              paddingTop: 'calc(env(safe-area-inset-top) + 24px)', 
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' 
+            }}
+          >
             <div>
               <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
                 <span className="text-white/90">{userDetails.name || "Your"} path to</span><br/>
@@ -575,7 +589,7 @@ export default function PlanRevealScreen({ onNext }) {
               {/* Compact Chart */}
               <HolographicTimeline />
 
-              {/* Insights list with tight spacing */}
+              {/* Insights list */}
               <div className="mt-4 space-y-3">
                 <h3 className="text-[16px] font-semibold text-white mb-1">Your Personal Insights</h3>
                 {timelineCopy.insights.map((insight, idx) => (
