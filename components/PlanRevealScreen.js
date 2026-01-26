@@ -6,16 +6,16 @@ import {
   Sparkles
 } from 'lucide-react';
 
-// --- MARK: - Theme & Data Config ---
-
-// Matching your global.css
+// --- MARK: - Theme Config (Matching globals.css) ---
 const THEME = {
-  bg: 'bg-[rgb(250,249,250)]',
-  text: 'text-[rgb(26,26,38)]',
-  brand: '#E65473', // Primary pink
-  brandGradient: 'from-[#E65473] to-[#C23A5B]', // Matching your .text-gradient
+  // Exact values from your global.css
+  bgLight: 'bg-[rgb(250,249,250)]',
+  textDark: 'text-[rgb(26,26,38)]', 
+  brandPink: '#E65473',
+  brandGradient: 'from-[#E65473] to-[#C23A5B]',
 };
 
+// --- MARK: - Data & Copy ---
 const CONDITIONS = [
   { id: 'pain', title: 'Pelvic Pain', icon: <HeartHandshake size={28} /> },
   { id: 'postpartum', title: 'Postpartum Issues', icon: <Baby size={28} /> },
@@ -35,8 +35,7 @@ const PersonalizingConstants = {
   phase2Scale: 0.20,
 };
 
-// --- MARK: - Copy Providers ---
-
+// --- Copy Generators ---
 const getHealthCopy = (goal) => {
   const map = {
     "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
@@ -159,7 +158,7 @@ const getTimelineCopy = (goal) => {
 
 // --- MARK: - Sub-Components ---
 
-// 1. AICoreView (Animated Rings)
+// 1. AICoreView
 const AICoreView = () => {
   return (
     <div className="relative w-40 h-40 flex items-center justify-center">
@@ -172,7 +171,7 @@ const AICoreView = () => {
   );
 };
 
-// 2. ChecklistItemView (Animated Progress Row)
+// 2. ChecklistItem
 const ChecklistItem = ({ text, delay, onComplete }) => {
   const [status, setStatus] = useState('waiting'); 
 
@@ -204,7 +203,7 @@ const ChecklistItem = ({ text, delay, onComplete }) => {
   );
 };
 
-// 3. HolographicTimelineView (Bezier Path Graph)
+// 3. HolographicTimeline
 const HolographicTimeline = () => {
   const [visible, setVisible] = useState(false);
   useEffect(() => setTimeout(() => setVisible(true), 500), []);
@@ -247,7 +246,7 @@ const HolographicTimeline = () => {
 };
 
 
-// --- MARK: - Main Controller ---
+// --- MARK: - Main Component ---
 
 export default function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
@@ -379,12 +378,10 @@ export default function PlanRevealScreen({ onNext }) {
   // --- RENDER ---
 
   return (
-    // MARK: - Safe Area Fix
-    // 'fixed inset-0' creates the background color that sits BEHIND the safe areas.
-    // We toggle between your Light Theme bg and Dark Mode bg.
+    // FIX: Using fixed inset-0 ensures background colors extend behind the safe areas (notches/home bars)
     <div 
-      className={`fixed inset-0 w-full h-[100dvh] flex flex-col transition-colors duration-700 overflow-hidden
-        ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}
+      className={`fixed inset-0 w-full h-[100dvh] flex flex-col transition-colors duration-700 overflow-hidden z-[9999]
+        ${phase === 'askingHealthInfo' ? THEME.bgLight : 'bg-black'}
       `}
     >
       
@@ -393,24 +390,23 @@ export default function PlanRevealScreen({ onNext }) {
         <div 
           className="flex flex-col h-full w-full animate-in fade-in duration-700 px-6"
           style={{ 
-            // This padding ensures content starts BELOW the notch and ABOVE the home bar
             paddingTop: 'calc(env(safe-area-inset-top) + 24px)', 
             paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' 
           }}
         >
             
             {/* Header */}
-            <h1 className={`text-2xl font-extrabold text-center ${THEME.text} mb-1 leading-tight`}>
+            <h1 className={`text-2xl font-extrabold text-center ${THEME.textDark} mb-1 leading-tight`}>
               {healthCopy.headline}
             </h1>
             <p className="text-center text-[rgb(26,26,38)]/60 text-sm mb-4">
               {healthCopy.subtitle}
             </p>
 
-            {/* Main Content Area - Distributes space evenly so no scroll needed */}
+            {/* Main Content Area */}
             <div className="flex-1 flex flex-col justify-between min-h-0">
               
-              {/* Top Section: Conditions + None */}
+              {/* Conditions */}
               <div>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   {CONDITIONS.map((item) => {
@@ -428,7 +424,7 @@ export default function PlanRevealScreen({ onNext }) {
                         <div className={`mb-1 ${isSelected ? 'text-[#E65473]' : 'text-[#E65473]/80'}`}>
                           {item.icon}
                         </div>
-                        <span className={`text-[13px] font-bold text-center leading-tight px-1 ${THEME.text}`}>
+                        <span className={`text-[13px] font-bold text-center leading-tight px-1 ${THEME.textDark}`}>
                           {item.title}
                         </span>
                         {isSelected && (
@@ -441,7 +437,6 @@ export default function PlanRevealScreen({ onNext }) {
                   })}
                 </div>
 
-                 {/* Helper 1 */}
                  <div className={`text-center text-xs font-medium text-[#E65473] transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
                   {helperText}
                 </div>
@@ -458,9 +453,9 @@ export default function PlanRevealScreen({ onNext }) {
                 </button>
               </div>
 
-              {/* Bottom Section: Activity */}
+              {/* Activity */}
               <div className="mt-2">
-                <h3 className={`text-[16px] font-bold text-center ${THEME.text} mb-2`}>Your typical activity level</h3>
+                <h3 className={`text-[16px] font-bold text-center ${THEME.textDark} mb-2`}>Your typical activity level</h3>
                 <div className="flex flex-col gap-2">
                   {ACTIVITIES.map((act) => {
                     const isSelected = selectedActivity === act.id;
@@ -479,14 +474,13 @@ export default function PlanRevealScreen({ onNext }) {
                     );
                   })}
                 </div>
-                 {/* Helper 2 */}
                  <div className={`text-center text-xs font-medium text-[#E65473] transition-opacity duration-300 h-4 mt-1 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
                   {activityHelperText}
                 </div>
               </div>
             </div>
 
-            {/* Footer Button (Fixed height area) */}
+            {/* Footer */}
             <div className="mt-4">
               <button
                 onClick={handlePhase1Continue}
@@ -517,7 +511,7 @@ export default function PlanRevealScreen({ onNext }) {
 
           {!showChecklist && (
              <div className="mt-12 text-center h-20 px-4">
-               {/* GRADIENT TITLE UPGRADE */}
+               {/* 7-Second Animation Title Upgrade */}
                <h2 className={`text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
                  {personalizingStatus}
                </h2>
@@ -569,7 +563,6 @@ export default function PlanRevealScreen({ onNext }) {
       {phase === 'showingTimeline' && (
         <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
           
-          {/* Particles */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {[...Array(12)].map((_, i) => (
                <div key={i} className="absolute bg-white/20 rounded-full w-0.5 h-0.5 animate-ping" 
@@ -581,7 +574,6 @@ export default function PlanRevealScreen({ onNext }) {
             ))}
           </div>
 
-          {/* Main Content */}
           <div 
             className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0"
             style={{ 
@@ -598,10 +590,8 @@ export default function PlanRevealScreen({ onNext }) {
                 {formatRichText(timelineCopy.subtitle)}
               </p>
 
-              {/* Compact Chart */}
               <HolographicTimeline />
 
-              {/* Insights list */}
               <div className="mt-4 space-y-3">
                 <h3 className="text-[16px] font-semibold text-white mb-1">Your Personal Insights</h3>
                 {timelineCopy.insights.map((insight, idx) => (
@@ -617,8 +607,8 @@ export default function PlanRevealScreen({ onNext }) {
               </div>
             </div>
 
-            {/* Footer Button */}
              <div className="mt-4">
+               {/* FIX: Explicitly call onNext here to trigger Paywall transition */}
                <button
                  onClick={onNext}
                  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
