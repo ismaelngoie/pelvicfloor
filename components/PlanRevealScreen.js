@@ -1,642 +1,1391 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
-import { useUserData } from '@/context/UserDataContext';
-import { 
-  Check, HeartHandshake, Baby, Droplets, User, 
-  Sparkles, Lock, ArrowRight, Activity, ShieldCheck
-} from 'lucide-react';
 
-// --- MARK: - Data & Copy Config (Replicated from Swift) ---
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useUserData } from "@/context/UserDataContext";
+import {
+  Check,
+  HeartHandshake,
+  Baby,
+  Droplets,
+  User,
+  Sparkles,
+  Lock,
+  CheckCircle2,
+} from "lucide-react";
 
+/* =========================
+   DATA (match Swift naming vibe)
+========================= */
 const CONDITIONS = [
-  { id: 'pain', title: 'Pelvic Pain', icon: <HeartHandshake size={32} /> },
-  { id: 'postpartum', title: 'Postpartum Issues', icon: <Baby size={32} /> },
-  { id: 'leaks', title: 'Urinary Incontinence', icon: <Droplets size={32} /> },
-  { id: 'prostate', title: 'Prostate Issues', icon: <User size={32} /> },
+  { id: "pain", title: "Ease Pelvic Pain", icon: <HeartHandshake size={28} /> },
+  { id: "postpartum", title: "Speed Postpartum Recovery", icon: <Baby size={28} /> },
+  { id: "leaks", title: "Stop Bladder Leaks", icon: <Droplets size={28} /> },
+  { id: "prostate", title: "Support Prostate Health", icon: <User size={28} /> },
 ];
 
 const ACTIVITIES = [
-  { id: 'sedentary', title: 'Sedentary', sub: '(mostly sitting)' },
-  { id: 'moderate', title: 'Lightly Active', sub: '(daily walks)' },
-  { id: 'active', title: 'Very Active', sub: '(regular workouts)' },
+  { id: "sedentary", title: "Sedentary", sub: "(mostly sitting)" },
+  { id: "moderate", title: "Lightly Active", sub: "(daily walks)" },
+  { id: "active", title: "Very Active", sub: "(regular workouts)" },
 ];
 
-const PersonalizingConstants = {
-  primaryColor: '#ec4899', // systemPink
-  totalDuration: 7000,
-  phase1Scale: 0.25,
-  phase2Scale: 0.20,
+/* =========================
+   THEME (keep your existing app tokens)
+========================= */
+const THEME = {
+  primary: "text-app-primary",
+  primaryBg: "bg-app-primary",
+  activeBorder: "border-rose-500",
+  glow: "shadow-[0_18px_45px_rgba(244,63,94,0.18)]",
+  inactiveBorder: "border-gray-200",
 };
 
-// --- MARK: - Copy Providers ---
-
-const getHealthCopy = (goal) => {
-  const map = {
-    "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
-    "Ease Pelvic Pain": { headline: "Any health notes before we ease pain?", subtitle: "I’ll protect sensitive ranges and focus on release first.", cta: "Build My Pain-Relief Plan" },
-    "Improve Intimacy": { headline: "Any health notes before we boost intimacy?", subtitle: "I’ll tailor for comfort, arousal, and pelvic tone.", cta: "Build My Intimacy Plan" },
-    "Recover Postpartum": { headline: "Any health notes before we rebuild gently?", subtitle: "I’ll keep everything postpartum-safe and progressive.", cta: "Build My Postpartum Plan" },
-    "Prepare for Pregnancy": { headline: "Any health notes before we prep for pregnancy?", subtitle: "I’ll prioritize circulation, breath, and core support.", cta: "Build My Prep Plan" },
-    "Build Core Strength": { headline: "Any health notes before we strengthen your core?", subtitle: "This ensures smart progressions and safe loading.", cta: "Build My Core Plan" },
-    "Support My Fitness": { headline: "Any health notes before we support your training?", subtitle: "I’ll sync to your routine and recovery needs.", cta: "Build My Fitness Plan" },
-    "default": { headline: "Last step! Any health notes?", subtitle: "This ensures every exercise is safe and perfectly tailored to you.", cta: "Build My Custom Plan" }
-  };
-  return map[goal] || map["default"];
-};
-
-const getHelperCopy = (selected, goal) => {
-  if (selected) {
-    if (goal.includes("Leak")) return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
-    if (goal.includes("Pain")) return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
-    if (goal.includes("Intimacy")) return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
-    if (goal.includes("Postpartum")) return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
-    if (goal.includes("Pregnancy")) return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
-    if (goal.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
-    if (goal.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
-    return "✓ Understood. I'll tailor your plan accordingly.";
-  } else {
-    // None selected logic
-    if (goal.includes("Leak")) return "✓ Great. We’ll start with core reflexes for leak control.";
-    if (goal.includes("Pain")) return "✓ Great. Gentle release + support from day one.";
-    if (goal.includes("Intimacy")) return "✓ Great. Comfort, sensation, and confidence from the start.";
-    if (goal.includes("Core")) return "✓ Great. Clean technique and deep core activation.";
-    return "✓ Great! We'll start with a foundational plan.";
-  }
-};
-
-const getPersonalizingCopy = (goal, name) => {
-  const safeName = name || "love";
+/* =========================
+   COPY HELPERS (Swift logic)
+========================= */
+const getPersonalizedCopy = (goal, name) => {
+  const safeName = name || "";
+  const n = safeName ? safeName : "love";
   const map = {
     "Improve Intimacy": {
-      title: `Designing your intimacy plan, ${safeName}`,
+      title: `Designing your intimacy plan, ${n}`,
       subtitle: "Comfort, sensation, confidence—gently built for your body.",
       connecting: "Checking your profile for arousal flow and comfort…",
-      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
-      checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for stronger orgasms", "Partner-friendly positions"]
+      calibrating: "Balancing relax/contract patterns for stronger, more reliable orgasms…",
+      checklist: [
+        "Comfort-first warmups",
+        "Relax/contract patterns for arousal",
+        "Tone for stronger orgasms",
+        "Partner-friendly positions",
+      ],
     },
     "Stop Bladder Leaks": {
       title: "Personalizing your leak-control plan",
       subtitle: "Train reflexes so sneezes and laughs don’t own your day.",
       connecting: "Mapping urge delays and quick-contract sets…",
       calibrating: "Dialing breath and pressure control for real-life moments…",
-      checklist: ["Urge-delay reflex training", "Fast-twitch squeezes", "Breath + pressure control", "Run/jump confidence drills"]
+      checklist: [
+        "Urge-delay reflex training",
+        "Fast-twitch squeezes",
+        "Breath + pressure control",
+        "Run/jump confidence drills",
+      ],
     },
     "Ease Pelvic Pain": {
       title: "Personalizing your pain-relief plan",
       subtitle: "Release tension, add support, and keep comfort front and center.",
       connecting: "Identifying tight patterns and sensitive ranges…",
       calibrating: "Layering gentle strength for lasting relief…",
-      checklist: ["Down-train tight muscles", "Nerve-calming breath", "Gentle glute + core support", "Daily posture resets"]
+      checklist: [
+        "Down-train tight muscles",
+        "Nerve-calming breath",
+        "Gentle glute + core support",
+        "Daily posture resets",
+      ],
     },
     "Recover Postpartum": {
       title: "Personalizing your postpartum plan",
       subtitle: "Kind, steady rebuilding for your core, hips, and back.",
       connecting: "Checking diastasis-safe progressions…",
       calibrating: "Tuning lifts and carries so daily life feels stable…",
-      checklist: ["Core connection breath", "Diastasis-safe moves", "Hip + back relief", "Lift-and-carry practice"]
+      checklist: [
+        "Core connection breath",
+        "Diastasis-safe moves",
+        "Hip + back relief",
+        "Lift-and-carry practice",
+      ],
     },
-    "default": {
-      title: `Personalizing your stability plan`,
+    "Prepare for Pregnancy": {
+      title: "Personalizing your prep plan",
+      subtitle: "Circulation, breath, and a supportive core.",
+      connecting: "Syncing breath-led endurance…",
+      calibrating: "Setting hip mobility and pelvic coordination…",
+      checklist: ["Circulation + breath", "Pelvic floor coordination", "Hip mobility", "Labor-prep positions"],
+    },
+    "Build Core Strength": {
+      title: "Personalizing your core plan",
+      subtitle: "Deep, steady strength without guesswork.",
+      connecting: "Targeting activation and timing…",
+      calibrating: "Building anti-rotation and hinge patterns…",
+      checklist: ["Deep core activation", "Anti-rotation work", "Hinge + squat mechanics", "Back-friendly progressions"],
+    },
+    "Support My Fitness": {
+      title: "Personalizing your training support",
+      subtitle: "Make every workout you do feel more solid.",
+      connecting: "Priming brace and breath for lifts/cardio…",
+      calibrating: "Matching intensity to recovery…",
+      checklist: ["Pre-workout core priming", "Brace + breathe", "Recovery mobilization", "Force transfer training"],
+    },
+    "Boost Stability & Posture": {
+      title: "Personalizing your stability plan",
       subtitle: "Tall, steady, and organized all day.",
       connecting: "Stacking rib-to-pelvis alignment…",
       calibrating: "Endurance for postural muscles…",
-      checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"]
-    }
+      checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"],
+    },
+    default: {
+      title: `Personalizing your plan${safeName ? `, ${safeName}` : ""}`,
+      subtitle: "Crafting your custom routine to stop leaks, end pain, and build confidence.",
+      connecting: "Connecting to Coach Mia…",
+      calibrating: "Building your custom routine…",
+      checklist: [
+        "Custom exercises for leak-free living",
+        "Deep insights to track your progress",
+        "Expert tips to end pain and tension",
+        "Community support for lasting habits",
+      ],
+    },
   };
-  return map[goal] || map["default"];
+  return map[goal] || map.default;
+};
+
+const getHealthCopy = (goal) => {
+  const map = {
+    "Stop Bladder Leaks": {
+      headline: "Any health notes before we target leaks?",
+      subtitle: "This helps me map safe, effective bladder-control sessions.",
+      cta: "Build My Leak-Free Plan",
+    },
+    "Ease Pelvic Pain": {
+      headline: "Any health notes before we ease pain?",
+      subtitle: "I’ll protect sensitive ranges and focus on release first.",
+      cta: "Build My Pain-Relief Plan",
+    },
+    "Improve Intimacy": {
+      headline: "Any health notes before we boost intimacy?",
+      subtitle: "I’ll tailor for comfort, arousal, and pelvic tone.",
+      cta: "Build My Intimacy Plan",
+    },
+    "Recover Postpartum": {
+      headline: "Any health notes before we rebuild gently?",
+      subtitle: "I’ll keep everything postpartum-safe and progressive.",
+      cta: "Build My Postpartum Plan",
+    },
+    "Prepare for Pregnancy": {
+      headline: "Any health notes before we prep for pregnancy?",
+      subtitle: "I’ll prioritize circulation, breath, and core support.",
+      cta: "Build My Prep Plan",
+    },
+    "Build Core Strength": {
+      headline: "Any health notes before we strengthen your core?",
+      subtitle: "This ensures smart progressions and safe loading.",
+      cta: "Build My Core Plan",
+    },
+    "Support My Fitness": {
+      headline: "Any health notes before we support your training?",
+      subtitle: "I’ll sync to your routine and recovery needs.",
+      cta: "Build My Fitness Plan",
+    },
+    "Boost Stability & Posture": {
+      headline: "Any health notes before we boost stability?",
+      subtitle: "I’ll align mobility + deep core for posture wins.",
+      cta: "Build My Stability Plan",
+    },
+    default: {
+      headline: "Last step! Any health notes?",
+      subtitle: "This ensures every exercise is safe and perfectly tailored to you.",
+      cta: "Build My Custom Plan",
+    },
+  };
+  return map[goal] || map.default;
+};
+
+const helperCopy = (selected, goal) => {
+  if (selected) {
+    switch (goal) {
+      case "Stop Bladder Leaks":
+        return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
+      case "Ease Pelvic Pain":
+        return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
+      case "Improve Intimacy":
+        return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
+      case "Recover Postpartum":
+        return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
+      case "Prepare for Pregnancy":
+        return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
+      case "Build Core Strength":
+        return "✓ Noted. Smart progressions, no risky strain.";
+      case "Support My Fitness":
+        return "✓ Noted. I’ll match your training load and recovery.";
+      case "Boost Stability & Posture":
+        return "✓ Noted. Deep core + alignment for steady posture wins.";
+      default:
+        return "✓ Understood. I'll tailor your plan accordingly.";
+    }
+  } else {
+    switch (goal) {
+      case "Stop Bladder Leaks":
+        return "✓ Great. We’ll start with core reflexes for leak control.";
+      case "Ease Pelvic Pain":
+        return "✓ Great. Gentle release + support from day one.";
+      case "Improve Intimacy":
+        return "✓ Great. Comfort, sensation, and confidence from the start.";
+      case "Recover Postpartum":
+        return "✓ Great. Foundation work, safe and steady.";
+      case "Prepare for Pregnancy":
+        return "✓ Great. Building a strong, calm base for you.";
+      case "Build Core Strength":
+        return "✓ Great. Clean technique and deep core activation.";
+      case "Support My Fitness":
+        return "✓ Great. We’ll slot in perfectly with your routine.";
+      case "Boost Stability & Posture":
+        return "✓ Great. Alignment + deep core integration ahead.";
+      default:
+        return "✓ Great! We'll start with a foundational plan.";
+    }
+  }
 };
 
 const getTimelineCopy = (goal) => {
   const map = {
     "Prepare for Pregnancy": {
-      subtitle: "Feel ready to carry and move with ease by **{date}**.",
+      subtitle: "Feel ready to carry and move with ease by {date}.",
       insights: [
-        "Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.",
-        "Because you’re **{activity}**, sessions are short, steady, and stick.",
-        "At **{age}**, we train calm breath and deep core for a growing belly.",
-        "Safe for **{condition}** with low-pressure positions."
+        "Built for your body (BMI {bmi}) so joints and pelvic floor stay happy.",
+        "Because you’re {activity}, sessions are short, steady, and stick.",
+        "At {age}, we train calm breath and deep core for a growing belly.",
+        "Safe for {condition} with low-pressure positions.",
       ],
-      cta: "Unlock My Pregnancy Prep"
+      cta: "Unlock My Pregnancy Prep",
+    },
+    "Recover Postpartum": {
+      subtitle: "Feel steady holding your baby again by {date}.",
+      insights: [
+        "Calibrated for your body (BMI {bmi}) to protect healing tissue.",
+        "Matched to {activity}—works on low-sleep days.",
+        "At {age}, we rebuild core connection so feeds and lifts feel easier.",
+        "Adjusted for {condition} including scar or tender areas.",
+      ],
+      cta: "Unlock My Postpartum Plan",
     },
     "Stop Bladder Leaks": {
-      subtitle: "Confident coughs, laughs, and workouts by **{date}**.",
+      subtitle: "Confident coughs, laughs, and workouts by {date}.",
       insights: [
-        "Tuned to your body (BMI **{bmi}**) to manage pressure.",
-        "With **{activity}**, we train quick squeezes and urge delay you can use anywhere.",
-        "At **{age}**, we blend long holds with fast pulses for real control.",
-        "Plan respects **{condition}** while we rebuild trust."
+        "Tuned to your body (BMI {bmi}) to manage pressure.",
+        "With {activity}, we train quick squeezes and urge delay you can use anywhere.",
+        "At {age}, we blend long holds with fast pulses for real control.",
+        "Plan respects {condition} while we rebuild trust.",
       ],
-      cta: "Unlock My Leak-Free Plan"
+      cta: "Unlock My Leak-Free Plan",
     },
     "Ease Pelvic Pain": {
-      subtitle: "Less ache sitting, standing, and at bedtime by **{date}**.",
+      subtitle: "Less ache sitting, standing, and at bedtime by {date}.",
       insights: [
-        "Built for your body (BMI **{bmi}**) to lower strain.",
-        "**{activity}** friendly—start quiet, calm the system first.",
-        "At **{age}**, we pair soft release with light strength that lasts.",
-        "Guided by **{condition}** so every range feels safe."
+        "Built for your body (BMI {bmi}) to lower strain.",
+        "{activity} friendly—start quiet, calm the system first.",
+        "At {age}, we pair soft release with light strength that lasts.",
+        "Guided by {condition} so every range feels safe.",
       ],
-      cta: "Unlock My Pain Relief Plan"
+      cta: "Unlock My Pain Relief Plan",
     },
-    "default": {
-      subtitle: "Your personalized plan is set. Expect to feel a real difference by **{date}**.",
+    default: {
+      subtitle: "Your personalized plan is set. Expect to feel a real difference by {date}.",
       insights: [
-        "Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.",
-        "Because you have a **{activity}** activity level, we'll build your foundation safely.",
-        "At **{age} years old**, your plan focuses on neuro-muscular connection.",
-        "We've modified your plan to be safe and effective for your **{condition}**."
+        "Your plan is calibrated for a BMI of {bmi}, ensuring perfect intensity.",
+        "Because you have a {activity} activity level, we'll build foundation safely.",
+        "At {age} years old, your plan focuses on neuro-muscular connection.",
+        "We've modified your plan to be safe for your {condition}.",
       ],
-      cta: "Unlock My Personal Plan"
-    }
+      cta: "Unlock My Personal Plan",
+    },
   };
-  return map[goal] || map["default"];
+  return map[goal] || map.default;
 };
 
-// --- MARK: - Sub-Components (Phase 2 & 3) ---
-
-// 1. AICoreView (Replicating CALayers)
-const AICoreView = () => {
-  return (
-    <div className="relative w-40 h-40 flex items-center justify-center">
-      {/* Ring 1 */}
-      <div className="absolute w-[80px] h-[80px] border-[3px] border-pink-500/80 rounded-full animate-spin [animation-duration:8s] border-t-transparent border-l-transparent" />
-      {/* Ring 2 */}
-      <div className="absolute w-[110px] h-[110px] border-[2px] border-pink-500/60 rounded-full animate-spin [animation-duration:12s] [animation-direction:reverse] border-b-transparent border-r-transparent" />
-      {/* Ring 3 */}
-      <div className="absolute w-[140px] h-[140px] border-[1px] border-pink-500/40 rounded-full animate-spin [animation-duration:15s] border-t-transparent" />
-      {/* Orb */}
-      <div className="absolute w-10 h-10 bg-pink-500/50 rounded-full blur-md animate-pulse" />
-      <div className="absolute w-6 h-6 bg-pink-500 rounded-full shadow-[0_0_15px_rgba(236,72,153,0.8)]" />
-    </div>
-  );
+const getMilestones = (goalLower) => {
+  switch (goalLower) {
+    case "stop bladder leaks":
+      return [
+        { week: 1, t: 0.1, label: "Re-educating Pelvic Floor" },
+        { week: 2, t: 0.3, label: "Improving Bladder Control" },
+        { week: 4, t: 0.7, label: "Confidence During Sneezes" },
+        { week: 6, t: 1.0, label: "Full Leak-Proof Strength" },
+      ];
+    case "ease pelvic pain":
+      return [
+        { week: 1, t: 0.1, label: "Gentle Release & Relaxation" },
+        { week: 2, t: 0.3, label: "Reducing Chronic Tension" },
+        { week: 4, t: 0.7, label: "Building Supportive Strength" },
+        { week: 6, t: 1.0, label: "Pain-Free Daily Movement" },
+      ];
+    default:
+      return [
+        { week: 1, t: 0.1, label: "Foundation Week" },
+        { week: 2, t: 0.3, label: "Muscle Activation" },
+        { week: 4, t: 0.7, label: "Building Endurance" },
+        { week: 6, t: 1.0, label: "Full Core Integration" },
+      ];
+  }
 };
 
-// 2. ChecklistItemView (Replicating ProgressLayer)
-const ChecklistItem = ({ text, delay, onComplete }) => {
-  const [status, setStatus] = useState('waiting'); // waiting, processing, completed
+// cubic-bezier point (SVG coords)
+const pointOnCurve = (t, W = 300, H = 180) => {
+  const p0 = { x: 20, y: H * 0.8 };
+  const p3 = { x: W - 20, y: H * 0.2 };
+  const p1 = { x: W * 0.2, y: H * 0.9 };
+  const p2 = { x: W * 0.8, y: H * 0.1 };
 
-  useEffect(() => {
-    // Start processing after delay
-    const startTimer = setTimeout(() => {
-      setStatus('processing');
-    }, delay);
+  const oneMinusT = 1 - t;
+  const oneMinusTSq = oneMinusT * oneMinusT;
+  const oneMinusTCb = oneMinusTSq * oneMinusT;
+  const tSq = t * t;
+  const tCb = tSq * t;
 
-    return () => clearTimeout(startTimer);
-  }, [delay]);
+  const x =
+    oneMinusTCb * p0.x +
+    3 * oneMinusTSq * t * p1.x +
+    3 * oneMinusT * tSq * p2.x +
+    tCb * p3.x;
 
-  useEffect(() => {
-    if (status === 'processing') {
-      // Simulate processing time then complete
-      const processTimer = setTimeout(() => {
-        setStatus('completed');
-        if (onComplete) onComplete();
-      }, 1500); 
-      return () => clearTimeout(processTimer);
-    }
-  }, [status, onComplete]);
+  const y =
+    oneMinusTCb * p0.y +
+    3 * oneMinusTSq * t * p1.y +
+    3 * oneMinusT * tSq * p2.y +
+    tCb * p3.y;
 
-  return (
-    <div className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all duration-500 ${status === 'waiting' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
-      {/* Background Progress Fill */}
-      <div 
-        className={`absolute inset-0 bg-white/10 transition-transform duration-[1500ms] ease-out origin-left ${status === 'processing' ? 'scale-x-100' : status === 'completed' ? 'scale-x-100 opacity-0' : 'scale-x-0'}`} 
-      />
-      
-      <div className="relative flex items-center p-4 gap-4 z-10">
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${status === 'completed' ? 'bg-pink-500 scale-110' : 'bg-white/10'}`}>
-          {status === 'completed' ? <Check size={14} className="text-white" strokeWidth={3} /> : <div className="w-2 h-2 bg-pink-500/60 rounded-full" />}
-        </div>
-        <span className="text-[15px] font-medium text-white/90">{text}</span>
-      </div>
-    </div>
-  );
+  return { x, y };
 };
 
-// 3. HolographicTimelineView (Replicating Bezier Path)
-const HolographicTimeline = ({ goal }) => {
-  // Simple "fade in" animation for milestones
-  const [visible, setVisible] = useState(false);
-  useEffect(() => setTimeout(() => setVisible(true), 500), []);
-
-  return (
-    <div className="w-full h-48 relative my-4">
-       {/* Gradient Defs */}
-       <svg className="absolute inset-0 w-full h-full overflow-visible">
-        <defs>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(236, 72, 153, 0.2)" />
-            <stop offset="100%" stopColor="rgba(236, 72, 153, 1)" />
-          </linearGradient>
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-
-        {/* Bezier Curve: Replicating Swift Control Points
-            Start: (20, 80%) -> Control1: (20%, 90%) -> Control2: (80%, 10%) -> End: (Width-20, 20%) 
-        */}
-        <path 
-          d="M 10,120 C 80,140 200,20 320,30" 
-          fill="none" 
-          stroke="url(#lineGradient)" 
-          strokeWidth="3" 
-          strokeLinecap="round"
-          filter="url(#glow)"
-          className={`transition-all duration-[2000ms] ease-out ${visible ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`}
-        />
-
-        {/* Milestones */}
-        <g className={`transition-opacity duration-1000 delay-1000 ${visible ? 'opacity-100' : 'opacity-0'}`}>
-            {/* Start Node */}
-            <circle cx="10" cy="120" r="4" fill="white" />
-            <text x="10" y="145" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">Today</text>
-
-            {/* Mid Node */}
-            <circle cx="160" cy="75" r="4" fill="white" />
-            <text x="160" y="100" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">Relief</text>
-
-            {/* End Node */}
-            <circle cx="320" cy="30" r="6" fill="#ec4899" stroke="white" strokeWidth="2" />
-            <text x="310" y="15" textAnchor="end" fill="#ec4899" fontSize="12" fontWeight="bold">Goal</text>
-        </g>
-       </svg>
-    </div>
-  );
-};
-
-
-// --- MARK: - Main Controller ---
-
+/* =========================
+   MAIN
+========================= */
 export default function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
-  const [phase, setPhase] = useState('askingHealthInfo'); // askingHealthInfo -> personalizing -> showingTimeline
-  
-  // Phase 1 State
+
+  // phase: 'health' -> 'analyzing' -> 'timeline'
+  const [phase, setPhase] = useState("health");
+
+  // Phase 1
   const [selectedConditions, setSelectedConditions] = useState([]);
-  const [noneSelected, setNoneSelected] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState(null);
-  const [helperText, setHelperText] = useState("");
-  const [activityHelperText, setActivityHelperText] = useState("");
+  const [isNone, setIsNone] = useState(false);
+  const [activity, setActivity] = useState(null);
 
-  // Phase 2 State
-  const [personalizingStatus, setPersonalizingStatus] = useState("");
-  const [progressPercent, setProgressPercent] = useState(0);
-  const [showChecklist, setShowChecklist] = useState(false);
+  // helper labels (match Swift split)
+  const [conditionHelper, setConditionHelper] = useState("");
+  const [activityHelper, setActivityHelper] = useState("");
 
-  // Goal Data
+  // Phase 2 (7s)
+  const [progress, setProgress] = useState(0);
+  const [analysisStatus, setAnalysisStatus] = useState("Connecting to Coach Mia…");
+  const [typedStatus, setTypedStatus] = useState("");
+  const timerRef = useRef(null);
+
+  // Phase 3
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [timelineReady, setTimelineReady] = useState(false);
+
+  // stable client-only values (avoid hydration mismatch)
+  const [dateString, setDateString] = useState("");
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    setDateString(
+      d.toLocaleDateString("en-US", { month: "long", day: "2-digit" })
+    );
+    setParticles(
+      Array.from({ length: 32 }).map((_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 5,
+        dur: 4.5 + Math.random() * 4,
+        size: 1 + Math.random() * 2,
+        opacity: 0.15 + Math.random() * 0.35,
+      }))
+    );
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  const healthCopy = getHealthCopy(goalTitle);
-  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails.name);
+  const healthText = getHealthCopy(goalTitle);
+
+  const analysisCopy = getPersonalizedCopy(goalTitle, userDetails.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
-  // --- Logic: Phase 1 ---
+  const canContinue = (isNone || selectedConditions.length > 0) && !!activity;
 
+  /* ---------- Phase 1 actions ---------- */
   const toggleCondition = (id) => {
-    setNoneSelected(false);
-    setSelectedConditions(prev => {
-      const newSet = prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id];
-      updateHelperText(newSet.length > 0, selectedActivity);
-      return newSet;
-    });
+    setIsNone(false);
+    setSelectedConditions((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
   };
 
   const toggleNone = () => {
-    const newVal = !noneSelected;
-    setNoneSelected(newVal);
-    if (newVal) setSelectedConditions([]);
-    updateHelperText(newVal, selectedActivity);
+    setIsNone((v) => !v);
+    setSelectedConditions([]);
   };
 
-  const selectActivity = (act) => {
-    setSelectedActivity(act);
-    updateHelperText(selectedConditions.length > 0 || noneSelected, act);
-    setActivityHelperText("✓ Perfect, I'll match your pace & recovery.");
+  const handleHealthContinue = () => {
+    if (!canContinue) return;
+    saveUserData("healthConditions", selectedConditions);
+    saveUserData("activityLevel", activity);
+    startAnalysis();
   };
 
-  const updateHelperText = (hasCondition, hasActivity) => {
-    setHelperText(getHelperCopy(hasCondition, goalTitle));
-  };
-
-  const canContinue = (selectedConditions.length > 0 || noneSelected) && selectedActivity;
-
-  const handlePhase1Continue = () => {
-    saveUserData('healthConditions', selectedConditions);
-    saveUserData('activityLevel', selectedActivity);
-    setPhase('personalizing');
-  };
-
-  // --- Logic: Phase 2 (Sequence) ---
-
+  // helper labels like Swift
   useEffect(() => {
-    if (phase === 'personalizing') {
-      let startTime = Date.now();
-      
-      // 1. Connecting Status
-      setPersonalizingStatus(personalizingCopy.connecting);
+    const hasCond = selectedConditions.length > 0;
+    if (hasCond) setConditionHelper(helperCopy(true, goalTitle));
+    else if (isNone) setConditionHelper(helperCopy(false, goalTitle));
+    else setConditionHelper("");
 
-      // Progress Bar Loop
-      const progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const p = Math.min(99, Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100));
-        setProgressPercent(p);
-      }, 50);
+    if (activity) setActivityHelper("✓ Perfect, I'll match your pace & recovery.");
+    else setActivityHelper("");
+  }, [selectedConditions, isNone, activity, goalTitle]);
 
-      // 2. Calibrating Status (after 25% of time)
-      const t1 = setTimeout(() => {
-        setPersonalizingStatus(personalizingCopy.calibrating);
-      }, PersonalizingConstants.totalDuration * PersonalizingConstants.phase1Scale);
+  /* ---------- Phase 2: analysis (7 sec) ---------- */
+  const startAnalysis = () => {
+    setPhase("analyzing");
+    setProgress(0);
+    setTypedStatus("");
+    setAnalysisStatus(analysisCopy.connecting || "Connecting to Coach Mia…");
 
-      // 3. Show Checklist (after 45% of time)
-      const t2 = setTimeout(() => {
-        setPersonalizingStatus(""); // Hide text, show checklist
-        setShowChecklist(true);
-      }, PersonalizingConstants.totalDuration * (PersonalizingConstants.phase1Scale + PersonalizingConstants.phase2Scale));
+    const TOTAL = 7000;
+    const tick = 50;
+    const steps = TOTAL / tick;
+    let s = 0;
 
-      return () => {
-        clearInterval(progressInterval);
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
-    }
-  }, [phase]);
+    if (timerRef.current) clearInterval(timerRef.current);
 
-  // Phase 2 Completion
-  const onChecklistComplete = () => {
-    setProgressPercent(100);
-    setPersonalizingStatus("Your plan is locked in—let’s go!");
-    setTimeout(() => {
-      setPhase('showingTimeline');
-    }, 1200);
+    timerRef.current = setInterval(() => {
+      s += 1;
+      const pct = Math.min(100, Math.round((s / steps) * 100));
+      setProgress(pct);
+
+      // Swift-ish phase timings
+      if (pct === 25) setAnalysisStatus(analysisCopy.calibrating || "Building your custom routine…");
+      if (pct === 45) setAnalysisStatus("Preparing exercises for fast relief…");
+      if (pct === 60) setAnalysisStatus("Fine-tuning for: " + (analysisCopy.checklist?.[0] || "your routine"));
+      if (pct === 73) setAnalysisStatus("Fine-tuning for: " + (analysisCopy.checklist?.[1] || "your routine"));
+      if (pct === 86) setAnalysisStatus("Fine-tuning for: " + (analysisCopy.checklist?.[2] || "your routine"));
+      if (pct === 96) setAnalysisStatus("Fine-tuning for: " + (analysisCopy.checklist?.[3] || "your routine"));
+
+      if (pct >= 100) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+
+        // final
+        setTimeout(() => {
+          setPhase("timeline");
+          setTimelineReady(true);
+          setTimeout(() => setShowTimeline(true), 120);
+        }, 600);
+      }
+    }, tick);
   };
 
+  // Type-out effect (Swift typeOut)
+  useEffect(() => {
+    let cancelled = false;
+    setTypedStatus("");
 
-  // --- Logic: Phase 3 (Timeline Helpers) ---
+    const text = analysisStatus || "";
+    let idx = 0;
+
+    const t = setInterval(() => {
+      if (cancelled) return;
+      idx += 1;
+      setTypedStatus(text.slice(0, idx));
+      if (idx >= text.length) clearInterval(t);
+    }, 18);
+
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [analysisStatus]);
+
+  // Checklist item progress (like Swift stroke border)
+  const checklistProgress = useMemo(() => {
+    // start checklist around 50%, spread across 4 items to ~98%
+    const starts = [50, 62, 74, 86];
+    const span = 12;
+    return (analysisCopy.checklist || []).map((_, i) => {
+      const start = starts[i] ?? 50;
+      const end = start + span;
+      const p = (progress - start) / (end - start);
+      return Math.max(0, Math.min(1, p));
+    });
+  }, [progress, analysisCopy.checklist]);
+
+  const checklistVisibleCount = useMemo(() => {
+    // when progress crosses each start, item appears
+    const starts = [50, 62, 74, 86];
+    return starts.filter((s) => progress >= s).length;
+  }, [progress]);
+
+  /* ---------- Phase 3: timeline ---------- */
   const calculateBMI = () => {
     if (!userDetails.weight || !userDetails.height) return "22.5";
-    const h = userDetails.height * 0.0254;
-    const w = userDetails.weight * 0.453592;
-    return (w / (h * h)).toFixed(1);
+    const heightM = userDetails.height * 0.0254;
+    const weightKg = userDetails.weight * 0.453592;
+    return (weightKg / (heightM * heightM)).toFixed(1);
   };
 
-  const getFutureDate = () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-  };
+  const activityLabel = activity
+    ? (ACTIVITIES.find((a) => a.id === activity)?.title || "Active").toLowerCase()
+    : "active";
 
-  const formatRichText = (text) => {
-    // Replaces **text** with bold spans
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        let content = part.slice(2, -2);
-        // Hydrate variables
-        if (content === '{date}') content = getFutureDate();
-        if (content === '{bmi}') content = calculateBMI();
-        if (content === '{activity}') content = selectedActivity ? ACTIVITIES.find(a => a.id === selectedActivity)?.title.toLowerCase() : "active";
-        if (content === '{age}') content = userDetails.age || "30";
-        if (content === '{condition}') content = selectedConditions.length > 0 ? "unique needs" : "body";
-        
-        return <span key={i} className="text-white font-bold">{content}</span>;
-      }
-      return <span key={i} className="text-white/80">{part}</span>;
-    });
-  };
+  const firstConditionTitle = selectedConditions.length
+    ? (CONDITIONS.find((c) => c.id === selectedConditions[0])?.title || "unique needs")
+    : "unique needs";
 
-  // --- RENDER ---
+  const timelineSubtitle = (timelineCopy.subtitle || "")
+    .replace("{date}", dateString || "soon");
+
+  const formattedInsights = (timelineCopy.insights || []).map((t) =>
+    t
+      .replace("{bmi}", calculateBMI())
+      .replace("{activity}", activityLabel)
+      .replace("{age}", userDetails.age || "30")
+      .replace("{condition}", firstConditionTitle)
+  );
+
+  const goalLower = (goalTitle || "").toLowerCase();
+  const milestones = useMemo(() => getMilestones(goalLower), [goalLower]);
+  const bezierPath = useMemo(
+    () => `M 20 144 C 60 162 240 18 280 36`,
+    []
+  );
 
   return (
-    <div className={`relative w-full h-full flex flex-col transition-colors duration-700 overflow-hidden
-      ${phase === 'askingHealthInfo' ? 'bg-[#f8f9fa]' : 'bg-black'}
-    `}>
-      
-      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
-      {phase === 'askingHealthInfo' && (
-        <div className="flex flex-col h-full w-full animate-in fade-in duration-700">
-          <div className="flex-1 px-6 pt-12 overflow-y-auto no-scrollbar pb-32">
-            
-            {/* Header */}
-            <h1 className="text-[28px] font-bold text-center text-slate-900 mb-2 leading-tight">
-              {healthCopy.headline}
+    <div
+      className={`relative w-full overflow-hidden transition-colors duration-700 ease-in-out
+        ${phase === "health" ? "bg-app-background" : "bg-black"}
+        min-h-[100dvh]`}
+    >
+      {/* =========================
+          PHASE 1: HEALTH
+      ========================= */}
+      {phase === "health" && (
+        <div className="flex flex-col min-h-[100dvh]">
+          <div className="flex-1 px-6 pt-10 pb-4 overflow-y-auto no-scrollbar pf-fade-in">
+            <div className="pf-softTopGlow" />
+
+            <h1 className="text-[28px] font-extrabold text-center text-app-textPrimary mb-2 leading-tight">
+              {healthText.headline}
             </h1>
-            <p className="text-center text-slate-500 text-[16px] mb-8">
-              {healthCopy.subtitle}
+            <p className="text-center text-app-textSecondary text-[15px] mb-8">
+              {healthText.subtitle}
             </p>
 
-            {/* Conditions Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              {CONDITIONS.map((item) => {
-                const isSelected = selectedConditions.includes(item.id);
+            {/* Conditions Grid (Swift ConditionCell vibes) */}
+            <div className="grid grid-cols-2 gap-4 mb-3">
+              {CONDITIONS.map((c) => {
+                const active = selectedConditions.includes(c.id);
                 return (
                   <button
-                    key={item.id}
-                    onClick={() => toggleCondition(item.id)}
-                    className={`relative flex flex-col items-center justify-center p-4 rounded-[24px] border-[1.5px] h-[115px] transition-all duration-300
-                      ${isSelected 
-                        ? 'bg-white border-[3px] border-pink-500 shadow-[0_5px_14px_rgba(0,0,0,0.1)] scale-[1.04] z-10' 
-                        : 'bg-white border-slate-200 shadow-[0_5px_10px_rgba(0,0,0,0.04)]'}
-                    `}
+                    key={c.id}
+                    onClick={() => toggleCondition(c.id)}
+                    className={[
+                      "relative group flex flex-col items-center justify-center px-4 py-4 rounded-[24px]",
+                      "border transition-all duration-300 outline-none",
+                      "pf-card",
+                      active ? "pf-card-active" : "pf-card-idle",
+                    ].join(" ")}
                   >
-                    <div className={`mb-3 ${isSelected ? 'text-pink-500' : 'text-pink-500'}`}>
-                      {item.icon}
+                    {/* icon */}
+                    <div
+                      className={[
+                        "mb-2 transition-all duration-300",
+                        active ? "text-rose-500" : "text-gray-400",
+                      ].join(" ")}
+                    >
+                      {c.icon}
                     </div>
-                    <span className="text-[15px] font-semibold text-center text-slate-900 leading-tight">
-                      {item.title}
+
+                    {/* title */}
+                    <span
+                      className={[
+                        "text-[13px] font-semibold text-center leading-tight",
+                        active ? "text-app-textPrimary" : "text-gray-500",
+                      ].join(" ")}
+                    >
+                      {c.title}
                     </span>
-                    {/* Checkmark */}
-                    <div className={`absolute top-3 right-3 transition-opacity duration-300 ${isSelected ? 'opacity-100' : 'opacity-0'}`}>
-                       <Check size={20} className="text-pink-500 fill-current" strokeWidth={4} />
+
+                    {/* check */}
+                    <div
+                      className={[
+                        "absolute top-3 right-3 transition-all duration-300",
+                        active ? "opacity-100 scale-100" : "opacity-0 scale-90",
+                      ].join(" ")}
+                      aria-hidden="true"
+                    >
+                      <div className="pf-checkPill">
+                        <CheckCircle2 size={20} className="text-white" />
+                      </div>
                     </div>
+
+                    {/* subtle active tint */}
+                    {active && <div className="pf-activeTint" />}
                   </button>
                 );
               })}
             </div>
 
-            {/* Helper Text 1 */}
-            <div className={`h-6 text-center text-sm font-medium text-emerald-600 transition-opacity duration-300 mb-4 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
-              {helperText}
+            {/* Condition helper (Swift: conditionsHelperLabel) */}
+            <div className="min-h-[24px] flex items-center justify-center mb-3">
+              {conditionHelper && (
+                <p className="text-rose-500 text-sm font-semibold pf-fade-in">
+                  {conditionHelper}
+                </p>
+              )}
             </div>
 
-            {/* None Button */}
+            {/* None Button (Swift: ✓ None of the Above) */}
             <button
               onClick={toggleNone}
-              className={`w-full py-4 rounded-full border-[1.5px] font-medium text-[16px] mb-8 transition-all duration-300
-                ${noneSelected 
-                  ? 'bg-white border-[3px] border-pink-500 text-pink-500' 
-                  : 'bg-white border-slate-200 text-slate-500'}
-              `}
+              className={[
+                "w-full py-3.5 rounded-full border font-semibold text-[15px] mb-7 transition-all outline-none active:scale-[0.99]",
+                "pf-pill",
+                isNone ? "pf-pill-active" : "pf-pill-idle",
+              ].join(" ")}
             >
-              ✓ None of the Above
+              <span className="inline-flex items-center gap-2 justify-center">
+                <span className={isNone ? "text-rose-500" : "text-gray-400"}>✓</span>
+                None of the Above
+              </span>
             </button>
 
-            {/* Activity */}
-            <h3 className="text-[18px] font-bold text-center text-slate-900 mb-4">Your typical activity level</h3>
-            <div className="flex flex-col gap-3">
-              {ACTIVITIES.map((act) => {
-                const isSelected = selectedActivity === act.id;
+            {/* Activity Level */}
+            <h3 className="text-lg font-extrabold text-center mb-4 text-app-textPrimary">
+              Your typical activity level
+            </h3>
+            <div className="flex flex-col gap-3 mb-2">
+              {ACTIVITIES.map((a) => {
+                const active = activity === a.id;
                 return (
                   <button
-                    key={act.id}
-                    onClick={() => selectActivity(act.id)}
-                    className={`w-full py-4 rounded-[25px] border-[1.5px] text-[16px] font-medium transition-all duration-300
-                      ${isSelected
-                        ? 'bg-white border-[3px] border-pink-500 text-pink-500'
-                        : 'bg-white border-slate-200 text-slate-500'}
-                    `}
+                    key={a.id}
+                    onClick={() => setActivity(a.id)}
+                    className={[
+                      "relative w-full px-5 py-4 rounded-[22px] border outline-none transition-all duration-300",
+                      "flex items-center justify-between text-left overflow-hidden",
+                      "pf-card",
+                      active ? "pf-card-active" : "pf-card-idle",
+                    ].join(" ")}
                   >
-                    {act.title} <span className="text-sm opacity-70 font-normal">{act.sub}</span>
+                    <span className="relative z-10">
+                      <span className={active ? "text-app-textPrimary font-bold text-[15px]" : "text-gray-500 font-bold text-[15px]"}>
+                        {a.title}{" "}
+                      </span>
+                      <span className="text-sm opacity-70 ml-1">{a.sub}</span>
+                    </span>
+
+                    <span
+                      className={[
+                        "relative z-10 transition-all duration-300",
+                        active ? "opacity-100 scale-100" : "opacity-0 scale-90",
+                      ].join(" ")}
+                      aria-hidden="true"
+                    >
+                      <div className="pf-checkPill">
+                        <CheckCircle2 size={20} className="text-white" />
+                      </div>
+                    </span>
+
+                    {active && <div className="pf-activeTint" />}
                   </button>
                 );
               })}
             </div>
 
-             {/* Helper Text 2 */}
-             <div className={`h-6 text-center text-sm font-medium text-emerald-600 transition-opacity duration-300 mt-3 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
-              {activityHelperText}
+            {/* Activity helper (Swift: activityHelperLabel) */}
+            <div className="min-h-[24px] flex items-center justify-center mb-4">
+              {activityHelper && (
+                <p className="text-rose-500 text-sm font-semibold pf-fade-in">
+                  {activityHelper}
+                </p>
+              )}
             </div>
 
+            {/* Spacer so sticky CTA never covers content */}
+            <div className="h-28 w-full" />
           </div>
 
-          {/* Footer Button */}
-          <div className="p-6 bg-[#f8f9fa]">
+          {/* Sticky Footer CTA (Swift gradient button) */}
+          <div className="absolute bottom-0 w-full px-6 pb-8 pt-6 bg-gradient-to-t from-app-background via-app-background/95 to-transparent z-[50]">
             <button
-              onClick={handlePhase1Continue}
+              onClick={handleHealthContinue}
               disabled={!canContinue}
-              className={`w-full h-14 rounded-full font-bold text-lg text-white transition-all duration-300
-                ${canContinue 
-                  ? 'bg-gradient-to-b from-pink-500 to-pink-600 shadow-lg translate-y-0' 
-                  : 'bg-slate-300 shadow-none cursor-not-allowed'}
-              `}
+              className={[
+                "w-full h-14 rounded-full font-extrabold text-lg transition-all duration-300",
+                "pf-cta",
+                canContinue ? "pf-cta-active" : "pf-cta-disabled",
+              ].join(" ")}
             >
-              {healthCopy.cta}
+              {healthText.cta}
             </button>
           </div>
         </div>
       )}
 
+      {/* =========================
+          PHASE 2: PERSONALIZING (Swift AICore + checklist)
+      ========================= */}
+      {phase === "analyzing" && (
+        <div className="relative flex flex-col items-center justify-center min-h-[100dvh] px-8 pt-10 pb-10 text-white pf-fade-in overflow-hidden">
+          {/* background */}
+          <div className="pf-darkGlow" aria-hidden="true" />
 
-      {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
-      {phase === 'personalizing' && (
-        <div className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000">
-          
-          {/* AI Core Animation */}
-          <div className={`transition-all duration-500 ${showChecklist ? 'scale-75 -translate-y-8 opacity-0' : 'scale-100 opacity-100'}`}>
-            <AICoreView />
+          {/* Title + Subtitle (fade in after checklist stage begins) */}
+          <div
+            className={[
+              "w-full max-w-md text-center transition-all duration-700",
+              progress >= 50 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3",
+            ].join(" ")}
+          >
+            <div className="text-white/85 tracking-[0.12em] text-[11px] font-semibold mb-3">
+              PERSONALIZING YOUR BODY&apos;S PLAN
+            </div>
+            <h2 className="text-[26px] font-extrabold leading-tight mb-2">
+              {analysisCopy.title}
+            </h2>
+            <p className="text-white/60 text-[15px] mb-6">
+              {analysisCopy.subtitle}
+            </p>
           </div>
 
-          {/* Status Text (Typing effect simulation via simple opacity fade here for React perf) */}
-          {!showChecklist && (
-             <div className="mt-12 text-center h-20">
-               <h2 className="text-[22px] font-medium text-white/90 mb-2 animate-pulse">{personalizingStatus}</h2>
-             </div>
-          )}
-
-          {/* Checklist Mode */}
-          {showChecklist && (
-            <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
-               <h2 className="text-2xl font-bold text-white text-center mb-2">{personalizingCopy.title}</h2>
-               <p className="text-center text-gray-400 text-sm mb-8">{personalizingCopy.subtitle}</p>
-               
-               <div className="space-y-4">
-                  {personalizingCopy.checklist.map((item, idx) => (
-                    <ChecklistItem 
-                      key={idx} 
-                      text={item} 
-                      delay={idx * 800} // Stagger start
-                      onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined}
-                    />
-                  ))}
-               </div>
-               
-               <div className="mt-8 text-center text-pink-500 font-medium text-sm animate-pulse">
-                 {progressPercent === 100 ? "Ready!" : "Fine-tuning for: " + (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent/25))] || "Results")}
-               </div>
+          {/* Status label (Swift typeOut) - visible in early stage */}
+          <div
+            className={[
+              "absolute top-16 left-0 right-0 px-8 text-center transition-all duration-700",
+              progress < 50 ? "opacity-100" : "opacity-0",
+            ].join(" ")}
+          >
+            <div className="text-white/85 text-[18px] font-semibold leading-snug pf-typeLine">
+              {typedStatus}
+              <span className="pf-caret" aria-hidden="true" />
             </div>
-          )}
+          </div>
 
-          {/* Bottom Progress */}
-          <div className="absolute bottom-10 left-0 w-full px-8">
-            <div className="flex justify-between items-end mb-3">
-              <span className="text-white/60 font-medium">Progress</span>
-              <span className="text-white font-mono text-2xl font-bold">{progressPercent}%</span>
+          {/* AICore (3 rings + orb) */}
+          <div className="relative w-[160px] h-[160px] mt-6 mb-10">
+            <div className="pf-core">
+              <div className="pf-ring pf-ring-1" />
+              <div className="pf-ring pf-ring-2" />
+              <div className="pf-ring pf-ring-3" />
+              <div className="pf-orb" />
+              <div className="pf-orbGlow" />
             </div>
-            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-pink-500 transition-all duration-100 ease-linear"
-                style={{ width: `${progressPercent}%` }}
+          </div>
+
+          {/* Checklist */}
+          <div
+            className={[
+              "w-full max-w-md space-y-4 transition-all duration-700",
+              progress >= 50 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
+            ].join(" ")}
+          >
+            {(analysisCopy.checklist || []).map((item, idx) => {
+              const visible = idx < checklistVisibleCount;
+              const p = checklistProgress[idx] ?? 0;
+              const done = p >= 1;
+
+              return (
+                <ChecklistItem
+                  key={idx}
+                  text={item}
+                  visible={visible}
+                  progress={p}
+                  done={done}
+                  delay={0.05 * idx}
+                />
+              );
+            })}
+          </div>
+
+          {/* Bottom Progress (Swift: Progress + % + bar + status) */}
+          <div className="w-full max-w-md mt-10">
+            <div className="flex items-end justify-between mb-2">
+              <span className="text-white/70 text-sm font-medium">Progress</span>
+              <span className="text-white font-extrabold text-[22px] tabular-nums">
+                {Math.min(progress, 100)}%
+              </span>
+            </div>
+
+            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-app-primary pf-progressFill"
+                style={{ width: `${Math.min(progress, 100)}%` }}
               />
             </div>
-            <p className="text-center text-pink-500 text-sm mt-3 font-medium min-h-[20px]">
-               {progressPercent < 30 ? "Syncing your goals..." : progressPercent < 100 ? "Preparing exercises..." : "Your plan is locked in—let’s go!"}
-            </p>
+
+            <div className="mt-3 text-center text-rose-400 font-semibold text-[13px]">
+              {analysisStatus}
+            </div>
           </div>
         </div>
       )}
 
-
-      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
-      {phase === 'showingTimeline' && (
-        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-slate-900 relative">
-          
-          {/* Particle Background */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(15)].map((_, i) => (
-               <div key={i} className="absolute bg-white/30 rounded-full w-1 h-1 animate-ping" 
-                    style={{
-                      left: `${Math.random()*100}%`, 
-                      top: `${Math.random()*100}%`, 
-                      animationDuration: `${2+Math.random()*3}s`,
-                      animationDelay: `${Math.random()*2}s`
-                    }} 
-               />
+      {/* =========================
+          PHASE 3: TIMELINE REVEAL (Swift holographic vibes + particles)
+      ========================= */}
+      {phase === "timeline" && (
+        <div
+          className={[
+            "relative flex flex-col min-h-[100dvh] overflow-hidden transition-opacity duration-1000",
+            showTimeline ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+        >
+          {/* particles */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <div className="pf-timelineGlow" />
+            {(particles || []).map((p) => (
+              <span
+                key={p.id}
+                className="pf-spark"
+                style={{
+                  left: `${p.left}%`,
+                  animationDelay: `${p.delay}s`,
+                  animationDuration: `${p.dur}s`,
+                  width: `${p.size}px`,
+                  height: `${p.size}px`,
+                  opacity: p.opacity,
+                }}
+              />
             ))}
           </div>
 
-          <div className="flex-1 px-6 pt-12 overflow-y-auto no-scrollbar pb-32 z-10">
-            {/* Headline */}
-            <h1 className="text-[30px] font-bold text-center text-white mb-2 leading-tight">
-               <span className="text-white/90">{userDetails.name ? `${userDetails.name}, your` : "Your"} path to</span><br/>
-               <span className="text-white">{goalTitle}</span> is ready.
+          <div className="flex-1 flex flex-col items-center px-6 pt-12 pb-28 overflow-y-auto no-scrollbar relative z-10">
+            <h1 className="text-[32px] font-extrabold text-white text-center mb-3 leading-tight drop-shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
+              <span className="text-app-primary">{userDetails.name || "Your"}</span>{" "}
+              path to
+              <br />
+              {goalTitle} is ready.
             </h1>
-            
-            {/* Subtitle */}
-            <p className="text-center text-white/80 text-[16px] mb-8 leading-relaxed">
-              {formatRichText(timelineCopy.subtitle)}
+
+            <p className="text-center text-white/75 text-[15px] max-w-md">
+              {timelineSubtitle}
             </p>
 
-            {/* Holographic Chart */}
-            <HolographicTimeline goal={goalTitle} />
+            {/* Holographic Timeline */}
+            <div className="w-full max-w-md mt-8 mb-6">
+              <div className="pf-holoCard">
+                <div className="pf-holoHeader">
+                  <span className="text-white/80 text-xs font-semibold tracking-[0.18em]">
+                    YOUR 6-WEEK PATH
+                  </span>
+                </div>
+
+                <div className="relative w-full h-[190px]">
+                  <svg viewBox="0 0 300 180" className="w-full h-full overflow-visible">
+                    <defs>
+                      <linearGradient id="pfLine" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="rgba(244,63,94,0.25)" />
+                        <stop offset="60%" stopColor="rgba(244,63,94,0.85)" />
+                        <stop offset="100%" stopColor="rgba(168,85,247,0.85)" />
+                      </linearGradient>
+
+                      <radialGradient id="pfRad" cx="50%" cy="50%" r="60%">
+                        <stop offset="0%" stopColor="rgba(244,63,94,0.16)" />
+                        <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+                      </radialGradient>
+
+                      <filter id="pfGlow">
+                        <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
+                        <feMerge>
+                          <feMergeNode in="coloredBlur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+
+                    <rect x="0" y="0" width="300" height="180" fill="url(#pfRad)" />
+
+                    {/* path (draw animation) */}
+                    <path
+                      d={bezierPath}
+                      fill="none"
+                      stroke="url(#pfLine)"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      filter="url(#pfGlow)"
+                      className={timelineReady ? "pf-drawPath" : ""}
+                    />
+
+                    {/* rider dot (motion path via CSS if supported) */}
+                    <circle
+                      r="5"
+                      cx="20"
+                      cy="144"
+                      className={timelineReady ? "pf-riderDot" : ""}
+                      fill="white"
+                      filter="url(#pfGlow)"
+                    />
+
+                    {/* milestones */}
+                    {milestones.map((m, i) => {
+                      const pt = pointOnCurve(m.t, 300, 180);
+                      const delay = 0.9 + m.t * 1.8; // Swift-ish stagger
+                      return (
+                        <g key={i}>
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r={m.t === 1 ? 7 : 5}
+                            fill={m.t === 1 ? "rgba(244,63,94,0.95)" : "white"}
+                            stroke={m.t === 1 ? "white" : "rgba(255,255,255,0.7)"}
+                            strokeWidth={m.t === 1 ? 2 : 1.5}
+                            filter="url(#pfGlow)"
+                            className="pf-nodePop"
+                            style={{ animationDelay: `${delay}s` }}
+                          />
+                          <text
+                            x={pt.x}
+                            y={pt.y - 16}
+                            textAnchor="middle"
+                            className="pf-nodeLabel"
+                            style={{ animationDelay: `${delay}s` }}
+                          >
+                            Week {m.week}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {milestones.map((m, i) => (
+                    <div
+                      key={i}
+                      className="pf-miniMilestone"
+                      style={{ animationDelay: `${1.1 + i * 0.12}s` }}
+                    >
+                      <span className="pf-miniDot" />
+                      <span className="text-white/80 text-[12px] leading-snug">
+                        <span className="text-white font-semibold">Week {m.week}:</span> {m.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
 
             {/* Insights */}
-            <div className="mt-6 space-y-5">
-              <h3 className="text-lg font-semibold text-white mb-2">Your Personal Insights</h3>
-              {timelineCopy.insights.map((insight, idx) => (
-                <div key={idx} className="flex items-start gap-4 animate-in slide-in-from-bottom-4 fade-in duration-700" style={{ animationDelay: `${idx * 150}ms` }}>
-                  <div className="mt-1 text-purple-400">
-                    <Sparkles size={20} />
-                  </div>
-                  <p className="text-[14px] leading-relaxed">
-                    {formatRichText(insight)}
-                  </p>
-                </div>
+            <div className="w-full max-w-md space-y-4 mt-2">
+              <h3 className="text-white font-extrabold text-lg mb-1">
+                Your Personal Insights
+              </h3>
+              {formattedInsights.map((insight, index) => (
+                <InsightRow
+                  key={index}
+                  icon={<Sparkles size={18} />}
+                  text={insight}
+                  delay={0.25 + index * 0.12}
+                />
               ))}
             </div>
+
+            <div className="h-20" />
           </div>
 
-          {/* Sticky CTA */}
-          <div className="p-6 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent z-20">
-             <button
-               onClick={onNext}
-               className="w-full h-14 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-lg shadow-[0_0_20px_rgba(236,72,153,0.4)] hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] transition-all transform active:scale-95"
-             >
-               {timelineCopy.cta}
-             </button>
+          {/* Sticky Footer */}
+          <div className="absolute bottom-0 w-full px-6 pb-8 pt-6 bg-gradient-to-t from-black via-black/90 to-transparent z-20">
+            <button
+              onClick={onNext}
+              className="w-full h-14 pf-ctaTimeline rounded-full text-white font-extrabold text-lg flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
+            >
+              <Lock size={18} /> {timelineCopy.cta}
+            </button>
+            <p className="text-center text-white/40 text-xs mt-3">
+              Secure checkout • 100% Money-back guarantee
+            </p>
           </div>
-
         </div>
       )}
 
+      {/* =========================
+          INLINE CSS (no other files needed)
+      ========================= */}
+      <style jsx global>{`
+        /* Respect reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .pf-fade-in, .pf-drawPath, .pf-nodePop, .pf-spark, .pf-ring, .pf-orb { animation: none !important; }
+          .pf-progressFill { transition: none !important; }
+        }
+
+        /* base fades */
+        @keyframes pfFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .pf-fade-in { animation: pfFadeIn 520ms cubic-bezier(.2,.8,.2,1) both; }
+
+        /* subtle top glow */
+        .pf-softTopGlow{
+          position:absolute; inset:-80px -80px auto -80px; height:220px;
+          background: radial-gradient(circle at 50% 40%, rgba(244,63,94,0.18), rgba(0,0,0,0));
+          pointer-events:none;
+          filter: blur(10px);
+        }
+
+        /* Card styles (Swift ConditionCell feel) */
+        .pf-card{
+          background: #ffffff;
+          border-width: 1.5px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+          transform: translateZ(0);
+          transition:
+            transform 350ms cubic-bezier(.2,.8,.2,1),
+            box-shadow 350ms cubic-bezier(.2,.8,.2,1),
+            border-color 350ms cubic-bezier(.2,.8,.2,1),
+            border-width 350ms cubic-bezier(.2,.8,.2,1);
+          position: relative;
+        }
+        .pf-card-idle{
+          border-color: rgba(229,231,235,1);
+        }
+        .pf-card-active{
+          border-color: rgba(244,63,94,1);
+          border-width: 3px;
+          transform: scale(1.04);
+          box-shadow: 0 18px 45px rgba(244,63,94,0.18), 0 12px 28px rgba(0,0,0,0.06);
+          z-index: 10;
+        }
+        .pf-activeTint{
+          position:absolute; inset:0;
+          border-radius: 22px;
+          background: radial-gradient(circle at 50% 30%, rgba(244,63,94,0.18), rgba(244,63,94,0.04), rgba(255,255,255,0));
+          pointer-events:none;
+        }
+        .pf-checkPill{
+          width: 26px; height: 26px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(244,63,94,1), rgba(244,63,94,0.78));
+          display:flex; align-items:center; justify-content:center;
+          box-shadow: 0 12px 25px rgba(244,63,94,0.22);
+        }
+
+        /* pills (none button) */
+        .pf-pill{ border-width:1.5px; background:#fff; }
+        .pf-pill-idle{ border-color: rgba(229,231,235,1); color: rgba(107,114,128,1); }
+        .pf-pill-active{
+          border-color: rgba(244,63,94,1);
+          border-width: 3px;
+          color: rgba(244,63,94,1);
+          background: rgba(244,63,94,0.06);
+          box-shadow: 0 14px 34px rgba(244,63,94,0.14);
+          transform: scale(1.01);
+        }
+
+        /* CTA (health) */
+        .pf-cta{
+          box-shadow: 0 18px 40px rgba(0,0,0,0.12);
+        }
+        .pf-cta-active{
+          background: linear-gradient(180deg, rgba(244,63,94,1), rgba(244,63,94,0.82));
+          color: white;
+        }
+        .pf-cta-active:active{ transform: scale(0.99); }
+        .pf-cta-disabled{
+          background: rgba(229,231,235,1);
+          color: rgba(156,163,175,1);
+          box-shadow: none;
+          cursor: not-allowed;
+        }
+
+        /* Phase 2 background glow */
+        .pf-darkGlow{
+          position:absolute; inset:-120px;
+          background:
+            radial-gradient(circle at 50% 25%, rgba(244,63,94,0.18), rgba(0,0,0,0) 55%),
+            radial-gradient(circle at 15% 70%, rgba(168,85,247,0.14), rgba(0,0,0,0) 52%),
+            radial-gradient(circle at 85% 75%, rgba(244,63,94,0.10), rgba(0,0,0,0) 55%);
+          filter: blur(14px);
+          pointer-events:none;
+        }
+
+        /* Typeout caret */
+        .pf-typeLine{ text-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+        @keyframes pfCaret { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+        .pf-caret{
+          display:inline-block; width:8px; height:18px; margin-left:6px;
+          border-radius: 4px;
+          background: rgba(255,255,255,0.5);
+          vertical-align: -3px;
+          animation: pfCaret 900ms infinite;
+        }
+
+        /* AI Core (Swift rings + orb) */
+        .pf-core{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+        .pf-ring{
+          position:absolute; border-radius:9999px;
+          border: 2px solid rgba(244,63,94,0.5);
+          filter: drop-shadow(0 0 14px rgba(244,63,94,0.25));
+          opacity: 1;
+        }
+        .pf-ring-1{ width: 86px; height: 86px; border-width: 3px; animation: pfRotateCW 8s linear infinite; }
+        .pf-ring-2{ width: 114px; height: 114px; border-width: 2px; opacity:.7; animation: pfRotateCCW 12s linear infinite; }
+        .pf-ring-3{ width: 142px; height: 142px; border-width: 1px; opacity:.5; animation: pfRotateCW 15s linear infinite; }
+
+        @keyframes pfRotateCW{ from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes pfRotateCCW{ from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
+
+        .pf-orb{
+          width: 44px; height: 44px; border-radius: 999px;
+          background: rgba(244,63,94,0.42);
+          border: 2px solid rgba(244,63,94,0.7);
+          box-shadow: 0 0 22px rgba(244,63,94,0.65);
+          animation: pfOrbPulse 2.5s ease-in-out infinite;
+          position: relative;
+          z-index: 5;
+        }
+        .pf-orbGlow{
+          position:absolute; width: 78px; height: 78px; border-radius:999px;
+          background: radial-gradient(circle, rgba(244,63,94,0.22), rgba(0,0,0,0));
+          filter: blur(10px);
+          z-index: 1;
+          animation: pfOrbGlow 2.5s ease-in-out infinite;
+        }
+        @keyframes pfOrbPulse{
+          0%,100%{ transform: scale(1) }
+          50%{ transform: scale(1.08) }
+        }
+        @keyframes pfOrbGlow{
+          0%,100%{ transform: scale(1); opacity:.9 }
+          50%{ transform: scale(1.12); opacity:.65 }
+        }
+
+        /* Progress fill smoothing */
+        .pf-progressFill{
+          transition: width 75ms linear;
+          box-shadow: 0 0 16px rgba(244,63,94,0.22);
+        }
+
+        /* Checklist item */
+        .pf-checkItem{
+          position: relative;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.05);
+          backdrop-filter: blur(10px);
+          overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+          transform: translateX(-8px);
+          opacity: 0;
+          transition: opacity 500ms cubic-bezier(.2,.8,.2,1), transform 500ms cubic-bezier(.2,.8,.2,1);
+        }
+        .pf-checkItem.pf-visible{ opacity: 1; transform: translateX(0); }
+        .pf-checkIcon{
+          width: 26px; height: 26px; border-radius: 999px;
+          display:flex; align-items:center; justify-content:center;
+          background: rgba(244,63,94,0.14);
+          border: 1px solid rgba(244,63,94,0.20);
+          color: rgba(244,63,94,1);
+          box-shadow: 0 0 0 rgba(244,63,94,0.0);
+          transition: all 260ms ease;
+        }
+        .pf-checkIcon.pf-done{
+          background: rgba(244,63,94,1);
+          border-color: rgba(244,63,94,1);
+          color: white;
+          animation: pfPop 380ms cubic-bezier(.2,.9,.2,1) both;
+          box-shadow: 0 0 18px rgba(244,63,94,0.35);
+        }
+        @keyframes pfPop{
+          0%{ transform: scale(0.9) }
+          60%{ transform: scale(1.08) }
+          100%{ transform: scale(1) }
+        }
+
+        /* Timeline */
+        .pf-timelineGlow{
+          position:absolute; inset:-140px;
+          background:
+            radial-gradient(circle at 50% 20%, rgba(244,63,94,0.20), rgba(0,0,0,0) 55%),
+            radial-gradient(circle at 20% 70%, rgba(168,85,247,0.16), rgba(0,0,0,0) 55%),
+            radial-gradient(circle at 80% 80%, rgba(244,63,94,0.10), rgba(0,0,0,0) 60%);
+          filter: blur(16px);
+        }
+
+        .pf-spark{
+          position:absolute;
+          top: -10px;
+          background: rgba(255,255,255,1);
+          border-radius: 999px;
+          animation-name: pfFall;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+          box-shadow: 0 0 14px rgba(244,63,94,0.22);
+        }
+        @keyframes pfFall{
+          0%{ transform: translateY(-10px) translateX(0); }
+          100%{ transform: translateY(110vh) translateX(18px); }
+        }
+
+        .pf-holoCard{
+          border-radius: 24px;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.04);
+          backdrop-filter: blur(12px);
+          box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+          padding: 14px 14px 16px;
+          overflow:hidden;
+        }
+        .pf-holoHeader{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          margin-bottom: 10px;
+          padding: 0 4px;
+        }
+
+        /* draw path */
+        .pf-drawPath{
+          stroke-dasharray: 420;
+          stroke-dashoffset: 420;
+          animation: pfDraw 1500ms ease-in-out forwards;
+        }
+        @keyframes pfDraw{
+          to{ stroke-dashoffset: 0; }
+        }
+
+        .pf-nodePop{
+          transform-origin: center;
+          opacity: 0;
+          animation: pfNode 520ms ease-out forwards;
+        }
+        @keyframes pfNode{
+          0%{ opacity:0; transform: scale(0.0); }
+          70%{ opacity:1; transform: scale(1.12); }
+          100%{ opacity:1; transform: scale(1.0); }
+        }
+
+        .pf-nodeLabel{
+          fill: rgba(255,255,255,0.75);
+          font-size: 10px;
+          font-weight: 600;
+          opacity: 0;
+          animation: pfLabel 1400ms ease-in-out forwards;
+        }
+        @keyframes pfLabel{
+          0%{ opacity:0; transform: translateY(6px); }
+          25%{ opacity:1; transform: translateY(0); }
+          70%{ opacity:1; }
+          100%{ opacity:0; }
+        }
+
+        /* rider dot (simple pulse) */
+        .pf-riderDot{
+          opacity: 0;
+          animation: pfRider 2500ms ease-in-out forwards;
+        }
+        @keyframes pfRider{
+          0%{ opacity:0; transform: scale(0.7); }
+          20%{ opacity:1; transform: scale(1); }
+          60%{ opacity:1; }
+          100%{ opacity:1; }
+        }
+
+        .pf-miniMilestone{
+          display:flex;
+          gap:10px;
+          align-items:flex-start;
+          padding: 10px 12px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.03);
+          opacity: 0;
+          transform: translateY(8px);
+          animation: pfFadeMini 600ms cubic-bezier(.2,.8,.2,1) forwards;
+        }
+        @keyframes pfFadeMini{
+          to{ opacity: 1; transform: translateY(0); }
+        }
+        .pf-miniDot{
+          width: 10px; height: 10px; border-radius: 999px;
+          background: rgba(255,255,255,0.85);
+          box-shadow: 0 0 12px rgba(255,255,255,0.35);
+          margin-top: 3px;
+          flex: 0 0 auto;
+        }
+
+        /* CTA timeline */
+        .pf-ctaTimeline{
+          background: linear-gradient(90deg, rgba(244,63,94,1), rgba(244,63,94,0.82), rgba(168,85,247,0.85));
+          box-shadow: 0 18px 50px rgba(244,63,94,0.22);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* =========================
+   Components
+========================= */
+function ChecklistItem({ text, visible, progress, done, delay }) {
+  const dash = 100;
+  const offset = dash * (1 - progress);
+
+  return (
+    <div
+      className={`pf-checkItem ${visible ? "pf-visible" : ""}`}
+      style={{ transitionDelay: `${delay}s` }}
+    >
+      {/* progress stroke (Swift progressLayer vibe) */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <rect
+          x="2"
+          y="2"
+          width="96"
+          height="96"
+          rx="16"
+          ry="16"
+          fill="none"
+          stroke="rgba(244,63,94,0.95)"
+          strokeWidth="2"
+          pathLength="100"
+          strokeDasharray="100"
+          strokeDashoffset={offset}
+          style={{
+            transition: "stroke-dashoffset 240ms ease-out",
+            filter: "drop-shadow(0 0 10px rgba(244,63,94,0.25))",
+          }}
+        />
+      </svg>
+
+      <div className="relative z-10 flex items-center gap-4 px-5 py-[18px]">
+        <div className={`pf-checkIcon ${done ? "pf-done" : ""}`}>
+          {done ? <Check size={16} strokeWidth={3} /> : <span className="block w-[10px] h-[10px] rounded-full bg-rose-400/70" />}
+        </div>
+        <div className="text-[15px] font-medium text-white/90 leading-snug">
+          {text}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InsightRow({ icon, text, delay }) {
+  return (
+    <div
+      className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm"
+      style={{
+        animation: "pfFadeIn 520ms cubic-bezier(.2,.8,.2,1) both",
+        animationDelay: `${delay}s`,
+      }}
+    >
+      <div className="bg-app-primary/20 p-2 rounded-full text-app-primary shrink-0">
+        {icon}
+      </div>
+      <span className="text-sm text-white/90 font-medium leading-relaxed">
+        {text}
+      </span>
     </div>
   );
 }
