@@ -318,7 +318,7 @@ export default function PlanRevealScreen({ onNext }) {
 
   // --- RENDER ---
   return (
-    <div className={`absolute inset-0 w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}`}>
+    <div className={`fixed inset-0 w-full h-[100dvh] flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}`}>
       
       {/* ---------------- PHASE 1: HEALTH INFO (One Screen) ---------------- */}
       {phase === 'askingHealthInfo' && (
@@ -487,12 +487,7 @@ export default function PlanRevealScreen({ onNext }) {
               </div>
             </div>
              <div className="mt-4">
-               <button 
-  onClick={onNext}
-  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
->
-  {timelineCopy.cta}
-</button>
+               <button onClick={onNext} className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}>{timelineCopy.cta}</button>
             </div>
           </div>
         </div>
