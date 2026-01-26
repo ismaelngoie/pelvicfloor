@@ -37,13 +37,19 @@ const ACTIVITIES = [
   { id: 'active', title: 'Very Active', sub: '(regular workouts)' },
 ];
 
-// --- COPY LOGIC (Ported from Swift) ---
+// --- MARK: - Copy Providers (EXACT SWIFT PORT) ---
+
 const getHealthCopy = (goal) => {
   const map = {
-    "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe sessions.", cta: "Build My Leak-Free Plan" },
-    "Ease Pelvic Pain": { headline: "Any health notes before we ease pain?", subtitle: "I’ll protect sensitive ranges.", cta: "Build My Pain-Relief Plan" },
-    "Improve Intimacy": { headline: "Any health notes before we boost intimacy?", subtitle: "I’ll tailor for comfort & tone.", cta: "Build My Intimacy Plan" },
-    "default": { headline: "Any health notes?", subtitle: "Ensures every move is safe & tailored.", cta: "Build My Custom Plan" }
+    "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
+    "Ease Pelvic Pain": { headline: "Any health notes before we ease pain?", subtitle: "I’ll protect sensitive ranges and focus on release first.", cta: "Build My Pain-Relief Plan" },
+    "Improve Intimacy": { headline: "Any health notes before we boost intimacy?", subtitle: "I’ll tailor for comfort, arousal, and pelvic tone.", cta: "Build My Intimacy Plan" },
+    "Recover Postpartum": { headline: "Any health notes before we rebuild gently?", subtitle: "I’ll keep everything postpartum-safe and progressive.", cta: "Build My Postpartum Plan" },
+    "Prepare for Pregnancy": { headline: "Any health notes before we prep for pregnancy?", subtitle: "I’ll prioritize circulation, breath, and core support.", cta: "Build My Prep Plan" },
+    "Build Core Strength": { headline: "Any health notes before we strengthen your core?", subtitle: "This ensures smart progressions and safe loading.", cta: "Build My Core Plan" },
+    "Support My Fitness": { headline: "Any health notes before we support your training?", subtitle: "I’ll sync to your routine and recovery needs.", cta: "Build My Fitness Plan" },
+    "Boost Stability": { headline: "Any health notes before we boost stability?", subtitle: "I’ll align mobility + deep core for posture wins.", cta: "Build My Stability Plan" },
+    "default": { headline: "Last step! Any health notes?", subtitle: "This ensures every exercise is safe and perfectly tailored to you.", cta: "Build My Custom Plan" }
   };
   return map[goal] || map["default"];
 };
@@ -51,10 +57,23 @@ const getHealthCopy = (goal) => {
 const getHelperCopy = (selected, goal) => {
   if (selected) {
     if (goal.includes("Leak")) return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
-    if (goal.includes("Pain")) return "✓ Noted. We’ll protect sensitive ranges.";
-    if (goal.includes("Intimacy")) return "✓ Noted. I’ll focus on comfort & tone.";
+    if (goal.includes("Pain")) return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
+    if (goal.includes("Intimacy")) return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
+    if (goal.includes("Postpartum")) return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
+    if (goal.includes("Pregnancy")) return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
+    if (goal.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
+    if (goal.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
+    if (goal.includes("Stability")) return "✓ Noted. Deep core + alignment for steady posture wins.";
     return "✓ Understood. I'll tailor your plan accordingly.";
   } else {
+    if (goal.includes("Leak")) return "✓ Great. We’ll start with core reflexes for leak control.";
+    if (goal.includes("Pain")) return "✓ Great. Gentle release + support from day one.";
+    if (goal.includes("Intimacy")) return "✓ Great. Comfort, sensation, and confidence from the start.";
+    if (goal.includes("Postpartum")) return "✓ Great. Foundation work, safe and steady.";
+    if (goal.includes("Pregnancy")) return "✓ Great. Building a strong, calm base for you.";
+    if (goal.includes("Core")) return "✓ Great. Clean technique and deep core activation.";
+    if (goal.includes("Fitness")) return "✓ Great. We’ll slot in perfectly with your routine.";
+    if (goal.includes("Stability")) return "✓ Great. Alignment + deep core integration ahead.";
     return "✓ Great! We'll start with a foundational plan.";
   }
 };
@@ -62,31 +81,44 @@ const getHelperCopy = (selected, goal) => {
 const getPersonalizingCopy = (goal, name) => {
   const safeName = name || "there";
   const map = {
-    "Improve Intimacy": { title: `Designing your intimacy plan, ${safeName}`, subtitle: "Maximizing comfort & sensation.", checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for sensation", "Partner positions"] },
-    "Stop Bladder Leaks": { title: "Personalizing your leak-control plan", subtitle: "Reflex training for dry days.", checklist: ["Urge-delay reflexes", "Fast-twitch squeezes", "Breath control", "Run/jump confidence"] },
-    "default": { title: `Personalizing your plan, ${safeName}`, subtitle: "Crafting your custom routine.", checklist: ["Custom exercises", "Deep insights", "Expert tips", "Community support"] }
+    "Improve Intimacy": { title: `Designing your intimacy plan`, subtitle: "Comfort, sensation, confidence—gently built for your body.", connecting: "Checking your profile for arousal flow and comfort…", calibrating: "Balancing relax/contract patterns for stronger orgasms…", checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for stronger orgasms", "Partner-friendly positions"] },
+    "Stop Bladder Leaks": { title: "Personalizing your leak-control plan", subtitle: "Train reflexes so sneezes and laughs don’t own your day.", connecting: "Mapping urge delays and quick-contract sets…", calibrating: "Dialing breath and pressure control for real-life moments…", checklist: ["Urge-delay reflex training", "Fast-twitch squeezes", "Breath + pressure control", "Run/jump confidence drills"] },
+    "Ease Pelvic Pain": { title: "Personalizing your pain-relief plan", subtitle: "Release tension, add support, and keep comfort front and center.", connecting: "Identifying tight patterns and sensitive ranges…", calibrating: "Layering gentle strength for lasting relief…", checklist: ["Down-train tight muscles", "Nerve-calming breath", "Gentle glute + core support", "Daily posture resets"] },
+    "Recover Postpartum": { title: "Personalizing your postpartum plan", subtitle: "Kind, steady rebuilding for your core, hips, and back.", connecting: "Checking diastasis-safe progressions…", calibrating: "Tuning lifts and carries so daily life feels stable…", checklist: ["Core connection breath", "Diastasis-safe moves", "Hip + back relief", "Lift-and-carry practice"] },
+    "Prepare for Pregnancy": { title: "Personalizing your prep plan", subtitle: "Circulation, breath, and a supportive core.", connecting: "Syncing breath-led endurance…", calibrating: "Setting hip mobility and pelvic coordination…", checklist: ["Circulation + breath", "Pelvic floor coordination", "Hip mobility", "Labor-prep positions"] },
+    "Build Core Strength": { title: "Personalizing your core plan", subtitle: "Deep, steady strength without guesswork.", connecting: "Targeting activation and timing…", calibrating: "Building anti-rotation and hinge patterns…", checklist: ["Deep core activation", "Anti-rotation work", "Hinge + squat mechanics", "Back-friendly progressions"] },
+    "Support My Fitness": { title: "Personalizing your training support", subtitle: "Make every workout you do feel more solid.", connecting: "Priming brace and breath for lifts/cardio…", calibrating: "Matching intensity to recovery…", checklist: ["Pre-workout core priming", "Brace + breathe", "Recovery mobilization", "Force transfer training"] },
+    "Boost Stability": { title: "Personalizing your stability plan", subtitle: "Tall, steady, and organized all day.", connecting: "Stacking rib-to-pelvis alignment…", calibrating: "Endurance for postural muscles…", checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"] },
+    "default": { title: `Personalizing your plan`, subtitle: "Tall, steady, and organized all day.", connecting: "Stacking rib-to-pelvis alignment…", calibrating: "Endurance for postural muscles…", checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"] }
   };
   return map[goal] || map["default"];
 };
 
 const getTimelineCopy = (goal) => {
   const map = {
-    "Stop Bladder Leaks": { subtitle: "Confident coughs & laughs by {date}.", insights: ["Tuned to your BMI to manage pressure.", "Quick squeeze training for urge delay.", "Fast-twitch pulses for real control.", "Rebuilds trust in your body."], cta: "Unlock My Leak-Free Plan" },
-    "Improve Intimacy": { subtitle: "More comfort & sensation by {date}.", insights: ["Paced for your BMI to boost blood flow.", "Relaxed release + strong tone.", "Reflex tuning for better arousal.", "Positions adapted for your needs."], cta: "Unlock My Intimacy Plan" },
-    "default": { subtitle: "Feel the difference by {date}.", insights: ["Calibrated for your body type.", "Builds foundation safely.", "Neuro-muscular connection focus.", "Modified for your specific needs."], cta: "Unlock My Personal Plan" }
+    "Prepare for Pregnancy": { subtitle: "Feel ready to carry and move with ease by **{date}**.", insights: ["Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.", "Because you’re **{activity}**, sessions are short, steady, and stick.", "At **{age}**, we train calm breath and deep core for a growing belly.", "Safe for **{condition}** with low-pressure positions."], cta: "Unlock My Pregnancy Prep" },
+    "Recover Postpartum": { subtitle: "Feel steady holding your baby again by **{date}**.", insights: ["Calibrated for your body (BMI **{bmi}**) to protect healing tissue.", "Matched to **{activity}**—works on low-sleep days.", "At **{age}**, we rebuild core connection so feeds, lifts, and stroller walks feel easier.", "Adjusted for **{condition}** including scar or tender areas."], cta: "Unlock My Postpartum Plan" },
+    "Build Core Strength": { subtitle: "Feel solid through your middle by **{date}**.", insights: ["Built for your body (BMI **{bmi}**)—strong, not stressful.", "Because you’re **{activity}**, sessions slot right into your day.", "At **{age}**, we focus on clean form and deep bracing you can feel.", "Respects **{condition}** with safe ranges."], cta: "Unlock My Core Plan" },
+    "Stop Bladder Leaks": { subtitle: "Confident coughs, laughs, and workouts by **{date}**.", insights: ["Tuned to your body (BMI **{bmi}**) to manage pressure.", "With **{activity}**, we train quick squeezes and urge delay you can use anywhere.", "At **{age}**, we blend long holds with fast pulses for real control.", "Plan respects **{condition}** while we rebuild trust."], cta: "Unlock My Leak-Free Plan" },
+    "Ease Pelvic Pain": { subtitle: "Less ache sitting, standing, and at bedtime by **{date}**.", insights: ["Built for your body (BMI **{bmi}**) to lower strain.", "**{activity}** friendly—start quiet, calm the system first.", "At **{age}**, we pair soft release with light strength that lasts.", "Guided by **{condition}** so every range feels safe."], cta: "Unlock My Pain Relief Plan" },
+    "Improve Intimacy": { subtitle: "More arousal, easy comfort, and reliable orgasm by **{date}**.", insights: ["Paced for your body (BMI **{bmi}**) to boost blood flow without pressure.", "With **{activity}**, we build relaxed release *and* strong tone for better sensation.", "At **{age}**, we tune reflexes so arousal starts sooner and orgasm lands stronger.", "Positions and pacing adjusted for **{condition}** so comfort stays high."], cta: "Unlock My Intimacy Plan" },
+    "Support My Fitness": { subtitle: "More power in lifts, runs, and classes by **{date}**.", insights: ["Calibrated for your body (BMI **{bmi}**) so intensity helps, not hurts.", "Synced to **{activity}**—easy to stack with training.", "At **{age}**, we pair stability with power you feel next workout.", "Safeguards in place for **{condition}**."], cta: "Unlock My Fitness Plan" },
+    "Boost Stability": { subtitle: "Feel taller and steady from desk to steps by **{date}**.", insights: ["Built for your body (BMI **{bmi}**)—steady holds you can keep all day.", "Because you’re **{activity}**, we target sitting time, walks, and carrying.", "At **{age}**, we train deep timing so standing and stairs feel smooth.", "Aligned with **{condition}**—easy on back, hips, and neck."], cta: "Unlock My Stability Plan" },
+    "default": { subtitle: "Your personalized plan is set. Expect to feel a real difference by **{date}**.", insights: ["Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.", "Because you have a **{activity}** activity level, we'll build your foundation safely.", "At **{age} years old**, your plan focuses on neuro-muscular connection.", "We've modified your plan to be safe and effective for your **{condition}**."], cta: "Unlock My Personal Plan" }
   };
   return map[goal] || map["default"];
 };
 
-// --- ANIMATION COMPONENTS ---
+// --- MARK: - Sub-Components (Animation) ---
 
-// 1. Breathing AI Core
-const AICore = () => (
-  <div className="relative w-36 h-36 flex items-center justify-center my-6">
-    <div className="absolute inset-0 border-[3px] border-rose-500/40 rounded-full animate-[spin_8s_linear_infinite] border-t-transparent" />
-    <div className="absolute inset-3 border-[2px] border-white/30 rounded-full animate-[spin_12s_linear_infinite_reverse] border-b-transparent" />
-    <div className="absolute w-14 h-14 bg-rose-500 rounded-full blur-xl animate-pulse" />
-    <div className="relative w-10 h-10 bg-white rounded-full shadow-[0_0_25px_rgba(244,63,94,0.8)]" />
+// 1. AICoreView (Animation matching Swift layers)
+const AICoreView = () => (
+  <div className="relative w-40 h-40 flex items-center justify-center">
+    <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full animate-spin [animation-duration:8s] border-t-transparent border-l-transparent" />
+    <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full animate-spin [animation-duration:12s] [animation-direction:reverse] border-b-transparent border-r-transparent" />
+    <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full animate-spin [animation-duration:15s] border-t-transparent" />
+    <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md animate-pulse" />
+    <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
   </div>
 );
 
