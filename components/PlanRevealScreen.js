@@ -120,31 +120,6 @@ const getTimelineCopy = (goal) => {
 
 // --- MARK: - Sub-Components (Animation) ---
 
-// 1. AICoreView - HARDCODED KEYFRAMES to Fix Dark Screen
-const AICoreView = () => (
-  <div className="relative w-40 h-40 flex items-center justify-center">
-    <style jsx>{`
-      @keyframes spin-slow { to { transform: rotate(360deg); } }
-      @keyframes spin-reverse { to { transform: rotate(-360deg); } }
-      @keyframes pulse-core { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.95); } }
-    `}</style>
-    {/* Outer Ring */}
-    <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full border-t-transparent border-l-transparent"
-         style={{ animation: 'spin-slow 8s linear infinite' }} />
-    {/* Middle Ring */}
-    <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full border-b-transparent border-r-transparent"
-         style={{ animation: 'spin-reverse 12s linear infinite' }} />
-    {/* Inner Ring */}
-    <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full border-t-transparent"
-         style={{ animation: 'spin-slow 15s linear infinite' }} />
-    {/* Core Glow */}
-    <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md"
-         style={{ animation: 'pulse-core 3s infinite' }} />
-    {/* Solid Center */}
-    <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
-  </div>
-);
-
 // 2. Typewriter Effect
 const TypewriterText = ({ text }) => {
   const [displayed, setDisplayed] = useState("");
