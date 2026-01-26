@@ -618,11 +618,11 @@ export default function PlanRevealScreen({ onNext }) {
             </div>
 
             {/* Footer Button - WIRED TO onNext */}
-             <div className="mt-4">
-               <button
-                 onClick={onNext}
-                 className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
-               >
+             <div className="absolute bottom-0 w-full px-6 pb-8 pt-6 bg-gradient-to-t from-slate-900 to-transparent z-20">
+            <button 
+              onClick={onNext}
+              className="w-full h-14 bg-gradient-to-r from-app-primary to-rose-600 text-white font-bold text-lg rounded-full shadow-lg shadow-app-primary/40 flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform"
+            >
                  {timelineCopy.cta}
                </button>
             </div>
