@@ -10,6 +10,7 @@ import {
 
 const THEME = {
   // Base Colors
+  bg: 'bg-app-background', // Using Tailwind config color
   textPrimary: "text-slate-900",
   textSecondary: "text-slate-500",
   
@@ -318,11 +319,12 @@ export default function PlanRevealScreen({ onNext }) {
 
   // --- RENDER ---
   return (
-    <div className={`fixed inset-0 w-full h-[100dvh] flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}`}>
+    // FIX: Changed from 'fixed inset-0' to 'relative w-full h-full' to respect parent container constraints (phone frame)
+    <div className={`relative w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? 'bg-app-background' : 'bg-black'}`}>
       
       {/* ---------------- PHASE 1: HEALTH INFO (One Screen) ---------------- */}
       {phase === 'askingHealthInfo' && (
-        <div className="flex flex-col h-full w-full animate-in fade-in duration-700 px-5" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 10px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+        <div className="flex flex-col h-full w-full animate-in fade-in duration-700 px-5 pt-8 pb-6">
             
             {/* Header - Moved Higher */}
             <div className="mb-2 shrink-0 text-center">
@@ -414,81 +416,69 @@ export default function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
-      {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
-      {phase === 'personalizing' && (
-        <div className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      {/* ================= PHASE 2: ANALYSIS (7s Animation) ================= */}
+      {phase === 'analyzing' && (
+        <div className="flex flex-col items-center justify-center h-full px-8 text-white relative bg-slate-950">
+          <AICoreView />
           
-          <div className={`transition-all duration-500 ${showChecklist ? 'scale-75 -translate-y-8 opacity-0' : 'scale-100 opacity-100'}`}>
-            <AICoreView />
+          <div className="h-20 flex flex-col justify-center items-center mt-6 mb-4">
+             <h2 className="text-2xl font-bold text-center animate-slide-up bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-200">
+               {personalizingCopy.title}
+             </h2>
+             <div className="text-sm font-mono text-app-primary mt-2">
+                <TypewriterText text={personalizingStatus} />
+             </div>
+          </div>
+          
+          <div className="w-full max-w-xs space-y-4 mb-10 min-h-[180px]">
+            {personalizingCopy.checklist.map((item, idx) => (
+              <div key={idx} className={`flex items-center gap-3 transition-all duration-500 ${idx < checklistVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+                <div className="w-6 h-6 rounded-full bg-app-primary flex items-center justify-center shrink-0">
+                  <Check size={14} strokeWidth={3} className="text-white" />
+                </div>
+                <span className="text-sm font-medium text-white/90">{item}</span>
+              </div>
+            ))}
           </div>
 
-          {!showChecklist && (
-             <div className="mt-12 text-center h-20 px-4">
-               {/* 4XL Gradient Title + Typewriter */}
-               <h2 className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
-                 <TypewriterText text={personalizingStatus} />
-               </h2>
-             </div>
-          )}
-
-          {showChecklist && (
-            <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
-               <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">{personalizingCopy.title}</h2>
-               <p className="text-center text-gray-400 text-sm mb-6">{personalizingCopy.subtitle}</p>
-               <div className="space-y-3">
-                  {personalizingCopy.checklist.map((item, idx) => (
-                    <ChecklistItem key={idx} text={item} delay={idx * 800} onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined} />
-                  ))}
-               </div>
-               <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
-                 {progressPercent === 100 ? "Ready!" : "Fine-tuning for: " + (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent/25))] || "Results")}
-               </div>
+          <div className="w-full max-w-xs">
+            <div className="flex justify-between text-xs text-white/60 mb-2">
+              <span>Progress</span>
+              <span>{progressPercent}%</span>
             </div>
-          )}
-
-          <div className="absolute bottom-8 left-0 w-full px-8" style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>
-            <div className="flex justify-between items-end mb-2">
-              <span className="text-white/60 font-medium text-sm">Progress</span>
-              <span className="text-white font-mono text-xl font-bold">{progressPercent}%</span>
+            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full bg-app-primary transition-all duration-75 ease-linear" style={{ width: `${progressPercent}%` }} />
             </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#E65473] transition-all duration-100 ease-linear" style={{ width: `${progressPercent}%` }} />
-            </div>
-            <p className="text-center text-[#E65473] text-xs mt-2 font-medium min-h-[16px]">
-               {progressPercent < 30 ? "Syncing your goals..." : progressPercent < 100 ? "Preparing exercises..." : "Your plan is locked in—let’s go!"}
-            </p>
           </div>
         </div>
       )}
 
-      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
+      {/* ================= PHASE 3: TIMELINE (Paywall Transition) ================= */}
       {phase === 'showingTimeline' && (
-        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(12)].map((_, i) => (
-               <div key={i} className="absolute bg-white/20 rounded-full w-0.5 h-0.5 animate-ping" style={{ left: `${Math.random()*100}%`, top: `${Math.random()*100}%`, animationDuration: `${3+Math.random()*4}s`, animationDelay: `${Math.random()*2}s` }} />
-            ))}
+        <div className={`flex flex-col h-full bg-slate-950 relative transition-opacity duration-1000 ${showTimeline ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="flex-1 flex flex-col items-center px-6 pt-10 pb-6 z-10">
+            <h1 className="text-2xl font-extrabold text-white text-center mb-2 leading-tight">
+              <span className="text-app-primary">{userDetails?.name || "Your"}</span> path to<br/>{goalTitle} is ready.
+            </h1>
+            <p className="text-center text-white/70 text-sm mb-4">{timelineCopy.subtitle.replace("{date}", dateString)}</p>
+            
+            <HolographicTimeline />
+
+            <div className="w-full space-y-3 mt-6">
+              <h3 className="text-white font-bold text-sm mb-2">Your Personal Insights</h3>
+              {formattedInsights.map((insight, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm animate-slide-up" style={{ animationDelay: `${0.5 + (index*0.2)}s` }}>
+                  <div className="bg-app-primary/20 p-1.5 rounded-full text-app-primary shrink-0"><Sparkles size={16}/></div>
+                  <span className="text-xs text-white/90 font-medium leading-relaxed">{insight}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
-            <div>
-              <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">{userDetails?.name || "Your"} path to</span><br/><span className="text-[#E65473]">{goalTitle}</span> is ready.
-              </h1>
-              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">{formatRichText(timelineCopy.subtitle)}</p>
-              <HolographicTimeline />
-              <div className="mt-4 space-y-3">
-                <h3 className="text-[16px] font-semibold text-white mb-1">Your Personal Insights</h3>
-                {timelineCopy.insights.map((insight, idx) => (
-                  <div key={idx} className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700" style={{ animationDelay: `${idx * 150}ms` }}>
-                    <div className="mt-0.5 text-[#E65473] shrink-0"><Sparkles size={18} /></div>
-                    <p className="text-[13px] leading-snug text-white/90">{formatRichText(insight)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-             <div className="mt-4">
-               <button onClick={onNext} className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}>{timelineCopy.cta}</button>
-            </div>
+
+          <div className="px-6 pb-8 pt-4 bg-slate-950 z-20 shrink-0">
+            <button onClick={onNext} className="w-full h-12 bg-gradient-to-r from-app-primary to-rose-600 text-white font-bold text-lg rounded-full shadow-lg shadow-pink-900/50 flex items-center justify-center gap-2 animate-breathe active:scale-95">
+              <Lock size={18} /> {timelineCopy.cta}
+            </button>
           </div>
         </div>
       )}
