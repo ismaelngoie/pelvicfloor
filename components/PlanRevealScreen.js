@@ -6,30 +6,21 @@ import {
   Activity, Sparkles, Lock, CheckCircle2, Circle
 } from 'lucide-react';
 
-// --- MARK: - Theme Configuration ---
-
+// --- THEME & ASSETS ---
 const THEME = {
-  // Base Colors
-  textPrimary: "text-slate-900",
-  textSecondary: "text-slate-500",
+  // Unselected: Clean white, grey border, black text
+  unselected: "bg-white border-gray-200 text-slate-900",
+  iconUnselected: "text-rose-400", // Rose colored icon even when unselected
   
-  // Selection States (Million Dollar Style)
-  unselected: "bg-white border-gray-200 shadow-sm",
-  selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
+  // Selected: Pop effect, rose border, rose shadow
+  selected: "bg-white border-rose-500 text-rose-600 shadow-xl shadow-rose-200 scale-[1.02] z-20",
+  iconSelected: "text-rose-500 scale-110",
   
-  // Text Colors
-  textUnselected: "text-slate-900",
-  textSelected: "text-[#E65473]",
+  // Helper Text Color
+  helper: "text-emerald-500", // The Green you asked for
   
-  // Icon Colors
-  iconUnselected: "text-[#E65473] opacity-80", 
-  iconSelected: "text-[#E65473] scale-110",
-
-  // Helper Text (Green)
-  helper: "text-[#33B373]", 
-  
-  // Brand Gradient
-  brandGradient: "from-[#E65473] to-[#C23A5B]",
+  // Brand Gradients
+  brandGradient: "from-rose-500 to-rose-600",
 };
 
 // --- DATA ---
@@ -46,14 +37,7 @@ const ACTIVITIES = [
   { id: 'active', title: 'Very Active', sub: '(regular workouts)' },
 ];
 
-const PersonalizingConstants = {
-  totalDuration: 7000,
-  phase1Scale: 0.25,
-  phase2Scale: 0.20,
-};
-
-// --- MARK: - Copy Providers (EXACT SWIFT PORT) ---
-
+// --- COPY LOGIC (Ported from Swift) ---
 const getHealthCopy = (goal) => {
   const map = {
     "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
@@ -124,371 +108,307 @@ const getTimelineCopy = (goal) => {
   return map[goal] || map["default"];
 };
 
-// --- MARK: - Sub-Components (Animation) ---
+// --- ANIMATION COMPONENTS ---
 
-// 1. AICoreView (Animation matching Swift layers)
-const AICoreView = () => (
-  <div className="relative w-40 h-40 flex items-center justify-center">
-    <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full animate-spin [animation-duration:8s] border-t-transparent border-l-transparent" />
-    <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full animate-spin [animation-duration:12s] [animation-direction:reverse] border-b-transparent border-r-transparent" />
-    <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full animate-spin [animation-duration:15s] border-t-transparent" />
-    <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md animate-pulse" />
-    <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
+// 1. Breathing AI Core
+const AICore = () => (
+  <div className="relative w-36 h-36 flex items-center justify-center my-6">
+    <div className="absolute inset-0 border-[3px] border-rose-500/40 rounded-full animate-[spin_8s_linear_infinite] border-t-transparent" />
+    <div className="absolute inset-3 border-[2px] border-white/30 rounded-full animate-[spin_12s_linear_infinite_reverse] border-b-transparent" />
+    <div className="absolute w-14 h-14 bg-rose-500 rounded-full blur-xl animate-pulse" />
+    <div className="relative w-10 h-10 bg-white rounded-full shadow-[0_0_25px_rgba(244,63,94,0.8)]" />
   </div>
 );
 
-// 2. Typewriter Effect
-const TypewriterText = ({ text }) => {
-  const [displayed, setDisplayed] = useState("");
-  useEffect(() => {
-    setDisplayed("");
-    let i = 0;
-    const t = setInterval(() => {
-      if (i < text.length) {
-        setDisplayed(prev => prev + text.charAt(i));
-        i++;
-      } else {
-        clearInterval(t);
-      }
-    }, 40);
-    return () => clearInterval(t);
-  }, [text]);
-  return <span>{displayed}<span className="animate-pulse text-[#E65473]">|</span></span>;
-};
-
-// 3. Checklist Item
-const ChecklistItem = ({ text, delay, onComplete }) => {
-  const [status, setStatus] = useState('waiting');
-  useEffect(() => {
-    const t1 = setTimeout(() => setStatus('processing'), delay);
-    return () => clearTimeout(t1);
-  }, [delay]);
-  useEffect(() => {
-    if (status === 'processing') {
-      const t2 = setTimeout(() => {
-        setStatus('completed');
-        if (onComplete) onComplete();
-      }, 1500);
-      return () => clearTimeout(t2);
-    }
-  }, [status, onComplete]);
-
-  return (
-    <div className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all duration-500 ${status === 'waiting' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
-      <div className={`absolute inset-0 bg-white/10 transition-transform duration-[1500ms] ease-out origin-left ${status === 'processing' ? 'scale-x-100' : status === 'completed' ? 'scale-x-100 opacity-0' : 'scale-x-0'}`} />
-      <div className="relative flex items-center p-3 gap-3 z-10">
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${status === 'completed' ? 'bg-[#E65473] scale-110' : 'bg-white/10'}`}>
-          {status === 'completed' ? <Check size={14} className="text-white" strokeWidth={3} /> : <div className="w-2 h-2 bg-[#E65473]/60 rounded-full" />}
-        </div>
-        <span className="text-[14px] font-medium text-white/90 leading-tight">{text}</span>
-      </div>
-    </div>
-  );
-};
-
-// 4. Holographic Timeline
-const HolographicTimeline = () => {
+// 2. Holographic Graph with Moving Rider
+const HolographicGraph = () => {
   const [show, setShow] = useState(false);
-  useEffect(() => setTimeout(() => setShow(true), 500), []);
+  useEffect(() => setShow(true), []);
+  
   return (
-    <div className="w-full h-36 relative my-2">
-       <svg className="absolute inset-0 w-full h-full overflow-visible">
+    <div className="w-full h-40 relative my-2">
+      <svg className="w-full h-full overflow-visible drop-shadow-[0_0_10px_rgba(244,63,94,0.4)]">
         <defs>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(230, 84, 115, 0.2)" />
-            <stop offset="100%" stopColor="rgba(230, 84, 115, 1)" />
+          <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#E65473" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="#E65473" stopOpacity="1" />
           </linearGradient>
-          <filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
         </defs>
-        <path d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="url(#lineGradient)" strokeWidth="3" strokeLinecap="round" filter="url(#glow)"
-          className={`transition-all duration-[2000ms] ease-out ${show ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`} />
+        
+        {/* The Curve */}
+        <path d="M 0,130 C 60,125 140,80 320,20" fill="none" stroke="url(#lineGrad)" strokeWidth="4" strokeLinecap="round"
+              className={`transition-all duration-[2s] ease-out ${show ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`} />
+        
+        {/* The Rider (Moving Dot) */}
+        <circle r="6" fill="white" className="animate-ride-line shadow-lg">
+           <animateMotion dur="2s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1">
+              <mpath href="#graphPath" />
+           </animateMotion>
+        </circle>
+        
+        {/* Invisible path for motion definition */}
+        <path id="graphPath" d="M 0,130 C 60,125 140,80 320,20" fill="none" />
+
+        {/* Milestones */}
         <g className={`transition-opacity duration-1000 delay-1000 ${show ? 'opacity-100' : 'opacity-0'}`}>
-            <circle cx="10" cy="100" r="4" fill="white" />
-            <text x="10" y="125" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">Today</text>
-            <circle cx="320" cy="20" r="6" fill="#E65473" stroke="white" strokeWidth="2" />
-            <text x="310" y="10" textAnchor="end" fill="#E65473" fontSize="12" fontWeight="bold">Goal</text>
+           <circle cx="0" cy="130" r="4" fill="white" />
+           <text x="10" y="150" fill="white" fontSize="10" opacity="0.7">Today</text>
+           
+           <circle cx="320" cy="20" r="6" fill="#E65473" stroke="white" strokeWidth="2" />
+           <text x="290" y="15" fill="#E65473" fontSize="12" fontWeight="bold">Goal</text>
         </g>
-       </svg>
+      </svg>
     </div>
   );
 };
 
-// --- MARK: - Main Component ---
-
+// --- MAIN SCREEN ---
 export default function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
-  const [phase, setPhase] = useState('askingHealthInfo'); 
+  const [phase, setPhase] = useState('health'); // health -> analyzing -> timeline
   
-  // Phase 1 State
+  // Phase 1
   const [selectedConditions, setSelectedConditions] = useState([]);
-  const [noneSelected, setNoneSelected] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [isNone, setIsNone] = useState(false);
+  const [activity, setActivity] = useState(null);
   const [helperText, setHelperText] = useState("");
-  const [activityHelperText, setActivityHelperText] = useState("");
+  const [activityHelper, setActivityHelper] = useState("");
+  
+  // Phase 2
+  const [progress, setProgress] = useState(0);
+  const [analysisStatus, setAnalysisStatus] = useState("Connecting...");
+  const [checklistVisible, setChecklistVisible] = useState(0);
+  
+  // Phase 3
+  const [showTimeline, setShowTimeline] = useState(false);
 
-  // Phase 2 State
-  const [personalizingStatus, setPersonalizingStatus] = useState("");
-  const [progressPercent, setProgressPercent] = useState(0);
-  const [showChecklist, setShowChecklist] = useState(false);
-
-  // Data Loading (Safety Checked)
+  // Safe Data Access
   const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const healthCopy = getHealthCopy(goalTitle);
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
-  // --- Logic Phase 1 ---
+  // --- ACTIONS ---
   const toggleCondition = (id) => {
-    setNoneSelected(false);
+    setIsNone(false);
     setSelectedConditions(prev => {
       const newSet = prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id];
-      updateHelperText(newSet.length > 0, selectedActivity);
+      updateHelpers(newSet.length > 0, activity);
       return newSet;
     });
   };
+  
   const toggleNone = () => {
-    const newVal = !noneSelected;
-    setNoneSelected(newVal);
+    const newVal = !isNone;
+    setIsNone(newVal);
     if (newVal) setSelectedConditions([]);
-    updateHelperText(newVal, selectedActivity);
+    updateHelpers(newVal, activity);
   };
+
   const selectActivity = (act) => {
-    setSelectedActivity(act);
-    updateHelperText(selectedConditions.length > 0 || noneSelected, act);
-    setActivityHelperText("✓ Perfect, I'll match your pace & recovery.");
+    setActivity(act);
+    updateHelpers(selectedConditions.length > 0 || isNone, act);
+    setActivityHelper("✓ Perfect, I'll match your pace & recovery.");
   };
-  const updateHelperText = (hasCondition, hasActivity) => {
-    setHelperText(getHelperCopy(hasCondition, goalTitle));
-  };
-  const canContinue = (selectedConditions.length > 0 || noneSelected) && selectedActivity;
 
-  const handlePhase1Continue = () => {
+  const updateHelpers = (hasCond, hasAct) => {
+    if (hasCond) setHelperText(getHelperCopy(true, goalTitle));
+    else setHelperText("");
+  };
+
+  const handleHealthContinue = () => {
     saveUserData('healthConditions', selectedConditions);
-    saveUserData('activityLevel', selectedActivity);
-    setPhase('personalizing');
+    saveUserData('activityLevel', activity);
+    startAnalysis();
   };
 
-  // --- Logic Phase 2 ---
-  useEffect(() => {
-    if (phase === 'personalizing') {
-      let startTime = Date.now();
-      setPersonalizingStatus(personalizingCopy.connecting);
-      const progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const p = Math.min(99, Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100));
-        setProgressPercent(p);
-      }, 50);
-      const t1 = setTimeout(() => { setPersonalizingStatus(personalizingCopy.calibrating); }, PersonalizingConstants.totalDuration * PersonalizingConstants.phase1Scale);
-      const t2 = setTimeout(() => { setPersonalizingStatus(""); setShowChecklist(true); }, PersonalizingConstants.totalDuration * (PersonalizingConstants.phase1Scale + PersonalizingConstants.phase2Scale));
-      return () => { clearInterval(progressInterval); clearTimeout(t1); clearTimeout(t2); };
-    }
-  }, [phase]);
+  const startAnalysis = () => {
+    setPhase('analyzing');
+    const DURATION = 7000;
+    const interval = 50;
+    let step = 0;
+    const maxSteps = DURATION / interval;
 
-  const onChecklistComplete = () => {
-    setProgressPercent(100);
-    setPersonalizingStatus("Your plan is locked in—let’s go!");
-    setTimeout(() => { setPhase('showingTimeline'); }, 1200);
-  };
+    const timer = setInterval(() => {
+      step++;
+      const pct = Math.min(100, Math.round((step / maxSteps) * 100));
+      setProgress(pct);
 
-  // --- Logic Phase 3 ---
-  const calculateBMI = () => {
-    if (!userDetails?.weight || !userDetails?.height) return "22.5";
-    const h = userDetails.height * 0.0254;
-    const w = userDetails.weight * 0.453592;
-    return (w / (h * h)).toFixed(1);
-  };
-  const date = new Date(); date.setDate(date.getDate() + 7);
-  const dateString = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-  const formatRichText = (text) => {
-    if (!text) return null;
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        let content = part.slice(2, -2);
-        if (content === '{date}') content = dateString;
-        if (content === '{bmi}') content = calculateBMI();
-        if (content === '{activity}') content = selectedActivity ? ACTIVITIES.find(a => a.id === selectedActivity)?.title.toLowerCase() : "active";
-        if (content === '{age}') content = userDetails?.age || "30";
-        if (content === '{condition}') content = selectedConditions.length > 0 ? "unique needs" : "body";
-        return <span key={i} className="text-white font-extrabold">{content}</span>;
+      if (pct === 20) setAnalysisStatus("Syncing goals...");
+      if (pct === 50) setAnalysisStatus("Calibrating plan...");
+
+      if (pct > 20 && pct < 30) setChecklistVisible(1);
+      if (pct > 40 && pct < 50) setChecklistVisible(2);
+      if (pct > 60 && pct < 70) setChecklistVisible(3);
+      if (pct > 80 && pct < 90) setChecklistVisible(4);
+
+      if (step >= maxSteps) {
+        clearInterval(timer);
+        setPhase('timeline');
+        setTimeout(() => setShowTimeline(true), 100);
       }
-      return <span key={i} className="text-white/80">{part}</span>;
-    });
+    }, interval);
   };
 
-  // --- RENDER ---
+  // Timeline Data
+  const date = new Date(); date.setDate(date.getDate() + 7);
+  const dateString = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const formattedInsights = timelineCopy.insights.slice(0, 3).map(t => {
+    return t.replace("{bmi}", "22.4")
+            .replace("{activity}", activity ? ACTIVITIES.find(a => a.id === activity)?.title.toLowerCase() : "active")
+            .replace("{age}", userDetails?.age || "30")
+            .replace("{condition}", selectedConditions.length > 0 ? "needs" : "body");
+  });
+
   return (
-    <div className={`fixed inset-0 w-full h-[100dvh] flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}`}>
+    <div className={`relative w-full h-full flex flex-col transition-colors duration-700 ease-in-out overflow-hidden
+      ${phase === 'health' ? 'bg-app-background' : 'bg-slate-950'}`}>
       
-      {/* ---------------- PHASE 1: HEALTH INFO (One Screen) ---------------- */}
-      {phase === 'askingHealthInfo' && (
-        <div className="flex flex-col h-full w-full animate-in fade-in duration-700 px-5" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 10px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
-            
-            {/* Header - Moved Higher */}
-            <div className="mb-2 shrink-0 text-center">
-              <h1 className={`text-[26px] font-extrabold text-center ${THEME.text} mb-1 leading-tight`}>{healthCopy.headline}</h1>
-              <p className="text-center text-[rgb(26,26,38)]/60 text-sm">{healthCopy.subtitle}</p>
-            </div>
-
-            <div className="flex-1 flex flex-col justify-center min-h-0">
-              
-              {/* Conditions */}
-              <div>
-                <div className="grid grid-cols-2 gap-3 mb-2">
-                  {CONDITIONS.map((item) => {
-                    const isSelected = selectedConditions.includes(item.id);
-                    return (
-                      <button key={item.id} onClick={() => toggleCondition(item.id)}
-                        className={`relative flex flex-col items-center justify-center p-2 rounded-[24px] border-[2px] h-[100px] transition-all duration-300 active:scale-95 outline-none
-                          ${isSelected ? THEME.selected : THEME.unselected}
-                        `}
-                      >
-                        <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME.iconSelected : THEME.iconUnselected}`}>{item.icon}</div>
-                        <span className={`text-[13px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${isSelected ? THEME.textSelected : THEME.textUnselected}`}>{item.title}</span>
-                        {/* Badge Logic: Checkmark if selected, Circle if unselected */}
-                        <div className="absolute top-3 right-3">
-                           {isSelected 
-                             ? <CheckCircle2 size={20} className="fill-[#E65473] text-white" /> 
-                             : <Circle size={20} className="text-gray-200" strokeWidth={1.5} />
-                           }
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                 {/* Helper 1: GREEN */}
-                 <div className={`text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
-                  {helperText}
-                </div>
-
-                <button onClick={toggleNone}
-                  className={`w-full py-3.5 rounded-full border-[1.5px] font-semibold text-[15px] transition-all duration-300 active:scale-95 outline-none
-                    ${noneSelected ? 'bg-white border-[2.5px] border-[#E65473] text-[#E65473] shadow-sm' : 'bg-white border-gray-200 text-slate-400'}
-                  `}
-                >
-                  ✓ None of the Above
-                </button>
-              </div>
-
-              {/* Activity */}
-              <div className="mt-3">
-                <h3 className={`text-[15px] font-bold text-center ${THEME.text} mb-2`}>Your typical activity level</h3>
-                <div className="flex flex-col gap-2.5">
-                  {ACTIVITIES.map((act) => {
-                    const isSelected = selectedActivity === act.id;
-                    return (
-                      <button key={act.id} onClick={() => selectActivity(act.id)}
-                        className={`w-full py-3.5 px-5 rounded-[22px] border-[2px] text-left flex items-center justify-between transition-all duration-300 active:scale-95 outline-none
-                          ${isSelected ? THEME.selected : THEME.unselected}
-                        `}
-                      >
-                        <span className={`font-bold text-[15px] ${isSelected ? THEME.textSelected : THEME.textUnselected}`}>
-                          {act.title} <span className="text-xs opacity-70 font-normal ml-1">{act.sub}</span>
-                        </span>
-                        {isSelected 
-                             ? <CheckCircle2 size={22} className="fill-[#E65473] text-white" /> 
-                             : <Circle size={22} className="text-gray-200" strokeWidth={1.5} />
-                        }
-                      </button>
-                    );
-                  })}
-                </div>
-                 {/* Helper 2: GREEN */}
-                 <div className={`text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 h-4 mt-2 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
-                  {activityHelperText}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="mt-2">
-              <button onClick={handlePhase1Continue} disabled={!canContinue}
-                className={`w-full h-14 rounded-full font-bold text-lg text-white transition-all duration-300 active:scale-95 shadow-xl
-                  ${canContinue ? `bg-gradient-to-b ${THEME.brandGradient} shadow-[#E65473]/30` : 'bg-slate-300 cursor-not-allowed shadow-none'}
-                `}
-              >
-                {healthCopy.cta}
-              </button>
-            </div>
-        </div>
-      )}
-
-      {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
-      {phase === 'personalizing' && (
-        <div className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      {/* ================= PHASE 1: HEALTH INTAKE (Fit on Screen) ================= */}
+      {phase === 'health' && (
+        <div className="flex flex-col h-full w-full px-5 pt-6 pb-4 animate-fade-in relative z-10 bg-app-background">
           
-          <div className={`transition-all duration-500 ${showChecklist ? 'scale-75 -translate-y-8 opacity-0' : 'scale-100 opacity-100'}`}>
-            <AICoreView />
+          {/* Compact Header */}
+          <div className="text-center mb-2 shrink-0">
+            <h1 className="text-2xl font-extrabold text-app-textPrimary mb-1 leading-tight">{healthCopy.headline}</h1>
+            <p className="text-app-textSecondary text-sm">{healthCopy.subtitle}</p>
           </div>
 
-          {!showChecklist && (
-             <div className="mt-12 text-center h-20 px-4">
-               {/* 4XL Gradient Title + Typewriter */}
-               <h2 className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
-                 <TypewriterText text={personalizingStatus} />
-               </h2>
-             </div>
-          )}
+          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto no-scrollbar pb-2">
+            
+            {/* Conditions Grid */}
+            <div className="grid grid-cols-2 gap-2 mb-2 shrink-0">
+              {CONDITIONS.map((c) => {
+                const active = selectedConditions.includes(c.id);
+                return (
+                  <button key={c.id} onClick={() => toggleCondition(c.id)}
+                    className={`relative flex flex-col items-center justify-center p-2 rounded-[20px] border-[2px] transition-all duration-200 active:scale-95 h-24 outline-none
+                      ${active ? THEME.selected : THEME.unselected}`}
+                  >
+                    <div className={`mb-1 transition-transform duration-200 ${active ? 'scale-110' : ''} ${active ? 'text-rose-500' : THEME.iconUnselected}`}>
+                      {c.icon}
+                    </div>
+                    <span className={`text-xs font-bold text-center leading-tight ${active ? 'text-rose-600' : 'text-slate-900'}`}>
+                      {c.title}
+                    </span>
+                    {active ? (
+                      <div className="absolute top-2 right-2"><CheckCircle2 size={18} className="fill-rose-500 text-white" /></div>
+                    ) : (
+                      <div className="absolute top-2 right-2"><Circle size={18} className="text-gray-200" strokeWidth={1.5} /></div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-          {showChecklist && (
-            <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
-               <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">{personalizingCopy.title}</h2>
-               <p className="text-center text-gray-400 text-sm mb-6">{personalizingCopy.subtitle}</p>
-               <div className="space-y-3">
-                  {personalizingCopy.checklist.map((item, idx) => (
-                    <ChecklistItem key={idx} text={item} delay={idx * 800} onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined} />
-                  ))}
-               </div>
-               <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
-                 {progressPercent === 100 ? "Ready!" : "Fine-tuning for: " + (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent/25))] || "Results")}
-               </div>
+            {/* Helper Text 1: GREEN */}
+            <div className={`h-4 text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
+              {helperText}
             </div>
-          )}
 
-          <div className="absolute bottom-8 left-0 w-full px-8" style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>
-            <div className="flex justify-between items-end mb-2">
-              <span className="text-white/60 font-medium text-sm">Progress</span>
-              <span className="text-white font-mono text-xl font-bold">{progressPercent}%</span>
+            {/* None Button */}
+            <button onClick={toggleNone}
+              className={`w-full py-3 rounded-[20px] border-[2px] font-semibold text-sm mb-3 mt-1 transition-all outline-none shrink-0 active:scale-95
+                ${isNone ? THEME.selected : THEME.unselected}`}
+            >
+              None of the above
+            </button>
+
+            {/* Activity Section */}
+            <h3 className="text-sm font-bold text-center mb-2 text-app-textPrimary shrink-0">Your activity level</h3>
+            <div className="flex flex-col gap-2">
+              {ACTIVITIES.map((a) => {
+                const active = activity === a.id;
+                return (
+                  <button key={a.id} onClick={() => selectActivity(a.id)}
+                    className={`w-full py-3 px-4 rounded-[18px] border-[2px] text-left flex items-center justify-between transition-all duration-200 active:scale-95 outline-none shrink-0
+                      ${active ? THEME.selected : THEME.unselected}`}
+                  >
+                    <span className={`font-bold text-sm ${active ? 'text-rose-600' : 'text-slate-900'}`}>
+                      {a.title} <span className="font-normal opacity-60 text-xs ml-1">{a.sub}</span>
+                    </span>
+                    {active ? <CheckCircle2 size={20} className="fill-rose-500 text-white" /> : <Circle size={20} className="text-gray-200" strokeWidth={1.5} />}
+                  </button>
+                );
+              })}
             </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#E65473] transition-all duration-100 ease-linear" style={{ width: `${progressPercent}%` }} />
+
+            {/* Helper Text 2: GREEN */}
+            <div className={`h-4 text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 mt-2 ${activityHelper ? 'opacity-100' : 'opacity-0'}`}>
+              {activityHelper}
             </div>
-            <p className="text-center text-[#E65473] text-xs mt-2 font-medium min-h-[16px]">
-               {progressPercent < 30 ? "Syncing your goals..." : progressPercent < 100 ? "Preparing exercises..." : "Your plan is locked in—let’s go!"}
-            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-2 shrink-0 pt-2 z-50">
+            <button onClick={handleHealthContinue} disabled={(!isNone && selectedConditions.length === 0) || !activity}
+              className={`w-full h-12 font-bold text-lg rounded-full transition-all duration-300 shadow-lg
+                ${((isNone || selectedConditions.length > 0) && activity) ? 'bg-rose-500 text-white animate-breathe shadow-rose-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            >
+              {healthCopy.cta}
+            </button>
           </div>
         </div>
       )}
 
-      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
-      {phase === 'showingTimeline' && (
-        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(12)].map((_, i) => (
-               <div key={i} className="absolute bg-white/20 rounded-full w-0.5 h-0.5 animate-ping" style={{ left: `${Math.random()*100}%`, top: `${Math.random()*100}%`, animationDuration: `${3+Math.random()*4}s`, animationDelay: `${Math.random()*2}s` }} />
+      {/* ================= PHASE 2: ANALYSIS (7s) ================= */}
+      {phase === 'analyzing' && (
+        <div className="flex flex-col items-center justify-center h-full px-8 text-white relative bg-slate-950">
+          <AICore />
+          <h2 className="text-2xl font-bold text-center mt-4 mb-2 animate-slide-up bg-clip-text text-transparent bg-gradient-to-r from-white to-rose-200">
+            Designing your plan...
+          </h2>
+          
+          <div className="w-full max-w-xs space-y-4 mb-10 min-h-[180px]">
+            {personalizingCopy.checklist.map((item, idx) => (
+              <div key={idx} className={`flex items-center gap-3 transition-all duration-500 ${idx < checklistVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+                <div className="w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center shrink-0">
+                  <Check size={14} strokeWidth={3} className="text-white" />
+                </div>
+                <span className="text-sm font-medium text-white/90">{item}</span>
+              </div>
             ))}
           </div>
-          <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
-            <div>
-              <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">{userDetails?.name || "Your"} path to</span><br/><span className="text-[#E65473]">{goalTitle}</span> is ready.
-              </h1>
-              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">{formatRichText(timelineCopy.subtitle)}</p>
-              <HolographicTimeline />
-              <div className="mt-4 space-y-3">
-                <h3 className="text-[16px] font-semibold text-white mb-1">Your Personal Insights</h3>
-                {timelineCopy.insights.map((insight, idx) => (
-                  <div key={idx} className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700" style={{ animationDelay: `${idx * 150}ms` }}>
-                    <div className="mt-0.5 text-[#E65473] shrink-0"><Sparkles size={18} /></div>
-                    <p className="text-[13px] leading-snug text-white/90">{formatRichText(insight)}</p>
-                  </div>
-                ))}
-              </div>
+
+          <div className="w-full max-w-xs">
+            <div className="flex justify-between text-xs text-white/60 mb-2">
+              <span>{analysisStatus}</span>
+              <span>{progress}%</span>
             </div>
-             <div className="mt-4">
-               <button onClick={onNext} className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}>{timelineCopy.cta}</button>
+            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full bg-rose-500 transition-all duration-100 ease-linear" style={{ width: `${progress}%` }} />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= PHASE 3: TIMELINE (Paywall Transition) ================= */}
+      {phase === 'timeline' && (
+        <div className={`flex flex-col h-full bg-slate-950 relative transition-opacity duration-1000 ${showTimeline ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="flex-1 flex flex-col items-center px-6 pt-10 pb-6 z-10">
+            <h1 className="text-2xl font-extrabold text-white text-center mb-2 leading-tight">
+              <span className="text-rose-500">{userDetails?.name || "Your"}</span> path to<br/>{goalTitle} is ready.
+            </h1>
+            <p className="text-center text-white/70 text-sm mb-4">{timelineCopy.subtitle.replace("{date}", dateString)}</p>
+            
+            <HolographicGraph />
+
+            <div className="w-full space-y-3 mt-6">
+              <h3 className="text-white font-bold text-sm mb-2">Your Personal Insights</h3>
+              {formattedInsights.map((insight, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm animate-slide-up" style={{ animationDelay: `${0.5 + (index*0.2)}s` }}>
+                  <div className="bg-rose-500/20 p-1.5 rounded-full text-rose-500 shrink-0"><Sparkles size={16}/></div>
+                  <span className="text-xs text-white/90 font-medium leading-relaxed">{insight}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="px-6 pb-8 pt-4 bg-slate-950 z-20 shrink-0">
+            {/* The Critical onNext Call */}
+            <button onClick={onNext} className="w-full h-12 bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold text-lg rounded-full shadow-lg shadow-rose-900/50 flex items-center justify-center gap-2 animate-breathe active:scale-95">
+              <Lock size={18} /> {timelineCopy.cta}
+            </button>
           </div>
         </div>
       )}
