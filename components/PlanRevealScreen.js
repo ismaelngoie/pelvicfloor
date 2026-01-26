@@ -6,16 +6,15 @@ import {
   Sparkles
 } from 'lucide-react';
 
-// --- MARK: - Theme & Data Config ---
-
-// Matching your global.css
+// --- MARK: - Theme Config ---
 const THEME = {
-  bg: 'bg-[rgb(250,249,250)]',
-  text: 'text-[rgb(26,26,38)]',
-  brand: '#E65473', // Primary pink
-  brandGradient: 'from-[#E65473] to-[#C23A5B]', // Matching your .text-gradient
+  bgLight: 'rgb(250,249,250)', // Matches global.css
+  bgDark: '#000000',
+  textDark: 'text-[rgb(26,26,38)]', 
+  brandGradient: 'from-[#E65473] to-[#C23A5B]',
 };
 
+// --- MARK: - Data & Copy ---
 const CONDITIONS = [
   { id: 'pain', title: 'Pelvic Pain', icon: <HeartHandshake size={28} /> },
   { id: 'postpartum', title: 'Postpartum Issues', icon: <Baby size={28} /> },
@@ -35,8 +34,7 @@ const PersonalizingConstants = {
   phase2Scale: 0.20,
 };
 
-// --- MARK: - Copy Providers ---
-
+// --- Copy Generators ---
 const getHealthCopy = (goal) => {
   const map = {
     "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
@@ -158,36 +156,23 @@ const getTimelineCopy = (goal) => {
 };
 
 // --- MARK: - Sub-Components ---
+const AICoreView = () => (
+  <div className="relative w-40 h-40 flex items-center justify-center">
+    <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full animate-spin [animation-duration:8s] border-t-transparent border-l-transparent" />
+    <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full animate-spin [animation-duration:12s] [animation-direction:reverse] border-b-transparent border-r-transparent" />
+    <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full animate-spin [animation-duration:15s] border-t-transparent" />
+    <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md animate-pulse" />
+    <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
+  </div>
+);
 
-// 1. AICoreView (Animated Rings)
-const AICoreView = () => {
-  return (
-    <div className="relative w-40 h-40 flex items-center justify-center">
-      <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full animate-spin [animation-duration:8s] border-t-transparent border-l-transparent" />
-      <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full animate-spin [animation-duration:12s] [animation-direction:reverse] border-b-transparent border-r-transparent" />
-      <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full animate-spin [animation-duration:15s] border-t-transparent" />
-      <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md animate-pulse" />
-      <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
-    </div>
-  );
-};
-
-// 2. ChecklistItemView (Animated Progress Row)
 const ChecklistItem = ({ text, delay, onComplete }) => {
   const [status, setStatus] = useState('waiting'); 
-
-  useEffect(() => {
-    const startTimer = setTimeout(() => setStatus('processing'), delay);
-    return () => clearTimeout(startTimer);
-  }, [delay]);
-
+  useEffect(() => { const t = setTimeout(() => setStatus('processing'), delay); return () => clearTimeout(t); }, [delay]);
   useEffect(() => {
     if (status === 'processing') {
-      const processTimer = setTimeout(() => {
-        setStatus('completed');
-        if (onComplete) onComplete();
-      }, 1500); 
-      return () => clearTimeout(processTimer);
+      const t = setTimeout(() => { setStatus('completed'); if (onComplete) onComplete(); }, 1500);
+      return () => clearTimeout(t);
     }
   }, [status, onComplete]);
 
@@ -204,11 +189,9 @@ const ChecklistItem = ({ text, delay, onComplete }) => {
   );
 };
 
-// 3. HolographicTimelineView (Bezier Path Graph)
 const HolographicTimeline = () => {
   const [visible, setVisible] = useState(false);
   useEffect(() => setTimeout(() => setVisible(true), 500), []);
-
   return (
     <div className="w-full h-36 relative my-2">
        <svg className="absolute inset-0 w-full h-full overflow-visible">
@@ -222,17 +205,8 @@ const HolographicTimeline = () => {
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
         </defs>
-
-        <path 
-          d="M 10,100 C 80,110 200,10 320,20" 
-          fill="none" 
-          stroke="url(#lineGradient)" 
-          strokeWidth="3" 
-          strokeLinecap="round"
-          filter="url(#glow)"
-          className={`transition-all duration-[2000ms] ease-out ${visible ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`}
-        />
-
+        <path d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="url(#lineGradient)" strokeWidth="3" strokeLinecap="round" filter="url(#glow)"
+          className={`transition-all duration-[2000ms] ease-out ${visible ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`} />
         <g className={`transition-opacity duration-1000 delay-1000 ${visible ? 'opacity-100' : 'opacity-0'}`}>
             <circle cx="10" cy="100" r="4" fill="white" />
             <text x="10" y="125" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">Today</text>
@@ -245,7 +219,6 @@ const HolographicTimeline = () => {
     </div>
   );
 };
-
 
 // --- MARK: - Main Controller ---
 
@@ -265,14 +238,34 @@ export default function PlanRevealScreen({ onNext }) {
   const [progressPercent, setProgressPercent] = useState(0);
   const [showChecklist, setShowChecklist] = useState(false);
 
-  // Data
+  // Data Loading
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
   const healthCopy = getHealthCopy(goalTitle);
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
-  // --- Logic: Phase 1 ---
+  // --- 🔥 THE FIX: Dynamic Body Background Chameleon ---
+  // This forces the browser window color to match the component color instantly
+  useEffect(() => {
+    // 1. Get the body element
+    const body = document.body;
+    
+    // 2. Force the background color based on phase
+    if (phase === 'askingHealthInfo') {
+      body.style.backgroundColor = THEME.bgLight;
+      body.style.transition = "background-color 0.7s ease";
+    } else {
+      body.style.backgroundColor = THEME.bgDark;
+      body.style.transition = "background-color 0.7s ease";
+    }
 
+    // 3. Cleanup: Reset to default light on unmount (optional, but good practice)
+    return () => {
+      body.style.backgroundColor = '';
+    };
+  }, [phase]);
+
+  // --- Logic Phase 1 ---
   const toggleCondition = (id) => {
     setNoneSelected(false);
     setSelectedConditions(prev => {
@@ -307,8 +300,7 @@ export default function PlanRevealScreen({ onNext }) {
     setPhase('personalizing');
   };
 
-  // --- Logic: Phase 2 (Sequence) ---
-
+  // --- Logic Phase 2 ---
   useEffect(() => {
     if (phase === 'personalizing') {
       let startTime = Date.now();
@@ -345,8 +337,7 @@ export default function PlanRevealScreen({ onNext }) {
     }, 1200);
   };
 
-
-  // --- Logic: Phase 3 (Timeline Helpers) ---
+  // --- Logic Phase 3 ---
   const calculateBMI = () => {
     if (!userDetails.weight || !userDetails.height) return "22.5";
     const h = userDetails.height * 0.0254;
@@ -377,259 +368,125 @@ export default function PlanRevealScreen({ onNext }) {
   };
 
   // --- RENDER ---
-
+  // Using fixed inset-0 to prevent scroll, and flex-col to distribute space evenly.
   return (
-    // MARK: - Safe Area Fix
-    // 'fixed inset-0' creates the background color that sits BEHIND the safe areas.
-    // We toggle between your Light Theme bg and Dark Mode bg.
-    <div 
-      className={`fixed inset-0 w-full h-[100dvh] flex flex-col transition-colors duration-700 overflow-hidden
-        ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}
-      `}
-    >
+    <div className={`fixed inset-0 w-full h-[100dvh] flex flex-col transition-colors duration-700 overflow-hidden z-[9999]
+      ${phase === 'askingHealthInfo' ? 'bg-[rgb(250,249,250)]' : 'bg-black'}
+    `}>
       
-      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
+      {/* PHASE 1: Light Mode */}
       {phase === 'askingHealthInfo' && (
-        <div 
-          className="flex flex-col h-full w-full animate-in fade-in duration-700 px-6"
-          style={{ 
-            // This padding ensures content starts BELOW the notch and ABOVE the home bar
-            paddingTop: 'calc(env(safe-area-inset-top) + 24px)', 
-            paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' 
-          }}
-        >
+        <div className="flex flex-col h-full w-full animate-in fade-in duration-700 px-6 pt-safe-top pb-safe-bottom"
+             style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
             
-            {/* Header */}
-            <h1 className={`text-2xl font-extrabold text-center ${THEME.text} mb-1 leading-tight`}>
-              {healthCopy.headline}
-            </h1>
-            <p className="text-center text-[rgb(26,26,38)]/60 text-sm mb-4">
-              {healthCopy.subtitle}
-            </p>
+            {/* Header Area */}
+            <div className="pt-6 pb-2">
+               <h1 className={`text-2xl font-extrabold text-center ${THEME.textDark} mb-1 leading-tight`}>
+                 {healthCopy.headline}
+               </h1>
+               <p className="text-center text-[rgb(26,26,38)]/60 text-sm">
+                 {healthCopy.subtitle}
+               </p>
+            </div>
 
-            {/* Main Content Area - Distributes space evenly so no scroll needed */}
-            <div className="flex-1 flex flex-col justify-between min-h-0">
-              
-              {/* Top Section: Conditions + None */}
+            {/* Content Area - Flex Grow to Fill */}
+            <div className="flex-1 flex flex-col justify-center gap-6 min-h-0">
+              {/* Conditions */}
               <div>
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-2 gap-3 mb-2">
                   {CONDITIONS.map((item) => {
                     const isSelected = selectedConditions.includes(item.id);
                     return (
-                      <button
-                        key={item.id}
-                        onClick={() => toggleCondition(item.id)}
+                      <button key={item.id} onClick={() => toggleCondition(item.id)}
                         className={`relative flex flex-col items-center justify-center p-2 rounded-[20px] border-[1.5px] h-24 transition-all duration-300 active:scale-95
-                          ${isSelected 
-                            ? 'bg-white border-[2.5px] border-[#E65473] shadow-sm scale-[1.02] z-10' 
-                            : 'bg-white border-slate-200'}
-                        `}
-                      >
-                        <div className={`mb-1 ${isSelected ? 'text-[#E65473]' : 'text-[#E65473]/80'}`}>
-                          {item.icon}
-                        </div>
-                        <span className={`text-[13px] font-bold text-center leading-tight px-1 ${THEME.text}`}>
-                          {item.title}
-                        </span>
-                        {isSelected && (
-                          <div className="absolute top-2 right-2">
-                            <Check size={18} className="text-[#E65473] fill-current" strokeWidth={4} />
-                          </div>
-                        )}
+                          ${isSelected ? 'bg-white border-[2.5px] border-[#E65473] shadow-sm scale-[1.02] z-10' : 'bg-white border-slate-200'}`}>
+                        <div className={`mb-1 ${isSelected ? 'text-[#E65473]' : 'text-[#E65473]/80'}`}>{item.icon}</div>
+                        <span className={`text-[13px] font-bold text-center leading-tight px-1 ${THEME.textDark}`}>{item.title}</span>
+                        {isSelected && <div className="absolute top-2 right-2"><Check size={18} className="text-[#E65473] fill-current" strokeWidth={4} /></div>}
                       </button>
                     );
                   })}
                 </div>
-
-                 {/* Helper 1 */}
-                 <div className={`text-center text-xs font-medium text-[#E65473] transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
-                  {helperText}
-                </div>
-
-                <button
-                  onClick={toggleNone}
-                  className={`w-full py-3 rounded-full border-[1.5px] font-semibold text-[15px] transition-all duration-300 active:scale-95
-                    ${noneSelected 
-                      ? 'bg-white border-[2.5px] border-[#E65473] text-[#E65473] shadow-sm' 
-                      : 'bg-white border-slate-200 text-slate-400'}
-                  `}
-                >
-                  ✓ None of the Above
-                </button>
+                <div className={`text-center text-xs font-medium text-[#E65473] transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>{helperText}</div>
+                <button onClick={toggleNone} className={`w-full py-3 rounded-full border-[1.5px] font-semibold text-[15px] transition-all duration-300 active:scale-95 ${noneSelected ? 'bg-white border-[2.5px] border-[#E65473] text-[#E65473] shadow-sm' : 'bg-white border-slate-200 text-slate-400'}`}>✓ None of the Above</button>
               </div>
 
-              {/* Bottom Section: Activity */}
-              <div className="mt-2">
-                <h3 className={`text-[16px] font-bold text-center ${THEME.text} mb-2`}>Your typical activity level</h3>
+              {/* Activity */}
+              <div>
+                <h3 className={`text-[16px] font-bold text-center ${THEME.textDark} mb-2`}>Your typical activity level</h3>
                 <div className="flex flex-col gap-2">
                   {ACTIVITIES.map((act) => {
                     const isSelected = selectedActivity === act.id;
                     return (
-                      <button
-                        key={act.id}
-                        onClick={() => selectActivity(act.id)}
-                        className={`w-full py-3 rounded-[22px] border-[1.5px] text-[15px] font-medium transition-all duration-300 active:scale-95
-                          ${isSelected
-                            ? 'bg-white border-[2.5px] border-[#E65473] text-[#E65473] shadow-sm'
-                            : 'bg-white border-slate-200 text-slate-500'}
-                        `}
-                      >
+                      <button key={act.id} onClick={() => selectActivity(act.id)} className={`w-full py-3 rounded-[22px] border-[1.5px] text-[15px] font-medium transition-all duration-300 active:scale-95 ${isSelected ? 'bg-white border-[2.5px] border-[#E65473] text-[#E65473] shadow-sm' : 'bg-white border-slate-200 text-slate-500'}`}>
                         {act.title} <span className="text-xs opacity-70 font-normal">{act.sub}</span>
                       </button>
                     );
                   })}
                 </div>
-                 {/* Helper 2 */}
-                 <div className={`text-center text-xs font-medium text-[#E65473] transition-opacity duration-300 h-4 mt-1 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
-                  {activityHelperText}
-                </div>
+                <div className={`text-center text-xs font-medium text-[#E65473] transition-opacity duration-300 h-4 mt-1 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>{activityHelperText}</div>
               </div>
             </div>
 
-            {/* Footer Button (Fixed height area) */}
-            <div className="mt-4">
-              <button
-                onClick={handlePhase1Continue}
-                disabled={!canContinue}
-                className={`w-full h-12 rounded-full font-bold text-lg text-white transition-all duration-300 active:scale-95
-                  ${canContinue 
-                    ? `bg-gradient-to-b ${THEME.brandGradient} shadow-md` 
-                    : 'bg-slate-300 cursor-not-allowed'}
-                `}
-              >
+            {/* Footer Area */}
+            <div className="pt-2 pb-6">
+              <button onClick={handlePhase1Continue} disabled={!canContinue} className={`w-full h-12 rounded-full font-bold text-lg text-white transition-all duration-300 active:scale-95 ${canContinue ? `bg-gradient-to-b ${THEME.brandGradient} shadow-md` : 'bg-slate-300 cursor-not-allowed'}`}>
                 {healthCopy.cta}
               </button>
             </div>
         </div>
       )}
 
-
-      {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
+      {/* PHASE 2: Dark Mode (Animation) */}
       {phase === 'personalizing' && (
-        <div 
-          className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000"
-          style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
-        >
-          
-          <div className={`transition-all duration-500 ${showChecklist ? 'scale-75 -translate-y-8 opacity-0' : 'scale-100 opacity-100'}`}>
-            <AICoreView />
-          </div>
-
-          {!showChecklist && (
-             <div className="mt-12 text-center h-20 px-4">
-               {/* GRADIENT TITLE UPGRADE */}
-               <h2 className={`text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
-                 {personalizingStatus}
-               </h2>
-             </div>
-          )}
-
+        <div className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div className={`transition-all duration-500 ${showChecklist ? 'scale-75 -translate-y-8 opacity-0' : 'scale-100 opacity-100'}`}><AICoreView /></div>
+          {!showChecklist && <div className="mt-12 text-center h-20 px-4"><h2 className={`text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>{personalizingStatus}</h2></div>}
           {showChecklist && (
             <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
                <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">{personalizingCopy.title}</h2>
                <p className="text-center text-gray-400 text-sm mb-6">{personalizingCopy.subtitle}</p>
-               
-               <div className="space-y-3">
-                  {personalizingCopy.checklist.map((item, idx) => (
-                    <ChecklistItem 
-                      key={idx} 
-                      text={item} 
-                      delay={idx * 800} 
-                      onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined}
-                    />
-                  ))}
-               </div>
-               
-               <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
-                 {progressPercent === 100 ? "Ready!" : "Fine-tuning for: " + (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent/25))] || "Results")}
-               </div>
+               <div className="space-y-3">{personalizingCopy.checklist.map((item, idx) => (<ChecklistItem key={idx} text={item} delay={idx * 800} onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined} />))}</div>
+               <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">{progressPercent === 100 ? "Ready!" : "Fine-tuning for: " + (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent/25))] || "Results")}</div>
             </div>
           )}
-
           <div className="absolute bottom-8 left-0 w-full px-8" style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>
-            <div className="flex justify-between items-end mb-2">
-              <span className="text-white/60 font-medium text-sm">Progress</span>
-              <span className="text-white font-mono text-xl font-bold">{progressPercent}%</span>
-            </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-[#E65473] transition-all duration-100 ease-linear"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <p className="text-center text-[#E65473] text-xs mt-2 font-medium min-h-[16px]">
-               {progressPercent < 30 ? "Syncing your goals..." : progressPercent < 100 ? "Preparing exercises..." : "Your plan is locked in—let’s go!"}
-            </p>
+            <div className="flex justify-between items-end mb-2"><span className="text-white/60 font-medium text-sm">Progress</span><span className="text-white font-mono text-xl font-bold">{progressPercent}%</span></div>
+            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-[#E65473] transition-all duration-100 ease-linear" style={{ width: `${progressPercent}%` }} /></div>
+            <p className="text-center text-[#E65473] text-xs mt-2 font-medium min-h-[16px]">{progressPercent < 30 ? "Syncing your goals..." : progressPercent < 100 ? "Preparing exercises..." : "Your plan is locked in—let’s go!"}</p>
           </div>
         </div>
       )}
 
-
-      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
+      {/* PHASE 3: Dark Mode (Timeline) */}
       {phase === 'showingTimeline' && (
         <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
-          
-          {/* Particles */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(12)].map((_, i) => (
-               <div key={i} className="absolute bg-white/20 rounded-full w-0.5 h-0.5 animate-ping" 
-                    style={{
-                      left: `${Math.random()*100}%`, top: `${Math.random()*100}%`, 
-                      animationDuration: `${3+Math.random()*4}s`, animationDelay: `${Math.random()*2}s`
-                    }} 
-               />
-            ))}
+            {[...Array(12)].map((_, i) => (<div key={i} className="absolute bg-white/20 rounded-full w-0.5 h-0.5 animate-ping" style={{ left: `${Math.random()*100}%`, top: `${Math.random()*100}%`, animationDuration: `${3+Math.random()*4}s`, animationDelay: `${Math.random()*2}s` }} />))}
           </div>
-
-          {/* Main Content */}
-          <div 
-            className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0"
-            style={{ 
-              paddingTop: 'calc(env(safe-area-inset-top) + 24px)', 
-              paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' 
-            }}
-          >
+          <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
             <div>
-              <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">{userDetails.name || "Your"} path to</span><br/>
-                <span className="text-[#E65473]">{goalTitle}</span> is ready.
-              </h1>
-              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
-                {formatRichText(timelineCopy.subtitle)}
-              </p>
-
-              {/* Compact Chart */}
+              <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight"><span className="text-white/90">{userDetails.name || "Your"} path to</span><br/><span className="text-[#E65473]">{goalTitle}</span> is ready.</h1>
+              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">{formatRichText(timelineCopy.subtitle)}</p>
               <HolographicTimeline />
-
-              {/* Insights list */}
               <div className="mt-4 space-y-3">
                 <h3 className="text-[16px] font-semibold text-white mb-1">Your Personal Insights</h3>
                 {timelineCopy.insights.map((insight, idx) => (
                   <div key={idx} className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700" style={{ animationDelay: `${idx * 150}ms` }}>
-                    <div className="mt-0.5 text-[#E65473] shrink-0">
-                      <Sparkles size={18} />
-                    </div>
-                    <p className="text-[13px] leading-snug text-white/90">
-                      {formatRichText(insight)}
-                    </p>
+                    <div className="mt-0.5 text-[#E65473] shrink-0"><Sparkles size={18} /></div>
+                    <p className="text-[13px] leading-snug text-white/90">{formatRichText(insight)}</p>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Footer Button */}
              <div className="mt-4">
-               <button
-                 onClick={onNext}
-                 className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
-               >
+               <button onClick={onNext} className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}>
                  {timelineCopy.cta}
                </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
