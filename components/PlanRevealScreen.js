@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 import { 
   Check, HeartHandshake, Baby, Droplets, User, 
-  Sparkles
+  Activity, Sparkles, Lock
 } from 'lucide-react';
 
 // --- MARK: - Theme & Data Config ---
@@ -441,8 +441,8 @@ export default function PlanRevealScreen({ onNext }) {
                   })}
                 </div>
 
-                 {/* Helper 1 */}
-                 <div className={`text-center text-xs font-medium text-[#E65473] transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
+                 {/* Helper 1 - UPDATED TO GREEN */}
+                 <div className={`text-center text-xs font-medium text-emerald-500 transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
                   {helperText}
                 </div>
 
@@ -479,8 +479,8 @@ export default function PlanRevealScreen({ onNext }) {
                     );
                   })}
                 </div>
-                 {/* Helper 2 */}
-                 <div className={`text-center text-xs font-medium text-[#E65473] transition-opacity duration-300 h-4 mt-1 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
+                 {/* Helper 2 - UPDATED TO GREEN */}
+                 <div className={`text-center text-xs font-medium text-emerald-500 transition-opacity duration-300 h-4 mt-1 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
                   {activityHelperText}
                 </div>
               </div>
@@ -617,7 +617,7 @@ export default function PlanRevealScreen({ onNext }) {
               </div>
             </div>
 
-            {/* Footer Button */}
+            {/* Footer Button - WIRED TO onNext */}
              <div className="mt-4">
                <button
                  onClick={onNext}
