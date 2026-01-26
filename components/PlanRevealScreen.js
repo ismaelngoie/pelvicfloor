@@ -266,9 +266,10 @@ export default function PlanRevealScreen({ onNext }) {
   const [showChecklist, setShowChecklist] = useState(false);
 
   // Data
+  // FIX 1: Safety check for goalTitle to prevent crash
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
   const healthCopy = getHealthCopy(goalTitle);
-  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails.name);
+  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails.name || "");
   const timelineCopy = getTimelineCopy(goalTitle);
 
   // --- Logic: Phase 1 ---
@@ -348,9 +349,11 @@ export default function PlanRevealScreen({ onNext }) {
 
   // --- Logic: Phase 3 (Timeline Helpers) ---
   const calculateBMI = () => {
-    if (!userDetails.weight || !userDetails.height) return "22.5";
-    const h = userDetails.height * 0.0254;
-    const w = userDetails.weight * 0.453592;
+    // FIX 2: Added default values to prevent undefined math errors
+    const hVal = userDetails.height || 65;
+    const wVal = userDetails.weight || 140;
+    const h = hVal * 0.0254;
+    const w = wVal * 0.453592;
     return (w / (h * h)).toFixed(1);
   };
 
@@ -361,6 +364,7 @@ export default function PlanRevealScreen({ onNext }) {
   };
 
   const formatRichText = (text) => {
+    if (!text) return ""; // FIX 3: Safety check
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -380,8 +384,6 @@ export default function PlanRevealScreen({ onNext }) {
 
   return (
     // MARK: - Safe Area Fix
-    // 'fixed inset-0' creates the background color that sits BEHIND the safe areas.
-    // We toggle between your Light Theme bg and Dark Mode bg.
     <div 
       className={`fixed inset-0 w-full h-[100dvh] flex flex-col transition-colors duration-700 overflow-hidden
         ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}
@@ -393,13 +395,11 @@ export default function PlanRevealScreen({ onNext }) {
         <div 
           className="flex flex-col h-full w-full animate-in fade-in duration-700 px-6"
           style={{ 
-            // This padding ensures content starts BELOW the notch and ABOVE the home bar
             paddingTop: 'calc(env(safe-area-inset-top) + 24px)', 
             paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' 
           }}
         >
             
-            {/* Header */}
             <h1 className={`text-2xl font-extrabold text-center ${THEME.text} mb-1 leading-tight`}>
               {healthCopy.headline}
             </h1>
@@ -407,10 +407,8 @@ export default function PlanRevealScreen({ onNext }) {
               {healthCopy.subtitle}
             </p>
 
-            {/* Main Content Area - Distributes space evenly so no scroll needed */}
             <div className="flex-1 flex flex-col justify-between min-h-0">
               
-              {/* Top Section: Conditions + None */}
               <div>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   {CONDITIONS.map((item) => {
@@ -458,7 +456,6 @@ export default function PlanRevealScreen({ onNext }) {
                 </button>
               </div>
 
-              {/* Bottom Section: Activity */}
               <div className="mt-2">
                 <h3 className={`text-[16px] font-bold text-center ${THEME.text} mb-2`}>Your typical activity level</h3>
                 <div className="flex flex-col gap-2">
@@ -486,7 +483,6 @@ export default function PlanRevealScreen({ onNext }) {
               </div>
             </div>
 
-            {/* Footer Button (Fixed height area) */}
             <div className="mt-4">
               <button
                 onClick={handlePhase1Continue}
@@ -517,7 +513,6 @@ export default function PlanRevealScreen({ onNext }) {
 
           {!showChecklist && (
              <div className="mt-12 text-center h-20 px-4">
-               {/* GRADIENT TITLE UPGRADE */}
                <h2 className={`text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
                  {personalizingStatus}
                </h2>
@@ -569,7 +564,6 @@ export default function PlanRevealScreen({ onNext }) {
       {phase === 'showingTimeline' && (
         <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
           
-          {/* Particles */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {[...Array(12)].map((_, i) => (
                <div key={i} className="absolute bg-white/20 rounded-full w-0.5 h-0.5 animate-ping" 
@@ -581,7 +575,6 @@ export default function PlanRevealScreen({ onNext }) {
             ))}
           </div>
 
-          {/* Main Content */}
           <div 
             className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0"
             style={{ 
@@ -598,10 +591,8 @@ export default function PlanRevealScreen({ onNext }) {
                 {formatRichText(timelineCopy.subtitle)}
               </p>
 
-              {/* Compact Chart */}
               <HolographicTimeline />
 
-              {/* Insights list */}
               <div className="mt-4 space-y-3">
                 <h3 className="text-[16px] font-semibold text-white mb-1">Your Personal Insights</h3>
                 {timelineCopy.insights.map((insight, idx) => (
@@ -617,12 +608,12 @@ export default function PlanRevealScreen({ onNext }) {
               </div>
             </div>
 
-            {/* Footer Button - WIRED TO onNext */}
-             <div className="absolute bottom-0 w-full px-6 pb-8 pt-6 bg-gradient-to-t from-slate-900 to-transparent z-20">
-            <button 
-              onClick={onNext}
-              className="w-full h-14 bg-gradient-to-r from-app-primary to-rose-600 text-white font-bold text-lg rounded-full shadow-lg shadow-app-primary/40 flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform"
-            >
+             <div className="mt-4">
+               {/* FIX 4: Ensured this calls onNext to navigate to Paywall */}
+               <button
+                 onClick={onNext}
+                 className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+               >
                  {timelineCopy.cta}
                </button>
             </div>
