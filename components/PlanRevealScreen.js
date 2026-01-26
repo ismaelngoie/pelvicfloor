@@ -14,8 +14,8 @@ const THEME = {
   text: 'text-[rgb(26,26,38)]',
   
   // Selection States
-  unselected: "bg-white border-gray-200 shadow-sm",
-  selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
+  unselected: "bg-white border-gray-200 shadow-sm transition-all duration-200",
+  selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20 relative transition-all duration-200",
   
   // Text Colors
   textUnselected: "text-slate-900",
@@ -25,7 +25,7 @@ const THEME = {
   iconUnselected: "text-[#E65473] opacity-80", 
   iconSelected: "text-[#E65473] scale-110",
 
-  // Helper Text (Your App Green)
+  // Helper Text (Green)
   helper: "text-[#33B373]", 
   
   // Brand Gradient
@@ -52,7 +52,7 @@ const PersonalizingConstants = {
   phase2Scale: 0.20,
 };
 
-// --- MARK: - Copy Providers (COMPLETE) ---
+// --- MARK: - Copy Providers (EXACT SWIFT PORT) ---
 
 const getHealthCopy = (goal) => {
   const safeGoal = goal || "default";
@@ -121,33 +121,32 @@ const getTimelineCopy = (goal) => {
   return map[safeGoal] || map["default"];
 };
 
-// --- MARK: - Sub-Components (Safe Animations) ---
+// --- MARK: - Sub-Components (Animation) ---
 
-// 1. AICoreView - Hardcoded styles to fix dark screen issues
-const AICoreView = () => {
-  return (
-    <div className="relative w-40 h-40 flex items-center justify-center">
-      <style jsx>{`
-        @keyframes spin-slow { to { transform: rotate(360deg); } }
-        @keyframes spin-rev { to { transform: rotate(-360deg); } }
-        @keyframes pulse-core { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
-      `}</style>
-      
-      {/* Rings */}
-      <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full border-t-transparent border-l-transparent" 
-           style={{ animation: 'spin-slow 8s linear infinite' }} />
-      <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full border-b-transparent border-r-transparent" 
-           style={{ animation: 'spin-rev 12s linear infinite' }} />
-      <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full border-t-transparent" 
-           style={{ animation: 'spin-slow 15s linear infinite' }} />
-      
-      {/* Core */}
-      <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md" 
-           style={{ animation: 'pulse-core 2s infinite' }} />
-      <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
-    </div>
-  );
-};
+// 1. AICoreView - Hardcoded Animations to Fix Dark Screen
+const AICoreView = () => (
+  <div className="relative w-40 h-40 flex items-center justify-center">
+    <style jsx>{`
+      @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      @keyframes spin-rev { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+      @keyframes pulse-core { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.95); } }
+    `}</style>
+    {/* Outer Ring */}
+    <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full border-t-transparent border-l-transparent" 
+         style={{ animation: 'spin-slow 8s linear infinite' }} />
+    {/* Middle Ring */}
+    <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full border-b-transparent border-r-transparent" 
+         style={{ animation: 'spin-rev 12s linear infinite' }} />
+    {/* Inner Ring */}
+    <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full border-t-transparent" 
+         style={{ animation: 'spin-slow 15s linear infinite' }} />
+    {/* Core Glow */}
+    <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md" 
+         style={{ animation: 'pulse-core 3s infinite' }} />
+    {/* Solid Center */}
+    <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
+  </div>
+);
 
 // 2. Typewriter Effect
 const TypewriterText = ({ text }) => {
@@ -201,7 +200,7 @@ const ChecklistItem = ({ text, delay, onComplete }) => {
   );
 };
 
-// 4. Holographic Timeline - SVG SMIL Animation
+// 4. Holographic Timeline - Zero Dependency Animation
 const HolographicTimeline = () => {
   const [show, setShow] = useState(false);
   useEffect(() => setTimeout(() => setShow(true), 500), []);
@@ -216,11 +215,11 @@ const HolographicTimeline = () => {
           <filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
         </defs>
         
-        {/* The Line */}
+        {/* Line */}
         <path d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="url(#lineGradient)" strokeWidth="3" strokeLinecap="round" filter="url(#glow)"
           className={`transition-all duration-[2000ms] ease-out ${show ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`} />
         
-        {/* The Rider Dot */}
+        {/* Rider */}
         <circle r="6" fill="white" className={show ? "opacity-100" : "opacity-0"}>
           {show && (
             <animateMotion dur="2s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1">
@@ -347,10 +346,10 @@ export default function PlanRevealScreen({ onNext }) {
 
   // --- RENDER ---
   return (
-    // FIX: Using relative to contain within phone frame
-    <div className={`relative w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? 'bg-app-background' : 'bg-black'}`}>
+    // FIX: "absolute inset-0" ensures it fits the parent relative container (the phone frame)
+    <div className={`absolute inset-0 w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? 'bg-app-background' : 'bg-black'}`}>
       
-      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
+      {/* ---------------- PHASE 1: HEALTH INFO (One Screen) ---------------- */}
       {phase === 'askingHealthInfo' && (
         <div className="flex flex-col h-full w-full animate-in fade-in duration-700 px-5 pt-8 pb-6">
             
@@ -387,7 +386,7 @@ export default function PlanRevealScreen({ onNext }) {
                   })}
                 </div>
 
-                 {/* Helper: Green */}
+                 {/* Helper 1: GREEN */}
                  <div className={`text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
                   {helperText}
                 </div>
@@ -424,6 +423,7 @@ export default function PlanRevealScreen({ onNext }) {
                     );
                   })}
                 </div>
+                 {/* Helper 2: GREEN */}
                  <div className={`text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 h-4 mt-2 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
                   {activityHelperText}
                 </div>
@@ -443,7 +443,7 @@ export default function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
-      {/* ---------------- PHASE 2: ANALYSIS ---------------- */}
+      {/* ---------------- PHASE 2: ANALYSIS (7s Animation) ---------------- */}
       {phase === 'analyzing' && (
         <div className="flex flex-col items-center justify-center h-full px-8 text-white relative bg-slate-950">
           <AICoreView />
@@ -480,7 +480,7 @@ export default function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
-      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
+      {/* ---------------- PHASE 3: TIMELINE (Paywall Transition) ---------------- */}
       {phase === 'showingTimeline' && (
         <div className={`flex flex-col h-full bg-slate-950 relative transition-opacity duration-1000 ${showTimeline ? 'opacity-100' : 'opacity-0'}`}>
           <div className="flex-1 flex flex-col items-center px-6 pt-10 pb-6 z-10">
@@ -503,7 +503,6 @@ export default function PlanRevealScreen({ onNext }) {
           </div>
 
           <div className="px-6 pb-8 pt-4 bg-slate-950 z-20 shrink-0">
-            {/* The crucial onNext call */}
             <button onClick={onNext} className="w-full h-12 bg-gradient-to-r from-[#E65473] to-[#C23A5B] text-white font-bold text-lg rounded-full shadow-lg shadow-pink-900/50 flex items-center justify-center gap-2 animate-breathe active:scale-95">
               <Lock size={18} /> {timelineCopy.cta}
             </button>
