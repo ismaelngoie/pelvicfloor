@@ -8,12 +8,11 @@ import {
 
 // --- MARK: - Theme & Data Config ---
 
-// Matching your global.css
 const THEME = {
   bg: 'bg-[rgb(250,249,250)]',
   text: 'text-[rgb(26,26,38)]',
-  brand: '#E65473', // Primary pink
-  brandGradient: 'from-[#E65473] to-[#C23A5B]', // Matching your .text-gradient
+  brand: '#E65473', 
+  brandGradient: 'from-[#E65473] to-[#C23A5B]',
 };
 
 const CONDITIONS = [
@@ -35,9 +34,10 @@ const PersonalizingConstants = {
   phase2Scale: 0.20,
 };
 
-// --- MARK: - Copy Providers ---
+// --- MARK: - Copy Providers (COMPLETE) ---
 
 const getHealthCopy = (goal) => {
+  const safeGoal = goal || "default";
   const map = {
     "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
     "Ease Pelvic Pain": { headline: "Any health notes before we ease pain?", subtitle: "I’ll protect sensitive ranges and focus on release first.", cta: "Build My Pain-Relief Plan" },
@@ -46,120 +46,101 @@ const getHealthCopy = (goal) => {
     "Prepare for Pregnancy": { headline: "Any health notes before we prep for pregnancy?", subtitle: "I’ll prioritize circulation, breath, and core support.", cta: "Build My Prep Plan" },
     "Build Core Strength": { headline: "Any health notes before we strengthen your core?", subtitle: "This ensures smart progressions and safe loading.", cta: "Build My Core Plan" },
     "Support My Fitness": { headline: "Any health notes before we support your training?", subtitle: "I’ll sync to your routine and recovery needs.", cta: "Build My Fitness Plan" },
+    "Boost Stability": { headline: "Any health notes before we boost stability?", subtitle: "I’ll align mobility + deep core for posture wins.", cta: "Build My Stability Plan" },
     "default": { headline: "Last step! Any health notes?", subtitle: "This ensures every exercise is safe and perfectly tailored to you.", cta: "Build My Custom Plan" }
   };
-  return map[goal] || map["default"];
+  return map[safeGoal] || map["default"];
 };
 
 const getHelperCopy = (selected, goal) => {
+  const g = goal || "";
   if (selected) {
-    if (goal.includes("Leak")) return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
-    if (goal.includes("Pain")) return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
-    if (goal.includes("Intimacy")) return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
-    if (goal.includes("Postpartum")) return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
-    if (goal.includes("Pregnancy")) return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
-    if (goal.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
-    if (goal.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
+    if (g.includes("Leak")) return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
+    if (g.includes("Pain")) return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
+    if (g.includes("Intimacy")) return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
+    if (g.includes("Postpartum")) return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
+    if (g.includes("Pregnancy")) return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
+    if (g.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
+    if (g.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
     return "✓ Understood. I'll tailor your plan accordingly.";
   } else {
-    if (goal.includes("Leak")) return "✓ Great. We’ll start with core reflexes for leak control.";
-    if (goal.includes("Pain")) return "✓ Great. Gentle release + support from day one.";
-    if (goal.includes("Intimacy")) return "✓ Great. Comfort, sensation, and confidence from the start.";
-    if (goal.includes("Core")) return "✓ Great. Clean technique and deep core activation.";
     return "✓ Great! We'll start with a foundational plan.";
   }
 };
 
 const getPersonalizingCopy = (goal, name) => {
+  const safeGoal = goal || "default";
+  const safeName = name || "there";
+  
   const map = {
-    "Improve Intimacy": {
-      title: `Designing your intimacy plan`,
-      subtitle: "Comfort, sensation, confidence—gently built for your body.",
-      connecting: "Checking your profile for arousal flow and comfort…",
-      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
-      checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for stronger orgasms", "Partner-friendly positions"]
-    },
-    "Stop Bladder Leaks": {
-      title: "Personalizing your leak-control plan",
-      subtitle: "Train reflexes so sneezes and laughs don’t own your day.",
-      connecting: "Mapping urge delays and quick-contract sets…",
-      calibrating: "Dialing breath and pressure control for real-life moments…",
-      checklist: ["Urge-delay reflex training", "Fast-twitch squeezes", "Breath + pressure control", "Run/jump confidence drills"]
-    },
-    "Ease Pelvic Pain": {
-      title: "Personalizing your pain-relief plan",
-      subtitle: "Release tension, add support, and keep comfort front and center.",
-      connecting: "Identifying tight patterns and sensitive ranges…",
-      calibrating: "Layering gentle strength for lasting relief…",
-      checklist: ["Down-train tight muscles", "Nerve-calming breath", "Gentle glute + core support", "Daily posture resets"]
-    },
-    "Recover Postpartum": {
-      title: "Personalizing your postpartum plan",
-      subtitle: "Kind, steady rebuilding for your core, hips, and back.",
-      connecting: "Checking diastasis-safe progressions…",
-      calibrating: "Tuning lifts and carries so daily life feels stable…",
-      checklist: ["Core connection breath", "Diastasis-safe moves", "Hip + back relief", "Lift-and-carry practice"]
-    },
-    "default": {
-      title: `Personalizing your stability plan`,
-      subtitle: "Tall, steady, and organized all day.",
-      connecting: "Stacking rib-to-pelvis alignment…",
-      calibrating: "Endurance for postural muscles…",
-      checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"]
-    }
+    "Improve Intimacy": { title: `Designing your intimacy plan`, subtitle: "Comfort, sensation, confidence—gently built for your body.", checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for stronger orgasms", "Partner-friendly positions"] },
+    "Stop Bladder Leaks": { title: "Personalizing your leak-control plan", subtitle: "Train reflexes so sneezes and laughs don’t own your day.", checklist: ["Urge-delay reflex training", "Fast-twitch squeezes", "Breath + pressure control", "Run/jump confidence drills"] },
+    "Ease Pelvic Pain": { title: "Personalizing your pain-relief plan", subtitle: "Release tension, add support, and keep comfort front and center.", checklist: ["Down-train tight muscles", "Nerve-calming breath", "Gentle glute + core support", "Daily posture resets"] },
+    "Recover Postpartum": { title: "Personalizing your postpartum plan", subtitle: "Kind, steady rebuilding for your core, hips, and back.", checklist: ["Core connection breath", "Diastasis-safe moves", "Hip + back relief", "Lift-and-carry practice"] },
+    "Prepare for Pregnancy": { title: "Personalizing your prep plan", subtitle: "Circulation, breath, and a supportive core.", checklist: ["Circulation + breath", "Pelvic floor coordination", "Hip mobility", "Labor-prep positions"] },
+    "Build Core Strength": { title: "Personalizing your core plan", subtitle: "Deep, steady strength without guesswork.", checklist: ["Deep core activation", "Anti-rotation work", "Hinge + squat mechanics", "Back-friendly progressions"] },
+    "Support My Fitness": { title: "Personalizing your training support", subtitle: "Make every workout you do feel more solid.", checklist: ["Pre-workout core priming", "Brace + breathe", "Recovery mobilization", "Force transfer training"] },
+    "Boost Stability": { title: "Personalizing your stability plan", subtitle: "Tall, steady, and organized all day.", checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"] },
+    "default": { title: `Personalizing your stability plan`, subtitle: "Tall, steady, and organized all day.", checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"] }
   };
-  return map[goal] || map["default"];
+  return map[safeGoal] || map["default"];
 };
 
 const getTimelineCopy = (goal) => {
+  const safeGoal = goal || "default";
+  
   const map = {
     "Prepare for Pregnancy": {
       subtitle: "Feel ready to carry and move with ease by **{date}**.",
-      insights: [
-        "Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.",
-        "Because you’re **{activity}**, sessions are short, steady, and stick.",
-        "At **{age}**, we train calm breath and deep core for a growing belly.",
-        "Safe for **{condition}** with low-pressure positions."
-      ],
+      insights: ["Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.", "Because you’re **{activity}**, sessions are short, steady, and stick.", "At **{age}**, we train calm breath and deep core for a growing belly.", "Safe for **{condition}** with low-pressure positions."],
       cta: "Unlock My Pregnancy Prep"
     },
     "Stop Bladder Leaks": {
       subtitle: "Confident coughs, laughs, and workouts by **{date}**.",
-      insights: [
-        "Tuned to your body (BMI **{bmi}**) to manage pressure.",
-        "With **{activity}**, we train quick squeezes and urge delay you can use anywhere.",
-        "At **{age}**, we blend long holds with fast pulses for real control.",
-        "Plan respects **{condition}** while we rebuild trust."
-      ],
+      insights: ["Tuned to your body (BMI **{bmi}**) to manage pressure.", "With **{activity}**, we train quick squeezes and urge delay you can use anywhere.", "At **{age}**, we blend long holds with fast pulses for real control.", "Plan respects **{condition}** while we rebuild trust."],
       cta: "Unlock My Leak-Free Plan"
     },
     "Ease Pelvic Pain": {
       subtitle: "Less ache sitting, standing, and at bedtime by **{date}**.",
-      insights: [
-        "Built for your body (BMI **{bmi}**) to lower strain.",
-        "**{activity}** friendly—start quiet, calm the system first.",
-        "At **{age}**, we pair soft release with light strength that lasts.",
-        "Guided by **{condition}** so every range feels safe."
-      ],
+      insights: ["Built for your body (BMI **{bmi}**) to lower strain.", "**{activity}** friendly—start quiet, calm the system first.", "At **{age}**, we pair soft release with light strength that lasts.", "Guided by **{condition}** so every range feels safe."],
       cta: "Unlock My Pain Relief Plan"
+    },
+    "Improve Intimacy": {
+      subtitle: "More arousal, easy comfort, and reliable orgasm by **{date}**.",
+      insights: ["Paced for your body (BMI **{bmi}**) to boost blood flow without pressure.", "With **{activity}**, we build relaxed release *and* strong tone for better sensation.", "At **{age}**, we tune reflexes so arousal starts sooner and orgasm lands stronger.", "Positions and pacing adjusted for **{condition}** so comfort stays high."],
+      cta: "Unlock My Intimacy Plan"
+    },
+    "Recover Postpartum": {
+      subtitle: "Feel steady holding your baby again by **{date}**.",
+      insights: ["Calibrated for your body (BMI **{bmi}**) to protect healing tissue.", "Matched to **{activity}**—works on low-sleep days.", "At **{age}**, we rebuild core connection so feeds and lifts feel easier.", "Adjusted for **{condition}** including scar or tender areas."],
+      cta: "Unlock My Postpartum Plan"
+    },
+    "Build Core Strength": {
+      subtitle: "Feel solid through your middle by **{date}**.",
+      insights: ["Built for your body (BMI **{bmi}**)—strong, not stressful.", "Because you’re **{activity}**, sessions slot right into your day.", "At **{age}**, we focus on clean form and deep bracing you can feel.", "Respects **{condition}** with safe ranges."],
+      cta: "Unlock My Core Plan"
+    },
+    "Support My Fitness": {
+      subtitle: "More power in lifts, runs, and classes by **{date}**.",
+      insights: ["Calibrated for your body (BMI **{bmi}**) so intensity helps, not hurts.", "Synced to **{activity}**—easy to stack with training.", "At **{age}**, we pair stability with power you feel next workout.", "Safeguards in place for **{condition}**."],
+      cta: "Unlock My Fitness Plan"
+    },
+    "Boost Stability": {
+      subtitle: "Feel taller and steady from desk to steps by **{date}**.",
+      insights: ["Built for your body (BMI **{bmi}**)—steady holds you can keep all day.", "Because you’re **{activity}**, we target sitting time, walks, and carrying.", "At **{age}**, we train deep timing so standing and stairs feel smooth.", "Aligned with **{condition}**—easy on back, hips, and neck."],
+      cta: "Unlock My Stability Plan"
     },
     "default": {
       subtitle: "Your personalized plan is set. Expect to feel a real difference by **{date}**.",
-      insights: [
-        "Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.",
-        "Because you have a **{activity}** activity level, we'll build your foundation safely.",
-        "At **{age} years old**, your plan focuses on neuro-muscular connection.",
-        "We've modified your plan to be safe and effective for your **{condition}**."
-      ],
+      insights: ["Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.", "Because you have a **{activity}** activity level, we'll build your foundation safely.", "At **{age} years old**, your plan focuses on neuro-muscular connection.", "We've modified your plan to be safe and effective for your **{condition}**."],
       cta: "Unlock My Personal Plan"
     }
   };
-  return map[goal] || map["default"];
+  return map[safeGoal] || map["default"];
 };
 
 // --- MARK: - Sub-Components ---
 
-// 1. AICoreView (Animated Rings)
 const AICoreView = () => {
   return (
     <div className="relative w-40 h-40 flex items-center justify-center">
@@ -172,7 +153,6 @@ const AICoreView = () => {
   );
 };
 
-// 2. ChecklistItemView (Animated Progress Row)
 const ChecklistItem = ({ text, delay, onComplete }) => {
   const [status, setStatus] = useState('waiting'); 
 
@@ -204,7 +184,6 @@ const ChecklistItem = ({ text, delay, onComplete }) => {
   );
 };
 
-// 3. HolographicTimelineView (Bezier Path Graph)
 const HolographicTimeline = () => {
   const [visible, setVisible] = useState(false);
   useEffect(() => setTimeout(() => setVisible(true), 500), []);
@@ -265,11 +244,10 @@ export default function PlanRevealScreen({ onNext }) {
   const [progressPercent, setProgressPercent] = useState(0);
   const [showChecklist, setShowChecklist] = useState(false);
 
-  // Data
-  // FIX 1: Safety check for goalTitle to prevent crash
-  const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
+  // Data Loading - Safely
+  const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const healthCopy = getHealthCopy(goalTitle);
-  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails.name || "");
+  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name || "");
   const timelineCopy = getTimelineCopy(goalTitle);
 
   // --- Logic: Phase 1 ---
@@ -349,11 +327,9 @@ export default function PlanRevealScreen({ onNext }) {
 
   // --- Logic: Phase 3 (Timeline Helpers) ---
   const calculateBMI = () => {
-    // FIX 2: Added default values to prevent undefined math errors
-    const hVal = userDetails.height || 65;
-    const wVal = userDetails.weight || 140;
-    const h = hVal * 0.0254;
-    const w = wVal * 0.453592;
+    if (!userDetails?.weight || !userDetails?.height) return "22.5";
+    const h = userDetails.height * 0.0254;
+    const w = userDetails.weight * 0.453592;
     return (w / (h * h)).toFixed(1);
   };
 
@@ -364,7 +340,7 @@ export default function PlanRevealScreen({ onNext }) {
   };
 
   const formatRichText = (text) => {
-    if (!text) return ""; // FIX 3: Safety check
+    if (!text) return null;
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -372,7 +348,7 @@ export default function PlanRevealScreen({ onNext }) {
         if (content === '{date}') content = getFutureDate();
         if (content === '{bmi}') content = calculateBMI();
         if (content === '{activity}') content = selectedActivity ? ACTIVITIES.find(a => a.id === selectedActivity)?.title.toLowerCase() : "active";
-        if (content === '{age}') content = userDetails.age || "30";
+        if (content === '{age}') content = userDetails?.age || "30";
         if (content === '{condition}') content = selectedConditions.length > 0 ? "unique needs" : "body";
         return <span key={i} className="text-white font-extrabold">{content}</span>;
       }
@@ -409,6 +385,7 @@ export default function PlanRevealScreen({ onNext }) {
 
             <div className="flex-1 flex flex-col justify-between min-h-0">
               
+              {/* Conditions */}
               <div>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   {CONDITIONS.map((item) => {
@@ -439,7 +416,7 @@ export default function PlanRevealScreen({ onNext }) {
                   })}
                 </div>
 
-                 {/* Helper 1 - UPDATED TO GREEN */}
+                 {/* Helper 1: GREEN */}
                  <div className={`text-center text-xs font-medium text-emerald-500 transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
                   {helperText}
                 </div>
@@ -456,6 +433,7 @@ export default function PlanRevealScreen({ onNext }) {
                 </button>
               </div>
 
+              {/* Activity */}
               <div className="mt-2">
                 <h3 className={`text-[16px] font-bold text-center ${THEME.text} mb-2`}>Your typical activity level</h3>
                 <div className="flex flex-col gap-2">
@@ -476,7 +454,7 @@ export default function PlanRevealScreen({ onNext }) {
                     );
                   })}
                 </div>
-                 {/* Helper 2 - UPDATED TO GREEN */}
+                 {/* Helper 2: GREEN */}
                  <div className={`text-center text-xs font-medium text-emerald-500 transition-opacity duration-300 h-4 mt-1 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
                   {activityHelperText}
                 </div>
@@ -513,7 +491,8 @@ export default function PlanRevealScreen({ onNext }) {
 
           {!showChecklist && (
              <div className="mt-12 text-center h-20 px-4">
-               <h2 className={`text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
+               {/* 4XL AND GRADIENT TITLE */}
+               <h2 className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-purple-500 drop-shadow-sm mb-2 animate-pulse leading-tight`}>
                  {personalizingStatus}
                </h2>
              </div>
@@ -584,7 +563,7 @@ export default function PlanRevealScreen({ onNext }) {
           >
             <div>
               <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">{userDetails.name || "Your"} path to</span><br/>
+                <span className="text-white/90">{userDetails?.name || "Your"} path to</span><br/>
                 <span className="text-[#E65473]">{goalTitle}</span> is ready.
               </h1>
               <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
@@ -609,7 +588,7 @@ export default function PlanRevealScreen({ onNext }) {
             </div>
 
              <div className="mt-4">
-               {/* FIX 4: Ensured this calls onNext to navigate to Paywall */}
+               {/* VALIDATED: Calls onNext to go to Paywall */}
                <button
                  onClick={onNext}
                  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
