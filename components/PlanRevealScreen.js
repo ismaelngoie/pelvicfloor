@@ -189,7 +189,10 @@ const ChecklistItem = ({ text, delay, onComplete }) => {
 // 4. Holographic Timeline
 const HolographicTimeline = () => {
   const [show, setShow] = useState(false);
-  useEffect(() => setTimeout(() => setShow(true), 500), []);
+  useEffect(() => {
+  const t = setTimeout(() => setShow(true), 500);
+  return () => clearTimeout(t);
+}, []);
   return (
     <div className="w-full h-36 relative my-2">
        <svg className="absolute inset-0 w-full h-full overflow-visible">
