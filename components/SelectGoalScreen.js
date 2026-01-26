@@ -1,18 +1,24 @@
 "use client";
 import React, { useState } from 'react';
 import { useUserData } from '@/context/UserDataContext';
-import { CheckCircle2 } from 'lucide-react'; 
+import { CheckCircle2, Circle } from 'lucide-react'; 
 
-// --- UNIFIED ROSE THEME ---
+// --- THEME CONFIGURATION ---
 const THEME = {
-  unselected: "bg-rose-50 border-rose-100 text-rose-400",
-  selected: "bg-white border-rose-500 text-rose-500 shadow-xl shadow-rose-200 scale-[1.05] z-50",
-  iconUnselected: "text-rose-400 opacity-80",
-  iconSelected: "text-rose-500 scale-110 drop-shadow-sm",
+  // Unselected: White BG, Grey Border, Black Text
+  unselected: "bg-white border-gray-200",
+  textUnselected: "text-slate-900",
+  
+  // Selected: White BG, Rose Border, Rose Text, Glow
+  selected: "bg-white border-rose-500 shadow-xl shadow-rose-200 scale-[1.05] z-50",
+  textSelected: "text-rose-600",
+
+  // Icons: Always Rose, but pop more when selected
+  iconUnselected: "text-rose-500",
+  iconSelected: "text-rose-600 scale-110 drop-shadow-sm",
 };
 
-// --- MILLION DOLLAR CUSTOM ICONS (Filled, Premium Style) ---
-
+// --- MILLION DOLLAR CUSTOM ICONS (Filled & Solid) ---
 const IntimacyIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-9 h-9">
     <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
@@ -103,7 +109,7 @@ export default function SelectGoalScreen({ onNext }) {
         </p>
       </div>
 
-      {/* Grid Container (Flex-1 ensures it takes available space without forcing scroll if not needed) */}
+      {/* Grid Container */}
       <div className="z-10 flex-1 min-h-0 flex flex-col justify-center"> 
         <div className="grid grid-cols-2 gap-3">
           {goals.map((goal) => {
@@ -117,28 +123,32 @@ export default function SelectGoalScreen({ onNext }) {
                 className={`
                   relative flex flex-col items-center justify-center p-3 rounded-[24px] border-[2px] 
                   transition-all duration-300 ease-out w-full aspect-[4/3] outline-none active:scale-95
-                  ${isSelected ? THEME.selected : `border-rose-100 bg-rose-50/50 hover:bg-rose-50 z-10`}
+                  ${isSelected 
+                    ? THEME.selected // White BG, Rose Border
+                    : `${THEME.unselected} hover:bg-gray-50 z-10` // Grey Border, White BG
+                  }
                 `}
               >
-                {/* Background Tint for Unselected */}
-                {!isSelected && (
-                  <div className="absolute inset-0 rounded-[22px] bg-rose-50 opacity-40 pointer-events-none" />
-                )}
-
                 {/* Checkmark Badge */}
                 <div 
-                  className={`absolute top-2 right-2 transition-all duration-300 transform ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                  className={`absolute top-2 right-2 transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-60 scale-90'}`}
                 >
-                  <CheckCircle2 size={22} className="fill-rose-500 text-white" />
+                  {isSelected ? (
+                    // Selected: Solid Rose Checkmark
+                    <CheckCircle2 size={22} className="fill-rose-500 text-white" />
+                  ) : (
+                    // Unselected: Empty Grey Circle
+                    <Circle size={22} className="text-gray-200 fill-transparent" strokeWidth={1.5} />
+                  )}
                 </div>
 
-                {/* Icon */}
+                {/* Icon (Always Rose) */}
                 <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME.iconSelected : THEME.iconUnselected}`}>
                    <Icon />
                 </div>
 
-                {/* Title */}
-                <span className={`text-[13px] font-bold text-center leading-tight transition-colors duration-300 ${isSelected ? 'text-app-textPrimary' : 'text-rose-400'}`}>
+                {/* Title (Black when unselected, Rose when selected) */}
+                <span className={`text-[13px] font-bold text-center leading-tight transition-colors duration-300 ${isSelected ? THEME.textSelected : THEME.textUnselected}`}>
                   {goal.title}
                 </span>
               </button>
