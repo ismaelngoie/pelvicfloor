@@ -10,12 +10,12 @@ import {
 
 const THEME = {
   // Base Colors
-  bg: 'bg-[rgb(250,249,250)]',
-  text: 'text-[rgb(26,26,38)]',
+  textPrimary: "text-slate-900",
+  textSecondary: "text-slate-500",
   
-  // Selection States
-  unselected: "bg-white border-gray-200 shadow-sm transition-all duration-200",
-  selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20 relative transition-all duration-200",
+  // Selection States (Million Dollar Style)
+  unselected: "bg-white border-gray-200 shadow-sm",
+  selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
   
   // Text Colors
   textUnselected: "text-slate-900",
@@ -55,7 +55,6 @@ const PersonalizingConstants = {
 // --- MARK: - Copy Providers (EXACT SWIFT PORT) ---
 
 const getHealthCopy = (goal) => {
-  const safeGoal = goal || "default";
   const map = {
     "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
     "Ease Pelvic Pain": { headline: "Any health notes before we ease pain?", subtitle: "I’ll protect sensitive ranges and focus on release first.", cta: "Build My Pain-Relief Plan" },
@@ -67,30 +66,35 @@ const getHealthCopy = (goal) => {
     "Boost Stability": { headline: "Any health notes before we boost stability?", subtitle: "I’ll align mobility + deep core for posture wins.", cta: "Build My Stability Plan" },
     "default": { headline: "Last step! Any health notes?", subtitle: "This ensures every exercise is safe and perfectly tailored to you.", cta: "Build My Custom Plan" }
   };
-  return map[safeGoal] || map["default"];
+  return map[goal] || map["default"];
 };
 
 const getHelperCopy = (selected, goal) => {
-  const g = goal || "";
   if (selected) {
-    if (g.includes("Leak")) return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
-    if (g.includes("Pain")) return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
-    if (g.includes("Intimacy")) return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
-    if (g.includes("Postpartum")) return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
-    if (g.includes("Pregnancy")) return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
-    if (g.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
-    if (g.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
-    if (g.includes("Stability")) return "✓ Noted. Deep core + alignment for steady posture wins.";
+    if (goal.includes("Leak")) return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
+    if (goal.includes("Pain")) return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
+    if (goal.includes("Intimacy")) return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
+    if (goal.includes("Postpartum")) return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
+    if (goal.includes("Pregnancy")) return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
+    if (goal.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
+    if (goal.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
+    if (goal.includes("Stability")) return "✓ Noted. Deep core + alignment for steady posture wins.";
     return "✓ Understood. I'll tailor your plan accordingly.";
   } else {
+    if (goal.includes("Leak")) return "✓ Great. We’ll start with core reflexes for leak control.";
+    if (goal.includes("Pain")) return "✓ Great. Gentle release + support from day one.";
+    if (goal.includes("Intimacy")) return "✓ Great. Comfort, sensation, and confidence from the start.";
+    if (goal.includes("Postpartum")) return "✓ Great. Foundation work, safe and steady.";
+    if (goal.includes("Pregnancy")) return "✓ Great. Building a strong, calm base for you.";
+    if (goal.includes("Core")) return "✓ Great. Clean technique and deep core activation.";
+    if (goal.includes("Fitness")) return "✓ Great. We’ll slot in perfectly with your routine.";
+    if (goal.includes("Stability")) return "✓ Great. Alignment + deep core integration ahead.";
     return "✓ Great! We'll start with a foundational plan.";
   }
 };
 
 const getPersonalizingCopy = (goal, name) => {
-  const safeGoal = goal || "default";
   const safeName = name || "there";
-  
   const map = {
     "Improve Intimacy": { title: `Designing your intimacy plan`, subtitle: "Comfort, sensation, confidence—gently built for your body.", connecting: "Checking your profile for arousal flow and comfort…", calibrating: "Balancing relax/contract patterns for stronger orgasms…", checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for stronger orgasms", "Partner-friendly positions"] },
     "Stop Bladder Leaks": { title: "Personalizing your leak-control plan", subtitle: "Train reflexes so sneezes and laughs don’t own your day.", connecting: "Mapping urge delays and quick-contract sets…", calibrating: "Dialing breath and pressure control for real-life moments…", checklist: ["Urge-delay reflex training", "Fast-twitch squeezes", "Breath + pressure control", "Run/jump confidence drills"] },
@@ -102,11 +106,10 @@ const getPersonalizingCopy = (goal, name) => {
     "Boost Stability": { title: "Personalizing your stability plan", subtitle: "Tall, steady, and organized all day.", connecting: "Stacking rib-to-pelvis alignment…", calibrating: "Endurance for postural muscles…", checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"] },
     "default": { title: `Personalizing your plan`, subtitle: "Tall, steady, and organized all day.", connecting: "Stacking rib-to-pelvis alignment…", calibrating: "Endurance for postural muscles…", checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"] }
   };
-  return map[safeGoal] || map["default"];
+  return map[goal] || map["default"];
 };
 
 const getTimelineCopy = (goal) => {
-  const safeGoal = goal || "default";
   const map = {
     "Prepare for Pregnancy": { subtitle: "Feel ready to carry and move with ease by **{date}**.", insights: ["Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.", "Because you’re **{activity}**, sessions are short, steady, and stick.", "At **{age}**, we train calm breath and deep core for a growing belly.", "Safe for **{condition}** with low-pressure positions."], cta: "Unlock My Pregnancy Prep" },
     "Recover Postpartum": { subtitle: "Feel steady holding your baby again by **{date}**.", insights: ["Calibrated for your body (BMI **{bmi}**) to protect healing tissue.", "Matched to **{activity}**—works on low-sleep days.", "At **{age}**, we rebuild core connection so feeds, lifts, and stroller walks feel easier.", "Adjusted for **{condition}** including scar or tender areas."], cta: "Unlock My Postpartum Plan" },
@@ -118,32 +121,18 @@ const getTimelineCopy = (goal) => {
     "Boost Stability": { subtitle: "Feel taller and steady from desk to steps by **{date}**.", insights: ["Built for your body (BMI **{bmi}**)—steady holds you can keep all day.", "Because you’re **{activity}**, we target sitting time, walks, and carrying.", "At **{age}**, we train deep timing so standing and stairs feel smooth.", "Aligned with **{condition}**—easy on back, hips, and neck."], cta: "Unlock My Stability Plan" },
     "default": { subtitle: "Your personalized plan is set. Expect to feel a real difference by **{date}**.", insights: ["Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.", "Because you have a **{activity}** activity level, we'll build your foundation safely.", "At **{age} years old**, your plan focuses on neuro-muscular connection.", "We've modified your plan to be safe and effective for your **{condition}**."], cta: "Unlock My Personal Plan" }
   };
-  return map[safeGoal] || map["default"];
+  return map[goal] || map["default"];
 };
 
 // --- MARK: - Sub-Components (Animation) ---
 
-// 1. AICoreView - Hardcoded Animations to Fix Dark Screen
+// 1. AICoreView (Using your Tailwind Config Animations)
 const AICoreView = () => (
   <div className="relative w-40 h-40 flex items-center justify-center">
-    <style jsx>{`
-      @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      @keyframes spin-rev { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
-      @keyframes pulse-core { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.95); } }
-    `}</style>
-    {/* Outer Ring */}
-    <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full border-t-transparent border-l-transparent" 
-         style={{ animation: 'spin-slow 8s linear infinite' }} />
-    {/* Middle Ring */}
-    <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full border-b-transparent border-r-transparent" 
-         style={{ animation: 'spin-rev 12s linear infinite' }} />
-    {/* Inner Ring */}
-    <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full border-t-transparent" 
-         style={{ animation: 'spin-slow 15s linear infinite' }} />
-    {/* Core Glow */}
-    <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md" 
-         style={{ animation: 'pulse-core 3s infinite' }} />
-    {/* Solid Center */}
+    <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full animate-ai-spin border-t-transparent border-l-transparent" />
+    <div className="absolute w-[110px] h-[110px] border-[2px] border-[#E65473]/60 rounded-full animate-ai-spin-reverse border-b-transparent border-r-transparent" />
+    <div className="absolute w-[140px] h-[140px] border-[1px] border-[#E65473]/40 rounded-full animate-ai-spin border-t-transparent" />
+    <div className="absolute w-10 h-10 bg-[#E65473]/50 rounded-full blur-md animate-pulse" />
     <div className="absolute w-6 h-6 bg-[#E65473] rounded-full shadow-[0_0_15px_rgba(230,84,115,0.8)]" />
   </div>
 );
@@ -200,7 +189,7 @@ const ChecklistItem = ({ text, delay, onComplete }) => {
   );
 };
 
-// 4. Holographic Timeline - Zero Dependency Animation
+// 4. Holographic Timeline
 const HolographicTimeline = () => {
   const [show, setShow] = useState(false);
   useEffect(() => setTimeout(() => setShow(true), 500), []);
@@ -214,22 +203,8 @@ const HolographicTimeline = () => {
           </linearGradient>
           <filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
         </defs>
-        
-        {/* Line */}
         <path d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="url(#lineGradient)" strokeWidth="3" strokeLinecap="round" filter="url(#glow)"
           className={`transition-all duration-[2000ms] ease-out ${show ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`} />
-        
-        {/* Rider */}
-        <circle r="6" fill="white" className={show ? "opacity-100" : "opacity-0"}>
-          {show && (
-            <animateMotion dur="2s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1">
-              <mpath href="#pathGuide" />
-            </animateMotion>
-          )}
-        </circle>
-        
-        <path id="pathGuide" d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="none" />
-
         <g className={`transition-opacity duration-1000 delay-1000 ${show ? 'opacity-100' : 'opacity-0'}`}>
             <circle cx="10" cy="100" r="4" fill="white" />
             <text x="10" y="125" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">Today</text>
@@ -346,10 +321,10 @@ export default function PlanRevealScreen({ onNext }) {
 
   // --- RENDER ---
   return (
-    // FIX: "absolute inset-0" ensures it fits the parent relative container (the phone frame)
-    <div className={`absolute inset-0 w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? 'bg-app-background' : 'bg-black'}`}>
+    // MARK: - FIX: Changed fixed inset-0 to absolute w-full h-full to respect parent container
+    <div className={`absolute w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? 'bg-app-background' : 'bg-black'}`}>
       
-      {/* ---------------- PHASE 1: HEALTH INFO (One Screen) ---------------- */}
+      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
       {phase === 'askingHealthInfo' && (
         <div className="flex flex-col h-full w-full animate-in fade-in duration-700 px-5 pt-8 pb-6">
             
@@ -374,7 +349,7 @@ export default function PlanRevealScreen({ onNext }) {
                       >
                         <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME.iconSelected : THEME.iconUnselected}`}>{item.icon}</div>
                         <span className={`text-[13px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${isSelected ? THEME.textSelected : THEME.textUnselected}`}>{item.title}</span>
-                        {/* Checkmark Logic */}
+                        
                         <div className="absolute top-3 right-3">
                            {isSelected 
                              ? <CheckCircle2 size={20} className="fill-[#E65473] text-white" /> 
@@ -386,7 +361,7 @@ export default function PlanRevealScreen({ onNext }) {
                   })}
                 </div>
 
-                 {/* Helper 1: GREEN */}
+                 {/* Helper 1 */}
                  <div className={`text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
                   {helperText}
                 </div>
@@ -423,7 +398,6 @@ export default function PlanRevealScreen({ onNext }) {
                     );
                   })}
                 </div>
-                 {/* Helper 2: GREEN */}
                  <div className={`text-center text-xs font-bold ${THEME.helper} transition-opacity duration-300 h-4 mt-2 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
                   {activityHelperText}
                 </div>
@@ -443,7 +417,7 @@ export default function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
-      {/* ---------------- PHASE 2: ANALYSIS (7s Animation) ---------------- */}
+      {/* ---------------- PHASE 2: ANALYSIS ---------------- */}
       {phase === 'analyzing' && (
         <div className="flex flex-col items-center justify-center h-full px-8 text-white relative bg-slate-950">
           <AICoreView />
@@ -480,7 +454,7 @@ export default function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
-      {/* ---------------- PHASE 3: TIMELINE (Paywall Transition) ---------------- */}
+      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === 'showingTimeline' && (
         <div className={`flex flex-col h-full bg-slate-950 relative transition-opacity duration-1000 ${showTimeline ? 'opacity-100' : 'opacity-0'}`}>
           <div className="flex-1 flex flex-col items-center px-6 pt-10 pb-6 z-10">
