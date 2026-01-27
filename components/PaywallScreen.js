@@ -92,9 +92,6 @@ export default function PaywallScreen() {
   
   // Controls the text content animation
   const [showContent, setShowContent] = useState(false);
-  // Controls the video fade-in (prevents black flash)
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  
   const [dateString, setDateString] = useState(""); 
 
   // --- DERIVED DATA ---
@@ -104,14 +101,14 @@ export default function PaywallScreen() {
 
   // --- EFFECTS ---
 
-  // 1. Initialize immediately
+  // 1. Initialize & Animation (Reduced delay to 10ms for instant feel)
   useEffect(() => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
     setDateString(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     
-    // Show content immediately (no delay)
-    setShowContent(true);
+    // Almost instant appearance for text
+    setTimeout(() => setShowContent(true), 10);
   }, []);
 
   // 2. Feature Carousel
@@ -174,7 +171,7 @@ export default function PaywallScreen() {
   return (
     <div className="relative w-full h-full flex flex-col bg-black overflow-hidden">
       
-      {/* 1. Video Background (Optimized to prevent black flash) */}
+      {/* 1. Video Background (Immediate load, no opacity fade-in delay) */}
       <div className="absolute inset-0 z-0">
         <video 
           autoPlay 
@@ -182,8 +179,7 @@ export default function PaywallScreen() {
           muted 
           playsInline
           preload="auto"
-          onLoadedData={() => setVideoLoaded(true)}
-          className={`w-full h-full object-cover transition-opacity duration-1000 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className="w-full h-full object-cover opacity-100"
         >
           <source src="/paywall_video.mp4" type="video/mp4" />
         </video>
@@ -297,8 +293,8 @@ export default function PaywallScreen() {
         </div>
       </div>
 
-      {/* 3. Sticky Footer CTA - More Transparent Gradient */}
-      <div className={`absolute bottom-0 left-0 w-full z-30 px-6 pb-8 pt-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent transition-all duration-700 delay-300 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
+      {/* 3. Sticky Footer CTA */}
+      <div className={`absolute bottom-0 left-0 w-full z-30 px-6 pb-8 pt-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent transition-all duration-700 delay-200 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         <button 
           onClick={handleUnlock}
           className="w-full h-[58px] rounded-full shadow-[0_0_25px_rgba(225,29,72,0.5)] flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform relative overflow-hidden group"
