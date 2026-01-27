@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Play, Pause, SkipForward, SkipBack, CheckCircle2 } from 'lucide-react';
 import { useUserData } from '@/context/UserDataContext';
 
-export default function DailyRoutinePlayer({ playlist, onClose }) {
-  const { saveUserData } = useUserData();
+export default function DailyRoutinePlayer({ playlist, onClose, onProgressMarked }) {
   const videoRef = useRef(null);
   
   // State
@@ -15,27 +14,31 @@ export default function DailyRoutinePlayer({ playlist, onClose }) {
   const [showUpNext, setShowUpNext] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [isComplete, setIsComplete] = useState(false);
-  
+  const [hasMarkedForSession, setHasMarkedForSession] = useState(false); // New flag
+
   // Ensure playlist exists
   const currentVideo = playlist && playlist[currentIndex];
   const nextVideo = playlist && playlist[currentIndex + 1];
 
-  // --- 5-Second Rule Logic ---
+  // --- 5-Second Rule & Progress Logic ---
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentVideo) return;
 
-    // Reset marked status for new video
-    video.hasMarkedProgress = false;
+    // Reset local video mark status when index changes
+    video.hasMarkedLocal = false;
 
     const handleTimeUpdate = () => {
+      // 1. Bar Progress
       const pct = (video.currentTime / video.duration) * 100;
       setProgress(pct);
 
-      if (video.currentTime > 5 && !video.hasMarkedProgress) {
-        console.log("✅ Progress Saved (5s rule)");
-        // In production: saveUserData('lastWorkoutDate', new Date().toISOString());
-        video.hasMarkedProgress = true; 
+      // 2. STREAK TRIGGER (The 5-Second Rule)
+      // We check if we haven't marked this SESSION yet to avoid double counting
+      if (video.currentTime > 5 && !hasMarkedForSession) {
+        console.log("✅ 5-Second Mark Reached: Triggering Streak Update...");
+        setHasMarkedForSession(true);
+        if (onProgressMarked) onProgressMarked(); // <--- Calls Parent to update Graph/Streak
       }
     };
 
@@ -53,8 +56,9 @@ export default function DailyRoutinePlayer({ playlist, onClose }) {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [currentIndex, nextVideo]);
+  }, [currentIndex, nextVideo, hasMarkedForSession, onProgressMarked]);
 
+  // --- Up Next Logic ---
   const triggerUpNext = () => {
     setShowUpNext(true);
     setCountdown(3);
@@ -71,6 +75,7 @@ export default function DailyRoutinePlayer({ playlist, onClose }) {
     }, 1000);
   };
 
+  // --- Controls ---
   const toggleControls = () => setShowControls(prev => !prev);
   const togglePlay = () => {
     if (videoRef.current.paused) { videoRef.current.play(); setIsPlaying(true); }
@@ -81,16 +86,20 @@ export default function DailyRoutinePlayer({ playlist, onClose }) {
     if (direction === 'prev' && currentIndex > 0) setCurrentIndex(p => p - 1);
   };
 
-  if (!currentVideo) return null; // Safety check
+  if (!currentVideo) return null;
 
+  // --- Completion View ---
   if (isComplete) return (
     <div className="fixed inset-0 z-50 bg-[#E65473] flex flex-col items-center justify-center p-8 animate-pop-in">
       <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-2xl animate-breathe">
         <CheckCircle2 size={48} className="text-[#E65473]" />
       </div>
       <h2 className="text-3xl font-extrabold text-white text-center mb-2">Session Complete!</h2>
-      <p className="text-white/90 text-center mb-10 text-lg">Your streak is on fire. 🔥</p>
-      <button onClick={onClose} className="w-full h-14 bg-white text-[#E65473] font-bold text-lg rounded-full shadow-lg active:scale-95 transition-transform">
+      <p className="text-white/90 text-center mb-10 text-lg">Your daily progress is locked in.</p>
+      <button 
+        onClick={onClose} 
+        className="w-full h-14 bg-white text-[#E65473] font-bold text-lg rounded-full shadow-lg active:scale-95 transition-transform"
+      >
         Continue
       </button>
     </div>
