@@ -92,7 +92,7 @@ export default function PaywallScreen() {
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [userCount, setUserCount] = useState(9800);
   const [showContent, setShowContent] = useState(false);
-  const [dateString, setDateString] = useState(""); // Hydration fix
+  const [dateString, setDateString] = useState(""); 
 
   // --- DERIVED DATA ---
   const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
@@ -101,7 +101,7 @@ export default function PaywallScreen() {
 
   // --- EFFECTS ---
 
-  // 1. Initialize Client Data (Fixes Hydration Error)
+  // 1. Client-side Date Calculation
   useEffect(() => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
@@ -111,7 +111,7 @@ export default function PaywallScreen() {
     setTimeout(() => setShowContent(true), 100);
   }, []);
 
-  // 2. Feature Carousel Timer (4 seconds)
+  // 2. Feature Carousel Timer
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveFeatureIndex((prev) => (prev + 1) % FEATURES.length);
@@ -119,7 +119,7 @@ export default function PaywallScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Review Rotation Timer (5 seconds)
+  // 3. Review Rotation Timer
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
@@ -146,11 +146,8 @@ export default function PaywallScreen() {
 
   // --- ACTIONS ---
   const handleUnlock = () => {
-    // 1. Save state
     saveUserData('isPremium', true);
     saveUserData('joinDate', new Date().toISOString());
-    
-    // 2. Navigate to Dashboard
     router.push('/dashboard');
   };
 
@@ -184,7 +181,7 @@ export default function PaywallScreen() {
         >
           <source src="/paywall_video.mp4" type="video/mp4" />
         </video>
-        {/* Lighter Overlay for better video visibility */}
+        {/* Lighter overlay to see the video better */}
         <div className="absolute inset-0 bg-black/30" />
       </div>
 
@@ -198,14 +195,12 @@ export default function PaywallScreen() {
           <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
         </h1>
 
-        {/* Feature Showcase Card (Animated) */}
+        {/* Feature Showcase Card */}
         <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl">
-          
           <div className="pt-5 pb-2">
             <h3 className="text-[17px] font-bold text-white text-center drop-shadow-md">Your Personalized Plan Includes:</h3>
           </div>
 
-          {/* Animated Features Area */}
           <div className="relative w-full h-[140px] flex items-center justify-center">
             {FEATURES.map((feature, index) => {
               const isActive = index === activeFeatureIndex;
@@ -223,7 +218,6 @@ export default function PaywallScreen() {
             })}
           </div>
 
-          {/* Progress Bars */}
           <div className="w-full px-6 pb-6 flex gap-1.5 h-1.5">
             {FEATURES.map((_, i) => (
               <div key={i} className="h-full flex-1 bg-white/20 rounded-full overflow-hidden">
@@ -235,14 +229,14 @@ export default function PaywallScreen() {
           </div>
         </div>
 
-        {/* Social Proof */}
-        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
+        {/* Social Proof - REVIEWS (Updated for Transparency & Readability) */}
+        <div className="w-full bg-black/20 backdrop-blur-md border border-white/10 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
           <div className="flex flex-col items-center gap-1">
-            <span className="text-[22px] font-bold text-white">4.9</span>
-            <div className="flex text-yellow-400 gap-1">
-              {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="currentColor" className="drop-shadow-sm" />)}
+            <span className="text-[22px] font-bold text-white drop-shadow-sm">4.9</span>
+            <div className="flex text-yellow-400 gap-1 drop-shadow-sm">
+              {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="currentColor" />)}
             </div>
-            <span className="text-[11px] font-medium text-white/70 uppercase tracking-wide">App Store Rating</span>
+            <span className="text-[11px] font-medium text-white/80 uppercase tracking-wide">App Store Rating</span>
           </div>
 
           <div className="w-full min-h-[70px] flex items-center justify-center relative">
@@ -257,21 +251,21 @@ export default function PaywallScreen() {
                       className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-sm" 
                       alt={review.name} 
                     />
-                    <p className="text-[15px] italic text-white/90 text-center font-medium">"{review.text}"</p>
-                    <p className="text-[12px] font-bold text-white">{review.name}</p>
+                    <p className="text-[15px] italic text-white text-center font-medium drop-shadow-md">"{review.text}"</p>
+                    <p className="text-[12px] font-bold text-white/90 drop-shadow-md">{review.name}</p>
                  </div>
                </div>
              ))}
           </div>
 
-          <p className="text-[13px] text-white/60 text-center mt-2">
-            Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.
+          <p className="text-[13px] text-white/70 text-center mt-2 font-medium">
+            Join <span className="font-bold text-white">10,200+ women</span> feeling strong.
           </p>
         </div>
 
         {/* FAQ & Legal */}
         <div className="flex flex-col gap-4 mb-8">
-           <div className="w-full bg-white/5 rounded-xl p-4 border border-white/5">
+           <div className="w-full bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm">
               <div className="flex items-center justify-center gap-2 text-white/90">
                  <span className="text-[14px] font-semibold">How do I get my money back?</span>
                  <ChevronDown size={14} className="text-white/60" />
@@ -281,7 +275,7 @@ export default function PaywallScreen() {
               </p>
            </div>
            
-           <div className="flex justify-between px-6 text-[11px] font-medium text-white/40">
+           <div className="flex justify-between px-6 text-[11px] font-medium text-white/50">
               <button>Restore Purchase</button>
               <button>Terms of Use</button>
               <button>Privacy Policy</button>
@@ -305,7 +299,7 @@ export default function PaywallScreen() {
           </div>
         </button>
 
-        <p className="text-center text-white/60 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">
+        <p className="text-center text-white/70 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">
           {getCtaSubtext()}
         </p>
       </div>
