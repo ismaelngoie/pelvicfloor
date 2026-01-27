@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation';
 import { useUserData } from '@/context/UserDataContext';
 import { Star, ChevronDown, Activity, Play, Brain, Timer, X, Loader2 } from 'lucide-react';
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+// 👇 IMPORT LinkAuthenticationElement
+import { Elements, PaymentElement, LinkAuthenticationElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 // --- STRIPE SETUP ---
-// Replace with your actual Publishable Key from the Stripe Dashboard
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 // --- ASSETS ---
@@ -19,7 +19,7 @@ const REVIEW_IMAGES = [
   "/review2.png"
 ];
 
-// --- LOGIC: Exact Review Mapping ---
+// --- LOGIC: Review Mapping ---
 const getReviewsForGoal = (goalTitle) => {
   const goal = (goalTitle || "").toLowerCase();
   
@@ -96,6 +96,7 @@ const CheckoutForm = ({ onClose }) => {
   
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState(''); // State to track email
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -108,6 +109,8 @@ const CheckoutForm = ({ onClose }) => {
       elements,
       confirmParams: {
         return_url: "https://pelvi.health/dashboard?plan=monthly", 
+        // We pass the collected email here for receipt
+        receipt_email: email,
       },
       redirect: "if_required",
     });
@@ -118,15 +121,22 @@ const CheckoutForm = ({ onClose }) => {
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
       saveUserData('isPremium', true);
       saveUserData('joinDate', new Date().toISOString());
-      router.push('https://pelvic.health/dashboard?plan=monthly');
+      router.push('https://pelvi.health/dashboard?plan=monthly');
     } else {
       setMessage("An unexpected error occurred.");
       setIsLoading(false);
     }
   };
+  
+  // Custom Styling for the Stripe Elements inputs
+  const paymentElementOptions = {
+    layout: "tabs",
+    fields: {
+      phone: 'never', // 👈 THIS REMOVES THE PHONE NUMBER FIELD
+    }
+  };
 
   return (
-    // Updated container: max-width for desktop, width-full for mobile, onClick stopPropagation to prevent closing when clicking inside
     <form 
       onClick={(e) => e.stopPropagation()}
       onSubmit={handleSubmit} 
@@ -145,7 +155,18 @@ const CheckoutForm = ({ onClose }) => {
         <p className="text-sm text-white/50">Total due: $24.99 / month</p>
       </div>
       
-      <PaymentElement id="payment-element" options={{layout: "tabs"}} />
+      <div className="flex flex-col gap-4">
+        {/* 1. REQUIRED EMAIL FIELD (Handles Validation + Link 1-Click) */}
+        <div className="text-white">
+          <LinkAuthenticationElement 
+            id="link-authentication-element"
+            onChange={(e) => setEmail(e.value.email)}
+          />
+        </div>
+
+        {/* 2. PAYMENT ELEMENT (Includes Apple Pay / Google Pay automatically) */}
+        <PaymentElement id="payment-element" options={paymentElementOptions} />
+      </div>
       
       {message && <div className="text-red-400 text-sm mt-4 bg-red-500/10 p-3 rounded-xl border border-red-500/20">{message}</div>}
 
@@ -251,7 +272,7 @@ export default function PaywallScreen() {
     if (email && email.includes("@")) {
       saveUserData('isPremium', true);
       saveUserData('joinDate', new Date().toISOString());
-      router.push('https://pelvic.health/dashboard');
+      router.push('https://pelvi.health/dashboard');
     }
   };
 
@@ -295,7 +316,7 @@ export default function PaywallScreen() {
       {/* 2. Scrollable Content */}
       <div className={`z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-12 pb-36 px-6 transition-all duration-700 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         
-        {/* Headline - INCREASED SIZE */}
+        {/* Headline */}
         <h1 className="text-[34px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
           <span className="text-white">{userName === "Ready" ? "Ready to" : `${userName}, ready to`}</span><br/>
           <span className="capitalize text-[#E65473]">{goalTitle.replace('Stop ', '').replace('Build ', '')}</span>?
@@ -387,7 +408,6 @@ export default function PaywallScreen() {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] transition-all group-hover:scale-105" />
           <div className="relative flex items-center gap-2 z-10">
-             {/* REMOVED LOCK ICON */}
              {isButtonLoading && <Loader2 className="animate-spin text-white" size={24} />}
              <span className="text-[18px] font-bold text-white">Start My {goalTitle.split(' ').slice(-2).join(' ')} Plan</span>
           </div>
@@ -395,14 +415,12 @@ export default function PaywallScreen() {
         <p className="text-center text-white/70 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">{getCtaSubtext()}</p>
       </div>
 
-      {/* 4. STRIPE OVERLAY MODAL - SCROLLABLE WRAPPER */}
+      {/* 4. STRIPE OVERLAY MODAL */}
       {showCheckoutModal && clientSecret && (
-        // The outer div is fixed and scrollable (overflow-y-auto) to allow scrolling on small screens
         <div 
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
-          onClick={() => setShowCheckoutModal(false)} // Clicking background closes it
+          onClick={() => setShowCheckoutModal(false)}
         >
-          {/* Flex container ensures centering but allows expansion */}
           <div className="min-h-full flex items-center justify-center p-4">
             <Elements options={{ clientSecret, appearance: stripeAppearance }} stripe={stripePromise}>
               <CheckoutForm onClose={() => setShowCheckoutModal(false)} />
