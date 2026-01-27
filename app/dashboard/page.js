@@ -117,11 +117,13 @@ const VideoPreview = ({ url }) => {
   );
 };
 
+// --- FIXED WEEKLY GRAPH ---
 const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
   const days = ["M", "T", "W", "T", "F", "S", "S"];
   const [todayIndex, setTodayIndex] = useState(-1);
 
   useEffect(() => {
+    // Calculate today (0=Mon ... 6=Sun)
     let current = new Date().getDay() - 1; 
     if (current === -1) current = 6; 
     setTodayIndex(current);
@@ -139,12 +141,26 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
       <div className="flex justify-between items-end h-24 gap-2">
         {days.map((day, idx) => {
           let isActive = false;
+
+          // LOGIC: Backfill the graph based on the Streak Count.
           if (todayIndex !== -1) {
-              if (idx === todayIndex) {
-                  isActive = isTodayDone; 
-              } else if (idx < todayIndex) {
-                  isActive = (idx % 2 === 0); // Simulated history
-              }
+             const daysAgo = todayIndex - idx; // 0 = today, 1 = yesterday...
+             
+             if (daysAgo >= 0) {
+                 // Determine how many days back the streak covers
+                 // If done today, streak covers Today (0) + (streak-1) past days.
+                 // If not done today, streak covers Yesterday (1) + (streak-1) past days.
+                 
+                 // Example: Streak 3. Done Today?
+                 // Yes: Covers 0, 1, 2. (Active if daysAgo < 3)
+                 // No: Covers 1, 2, 3. (Active if daysAgo > 0 AND daysAgo <= 3)
+
+                 if (isTodayDone) {
+                     isActive = daysAgo < streak; 
+                 } else {
+                     isActive = daysAgo > 0 && daysAgo <= streak;
+                 }
+             }
           }
 
           const height = isActive ? "80%" : "15%";
@@ -216,8 +232,9 @@ const DownloadAppCard = () => {
 
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center shadow-lg">
-            <span className="text-xl">📱</span>
+          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shadow-lg border border-white/10">
+            {/* USE ACTUAL APP ICON HERE */}
+            <img src="/logo.png" alt="App Logo" className="w-8 h-8 object-contain" />
           </div>
           <h3 className="text-lg font-bold">Get the Full Experience</h3>
         </div>
@@ -234,17 +251,15 @@ const DownloadAppCard = () => {
             rel="noreferrer"
             className="flex items-center justify-center gap-3 w-full py-3.5 bg-white text-[#1A1A26] rounded-xl font-bold hover:bg-gray-100 transition-colors"
           >
-            {/* Inline SVG Apple Logo */}
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.45-1.62 4.37-1.4 1.83.2 2.91 1.25 3.6 2.2-2.92 1.88-2.39 5.86.48 7.03-.64 1.84-1.68 3.59-3.53 4.4zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.16 2.29-1.87 4.29-3.74 4.25z"/></svg>
             <span>Download on iOS</span>
           </a>
 
-          {/* Android Button (Placeholder until ready) */}
+          {/* Android Button */}
           <button 
             disabled 
             className="flex items-center justify-center gap-3 w-full py-3.5 bg-white/10 text-gray-400 rounded-xl font-bold border border-white/10 cursor-not-allowed"
           >
-             {/* Inline SVG Play Store Logo */}
              <svg className="w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="currentColor"><path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.5,12.92 20.16,13.19L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.14L3.84,2.15C3.84,2.15 6.05,2.66 6.05,2.66Z" /></svg>
             <span>Android Coming Soon</span>
           </button>
@@ -258,7 +273,6 @@ const DownloadAppCard = () => {
 export default function DashboardPage() {
   const { userDetails, saveUserData } = useUserData();
   
-  // State
   const [loading, setLoading] = useState(true);
   const [routineData, setRoutineData] = useState(null);
   const [showPlayer, setShowPlayer] = useState(false);
@@ -266,13 +280,15 @@ export default function DashboardPage() {
   const [completedToday, setCompletedToday] = useState(false);
   const [greeting, setGreeting] = useState({ text: "Good morning", icon: Sun });
 
-  // Init Logic
+  // Init
   useEffect(() => {
+    // 1. Time of Day
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) setGreeting({ text: "Good morning", icon: Sun });
     else if (hour >= 12 && hour < 18) setGreeting({ text: "Good afternoon", icon: CloudSun });
     else setGreeting({ text: "Good evening", icon: Moon });
 
+    // 2. Load User Data
     if (userDetails) {
       const data = getDailyPlaylist(userDetails.selectedTarget?.title, userDetails.joinDate);
       setRoutineData(data);
@@ -291,12 +307,12 @@ export default function DashboardPage() {
   const handleProgressMarked = () => {
     if (completedToday) return;
 
-    // 🚀 INSTANTLY Update State (Graph fills up, Streak increases)
+    // Instant Update for Graph and Streak
     setCompletedToday(true);
     const newStreak = streak + 1;
     setStreak(newStreak);
 
-    // 2. Persist
+    // Persist
     saveUserData('lastWorkoutDate', new Date().toISOString());
     saveUserData('streak', newStreak);
     
@@ -335,6 +351,7 @@ export default function DashboardPage() {
       
       <div className="px-6 pt-8 pb-4 space-y-8 max-w-md mx-auto">
         
+        {/* Header */}
         <DashboardHeader name={userName} greeting={greeting} />
 
         {/* Daily Routine Card */}
@@ -363,7 +380,7 @@ export default function DashboardPage() {
           <div className="relative w-full h-16 flex items-center gap-5">
             <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
                
-               {/* 1. Video Preview Background (Visible if NOT complete) */}
+               {/* 1. Video Preview (Visible if NOT complete) */}
                {!completedToday && previewVideoUrl ? (
                    <div className="absolute inset-0 w-full h-full rounded-full overflow-hidden shadow-md">
                       <VideoPreview url={previewVideoUrl} />
@@ -397,12 +414,12 @@ export default function DashboardPage() {
                    </>
                )}
 
-               {/* Play Button Overlay */}
+               {/* Play Button */}
                <div className={`w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center z-20 ${completedToday ? 'hidden' : ''}`}>
                    <Play size={12} className="text-white fill-white ml-0.5" />
                </div>
 
-               {/* Checkmark Overlay (If complete) */}
+               {/* Checkmark */}
                {completedToday && (
                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${themeGradient} flex items-center justify-center shadow-lg z-20`}>
                     <RotateCw size={18} className="text-white" />
@@ -446,13 +463,13 @@ export default function DashboardPage() {
            <ChevronRight size={16} className="text-gray-500" />
         </div>
 
-        {/* Graph */}
+        {/* Graph (Fixed) */}
         <WeeklyProgressGraph streak={streak} goalColor={themeColor} isTodayDone={completedToday} />
 
         {/* Tips */}
         <CoachTipCard goalColor={themeColor} userGoal={userGoal} />
 
-        {/* Download App Card */}
+        {/* Download App */}
         <div className="pt-4">
           <DownloadAppCard />
         </div>
