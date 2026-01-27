@@ -139,29 +139,40 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
       </div>
       <div className="flex justify-between h-24 gap-2 items-stretch">
   {days.map((day, idx) => {
-    let isActive = false;
-    if (todayIndex !== -1) {
-      if (idx === todayIndex) isActive = isTodayDone;
-      else if (idx < todayIndex) isActive = (idx % 2 === 0);
-    }
+  if (todayIndex === -1) return null;
 
-    const height = isActive ? "80%" : "15%";
-    const barColor = isActive ? goalColor : "#EBEBF0";
+  // streak ends today if done, otherwise ends yesterday
+  const end = isTodayDone ? todayIndex : todayIndex - 1;
 
+  // If end is before Monday (e.g., it's Monday and not done), nothing to show in this week
+  if (end < 0) {
+    const barColor = "#EBEBF0";
     return (
       <div key={idx} className="flex flex-col items-center gap-2 flex-1 h-full">
         <div className="w-full flex-1 flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
-          <div
-            className="w-2 rounded-full transition-all duration-700 ease-out"
-            style={{ height, backgroundColor: barColor }}
-          />
+          <div className="w-2 rounded-full transition-all duration-700 ease-out" style={{ height: "15%", backgroundColor: barColor }} />
         </div>
-        <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>
-          {day}
-        </span>
+        <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>{day}</span>
       </div>
     );
-  })}
+  }
+
+  // Fill last `streak` days up to `end`
+  const start = end - (streak - 1);
+  const isActive = streak > 0 && idx >= start && idx <= end;
+
+  const height = isActive ? "80%" : "15%";
+  const barColor = isActive ? goalColor : "#EBEBF0";
+
+  return (
+    <div key={idx} className="flex flex-col items-center gap-2 flex-1 h-full">
+      <div className="w-full flex-1 flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
+        <div className="w-2 rounded-full transition-all duration-700 ease-out" style={{ height, backgroundColor: barColor }} />
+      </div>
+      <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>{day}</span>
+    </div>
+  );
+})}
 </div>
     </div>
   );
