@@ -85,7 +85,6 @@ const DashboardHeader = ({ name, greeting }) => {
   );
 };
 
-// --- VIDEO PREVIEW COMPONENT ---
 const VideoPreview = ({ url }) => {
   const videoRef = useRef(null);
 
@@ -118,22 +117,16 @@ const VideoPreview = ({ url }) => {
   );
 };
 
-// --- WEEKLY GRAPH COMPONENT (FIXED) ---
+// --- FIXED WEEKLY GRAPH COMPONENT ---
 const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
   const days = ["M", "T", "W", "T", "F", "S", "S"];
-  const [historyData, setHistoryData] = useState(Array(7).fill(false));
-  const [activeDayIndex, setActiveDayIndex] = useState(-1);
+  const [todayIndex, setTodayIndex] = useState(null); // Use state for hydration safety
 
   useEffect(() => {
-    // 1. Determine "Today" strictly on client side to avoid hydration mismatch
-    // (0=Mon, 1=Tue... 6=Sun)
-    let today = new Date().getDay() - 1; 
-    if (today === -1) today = 6; 
-    setActiveDayIndex(today);
-
-    // 2. Generate static history for previous days (Visual only)
-    const history = Array(7).fill(0).map((_, i) => i < today && Math.random() > 0.4);
-    setHistoryData(history);
+    // 1. Calculate today's index safely on the client
+    let current = new Date().getDay() - 1; 
+    if (current === -1) current = 6; 
+    setTodayIndex(current);
   }, []);
   
   return (
@@ -147,13 +140,22 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
       
       <div className="flex justify-between items-end h-24 gap-2">
         {days.map((day, idx) => {
-          const isToday = idx === activeDayIndex;
+          // Logic:
+          // 1. If idx matches todayIndex -> Check isTodayDone prop
+          // 2. If idx is in the past -> Simple random logic for demo (or connect to history)
+          // 3. If idx is future -> Empty
           
-          // Strict Logic:
-          // If it is today -> Use the `isTodayDone` prop passed from Dashboard
-          // If it is past -> Use the random history data
-          const isActive = isToday ? isTodayDone : historyData[idx];
+          let isActive = false;
           
+          if (todayIndex !== null) {
+              if (idx === todayIndex) {
+                  isActive = isTodayDone; // Strictly listen to the prop
+              } else if (idx < todayIndex) {
+                  // Simulate history for demo purposes (consistent seed based on index)
+                  isActive = (idx % 2 === 0); 
+              }
+          }
+
           const height = isActive ? "80%" : "15%";
           const barColor = isActive ? goalColor : "#EBEBF0";
           
@@ -161,14 +163,14 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
             <div key={idx} className="flex flex-col items-center gap-2 flex-1">
               <div className="w-full h-full flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
                 <div 
-                  className="w-2 rounded-full transition-all duration-500 ease-out"
+                  className="w-2 rounded-full transition-all duration-700 ease-out"
                   style={{ 
                     height: height, 
                     backgroundColor: barColor 
                   }}
                 />
               </div>
-              <span className={`text-[10px] font-bold ${isToday ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>
+              <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>
                 {day}
               </span>
             </div>
@@ -218,7 +220,6 @@ const CoachTipCard = ({ goalColor, userGoal }) => {
 export default function DashboardPage() {
   const { userDetails, saveUserData } = useUserData();
   
-  // State
   const [loading, setLoading] = useState(true);
   const [routineData, setRoutineData] = useState(null);
   const [showPlayer, setShowPlayer] = useState(false);
@@ -226,15 +227,13 @@ export default function DashboardPage() {
   const [completedToday, setCompletedToday] = useState(false);
   const [greeting, setGreeting] = useState({ text: "Good morning", icon: Sun });
 
-  // Init Logic
+  // Init
   useEffect(() => {
-    // 1. Time of Day
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) setGreeting({ text: "Good morning", icon: Sun });
     else if (hour >= 12 && hour < 18) setGreeting({ text: "Good afternoon", icon: CloudSun });
     else setGreeting({ text: "Good evening", icon: Moon });
 
-    // 2. Load User Data
     if (userDetails) {
       const data = getDailyPlaylist(userDetails.selectedTarget?.title, userDetails.joinDate);
       setRoutineData(data);
@@ -249,15 +248,18 @@ export default function DashboardPage() {
     }
   }, [userDetails]);
 
-  // Actions
+  // --- ACTIONS ---
   const handleProgressMarked = () => {
     if (completedToday) return;
 
-    // 🚀 INSTANTLY Update State (Graph fills up, Streak increases)
+    console.log("✅ 5-Second Mark: Updating Graph & Streak...");
+    
+    // 1. Update State (Triggers Graph Re-render)
     setCompletedToday(true);
     const newStreak = streak + 1;
     setStreak(newStreak);
 
+    // 2. Persist
     saveUserData('lastWorkoutDate', new Date().toISOString());
     saveUserData('streak', newStreak);
     
@@ -279,7 +281,6 @@ export default function DashboardPage() {
   };
 
   const { gradient: themeGradient, color: themeColor } = getTheme();
-  // Get first video for preview
   const previewVideoUrl = routineData?.videos?.[0]?.url;
 
   return (
@@ -297,7 +298,6 @@ export default function DashboardPage() {
       
       <div className="px-6 pt-8 pb-4 space-y-8 max-w-md mx-auto">
         
-        {/* Header */}
         <DashboardHeader name={userName} greeting={greeting} />
 
         {/* Daily Routine Card */}
@@ -330,14 +330,13 @@ export default function DashboardPage() {
                {!completedToday && previewVideoUrl ? (
                    <div className="absolute inset-0 w-full h-full rounded-full overflow-hidden shadow-md">
                       <VideoPreview url={previewVideoUrl} />
-                      {/* Ring Overlay */}
                       <svg className="absolute inset-0 w-full h-full rotate-[-90deg] z-10">
                         <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.3)" strokeWidth="4" fill="none" />
                         <circle cx="32" cy="32" r="28" stroke="white" strokeWidth="4" fill="none" strokeDasharray="175.9" strokeDashoffset="175.9" strokeLinecap="round" />
                       </svg>
                    </div>
                ) : (
-                   /* 2. Standard Ring (If complete or no video) */
+                   /* 2. Standard Ring */
                    <>
                      <svg className="absolute w-full h-full rotate-[-90deg]">
                         <circle cx="32" cy="32" r="28" stroke="#F3F4F6" strokeWidth="6" fill="none" />
@@ -391,7 +390,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 3. Streak Widget */}
+        {/* Streak Widget */}
         <div 
           className="bg-gradient-to-br from-[#1A1A26] to-[#2C2C3E] rounded-[24px] p-5 text-white shadow-xl flex items-center justify-between animate-slide-up" 
           style={{ animationDelay: '200ms' }}
