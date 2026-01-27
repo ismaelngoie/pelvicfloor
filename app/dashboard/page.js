@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 import { 
   Sun, CloudSun, Moon, Flame, ChevronRight, Play, RotateCw, 
@@ -10,7 +10,6 @@ import DailyRoutinePlayer from '@/components/DailyRoutinePlayer';
 import { getDailyPlaylist } from '@/utils/dailyLogic';
 
 // --- CONFIGURATION ---
-
 const THEME = {
   gradients: {
     intimacy: "from-pink-500 to-purple-600",
@@ -28,7 +27,6 @@ const THEME = {
   }
 };
 
-// --- DATA: Goal-Specific Tips (The Bottom Text) ---
 const GOAL_TIPS = {
   "intimacy": [
     { icon: Heart, text: "Relaxation is key. Focus on 'letting go' on the inhale." },
@@ -52,9 +50,15 @@ const GOAL_TIPS = {
 
 const DashboardHeader = ({ name, greeting }) => {
   const Icon = greeting.icon;
-  // Live count based on time of day simulation
   const [liveCount, setLiveCount] = useState(124);
   
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveCount(prev => prev + (Math.random() > 0.5 ? 1 : -1));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="flex justify-between items-start animate-slide-up">
       <div>
@@ -81,11 +85,55 @@ const DashboardHeader = ({ name, greeting }) => {
   );
 };
 
+// --- VIDEO PREVIEW COMPONENT ---
+const VideoPreview = ({ url }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Strict 5-second loop
+    const handleTimeUpdate = () => {
+      if (video.currentTime >= 5) {
+        video.currentTime = 0;
+        video.play();
+      }
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    return () => video.removeEventListener('timeupdate', handleTimeUpdate);
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      src={url}
+      muted
+      playsInline
+      autoPlay
+      loop
+      className="absolute inset-0 w-full h-full object-cover rounded-full opacity-90"
+      style={{ transform: 'scale(1.2)' }}
+    />
+  );
+};
+
+// --- WEEKLY GRAPH COMPONENT ---
 const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
   const days = ["M", "T", "W", "T", "F", "S", "S"];
-  // Note: getDay() returns 0 for Sunday, so we shift it to make Monday index 0
+  const [historyData, setHistoryData] = useState([]);
+  
+  // Calculate today's index (0=Mon, 6=Sun)
   let currentDay = new Date().getDay() - 1; 
-  if (currentDay === -1) currentDay = 6; // Sunday is now 6
+  if (currentDay === -1) currentDay = 6; 
+
+  // Initialize history only once to prevent hydration mismatch
+  useEffect(() => {
+    // Generate static random history for past days for demo visuals
+    const history = Array(7).fill(0).map(() => Math.random() > 0.4);
+    setHistoryData(history);
+  }, []);
   
   return (
     <div className="bg-white rounded-3xl p-5 border border-[#EBEBF0] shadow-[0_4px_20px_rgb(0,0,0,0.03)] animate-slide-up" style={{ animationDelay: '300ms' }}>
@@ -99,14 +147,13 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
       <div className="flex justify-between items-end h-24 gap-2">
         {days.map((day, idx) => {
           const isToday = idx === currentDay;
-          // Logic: 
-          // 1. If today and done: show full bar.
-          // 2. If past days: randomize "history" for demo, or use real data if available.
-          // 3. If future: empty.
           const isPast = idx < currentDay;
-          const randomPast = isPast && Math.random() > 0.4; // Simulating history
           
-          const isActive = (isToday && isTodayDone) || randomPast;
+          // Logic: 
+          // 1. Past days use static history data
+          // 2. Today uses the LIVE `isTodayDone` prop which flips at 5 seconds
+          const isActive = isToday ? isTodayDone : (isPast && historyData[idx]);
+          
           const height = isActive ? "80%" : "15%";
           const barColor = isActive ? goalColor : "#EBEBF0";
           
@@ -135,7 +182,6 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
 const CoachTipCard = ({ goalColor, userGoal }) => {
   const [index, setIndex] = useState(0);
   
-  // Logic to select tips based on goal string
   const getTips = () => {
       const g = (userGoal || "").toLowerCase();
       if (g.includes("intimacy")) return GOAL_TIPS.intimacy;
@@ -146,7 +192,7 @@ const CoachTipCard = ({ goalColor, userGoal }) => {
   const tips = getTips();
 
   useEffect(() => {
-    const timer = setInterval(() => setIndex(prev => (prev + 1) % tips.length), 6000);
+    const timer = setInterval(() => setIndex(prev => (prev + 1) % tips.length), 8000);
     return () => clearInterval(timer);
   }, [tips]);
 
@@ -178,12 +224,11 @@ export default function DashboardPage() {
   const [showPlayer, setShowPlayer] = useState(false);
   const [streak, setStreak] = useState(0);
   const [completedToday, setCompletedToday] = useState(false);
-  
-  // Time Logic
   const [greeting, setGreeting] = useState({ text: "Good morning", icon: Sun });
 
+  // Init Logic
   useEffect(() => {
-    // 1. Time of Day (Strict Production Logic)
+    // 1. Time of Day
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) setGreeting({ text: "Good morning", icon: Sun });
     else if (hour >= 12 && hour < 18) setGreeting({ text: "Good afternoon", icon: CloudSun });
@@ -194,7 +239,6 @@ export default function DashboardPage() {
       const data = getDailyPlaylist(userDetails.selectedTarget?.title, userDetails.joinDate);
       setRoutineData(data);
       
-      // Check last workout date to determine 'completedToday'
       const lastDate = userDetails.lastWorkoutDate ? new Date(userDetails.lastWorkoutDate) : null;
       const today = new Date();
       const isSameDay = lastDate && lastDate.getDate() === today.getDate() && lastDate.getMonth() === today.getMonth();
@@ -205,39 +249,27 @@ export default function DashboardPage() {
     }
   }, [userDetails]);
 
-  // --- ACTIONS ---
-
-  // Called from the Player when 5 seconds pass (The "Started" Logic)
+  // Actions
   const handleProgressMarked = () => {
-    if (completedToday) return; // Don't double count if already done today
+    if (completedToday) return;
 
-    console.log("🚀 Video Started (5s): Updating Streak & Graph...");
-    
-    // 1. Update UI Instantly
+    // 🚀 INSTANTLY Update State (Graph fills up, Streak increases)
     setCompletedToday(true);
     const newStreak = streak + 1;
     setStreak(newStreak);
 
-    // 2. Save Persistent Data
+    // Persist
     saveUserData('lastWorkoutDate', new Date().toISOString());
     saveUserData('streak', newStreak);
     
-    // 3. Haptic Feedback
     if (navigator.vibrate) navigator.vibrate(50);
   };
-
-  const handlePlayerClose = () => {
-    setShowPlayer(false);
-  };
-
-  // --- RENDER ---
 
   if (loading) return <div className="w-full h-screen bg-[#FAF9FA]" />;
 
   const userGoal = userDetails?.selectedTarget?.title || "Core Strength";
   const userName = userDetails?.name || "Friend";
 
-  // Dynamic Theme
   const getTheme = () => {
       const g = userGoal.toLowerCase();
       if (g.includes("intimacy")) return { gradient: THEME.gradients.intimacy, color: THEME.colors.intimacy };
@@ -248,16 +280,17 @@ export default function DashboardPage() {
   };
 
   const { gradient: themeGradient, color: themeColor } = getTheme();
+  // Get first video for preview
+  const previewVideoUrl = routineData?.videos?.[0]?.url;
 
   return (
     <div className="min-h-screen bg-[#FAF9FA] pb-32 overflow-x-hidden">
       
-      {/* FULL SCREEN PLAYER */}
       {showPlayer && routineData && (
         <DailyRoutinePlayer 
           playlist={routineData.videos} 
-          onClose={handlePlayerClose}
-          onProgressMarked={handleProgressMarked} // <--- The Magic Link
+          onClose={() => setShowPlayer(false)}
+          onProgressMarked={handleProgressMarked} // Triggers the fill at 5s
         />
       )}
 
@@ -265,16 +298,15 @@ export default function DashboardPage() {
       
       <div className="px-6 pt-8 pb-4 space-y-8 max-w-md mx-auto">
         
-        {/* 1. Header */}
-        <DashboardHeader name={userName} greeting={greeting} goal={userGoal} />
+        {/* Header */}
+        <DashboardHeader name={userName} greeting={greeting} />
 
-        {/* 2. Daily Routine Card */}
+        {/* Daily Routine Card */}
         <div 
           onClick={() => setShowPlayer(true)}
           className="group w-full relative overflow-hidden rounded-[32px] bg-white border border-[#EBEBF0] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 transition-all duration-300 active:scale-[0.98] animate-slide-up cursor-pointer"
           style={{ animationDelay: '100ms' }}
         >
-          {/* Card Header */}
           <div className="flex justify-between items-start mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -292,37 +324,55 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Visuals */}
           <div className="relative w-full h-16 flex items-center gap-5">
             <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
-               {/* Ring */}
-               <svg className="absolute w-full h-full rotate-[-90deg]">
-                  <circle cx="32" cy="32" r="28" stroke="#F3F4F6" strokeWidth="6" fill="none" />
-                  <circle 
-                    cx="32" cy="32" r="28" 
-                    stroke={`url(#grad-theme)`} 
-                    strokeWidth="6" 
-                    fill="none" 
-                    strokeDasharray="175.9" 
-                    strokeDashoffset={completedToday ? 0 : 175.9} 
-                    strokeLinecap="round" 
-                    className="transition-all duration-[1500ms] ease-out"
-                  />
-                  <defs>
-                    <linearGradient id="grad-theme" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor={themeColor} />
-                        <stop offset="100%" stopColor={themeColor} stopOpacity="0.6" />
-                    </linearGradient>
-                  </defs>
-               </svg>
-               {/* Button */}
-               <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${themeGradient} flex items-center justify-center shadow-lg shadow-pink-200/50 z-10 transition-transform duration-300 group-hover:scale-110 ${!completedToday ? 'animate-breathe' : ''}`}>
-                  {completedToday ? (
-                     <RotateCw size={18} className="text-white" />
-                  ) : (
-                     <Play size={18} className="text-white fill-white ml-0.5" />
-                  )}
+               
+               {/* 1. Video Preview Background (Visible if NOT complete) */}
+               {!completedToday && previewVideoUrl ? (
+                   <div className="absolute inset-0 w-full h-full rounded-full overflow-hidden shadow-md">
+                      <VideoPreview url={previewVideoUrl} />
+                      {/* Ring Overlay */}
+                      <svg className="absolute inset-0 w-full h-full rotate-[-90deg] z-10">
+                        <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.3)" strokeWidth="4" fill="none" />
+                        <circle cx="32" cy="32" r="28" stroke="white" strokeWidth="4" fill="none" strokeDasharray="175.9" strokeDashoffset="175.9" strokeLinecap="round" />
+                      </svg>
+                   </div>
+               ) : (
+                   /* 2. Standard Ring (If complete or no video) */
+                   <>
+                     <svg className="absolute w-full h-full rotate-[-90deg]">
+                        <circle cx="32" cy="32" r="28" stroke="#F3F4F6" strokeWidth="6" fill="none" />
+                        <circle 
+                          cx="32" cy="32" r="28" 
+                          stroke={`url(#grad-theme)`} 
+                          strokeWidth="6" 
+                          fill="none" 
+                          strokeDasharray="175.9" 
+                          strokeDashoffset={completedToday ? 0 : 175.9} 
+                          strokeLinecap="round" 
+                          className="transition-all duration-[1500ms] ease-out"
+                        />
+                        <defs>
+                          <linearGradient id="grad-theme" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor={themeColor} />
+                              <stop offset="100%" stopColor={themeColor} stopOpacity="0.6" />
+                          </linearGradient>
+                        </defs>
+                     </svg>
+                   </>
+               )}
+
+               {/* Play Button Overlay */}
+               <div className={`w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center z-20 ${completedToday ? 'hidden' : ''}`}>
+                   <Play size={12} className="text-white fill-white ml-0.5" />
                </div>
+
+               {/* Checkmark Overlay (If complete) */}
+               {completedToday && (
+                 <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${themeGradient} flex items-center justify-center shadow-lg z-20`}>
+                    <RotateCw size={18} className="text-white" />
+                 </div>
+               )}
             </div>
             
             <div className="flex flex-col justify-center">
@@ -361,10 +411,10 @@ export default function DashboardPage() {
            <ChevronRight size={16} className="text-gray-500" />
         </div>
 
-        {/* 4. Graph */}
+        {/* Graph */}
         <WeeklyProgressGraph streak={streak} goalColor={themeColor} isTodayDone={completedToday} />
 
-        {/* 5. Coach Tips (Goal Based) */}
+        {/* Tips */}
         <CoachTipCard goalColor={themeColor} userGoal={userGoal} />
 
       </div>
