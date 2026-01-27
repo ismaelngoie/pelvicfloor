@@ -7,7 +7,6 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 // --- STRIPE SETUP ---
-// Replace with your actual Publishable Key from the Stripe Dashboard
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 // --- ASSETS ---
@@ -87,7 +86,7 @@ const FEATURES = [
   { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" }
 ];
 
-// --- STRIPE CHECKOUT FORM COMPONENT ---
+// --- STRIPE CHECKOUT FORM ---
 const CheckoutForm = ({ onClose }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -116,7 +115,6 @@ const CheckoutForm = ({ onClose }) => {
       setMessage(error.message);
       setIsLoading(false);
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
-      // SUCCESS!
       saveUserData('isPremium', true);
       saveUserData('joinDate', new Date().toISOString());
       router.push('https://pelvic.health/dashboard?plan=monthly');
@@ -128,7 +126,6 @@ const CheckoutForm = ({ onClose }) => {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md bg-[#1A1A26] p-6 rounded-3xl border border-white/10 shadow-2xl animate-slide-up relative">
-      {/* Close Button */}
       <button 
         type="button" 
         onClick={onClose} 
@@ -142,13 +139,10 @@ const CheckoutForm = ({ onClose }) => {
         <p className="text-sm text-white/50">Total due: $24.99 / month</p>
       </div>
       
-      {/* Stripe UI Injection */}
       <PaymentElement id="payment-element" options={{layout: "tabs"}} />
       
-      {/* Error Message */}
       {message && <div className="text-red-400 text-sm mt-4 bg-red-500/10 p-3 rounded-xl border border-red-500/20">{message}</div>}
 
-      {/* Pay Button */}
       <button 
         disabled={isLoading || !stripe || !elements} 
         id="submit"
@@ -157,9 +151,7 @@ const CheckoutForm = ({ onClose }) => {
         {isLoading ? <Loader2 className="animate-spin" /> : <><Lock size={18} /> Pay $24.99</>}
       </button>
       
-      <p className="text-center text-white/30 text-xs mt-4">
-        100% Secure Payment via Stripe
-      </p>
+      <p className="text-center text-white/30 text-xs mt-4">100% Secure Payment via Stripe</p>
     </form>
   );
 };
@@ -169,94 +161,91 @@ export default function PaywallScreen() {
   const router = useRouter();
   const { userDetails, saveUserData } = useUserData();
   
-  // --- STATE ---
+  // State
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [userCount, setUserCount] = useState(9800);
-  
-  // Controls the text content animation
   const [showContent, setShowContent] = useState(false);
-  // Controls the video fade-in (prevents black flash)
   const [videoLoaded, setVideoLoaded] = useState(false);
-  
   const [dateString, setDateString] = useState(""); 
   
   // Stripe State
   const [clientSecret, setClientSecret] = useState("");
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  
+  // NEW: Button Loading State
+  const [isButtonLoading, setIsButtonLoading] = useState(false);
 
-  // --- DERIVED DATA ---
+  // Derived Data
   const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const userName = userDetails?.name || "Ready";
   const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
 
-  // --- EFFECTS ---
-
-  // 1. Initialize immediately
+  // Effects
   useEffect(() => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
     setDateString(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    
-    // Show content immediately (no delay)
     setShowContent(true);
   }, []);
 
-  // 2. Feature Carousel
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveFeatureIndex((prev) => (prev + 1) % FEATURES.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // 3. Review Rotation
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
-    }, 5000);
-    return () => clearInterval(timer);
+    const featureTimer = setInterval(() => setActiveFeatureIndex((p) => (p + 1) % FEATURES.length), 4000);
+    const reviewTimer = setInterval(() => setCurrentReviewIndex((p) => (p + 1) % reviews.length), 5000);
+    return () => { clearInterval(featureTimer); clearInterval(reviewTimer); };
   }, [reviews]);
 
-  // 4. User Count Animation
   useEffect(() => {
     if (!showContent) return;
     let start = 9800;
     const timer = setInterval(() => {
       start += 5;
-      if (start >= end) {
-        setUserCount(10200);
-        clearInterval(timer);
-      } else {
-        setUserCount(start);
-      }
+      if (start >= 10200) { setUserCount(10200); clearInterval(timer); }
+      else setUserCount(start);
     }, 20);
-    const end = 10200;
     return () => clearInterval(timer);
   }, [showContent]);
 
   // --- ACTIONS ---
 
-  // 1. Trigger Stripe Modal
   const handleStartPlan = async () => {
-    // Check if we already have a secret, if not fetch it
+    // 1. Show Spinner immediately
+    setIsButtonLoading(true);
+
     if (!clientSecret) {
       try {
         const res = await fetch("/api/create-payment-intent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
         });
+
+        // 2. Catch API Errors (e.g., 500 Internal Server Error)
+        if (!res.ok) {
+           const errText = await res.text();
+           throw new Error(`Server Error: ${res.status} - ${errText}`);
+        }
+
         const data = await res.json();
+        
+        // 3. Catch Stripe Logic Errors (e.g. Invalid Price ID)
+        if (data.error) {
+           throw new Error(data.error);
+        }
+
         setClientSecret(data.clientSecret);
       } catch (err) {
         console.error("Stripe Error:", err);
+        alert(`Could not initialize payment: ${err.message}. Please check your internet or try again later.`);
+        setIsButtonLoading(false); // Stop spinner on error
         return;
       }
     }
+    
+    // 4. Success - Stop spinner and show modal
+    setIsButtonLoading(false);
     setShowCheckoutModal(true);
   };
 
-  // 2. Restore Purchase (Simple Email Prompt)
   const handleRestore = () => {
     const email = prompt("Please enter the email you used to purchase:");
     if (email && email.includes("@")) {
@@ -266,7 +255,6 @@ export default function PaywallScreen() {
     }
   };
 
-  // --- STRIPE THEME ---
   const stripeAppearance = {
     theme: 'night',
     variables: {
@@ -282,25 +270,13 @@ export default function PaywallScreen() {
 
   const getCtaSubtext = () => {
     if (!dateString) return ""; 
-    const g = goalTitle.toLowerCase();
-    const priceText = "$24.99/mo";
-    
-    const suffix = `If not, one tap full ${priceText} refund.`;
-    
-    if (g.includes("intimacy")) return `Feel more sensation and easier orgasms by ${dateString}. ${suffix}`;
-    if (g.includes("leak")) return `Fewer leaks when you cough laugh or run by ${dateString}. ${suffix}`;
-    if (g.includes("pain")) return `Less pelvic tension and easier sitting by ${dateString}. ${suffix}`;
-    if (g.includes("postpartum")) return `A steadier core and easier carries by ${dateString}. ${suffix}`;
-    if (g.includes("pregnancy")) return `Calmer breath and better pelvic control by ${dateString}. ${suffix}`;
-    if (g.includes("fitness")) return `More stable lifts and less strain by ${dateString}. ${suffix}`;
-    
-    return `Feel real progress by ${dateString}. ${suffix}`;
+    return `Feel real progress by ${dateString}. If not, one tap full $24.99 refund.`;
   };
 
   return (
     <div className="relative w-full h-full flex flex-col bg-black overflow-hidden">
       
-      {/* 1. Video Background (Optimized to prevent black flash) */}
+      {/* 1. Video Background */}
       <div className="absolute inset-0 z-0">
         <video 
           autoPlay 
@@ -313,7 +289,6 @@ export default function PaywallScreen() {
         >
           <source src="/paywall_video.mp4" type="video/mp4" />
         </video>
-        {/* Lighter overlay to see the video better */}
         <div className="absolute inset-0 bg-black/30" />
       </div>
 
@@ -327,12 +302,11 @@ export default function PaywallScreen() {
           <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
         </h1>
 
-        {/* Feature Showcase Card */}
+        {/* Features */}
         <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl">
           <div className="pt-5 pb-2">
             <h3 className="text-[17px] font-bold text-white text-center drop-shadow-md">Your Personalized Plan Includes:</h3>
           </div>
-
           <div className="relative w-full h-[140px] flex items-center justify-center">
             {FEATURES.map((feature, index) => {
               const isActive = index === activeFeatureIndex;
@@ -349,19 +323,16 @@ export default function PaywallScreen() {
               );
             })}
           </div>
-
           <div className="w-full px-6 pb-6 flex gap-1.5 h-1.5">
             {FEATURES.map((_, i) => (
               <div key={i} className="h-full flex-1 bg-white/20 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full bg-white rounded-full transition-all ease-linear ${i === activeFeatureIndex ? 'duration-[4000ms] w-full' : i < activeFeatureIndex ? 'w-full' : 'w-0'}`}
-                />
+                <div className={`h-full bg-white rounded-full transition-all ease-linear ${i === activeFeatureIndex ? 'duration-[4000ms] w-full' : i < activeFeatureIndex ? 'w-full' : 'w-0'}`} />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Social Proof - REVIEWS */}
+        {/* Reviews */}
         <div className="w-full bg-black/20 backdrop-blur-md border border-white/10 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
           <div className="flex flex-col items-center gap-1">
             <span className="text-[22px] font-bold text-white drop-shadow-sm">4.9</span>
@@ -370,7 +341,6 @@ export default function PaywallScreen() {
             </div>
             <span className="text-[11px] font-medium text-white/80 uppercase tracking-wide">App Store Rating</span>
           </div>
-
           <div className="w-full min-h-[70px] flex items-center justify-center relative">
              {reviews.map((review, idx) => (
                <div 
@@ -378,46 +348,32 @@ export default function PaywallScreen() {
                  className={`absolute w-full flex flex-col items-center transition-all duration-500 ${idx === currentReviewIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}
                >
                  <div className="flex flex-col items-center gap-2">
-                    <img 
-                      src={review.image} 
-                      className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-sm" 
-                      alt={review.name} 
-                    />
+                    <img src={review.image} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-sm" alt={review.name} />
                     <p className="text-[15px] italic text-white text-center font-medium drop-shadow-md">"{review.text}"</p>
                     <p className="text-[12px] font-bold text-white/90 drop-shadow-md">{review.name}</p>
                  </div>
                </div>
              ))}
           </div>
-
-          <p className="text-[13px] text-white/70 text-center mt-2 font-medium">
-            Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.
-          </p>
+          <p className="text-[13px] text-white/70 text-center mt-2 font-medium">Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.</p>
         </div>
 
-        {/* FAQ & Legal */}
+        {/* Footer Links (Fixed) */}
         <div className="flex flex-col gap-4 mb-8">
            <div className="w-full bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm">
               <div className="flex items-center justify-center gap-2 text-white/90">
                  <span className="text-[14px] font-semibold">How do I get my money back?</span>
                  <ChevronDown size={14} className="text-white/60" />
               </div>
-              <p className="text-[13px] text-white/60 text-center mt-2 leading-relaxed">
-                Tap “Refund” in Settings → “Billing” → Done.
-              </p>
+              <p className="text-[13px] text-white/60 text-center mt-2 leading-relaxed">Tap “Refund” in Settings → “Billing” → Done.</p>
            </div>
            
            <div className="flex justify-center items-center gap-3 text-[11px] font-medium text-white/50">
-              <button 
-                onClick={handleRestore} 
-                className="underline decoration-white/30 hover:text-white transition-colors"
-              >
-                Restore Purchase
-              </button>
+              <button onClick={handleRestore} className="underline decoration-white/30 hover:text-white transition-colors">Restore Purchase</button>
               <span>•</span>
-              <span>Physio-Designed</span>
+              <span className="cursor-default">Physio-Designed</span>
               <span>•</span>
-              <span>Doctor Approved</span>
+              <span className="cursor-default">Doctor Approved</span>
            </div>
         </div>
       </div>
@@ -426,21 +382,16 @@ export default function PaywallScreen() {
       <div className={`absolute bottom-0 left-0 w-full z-30 px-6 pb-8 pt-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent transition-all duration-700 delay-200 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         <button 
           onClick={handleStartPlan}
+          disabled={isButtonLoading}
           className="w-full h-[58px] rounded-full shadow-[0_0_25px_rgba(225,29,72,0.5)] flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform relative overflow-hidden group"
         >
-          {/* Gradient Layer */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] transition-all group-hover:scale-105" />
-          
-          {/* Content Layer */}
           <div className="relative flex items-center gap-2 z-10">
-             <Lock size={20} className="text-white" /> 
+             {isButtonLoading ? <Loader2 className="animate-spin text-white" size={24} /> : <Lock size={20} className="text-white" />}
              <span className="text-[18px] font-bold text-white">Start My {goalTitle.split(' ').slice(-2).join(' ')} Plan</span>
           </div>
         </button>
-
-        <p className="text-center text-white/70 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">
-          {getCtaSubtext()}
-        </p>
+        <p className="text-center text-white/70 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">{getCtaSubtext()}</p>
       </div>
 
       {/* 4. STRIPE OVERLAY MODAL */}
