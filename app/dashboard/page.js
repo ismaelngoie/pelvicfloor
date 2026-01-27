@@ -93,7 +93,6 @@ const VideoPreview = ({ url }) => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Strict 5-second loop
     const handleTimeUpdate = () => {
       if (video.currentTime >= 5) {
         video.currentTime = 0;
@@ -119,19 +118,21 @@ const VideoPreview = ({ url }) => {
   );
 };
 
-// --- WEEKLY GRAPH COMPONENT ---
+// --- WEEKLY GRAPH COMPONENT (FIXED) ---
 const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
   const days = ["M", "T", "W", "T", "F", "S", "S"];
-  const [historyData, setHistoryData] = useState([]);
-  
-  // Calculate today's index (0=Mon, 6=Sun)
-  let currentDay = new Date().getDay() - 1; 
-  if (currentDay === -1) currentDay = 6; 
+  const [historyData, setHistoryData] = useState(Array(7).fill(false));
+  const [activeDayIndex, setActiveDayIndex] = useState(-1);
 
-  // Initialize history only once to prevent hydration mismatch
   useEffect(() => {
-    // Generate static random history for past days for demo visuals
-    const history = Array(7).fill(0).map(() => Math.random() > 0.4);
+    // 1. Determine "Today" strictly on client side to avoid hydration mismatch
+    // (0=Mon, 1=Tue... 6=Sun)
+    let today = new Date().getDay() - 1; 
+    if (today === -1) today = 6; 
+    setActiveDayIndex(today);
+
+    // 2. Generate static history for previous days (Visual only)
+    const history = Array(7).fill(0).map((_, i) => i < today && Math.random() > 0.4);
     setHistoryData(history);
   }, []);
   
@@ -146,13 +147,12 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
       
       <div className="flex justify-between items-end h-24 gap-2">
         {days.map((day, idx) => {
-          const isToday = idx === currentDay;
-          const isPast = idx < currentDay;
+          const isToday = idx === activeDayIndex;
           
-          // Logic: 
-          // 1. Past days use static history data
-          // 2. Today uses the LIVE `isTodayDone` prop which flips at 5 seconds
-          const isActive = isToday ? isTodayDone : (isPast && historyData[idx]);
+          // Strict Logic:
+          // If it is today -> Use the `isTodayDone` prop passed from Dashboard
+          // If it is past -> Use the random history data
+          const isActive = isToday ? isTodayDone : historyData[idx];
           
           const height = isActive ? "80%" : "15%";
           const barColor = isActive ? goalColor : "#EBEBF0";
@@ -161,7 +161,7 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
             <div key={idx} className="flex flex-col items-center gap-2 flex-1">
               <div className="w-full h-full flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
                 <div 
-                  className="w-2 rounded-full transition-all duration-1000 ease-out"
+                  className="w-2 rounded-full transition-all duration-500 ease-out"
                   style={{ 
                     height: height, 
                     backgroundColor: barColor 
@@ -258,7 +258,6 @@ export default function DashboardPage() {
     const newStreak = streak + 1;
     setStreak(newStreak);
 
-    // Persist
     saveUserData('lastWorkoutDate', new Date().toISOString());
     saveUserData('streak', newStreak);
     
@@ -290,7 +289,7 @@ export default function DashboardPage() {
         <DailyRoutinePlayer 
           playlist={routineData.videos} 
           onClose={() => setShowPlayer(false)}
-          onProgressMarked={handleProgressMarked} // Triggers the fill at 5s
+          onProgressMarked={handleProgressMarked} 
         />
       )}
 
