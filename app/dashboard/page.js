@@ -137,53 +137,32 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
           {streak} Day Streak
         </span>
       </div>
-      
-      <div className="flex justify-between items-end h-24 gap-2">
-        {days.map((day, idx) => {
-          let isActive = false;
+      <div className="flex justify-between h-24 gap-2 items-stretch">
+  {days.map((day, idx) => {
+    let isActive = false;
+    if (todayIndex !== -1) {
+      if (idx === todayIndex) isActive = isTodayDone;
+      else if (idx < todayIndex) isActive = (idx % 2 === 0);
+    }
 
-          // LOGIC: Backfill the graph based on the Streak Count.
-          if (todayIndex !== -1) {
-             const daysAgo = todayIndex - idx; // 0 = today, 1 = yesterday...
-             
-             if (daysAgo >= 0) {
-                 // Determine how many days back the streak covers
-                 // If done today, streak covers Today (0) + (streak-1) past days.
-                 // If not done today, streak covers Yesterday (1) + (streak-1) past days.
-                 
-                 // Example: Streak 3. Done Today?
-                 // Yes: Covers 0, 1, 2. (Active if daysAgo < 3)
-                 // No: Covers 1, 2, 3. (Active if daysAgo > 0 AND daysAgo <= 3)
+    const height = isActive ? "80%" : "15%";
+    const barColor = isActive ? goalColor : "#EBEBF0";
 
-                 if (isTodayDone) {
-                     isActive = daysAgo < streak; 
-                 } else {
-                     isActive = daysAgo > 0 && daysAgo <= streak;
-                 }
-             }
-          }
-
-          const height = isActive ? "80%" : "15%";
-          const barColor = isActive ? goalColor : "#EBEBF0";
-          
-          return (
-            <div key={idx} className="flex flex-col items-center gap-2 flex-1">
-              <div className="w-full h-full flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
-                <div 
-                  className="w-2 rounded-full transition-all duration-700 ease-out"
-                  style={{ 
-                    height: height, 
-                    backgroundColor: barColor 
-                  }}
-                />
-              </div>
-              <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>
-                {day}
-              </span>
-            </div>
-          );
-        })}
+    return (
+      <div key={idx} className="flex flex-col items-center gap-2 flex-1 h-full">
+        <div className="w-full flex-1 flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
+          <div
+            className="w-2 rounded-full transition-all duration-700 ease-out"
+            style={{ height, backgroundColor: barColor }}
+          />
+        </div>
+        <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>
+          {day}
+        </span>
       </div>
+    );
+  })}
+</div>
     </div>
   );
 };
