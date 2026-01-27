@@ -8,11 +8,10 @@ const withPWA = require("next-pwa")({
 
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export',
+  // output: 'export', <--- REMOVED THIS LINE TO ENABLE STRIPE API
   images: {
     unoptimized: true,
   },
-  // --- THE FIX: FORCE IGNORE TYPESCRIPT CHECKS ---
   typescript: {
     ignoreBuildErrors: true,
   },
