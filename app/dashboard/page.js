@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 import { 
   Sun, CloudSun, Moon, Flame, ChevronRight, Play, RotateCw, 
-  Trophy, Calendar, Zap, Activity, Info
+  Trophy, Calendar, Zap, Activity, Info, Heart, Droplets
 } from 'lucide-react';
 
 import DailyRoutinePlayer from '@/components/DailyRoutinePlayer';
 import { getDailyPlaylist } from '@/utils/dailyLogic';
 
-// --- THEME CONFIG ---
+// --- CONFIGURATION ---
+
 const THEME = {
   gradients: {
     intimacy: "from-pink-500 to-purple-600",
@@ -27,27 +28,33 @@ const THEME = {
   }
 };
 
-// --- COACH TIPS DATABASE ---
-const COACH_TIPS = [
-  { icon: Zap, text: "Consistency is your superpower. Small efforts compound over time." },
-  { icon: Activity, text: "Focus on your breath. Exhale on the exertion." },
-  { icon: Trophy, text: "You are building a foundation for lifelong health." },
-  { icon: Info, text: "Hydration aids muscle recovery. Drink water after this session." }
-];
+// --- DATA: Goal-Specific Tips (The Bottom Text) ---
+const GOAL_TIPS = {
+  "intimacy": [
+    { icon: Heart, text: "Relaxation is key. Focus on 'letting go' on the inhale." },
+    { icon: Zap, text: "Stronger pelvic tone increases sensation and blood flow." }
+  ],
+  "leak": [
+    { icon: Droplets, text: "Try the 'Knack': Squeeze before you cough or sneeze." },
+    { icon: Activity, text: "Consistency builds the 'seal' that stops leaks." }
+  ],
+  "postpartum": [
+    { icon: Trophy, text: "Be patient. You are rebuilding your foundation safely." },
+    { icon: Info, text: "Avoid 'coning' in your belly. Keep movements gentle." }
+  ],
+  "default": [
+    { icon: Zap, text: "Consistency is your superpower. Small efforts compound." },
+    { icon: Activity, text: "You are building a foundation for lifelong health." }
+  ]
+};
 
-// --- COMPONENTS ---
+// --- SUBCOMPONENTS ---
 
 const DashboardHeader = ({ name, greeting }) => {
   const Icon = greeting.icon;
+  // Live count based on time of day simulation
   const [liveCount, setLiveCount] = useState(124);
   
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveCount(prev => prev + (Math.random() > 0.5 ? 1 : -1));
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <div className="flex justify-between items-start animate-slide-up">
       <div>
@@ -74,9 +81,11 @@ const DashboardHeader = ({ name, greeting }) => {
   );
 };
 
-const WeeklyProgressGraph = ({ streak, goalColor }) => {
+const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
   const days = ["M", "T", "W", "T", "F", "S", "S"];
-  const currentDay = new Date().getDay() - 1; 
+  // Note: getDay() returns 0 for Sunday, so we shift it to make Monday index 0
+  let currentDay = new Date().getDay() - 1; 
+  if (currentDay === -1) currentDay = 6; // Sunday is now 6
   
   return (
     <div className="bg-white rounded-3xl p-5 border border-[#EBEBF0] shadow-[0_4px_20px_rgb(0,0,0,0.03)] animate-slide-up" style={{ animationDelay: '300ms' }}>
@@ -89,9 +98,17 @@ const WeeklyProgressGraph = ({ streak, goalColor }) => {
       
       <div className="flex justify-between items-end h-24 gap-2">
         {days.map((day, idx) => {
-          const isToday = idx === (currentDay < 0 ? 6 : currentDay);
-          const isDone = idx < (currentDay < 0 ? 6 : currentDay) && Math.random() > 0.3; 
-          const height = isDone || (isToday && streak > 0) ? "80%" : "15%";
+          const isToday = idx === currentDay;
+          // Logic: 
+          // 1. If today and done: show full bar.
+          // 2. If past days: randomize "history" for demo, or use real data if available.
+          // 3. If future: empty.
+          const isPast = idx < currentDay;
+          const randomPast = isPast && Math.random() > 0.4; // Simulating history
+          
+          const isActive = (isToday && isTodayDone) || randomPast;
+          const height = isActive ? "80%" : "15%";
+          const barColor = isActive ? goalColor : "#EBEBF0";
           
           return (
             <div key={idx} className="flex flex-col items-center gap-2 flex-1">
@@ -100,7 +117,7 @@ const WeeklyProgressGraph = ({ streak, goalColor }) => {
                   className="w-2 rounded-full transition-all duration-1000 ease-out"
                   style={{ 
                     height: height, 
-                    backgroundColor: (isDone || (isToday && streak > 0)) ? goalColor : "#EBEBF0" 
+                    backgroundColor: barColor 
                   }}
                 />
               </div>
@@ -115,24 +132,35 @@ const WeeklyProgressGraph = ({ streak, goalColor }) => {
   );
 };
 
-const CoachTipCard = ({ goalColor }) => {
+const CoachTipCard = ({ goalColor, userGoal }) => {
   const [index, setIndex] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => setIndex(prev => (prev + 1) % COACH_TIPS.length), 8000);
-    return () => clearInterval(timer);
-  }, []);
+  
+  // Logic to select tips based on goal string
+  const getTips = () => {
+      const g = (userGoal || "").toLowerCase();
+      if (g.includes("intimacy")) return GOAL_TIPS.intimacy;
+      if (g.includes("leak")) return GOAL_TIPS.leak;
+      if (g.includes("postpartum")) return GOAL_TIPS.postpartum;
+      return GOAL_TIPS.default;
+  };
+  const tips = getTips();
 
-  const Tip = COACH_TIPS[index];
+  useEffect(() => {
+    const timer = setInterval(() => setIndex(prev => (prev + 1) % tips.length), 6000);
+    return () => clearInterval(timer);
+  }, [tips]);
+
+  const Tip = tips[index];
   const Icon = Tip.icon;
 
   return (
-    <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-[#EBEBF0] animate-slide-up" style={{ animationDelay: '400ms' }}>
+    <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-[#EBEBF0] animate-slide-up" style={{ animationDelay: '400ms' }}>
        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${goalColor}20` }}>
           <Icon size={20} style={{ color: goalColor }} />
        </div>
        <div className="flex-1">
           <p className="text-xs font-bold text-[#737380] uppercase tracking-wide mb-0.5">Coach Tip</p>
-          <p className="text-sm font-medium text-[#1A1A26] leading-snug transition-opacity duration-300 key={index}">
+          <p className="text-sm font-medium text-[#1A1A26] leading-snug animate-fade-in key={index}">
              {Tip.text}
           </p>
        </div>
@@ -150,48 +178,66 @@ export default function DashboardPage() {
   const [showPlayer, setShowPlayer] = useState(false);
   const [streak, setStreak] = useState(0);
   const [completedToday, setCompletedToday] = useState(false);
+  
+  // Time Logic
   const [greeting, setGreeting] = useState({ text: "Good morning", icon: Sun });
 
-  // Init
   useEffect(() => {
+    // 1. Time of Day (Strict Production Logic)
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting({ text: "Good morning", icon: Sun });
-    else if (hour < 18) setGreeting({ text: "Good afternoon", icon: CloudSun });
+    if (hour >= 5 && hour < 12) setGreeting({ text: "Good morning", icon: Sun });
+    else if (hour >= 12 && hour < 18) setGreeting({ text: "Good afternoon", icon: CloudSun });
     else setGreeting({ text: "Good evening", icon: Moon });
 
+    // 2. Load User Data
     if (userDetails) {
-      // 1. Get Playlist based on User Goal
       const data = getDailyPlaylist(userDetails.selectedTarget?.title, userDetails.joinDate);
       setRoutineData(data);
       
-      // 2. Check Streak
+      // Check last workout date to determine 'completedToday'
       const lastDate = userDetails.lastWorkoutDate ? new Date(userDetails.lastWorkoutDate) : null;
       const today = new Date();
       const isSameDay = lastDate && lastDate.getDate() === today.getDate() && lastDate.getMonth() === today.getMonth();
       
       setCompletedToday(isSameDay);
       setStreak(userDetails.streak || 0);
-      
       setLoading(false);
     }
   }, [userDetails]);
 
-  const handleWorkoutComplete = () => {
-    setShowPlayer(false);
+  // --- ACTIONS ---
+
+  // Called from the Player when 5 seconds pass (The "Started" Logic)
+  const handleProgressMarked = () => {
+    if (completedToday) return; // Don't double count if already done today
+
+    console.log("🚀 Video Started (5s): Updating Streak & Graph...");
+    
+    // 1. Update UI Instantly
     setCompletedToday(true);
     const newStreak = streak + 1;
     setStreak(newStreak);
+
+    // 2. Save Persistent Data
     saveUserData('lastWorkoutDate', new Date().toISOString());
     saveUserData('streak', newStreak);
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    
+    // 3. Haptic Feedback
+    if (navigator.vibrate) navigator.vibrate(50);
   };
+
+  const handlePlayerClose = () => {
+    setShowPlayer(false);
+  };
+
+  // --- RENDER ---
 
   if (loading) return <div className="w-full h-screen bg-[#FAF9FA]" />;
 
   const userGoal = userDetails?.selectedTarget?.title || "Core Strength";
   const userName = userDetails?.name || "Friend";
 
-  // Dynamic Theme Colors based on goal string
+  // Dynamic Theme
   const getTheme = () => {
       const g = userGoal.toLowerCase();
       if (g.includes("intimacy")) return { gradient: THEME.gradients.intimacy, color: THEME.colors.intimacy };
@@ -206,11 +252,12 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#FAF9FA] pb-32 overflow-x-hidden">
       
+      {/* FULL SCREEN PLAYER */}
       {showPlayer && routineData && (
         <DailyRoutinePlayer 
           playlist={routineData.videos} 
-          onClose={() => setShowPlayer(false)}
-          onComplete={handleWorkoutComplete}
+          onClose={handlePlayerClose}
+          onProgressMarked={handleProgressMarked} // <--- The Magic Link
         />
       )}
 
@@ -218,14 +265,16 @@ export default function DashboardPage() {
       
       <div className="px-6 pt-8 pb-4 space-y-8 max-w-md mx-auto">
         
+        {/* 1. Header */}
         <DashboardHeader name={userName} greeting={greeting} goal={userGoal} />
 
-        {/* Daily Routine Card */}
+        {/* 2. Daily Routine Card */}
         <div 
           onClick={() => setShowPlayer(true)}
           className="group w-full relative overflow-hidden rounded-[32px] bg-white border border-[#EBEBF0] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 transition-all duration-300 active:scale-[0.98] animate-slide-up cursor-pointer"
           style={{ animationDelay: '100ms' }}
         >
+          {/* Card Header */}
           <div className="flex justify-between items-start mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -243,8 +292,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Visuals */}
           <div className="relative w-full h-16 flex items-center gap-5">
             <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+               {/* Ring */}
                <svg className="absolute w-full h-full rotate-[-90deg]">
                   <circle cx="32" cy="32" r="28" stroke="#F3F4F6" strokeWidth="6" fill="none" />
                   <circle 
@@ -264,6 +315,7 @@ export default function DashboardPage() {
                     </linearGradient>
                   </defs>
                </svg>
+               {/* Button */}
                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${themeGradient} flex items-center justify-center shadow-lg shadow-pink-200/50 z-10 transition-transform duration-300 group-hover:scale-110 ${!completedToday ? 'animate-breathe' : ''}`}>
                   {completedToday ? (
                      <RotateCw size={18} className="text-white" />
@@ -278,8 +330,7 @@ export default function DashboardPage() {
                 {completedToday ? "Session Complete!" : "Start Session"}
               </span>
               <span className="text-[13px] text-[#737380]">
-                {/* UPDATED TEXT HERE as requested */}
-                {completedToday ? "Great job, come back tomorrow." : "5 Minute Workout"}
+                 {completedToday ? "Great job, come back tomorrow." : "5 Minute Workout"}
               </span>
             </div>
 
@@ -291,7 +342,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Streak Widget */}
+        {/* 3. Streak Widget */}
         <div 
           className="bg-gradient-to-br from-[#1A1A26] to-[#2C2C3E] rounded-[24px] p-5 text-white shadow-xl flex items-center justify-between animate-slide-up" 
           style={{ animationDelay: '200ms' }}
@@ -310,8 +361,11 @@ export default function DashboardPage() {
            <ChevronRight size={16} className="text-gray-500" />
         </div>
 
-        <WeeklyProgressGraph streak={streak} goalColor={themeColor} />
-        <CoachTipCard goalColor={themeColor} />
+        {/* 4. Graph */}
+        <WeeklyProgressGraph streak={streak} goalColor={themeColor} isTodayDone={completedToday} />
+
+        {/* 5. Coach Tips (Goal Based) */}
+        <CoachTipCard goalColor={themeColor} userGoal={userGoal} />
 
       </div>
     </div>
