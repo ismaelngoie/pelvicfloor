@@ -14,7 +14,7 @@ export async function POST(request) {
       customer: customer.id,
       items: [{
         // 👇 PASTE YOUR STRIPE PRICE ID HERE (starts with price_... or plan_...)
-        price: "price_1Qis......", 
+        price: "price_1SuE0YQzE2JqQU13YdBWyFNC", 
       }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
