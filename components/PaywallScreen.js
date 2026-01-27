@@ -107,7 +107,7 @@ const CheckoutForm = ({ onClose }) => {
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: "https://pelvic.health/dashboard?plan=monthly", 
+        return_url: "https://pelvi.health/dashboard?plan=monthly", 
       },
       redirect: "if_required",
     });
