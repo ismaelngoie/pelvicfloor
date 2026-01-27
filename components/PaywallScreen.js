@@ -294,7 +294,6 @@ export default function PaywallScreen() {
           
           {/* Content Layer */}
           <div className="relative flex items-center gap-2 z-10">
-             <Lock size={20} className="text-white" /> 
              <span className="text-[18px] font-bold text-white">Start My {goalTitle.split(' ').slice(-2).join(' ')} Plan</span>
           </div>
         </button>
