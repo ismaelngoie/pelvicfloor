@@ -230,7 +230,7 @@ export default function PaywallScreen() {
         </div>
 
         {/* Social Proof - REVIEWS (Updated for Transparency & Readability) */}
-        <div className="w-full bg-black/10 backdrop-blur-md border border-white/5 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
+        <div className="w-full bg-black/5 backdrop-blur-md border border-white/1 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
           <div className="flex flex-col items-center gap-1">
             <span className="text-[22px] font-bold text-white drop-shadow-sm">4.9</span>
             <div className="flex text-yellow-400 gap-1 drop-shadow-sm">
