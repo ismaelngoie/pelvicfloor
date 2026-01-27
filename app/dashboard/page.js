@@ -117,13 +117,11 @@ const VideoPreview = ({ url }) => {
   );
 };
 
-// --- FIXED WEEKLY GRAPH COMPONENT ---
 const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
   const days = ["M", "T", "W", "T", "F", "S", "S"];
-  const [todayIndex, setTodayIndex] = useState(null); // Use state for hydration safety
+  const [todayIndex, setTodayIndex] = useState(-1);
 
   useEffect(() => {
-    // 1. Calculate today's index safely on the client
     let current = new Date().getDay() - 1; 
     if (current === -1) current = 6; 
     setTodayIndex(current);
@@ -140,19 +138,12 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
       
       <div className="flex justify-between items-end h-24 gap-2">
         {days.map((day, idx) => {
-          // Logic:
-          // 1. If idx matches todayIndex -> Check isTodayDone prop
-          // 2. If idx is in the past -> Simple random logic for demo (or connect to history)
-          // 3. If idx is future -> Empty
-          
           let isActive = false;
-          
-          if (todayIndex !== null) {
+          if (todayIndex !== -1) {
               if (idx === todayIndex) {
-                  isActive = isTodayDone; // Strictly listen to the prop
+                  isActive = isTodayDone; 
               } else if (idx < todayIndex) {
-                  // Simulate history for demo purposes (consistent seed based on index)
-                  isActive = (idx % 2 === 0); 
+                  isActive = (idx % 2 === 0); // Simulated history
               }
           }
 
@@ -216,10 +207,58 @@ const CoachTipCard = ({ goalColor, userGoal }) => {
   );
 };
 
+const DownloadAppCard = () => {
+  return (
+    <div className="relative overflow-hidden rounded-[32px] bg-[#1A1A26] p-6 text-white shadow-2xl animate-slide-up" style={{ animationDelay: '500ms' }}>
+      {/* Background Graphic */}
+      <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-purple-500 rounded-full blur-[60px] opacity-40"></div>
+      <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-pink-500 rounded-full blur-[60px] opacity-40"></div>
+
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center shadow-lg">
+            <span className="text-xl">📱</span>
+          </div>
+          <h3 className="text-lg font-bold">Get the Full Experience</h3>
+        </div>
+        
+        <p className="text-sm text-gray-300 mb-6 leading-relaxed">
+          Unlock <strong>smart reminders</strong>, <strong>offline mode</strong>, and <strong>haptic guidance</strong> by downloading the official app. Your progress syncs automatically.
+        </p>
+
+        <div className="flex flex-col gap-3">
+          {/* iOS Button */}
+          <a 
+            href="https://apps.apple.com/us/app/pelvic-floor-core-coach/id6642654729" 
+            target="_blank" 
+            rel="noreferrer"
+            className="flex items-center justify-center gap-3 w-full py-3.5 bg-white text-[#1A1A26] rounded-xl font-bold hover:bg-gray-100 transition-colors"
+          >
+            {/* Inline SVG Apple Logo */}
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.45-1.62 4.37-1.4 1.83.2 2.91 1.25 3.6 2.2-2.92 1.88-2.39 5.86.48 7.03-.64 1.84-1.68 3.59-3.53 4.4zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.16 2.29-1.87 4.29-3.74 4.25z"/></svg>
+            <span>Download on iOS</span>
+          </a>
+
+          {/* Android Button (Placeholder until ready) */}
+          <button 
+            disabled 
+            className="flex items-center justify-center gap-3 w-full py-3.5 bg-white/10 text-gray-400 rounded-xl font-bold border border-white/10 cursor-not-allowed"
+          >
+             {/* Inline SVG Play Store Logo */}
+             <svg className="w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="currentColor"><path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.5,12.92 20.16,13.19L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.14L3.84,2.15C3.84,2.15 6.05,2.66 6.05,2.66Z" /></svg>
+            <span>Android Coming Soon</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- MAIN PAGE ---
 export default function DashboardPage() {
   const { userDetails, saveUserData } = useUserData();
   
+  // State
   const [loading, setLoading] = useState(true);
   const [routineData, setRoutineData] = useState(null);
   const [showPlayer, setShowPlayer] = useState(false);
@@ -227,7 +266,7 @@ export default function DashboardPage() {
   const [completedToday, setCompletedToday] = useState(false);
   const [greeting, setGreeting] = useState({ text: "Good morning", icon: Sun });
 
-  // Init
+  // Init Logic
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) setGreeting({ text: "Good morning", icon: Sun });
@@ -248,13 +287,11 @@ export default function DashboardPage() {
     }
   }, [userDetails]);
 
-  // --- ACTIONS ---
+  // Actions
   const handleProgressMarked = () => {
     if (completedToday) return;
 
-    console.log("✅ 5-Second Mark: Updating Graph & Streak...");
-    
-    // 1. Update State (Triggers Graph Re-render)
+    // 🚀 INSTANTLY Update State (Graph fills up, Streak increases)
     setCompletedToday(true);
     const newStreak = streak + 1;
     setStreak(newStreak);
@@ -390,7 +427,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Streak Widget */}
+        {/* 3. Streak Widget */}
         <div 
           className="bg-gradient-to-br from-[#1A1A26] to-[#2C2C3E] rounded-[24px] p-5 text-white shadow-xl flex items-center justify-between animate-slide-up" 
           style={{ animationDelay: '200ms' }}
@@ -414,6 +451,11 @@ export default function DashboardPage() {
 
         {/* Tips */}
         <CoachTipCard goalColor={themeColor} userGoal={userGoal} />
+
+        {/* Download App Card */}
+        <div className="pt-4">
+          <DownloadAppCard />
+        </div>
 
       </div>
     </div>
