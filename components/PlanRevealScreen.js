@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 import { useUserData } from '@/context/UserDataContext';
 import { 
   Check, HeartHandshake, Baby, Droplets, User, 
@@ -140,20 +140,41 @@ const AICoreView = () => (
 // 2. Typewriter Effect
 const TypewriterText = ({ text }) => {
   const [displayed, setDisplayed] = useState("");
+  const timerRef = useRef(null);
+
   useEffect(() => {
+    // hard-stop any existing timer before starting a new one
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
     setDisplayed("");
     let i = 0;
-    const t = setInterval(() => {
-      if (i < text.length) {
-        setDisplayed(prev => prev + text.charAt(i));
-        i++;
-      } else {
-        clearInterval(t);
+
+    timerRef.current = setInterval(() => {
+      i += 1;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     }, 40);
-    return () => clearInterval(t);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [text]);
-  return <span>{displayed}<span className="animate-pulse text-[#E65473]">|</span></span>;
+
+  return (
+    <span>
+      {displayed}
+      <span className="animate-pulse text-[#E65473]">|</span>
+    </span>
+  );
 };
 
 // 3. Checklist Item
