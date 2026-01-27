@@ -5,7 +5,6 @@ import { useUserData } from '@/context/UserDataContext';
 import { Lock, Star, Check, ChevronDown, Activity, Play, Brain, Timer } from 'lucide-react';
 
 // --- ASSETS: Exact mapping from your Swift code ---
-// Swift: let pics = ["review9","review1","review5","review4","review2"]
 const REVIEW_IMAGES = [
   "/review9.png", 
   "/review1.png", 
@@ -181,11 +180,12 @@ export default function PaywallScreen() {
           loop 
           muted 
           playsInline 
-          className="w-full h-full object-cover opacity-60"
+          className="w-full h-full object-cover"
         >
           <source src="/paywall_video.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-black/50" />
+        {/* Lighter Overlay for better video visibility */}
+        <div className="absolute inset-0 bg-black/30" />
       </div>
 
       {/* 2. Scrollable Content */}
@@ -289,8 +289,8 @@ export default function PaywallScreen() {
         </div>
       </div>
 
-      {/* 3. Sticky Footer CTA */}
-      <div className={`absolute bottom-0 left-0 w-full z-30 px-6 pb-8 pt-6 bg-gradient-to-t from-black via-black/95 to-transparent transition-all duration-700 delay-300 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
+      {/* 3. Sticky Footer CTA - More Transparent Gradient */}
+      <div className={`absolute bottom-0 left-0 w-full z-30 px-6 pb-8 pt-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent transition-all duration-700 delay-300 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         <button 
           onClick={handleUnlock}
           className="w-full h-[58px] rounded-full shadow-[0_0_25px_rgba(225,29,72,0.5)] flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform relative overflow-hidden group"
@@ -305,7 +305,7 @@ export default function PaywallScreen() {
           </div>
         </button>
 
-        <p className="text-center text-white/50 text-[12px] font-medium mt-3 leading-snug px-4">
+        <p className="text-center text-white/60 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">
           {getCtaSubtext()}
         </p>
       </div>
