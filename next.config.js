@@ -8,7 +8,7 @@ const withPWA = require("next-pwa")({
 
 const nextConfig = {
   reactStrictMode: true,
-  // output: 'export', <--- REMOVED THIS LINE TO ENABLE STRIPE API
+  output: 'export', // <--- THIS IS REQUIRED FOR CLOUDFLARE BUILD
   images: {
     unoptimized: true,
   },
