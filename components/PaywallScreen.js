@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserData } from '@/context/UserDataContext';
-import { Lock, Star, ChevronDown, Activity, Play, Brain, Timer, X, Loader2 } from 'lucide-react';
+import { Star, ChevronDown, Activity, Play, Brain, Timer, X, Loader2 } from 'lucide-react';
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 // --- STRIPE SETUP ---
+// Replace with your actual Publishable Key from the Stripe Dashboard
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 // --- ASSETS ---
@@ -125,11 +126,16 @@ const CheckoutForm = ({ onClose }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-md bg-[#1A1A26] p-6 rounded-3xl border border-white/10 shadow-2xl animate-slide-up relative">
+    // Updated container: max-width for desktop, width-full for mobile, onClick stopPropagation to prevent closing when clicking inside
+    <form 
+      onClick={(e) => e.stopPropagation()}
+      onSubmit={handleSubmit} 
+      className="w-full max-w-md bg-[#1A1A26] p-6 rounded-3xl border border-white/10 shadow-2xl animate-slide-up relative my-auto mx-4"
+    >
       <button 
         type="button" 
         onClick={onClose} 
-        className="absolute top-4 right-4 p-2 bg-white/5 rounded-full hover:bg-white/20 transition-colors"
+        className="absolute top-4 right-4 p-2 bg-white/5 rounded-full hover:bg-white/20 transition-colors z-10"
       >
         <X size={20} className="text-white" />
       </button>
@@ -148,7 +154,7 @@ const CheckoutForm = ({ onClose }) => {
         id="submit"
         className="w-full mt-6 h-14 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
       >
-        {isLoading ? <Loader2 className="animate-spin" /> : <><Lock size={18} /> Pay $24.99</>}
+        {isLoading ? <Loader2 className="animate-spin" /> : "Pay $24.99"}
       </button>
       
       <p className="text-center text-white/30 text-xs mt-4">100% Secure Payment via Stripe</p>
@@ -173,7 +179,7 @@ export default function PaywallScreen() {
   const [clientSecret, setClientSecret] = useState("");
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   
-  // NEW: Button Loading State
+  // Loading State
   const [isButtonLoading, setIsButtonLoading] = useState(false);
 
   // Derived Data
@@ -209,7 +215,6 @@ export default function PaywallScreen() {
   // --- ACTIONS ---
 
   const handleStartPlan = async () => {
-    // 1. Show Spinner immediately
     setIsButtonLoading(true);
 
     if (!clientSecret) {
@@ -219,7 +224,6 @@ export default function PaywallScreen() {
           headers: { "Content-Type": "application/json" },
         });
 
-        // 2. Catch API Errors (e.g., 500 Internal Server Error)
         if (!res.ok) {
            const errText = await res.text();
            throw new Error(`Server Error: ${res.status} - ${errText}`);
@@ -227,21 +231,17 @@ export default function PaywallScreen() {
 
         const data = await res.json();
         
-        // 3. Catch Stripe Logic Errors (e.g. Invalid Price ID)
-        if (data.error) {
-           throw new Error(data.error);
-        }
+        if (data.error) throw new Error(data.error);
 
         setClientSecret(data.clientSecret);
       } catch (err) {
         console.error("Stripe Error:", err);
         alert(`Could not initialize payment: ${err.message}. Please check your internet or try again later.`);
-        setIsButtonLoading(false); // Stop spinner on error
+        setIsButtonLoading(false);
         return;
       }
     }
     
-    // 4. Success - Stop spinner and show modal
     setIsButtonLoading(false);
     setShowCheckoutModal(true);
   };
@@ -295,8 +295,8 @@ export default function PaywallScreen() {
       {/* 2. Scrollable Content */}
       <div className={`z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-12 pb-36 px-6 transition-all duration-700 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         
-        {/* Headline */}
-        <h1 className="text-[28px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
+        {/* Headline - INCREASED SIZE */}
+        <h1 className="text-[34px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
           <span className="text-white">{userName === "Ready" ? "Ready to" : `${userName}, ready to`}</span><br/>
           <span className="capitalize text-[#E65473]">{goalTitle.replace('Stop ', '').replace('Build ', '')}</span>?
           <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
@@ -358,7 +358,7 @@ export default function PaywallScreen() {
           <p className="text-[13px] text-white/70 text-center mt-2 font-medium">Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.</p>
         </div>
 
-        {/* Footer Links (Fixed) */}
+        {/* Footer Links */}
         <div className="flex flex-col gap-4 mb-8">
            <div className="w-full bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm">
               <div className="flex items-center justify-center gap-2 text-white/90">
@@ -387,19 +387,27 @@ export default function PaywallScreen() {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] transition-all group-hover:scale-105" />
           <div className="relative flex items-center gap-2 z-10">
-             {isButtonLoading ? <Loader2 className="animate-spin text-white" size={24} /> : <Lock size={20} className="text-white" />}
+             {/* REMOVED LOCK ICON */}
+             {isButtonLoading && <Loader2 className="animate-spin text-white" size={24} />}
              <span className="text-[18px] font-bold text-white">Start My {goalTitle.split(' ').slice(-2).join(' ')} Plan</span>
           </div>
         </button>
         <p className="text-center text-white/70 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">{getCtaSubtext()}</p>
       </div>
 
-      {/* 4. STRIPE OVERLAY MODAL */}
+      {/* 4. STRIPE OVERLAY MODAL - SCROLLABLE WRAPPER */}
       {showCheckoutModal && clientSecret && (
-        <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <Elements options={{ clientSecret, appearance: stripeAppearance }} stripe={stripePromise}>
-            <CheckoutForm onClose={() => setShowCheckoutModal(false)} />
-          </Elements>
+        // The outer div is fixed and scrollable (overflow-y-auto) to allow scrolling on small screens
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
+          onClick={() => setShowCheckoutModal(false)} // Clicking background closes it
+        >
+          {/* Flex container ensures centering but allows expansion */}
+          <div className="min-h-full flex items-center justify-center p-4">
+            <Elements options={{ clientSecret, appearance: stripeAppearance }} stripe={stripePromise}>
+              <CheckoutForm onClose={() => setShowCheckoutModal(false)} />
+            </Elements>
+          </div>
         </div>
       )}
 
