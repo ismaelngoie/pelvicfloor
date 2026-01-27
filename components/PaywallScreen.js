@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useUserData } from '@/context/UserDataContext';
 import { Lock, Star, Check, ChevronDown, Activity, Play, Brain, Timer } from 'lucide-react';
 
-// --- ASSETS: Exact mapping from your Swift code ---
+// --- ASSETS ---
 const REVIEW_IMAGES = [
   "/review9.png", 
   "/review1.png", 
@@ -13,16 +13,15 @@ const REVIEW_IMAGES = [
   "/review2.png"
 ];
 
-// --- LOGIC: Exact Swift Port of Reviews ---
+// --- LOGIC: Exact Review Mapping ---
 const getReviewsForGoal = (goalTitle) => {
   const goal = (goalTitle || "").toLowerCase();
   
-  // Helper to package data exactly like Swift
   const pack = (names, texts) => {
     return names.map((name, i) => ({
       name,
       text: texts[i],
-      image: REVIEW_IMAGES[i % REVIEW_IMAGES.length] // Cycles through your specific pngs
+      image: REVIEW_IMAGES[i % REVIEW_IMAGES.length]
     }));
   };
 
@@ -69,7 +68,6 @@ const getReviewsForGoal = (goalTitle) => {
     );
   }
   
-  // Default Fallback
   return pack(
     ["Olivia G.", "Emily D.", "Sarah W.", "Emily J.", "Dana A."],
     ["This finally felt made for me", "Small wins in days I smiled", "Five minutes gave real change", "Pain eased and I breathed", "Confidence returned I feel in control"]
@@ -91,7 +89,12 @@ export default function PaywallScreen() {
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [userCount, setUserCount] = useState(9800);
+  
+  // Controls the text content animation
   const [showContent, setShowContent] = useState(false);
+  // Controls the video fade-in (prevents black flash)
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  
   const [dateString, setDateString] = useState(""); 
 
   // --- DERIVED DATA ---
@@ -101,17 +104,17 @@ export default function PaywallScreen() {
 
   // --- EFFECTS ---
 
-  // 1. Client-side Date Calculation
+  // 1. Initialize immediately
   useEffect(() => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
     setDateString(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     
-    // Trigger entrance animation
-    setTimeout(() => setShowContent(true), 100);
+    // Show content immediately (no delay)
+    setShowContent(true);
   }, []);
 
-  // 2. Feature Carousel Timer
+  // 2. Feature Carousel
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveFeatureIndex((prev) => (prev + 1) % FEATURES.length);
@@ -119,7 +122,7 @@ export default function PaywallScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Review Rotation Timer
+  // 3. Review Rotation
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
@@ -151,33 +154,36 @@ export default function PaywallScreen() {
     router.push('/dashboard');
   };
 
-  // --- HELPER: CTA Text Logic ---
   const getCtaSubtext = () => {
     if (!dateString) return ""; 
     const g = goalTitle.toLowerCase();
     const priceText = "$24.99/mo";
     
-    if (g.includes("intimacy")) return `Feel more sensation and easier orgasms by ${dateString}. If not, one tap full ${priceText} refund.`;
-    if (g.includes("leak")) return `Fewer leaks when you cough laugh or run by ${dateString}. If not, one tap full ${priceText} refund.`;
-    if (g.includes("pain")) return `Less pelvic tension and easier sitting by ${dateString}. If not, one tap full ${priceText} refund.`;
-    if (g.includes("postpartum")) return `A steadier core and easier carries by ${dateString}. If not, one tap full ${priceText} refund.`;
-    if (g.includes("pregnancy")) return `Calmer breath and better pelvic control by ${dateString}. If not, one tap full ${priceText} refund.`;
-    if (g.includes("fitness")) return `More stable lifts and less strain by ${dateString}. If not, one tap full ${priceText} refund.`;
+    const suffix = `If not, one tap full ${priceText} refund.`;
     
-    return `Feel real progress by ${dateString}. If not, one tap full ${priceText} refund.`;
+    if (g.includes("intimacy")) return `Feel more sensation and easier orgasms by ${dateString}. ${suffix}`;
+    if (g.includes("leak")) return `Fewer leaks when you cough laugh or run by ${dateString}. ${suffix}`;
+    if (g.includes("pain")) return `Less pelvic tension and easier sitting by ${dateString}. ${suffix}`;
+    if (g.includes("postpartum")) return `A steadier core and easier carries by ${dateString}. ${suffix}`;
+    if (g.includes("pregnancy")) return `Calmer breath and better pelvic control by ${dateString}. ${suffix}`;
+    if (g.includes("fitness")) return `More stable lifts and less strain by ${dateString}. ${suffix}`;
+    
+    return `Feel real progress by ${dateString}. ${suffix}`;
   };
 
   return (
     <div className="relative w-full h-full flex flex-col bg-black overflow-hidden">
       
-      {/* 1. Video Background */}
+      {/* 1. Video Background (Optimized to prevent black flash) */}
       <div className="absolute inset-0 z-0">
         <video 
           autoPlay 
           loop 
           muted 
-          playsInline 
-          className="w-full h-full object-cover"
+          playsInline
+          preload="auto"
+          onLoadedData={() => setVideoLoaded(true)}
+          className={`w-full h-full object-cover transition-opacity duration-1000 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
         >
           <source src="/paywall_video.mp4" type="video/mp4" />
         </video>
@@ -186,7 +192,7 @@ export default function PaywallScreen() {
       </div>
 
       {/* 2. Scrollable Content */}
-      <div className={`z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-12 pb-36 px-6 transition-all duration-700 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+      <div className={`z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-12 pb-36 px-6 transition-all duration-700 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         
         {/* Headline */}
         <h1 className="text-[28px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
@@ -229,8 +235,8 @@ export default function PaywallScreen() {
           </div>
         </div>
 
-        {/* Social Proof - REVIEWS (Updated for Transparency & Readability) */}
-        <div className="w-full bg-black/5 backdrop-blur-md border border-white/1 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
+        {/* Social Proof - REVIEWS */}
+        <div className="w-full bg-black/20 backdrop-blur-md border border-white/10 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
           <div className="flex flex-col items-center gap-1">
             <span className="text-[22px] font-bold text-white drop-shadow-sm">4.9</span>
             <div className="flex text-yellow-400 gap-1 drop-shadow-sm">
@@ -259,7 +265,7 @@ export default function PaywallScreen() {
           </div>
 
           <p className="text-[13px] text-white/70 text-center mt-2 font-medium">
-            Join <span className="font-bold text-white">10,200+ women</span> feeling strong.
+            Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.
           </p>
         </div>
 
@@ -275,16 +281,24 @@ export default function PaywallScreen() {
               </p>
            </div>
            
-           <div className="flex justify-between px-6 text-[11px] font-medium text-white/50">
-              <button>Restore Purchase</button>
-              <button>Terms of Use</button>
-              <button>Privacy Policy</button>
+           {/* UPDATED FOOTER LINKS */}
+           <div className="flex justify-center items-center gap-3 text-[11px] font-medium text-white/50">
+              <button 
+                onClick={() => alert("Restore initiated")} 
+                className="underline decoration-white/30 hover:text-white transition-colors"
+              >
+                Restore Purchase
+              </button>
+              <span>•</span>
+              <span>Physio-Designed</span>
+              <span>•</span>
+              <span>Doctor Approved</span>
            </div>
         </div>
       </div>
 
       {/* 3. Sticky Footer CTA - More Transparent Gradient */}
-      <div className={`absolute bottom-0 left-0 w-full z-30 px-6 pb-8 pt-6 bg-gradient-to-t from-black/60 via-black/40 to-transparent transition-all duration-700 delay-300 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
+      <div className={`absolute bottom-0 left-0 w-full z-30 px-6 pb-8 pt-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent transition-all duration-700 delay-300 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         <button 
           onClick={handleUnlock}
           className="w-full h-[58px] rounded-full shadow-[0_0_25px_rgba(225,29,72,0.5)] flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform relative overflow-hidden group"
@@ -294,6 +308,7 @@ export default function PaywallScreen() {
           
           {/* Content Layer */}
           <div className="relative flex items-center gap-2 z-10">
+             <Lock size={20} className="text-white" /> 
              <span className="text-[18px] font-bold text-white">Start My {goalTitle.split(' ').slice(-2).join(' ')} Plan</span>
           </div>
         </button>
