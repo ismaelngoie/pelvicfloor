@@ -1,17 +1,29 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUserData } from '@/context/UserDataContext';
 import { Lock, Star, Check, ChevronDown, Activity, Play, Brain, Timer } from 'lucide-react';
 
-// --- DATA: Exact Swift Port of Reviews ---
+// --- ASSETS: Exact mapping from your Swift code ---
+// Swift: let pics = ["review9","review1","review5","review4","review2"]
+const REVIEW_IMAGES = [
+  "/review9.png", 
+  "/review1.png", 
+  "/review5.png", 
+  "/review4.png", 
+  "/review2.png"
+];
+
+// --- LOGIC: Exact Swift Port of Reviews ---
 const getReviewsForGoal = (goalTitle) => {
   const goal = (goalTitle || "").toLowerCase();
   
+  // Helper to package data exactly like Swift
   const pack = (names, texts) => {
     return names.map((name, i) => ({
       name,
       text: texts[i],
-      image: "/coachMiaAvatar.png" // Placeholder as requested
+      image: REVIEW_IMAGES[i % REVIEW_IMAGES.length] // Cycles through your specific pngs
     }));
   };
 
@@ -51,6 +63,12 @@ const getReviewsForGoal = (goalTitle) => {
       ["Runs feel springy and sure", "Deadlifts steady no pinch", "Balance finally clicked in yoga", "Core fired my pace improved", "Recovery better workouts stick"]
     );
   }
+  if (goal.includes("stability") || goal.includes("posture")) {
+    return pack(
+      ["Camille D.", "Erin S.", "Mina J.", "Paige R.", "Ruth N."],
+      ["Shoulders dropped I grew taller", "Neck stayed easy all day", "Stairs felt steady and safe", "Desk hours no longer punish", "Week 1 standing feels organized"]
+    );
+  }
   
   // Default Fallback
   return pack(
@@ -60,23 +78,22 @@ const getReviewsForGoal = (goalTitle) => {
 };
 
 const FEATURES = [
-  { icon: <Brain size={32} className="text-rose-500" />, text: "AI coach that adapts daily" },
-  { icon: <Timer size={32} className="text-rose-500" />, text: "5-minute personalized routines" },
-  { icon: <Play size={32} className="text-rose-500" />, text: "300+ physio-approved videos" },
-  { icon: <Activity size={32} className="text-rose-500" />, text: "Trackable progress & streaks" }
+  { icon: <Brain size={28} className="text-white" />, text: "AI coach that adapts daily" },
+  { icon: <Timer size={28} className="text-white" />, text: "5-minute personalized routines" },
+  { icon: <Play size={28} className="text-white" fill="white" />, text: "300+ physio-approved videos" },
+  { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" }
 ];
 
-export default function PaywallScreen({ onBack }) {
-  const { userDetails } = useUserData();
+export default function PaywallScreen() {
+  const router = useRouter();
+  const { userDetails, saveUserData } = useUserData();
   
   // --- STATE ---
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [userCount, setUserCount] = useState(9800);
   const [showContent, setShowContent] = useState(false);
-  
-  // --- HYDRATION FIX: Initialize date only on client ---
-  const [dateString, setDateString] = useState(""); 
+  const [dateString, setDateString] = useState(""); // Hydration fix
 
   // --- DERIVED DATA ---
   const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
@@ -85,7 +102,7 @@ export default function PaywallScreen({ onBack }) {
 
   // --- EFFECTS ---
 
-  // 1. Client-side Date Calculation (Fixes the Application Error)
+  // 1. Initialize Client Data (Fixes Hydration Error)
   useEffect(() => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
@@ -128,9 +145,19 @@ export default function PaywallScreen({ onBack }) {
     return () => clearInterval(timer);
   }, [showContent]);
 
+  // --- ACTIONS ---
+  const handleUnlock = () => {
+    // 1. Save state
+    saveUserData('isPremium', true);
+    saveUserData('joinDate', new Date().toISOString());
+    
+    // 2. Navigate to Dashboard
+    router.push('/dashboard');
+  };
+
   // --- HELPER: CTA Text Logic ---
   const getCtaSubtext = () => {
-    if (!dateString) return ""; // Prevent flash of unformatted text
+    if (!dateString) return ""; 
     const g = goalTitle.toLowerCase();
     const priceText = "$24.99/mo";
     
@@ -158,28 +185,28 @@ export default function PaywallScreen({ onBack }) {
         >
           <source src="/paywall_video.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/50" />
       </div>
 
       {/* 2. Scrollable Content */}
-      <div className={`z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-12 pb-32 px-6 transition-all duration-700 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+      <div className={`z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-12 pb-36 px-6 transition-all duration-700 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         
         {/* Headline */}
-        <h1 className="text-[32px] font-extrabold text-white text-center mb-6 leading-tight drop-shadow-lg">
+        <h1 className="text-[28px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
           <span className="text-white">{userName === "Ready" ? "Ready to" : `${userName}, ready to`}</span><br/>
-          <span className="capitalize text-rose-500">{goalTitle.replace('Stop ', '').replace('Build ', '')}</span>?
-          <span className="block text-[32px] text-white mt-1">100% Money-Back Guarantee.</span>
+          <span className="capitalize text-[#E65473]">{goalTitle.replace('Stop ', '').replace('Build ', '')}</span>?
+          <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
         </h1>
 
         {/* Feature Showcase Card (Animated) */}
-        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center">
+        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl">
           
-          <div className="pt-4 pb-1">
-            <h3 className="text-[16px] font-bold text-white text-center">Your Personalized Plan Includes:</h3>
+          <div className="pt-5 pb-2">
+            <h3 className="text-[17px] font-bold text-white text-center drop-shadow-md">Your Personalized Plan Includes:</h3>
           </div>
 
-          {/* Animated Features */}
-          <div className="relative w-full h-[120px] flex items-center justify-center">
+          {/* Animated Features Area */}
+          <div className="relative w-full h-[140px] flex items-center justify-center">
             {FEATURES.map((feature, index) => {
               const isActive = index === activeFeatureIndex;
               return (
@@ -187,21 +214,21 @@ export default function PaywallScreen({ onBack }) {
                   key={index}
                   className={`absolute w-full flex flex-col items-center gap-3 transition-all duration-500 ease-out px-4 text-center ${isActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}
                 >
-                  <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg shadow-rose-500/20">
+                  <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#E65473] to-[#C23A5B] flex items-center justify-center shadow-lg shadow-rose-500/30">
                     {feature.icon}
                   </div>
-                  <span className="text-[16px] font-semibold text-white leading-tight">{feature.text}</span>
+                  <span className="text-[17px] font-semibold text-white leading-tight drop-shadow-md">{feature.text}</span>
                 </div>
               );
             })}
           </div>
 
           {/* Progress Bars */}
-          <div className="w-full px-6 pb-5 flex gap-1.5 h-1.5">
+          <div className="w-full px-6 pb-6 flex gap-1.5 h-1.5">
             {FEATURES.map((_, i) => (
-              <div key={i} className="h-full flex-1 bg-white/10 rounded-full overflow-hidden">
+              <div key={i} className="h-full flex-1 bg-white/20 rounded-full overflow-hidden">
                 <div 
-                  className={`h-full bg-white rounded-full transition-all ease-linear ${i === activeFeatureIndex ? 'duration-[4000ms] w-full' : 'duration-300 w-0'}`}
+                  className={`h-full bg-white rounded-full transition-all ease-linear ${i === activeFeatureIndex ? 'duration-[4000ms] w-full' : i < activeFeatureIndex ? 'w-full' : 'w-0'}`}
                 />
               </div>
             ))}
@@ -209,11 +236,11 @@ export default function PaywallScreen({ onBack }) {
         </div>
 
         {/* Social Proof */}
-        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6">
+        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
           <div className="flex flex-col items-center gap-1">
-            <span className="text-[20px] font-bold text-white">4.9</span>
+            <span className="text-[22px] font-bold text-white">4.9</span>
             <div className="flex text-yellow-400 gap-1">
-              {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}
+              {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="currentColor" className="drop-shadow-sm" />)}
             </div>
             <span className="text-[11px] font-medium text-white/70 uppercase tracking-wide">App Store Rating</span>
           </div>
@@ -225,8 +252,12 @@ export default function PaywallScreen({ onBack }) {
                  className={`absolute w-full flex flex-col items-center transition-all duration-500 ${idx === currentReviewIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}
                >
                  <div className="flex flex-col items-center gap-2">
-                    <img src={review.image} className="w-8 h-8 rounded-full border border-white/50" alt="" />
-                    <p className="text-[14px] italic text-white/90 text-center">"{review.text}"</p>
+                    <img 
+                      src={review.image} 
+                      className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-sm" 
+                      alt={review.name} 
+                    />
+                    <p className="text-[15px] italic text-white/90 text-center font-medium">"{review.text}"</p>
                     <p className="text-[12px] font-bold text-white">{review.name}</p>
                  </div>
                </div>
@@ -259,13 +290,16 @@ export default function PaywallScreen({ onBack }) {
       </div>
 
       {/* 3. Sticky Footer CTA */}
-      <div className={`absolute bottom-0 left-0 w-full z-20 px-6 pb-8 pt-6 bg-gradient-to-t from-black via-black/95 to-transparent transition-all duration-700 delay-300 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
+      <div className={`absolute bottom-0 left-0 w-full z-30 px-6 pb-8 pt-6 bg-gradient-to-t from-black via-black/95 to-transparent transition-all duration-700 delay-300 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         <button 
-          onClick={() => alert("Redirect to Stripe")}
-          className="w-full h-[58px] rounded-full shadow-[0_0_20px_rgba(225,29,72,0.4)] flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform relative overflow-hidden group"
+          onClick={handleUnlock}
+          className="w-full h-[58px] rounded-full shadow-[0_0_25px_rgba(225,29,72,0.5)] flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform relative overflow-hidden group"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-rose-500 to-purple-600 transition-all group-hover:scale-105" />
-          <div className="relative flex items-center gap-2">
+          {/* Gradient Layer */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] transition-all group-hover:scale-105" />
+          
+          {/* Content Layer */}
+          <div className="relative flex items-center gap-2 z-10">
              <Lock size={20} className="text-white" /> 
              <span className="text-[18px] font-bold text-white">Start My {goalTitle.split(' ').slice(-2).join(' ')} Plan</span>
           </div>
