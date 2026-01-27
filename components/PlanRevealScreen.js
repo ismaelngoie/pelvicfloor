@@ -429,7 +429,7 @@ export default function PlanRevealScreen({ onNext }) {
              <div className="mt-12 text-center h-20 px-4">
                {/* 4XL Gradient Title + Typewriter */}
                <h2 className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
-                 <TypewriterText text={personalizingStatus} />
+                 <TypewriterText key={personalizingStatus} text={personalizingStatus} />
                </h2>
              </div>
           )}
