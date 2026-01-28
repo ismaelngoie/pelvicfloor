@@ -6,6 +6,7 @@ import { UserDataProvider } from "@/context/UserDataContext";
 const inter = Inter({ subsets: ["latin"] });
 
 // --- 1. VIEWPORT CONFIGURATION ---
+// Optimized for mobile-first but responsive
 export const viewport = {
   width: "device-width",
   initialScale: 1,
@@ -15,27 +16,27 @@ export const viewport = {
   themeColor: "#E65473",
 };
 
-// --- 2. ROBUST SEO METADATA ---
+// --- 2. SEO & METADATA (INTIMACY & LEAKS FOCUS) ---
 export const metadata = {
   metadataBase: new URL('https://pelvi.health'),
   title: {
-    default: "Pelvic Floor Exercises & Therapy | Stop Leaks & Prolapse",
+    default: "Pelvic Floor Exercises | Stop Leaks & Improve Intimacy",
     template: "%s | Pelvi Health"
   },
-  description: "Clinically validated at-home pelvic floor therapy. 5-minute daily exercises for incontinence, prolapse, postpartum recovery, and core strength. Better than Kegels.",
+  description: "Clinically validated 5-minute daily routines to stop bladder leaks, improve intimacy, and build core strength. No equipment needed.",
   
+  // High-Intent Keywords (Swapped Prolapse for Intimacy)
   keywords: [
     "pelvic floor exercises",
-    "pelvic floor therapy",
+    "stop bladder leaks",
+    "improve intimacy",
+    "better sex exercises",
     "incontinence treatment",
-    "prolapse exercises",
     "postpartum recovery",
-    "diastasis recti",
     "kegel exercises",
     "core strengthening",
     "bladder control",
-    "pelvic health app",
-    "at home physical therapy"
+    "pelvic health app"
   ],
 
   icons: {
@@ -45,8 +46,8 @@ export const metadata = {
   },
 
   openGraph: {
-    title: "Pelvic Floor Exercises & Therapy",
-    description: "Heal your core and stop leaks in 5 minutes a day. The #1 App for Pelvic Health.",
+    title: "Stop Leaks & Improve Intimacy | Pelvi Health",
+    description: "Heal your core and transform your intimacy in 5 minutes a day. The #1 App for Pelvic Health.",
     url: 'https://pelvi.health',
     siteName: 'Pelvi Health',
     images: [
@@ -54,7 +55,7 @@ export const metadata = {
         url: '/og-image.png', 
         width: 1200,
         height: 630,
-        alt: 'Pelvic Floor Therapy App Preview',
+        alt: 'Pelvic Floor Coach Preview',
       },
     ],
     locale: 'en_US',
@@ -63,8 +64,8 @@ export const metadata = {
 
   twitter: {
     card: 'summary_large_image',
-    title: "Pelvic Floor Exercises & Therapy",
-    description: "Heal your core and stop leaks in 5 minutes a day.",
+    title: "Stop Leaks & Improve Intimacy",
+    description: "Heal your core in 5 minutes a day.",
     images: ['/og-image.png'],
   },
 
@@ -91,9 +92,14 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-black sm:bg-gray-100 flex flex-col sm:justify-center sm:items-center fixed inset-0 w-full h-full`}>
+      {/* LAYOUT UPDATE:
+         - Removed 'fixed inset-0' so desktop users can scroll.
+         - Removed 'sm:w-[400px]' phone box constraints.
+         - Added 'bg-[#FAF9FA]' for a premium dashboard background feel.
+      */}
+      <body className={`${inter.className} bg-[#FAF9FA] min-h-screen flex flex-col`}>
         
-        {/* --- 3. GOOGLE TAG (ADS) --- */}
+        {/* --- 3. GOOGLE ADS TAG --- */}
         <Script
           strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=AW-17911323675"
@@ -118,8 +124,11 @@ export default function RootLayout({ children }) {
           `}
         </Script>
 
-        {/* --- APP CONTAINER --- */}
-        <div className="w-full h-full sm:h-[850px] sm:w-[400px] bg-app-background relative overflow-hidden sm:rounded-[40px] sm:border-[8px] sm:border-gray-900 shadow-2xl flex flex-col">
+        {/* APP CONTAINER:
+           - On Mobile: Full width, behaves like a native app.
+           - On Desktop: Centered, max-width constrained for readability, but NOT a tiny phone box.
+        */}
+        <div className="w-full min-h-screen flex flex-col mx-auto bg-app-background shadow-sm">
           <UserDataProvider>
             {children}
           </UserDataProvider>
