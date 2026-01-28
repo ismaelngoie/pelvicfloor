@@ -12,7 +12,7 @@ export async function onRequestPost(context) {
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{
-        price: "price_1SuE0YQzE2JqQU13YdBWyFNC", // Your Price ID
+        price: "price_1SuIhbJcZ3jBmTIvpjkDwzJo", // Your Price ID
       }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
