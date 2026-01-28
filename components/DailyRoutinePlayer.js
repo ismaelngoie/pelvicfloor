@@ -2,122 +2,176 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Play, Pause, SkipForward, SkipBack, CheckCircle2, 
-  RotateCcw, RotateCw, Info, ChevronUp, ChevronDown 
+  RotateCcw, RotateCw, Info, ChevronUp, ChevronDown, Sparkles, Volume2, VolumeX, List
 } from 'lucide-react';
 import { useUserData } from '@/context/UserDataContext';
 
-// --- COACHING CONTENT ---
+// --- 1. EXTENSIVE COACHING CONTENT ---
+// Expanded to cover every possible user goal with medical-grade clarity.
 const GOAL_BRIEFS = {
   "intimacy": {
     title: "Unlock Sensation",
-    text: "For intimacy, relaxation is just as important as strength. Focus on fully 'letting go' of the pelvic floor during the inhale. This increases blood flow and sensitivity."
+    text: "For better intimacy, we focus on the 'Release'. A tight pelvic floor actually reduces sensation. Focus on fully letting go during the inhale.",
+    instruction: "Follow the instructor's breathing pace. Do not squeeze 100% hard; 50% effort is enough."
   },
   "leak": {
-    title: "Build The Seal",
-    text: "Consistency creates the 'seal' that stops leaks. Focus on the lift *before* you exhale. Small, precise movements are better than big, messy ones."
+    title: "The Dryness Seal",
+    text: "We are building the 'Knack'—the reflexive squeeze before a cough. Consistency creates a seal that stops leaks before they happen.",
+    instruction: "Focus on the lift *before* you exhale. Small, precise movements are better than big, messy ones."
   },
   "postpartum": {
-    title: "Reconnect Gently",
-    text: "You are rebuilding your foundation. If you see your belly 'doming' or 'coning', pause and reset. Gentle engagement is powerful."
+    title: "Safe Reconnection",
+    text: "Your body is healing. We avoid traditional crunches to protect your abs (Diastasis Recti). We focus on deep inner core connection.",
+    instruction: "If you see your belly 'coning' or 'doming', stop immediately and reset. Gentle is powerful."
+  },
+  "prolapse": {
+    title: "Lift & Support",
+    text: "Gravity is the enemy here. These moves are designed to work against gravity, pulling organs back into a supported position.",
+    instruction: "Do not hold your breath. Exhale on the exertion (the lift). Breath holding pushes organs down."
+  },
+  "menopause": {
+    title: "Revitalize & Strengthen",
+    text: "Decreased estrogen thins pelvic tissues. Movement brings blood flow, collagen, and elasticity back to the area.",
+    instruction: "Movement might feel subtle. That is okay. Visualize the muscles lifting like an elevator."
+  },
+  "core": {
+    title: "Deep Core Armor",
+    text: "A strong pelvic floor is the foundation of a flat, functional core. We work from the inside out.",
+    instruction: "Keep your spine neutral. Don't tuck your tailbone. Imagine zipping up a tight pair of jeans."
   },
   "default": {
-    title: "Your Daily 5-Min",
-    text: "Consistency is your superpower. Most users see a measurable difference in control within 7 days of daily practice. Let's do this."
+    title: "Daily Foundation",
+    text: "Consistency is your superpower. Most users see a measurable difference in control within 7 days of daily practice.",
+    instruction: "Follow the video exactly. One set per day is all you need. Quality over quantity."
   }
 };
 
 // --- SUB-COMPONENTS ---
 
+// A. The "Pre-Flight" Coaching Modal
 const CoachingPopup = ({ goal, onStart }) => {
   const brief = (() => {
     const g = (goal || "").toLowerCase();
     if (g.includes("intimacy") || g.includes("sex")) return GOAL_BRIEFS.intimacy;
     if (g.includes("leak") || g.includes("bladder")) return GOAL_BRIEFS.leak;
-    if (g.includes("postpartum")) return GOAL_BRIEFS.postpartum;
+    if (g.includes("postpartum") || g.includes("baby")) return GOAL_BRIEFS.postpartum;
+    if (g.includes("prolapse") || g.includes("heavy")) return GOAL_BRIEFS.prolapse;
+    if (g.includes("menopause")) return GOAL_BRIEFS.menopause;
+    if (g.includes("core") || g.includes("strength")) return GOAL_BRIEFS.core;
     return GOAL_BRIEFS.default;
   })();
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
-      <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-scale-up text-center">
-        <div className="w-16 h-16 bg-[#E65473]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Info size={32} className="text-[#E65473]" />
+    <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
+      <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl animate-scale-up text-center relative overflow-hidden">
+        {/* Decorative Background Blob */}
+        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[#E65473]/10 to-transparent pointer-events-none" />
+        
+        <div className="w-20 h-20 bg-[#E65473]/10 rounded-full flex items-center justify-center mx-auto mb-6 relative z-10">
+          <Sparkles size={40} className="text-[#E65473]" />
         </div>
-        <h2 className="text-2xl font-extrabold text-[#1A1A26] mb-3">{brief.title}</h2>
-        <p className="text-[#737380] text-sm leading-relaxed mb-8">
-          {brief.text}
-        </p>
+        
+        <h2 className="text-3xl font-extrabold text-[#1A1A26] mb-2 leading-tight">{brief.title}</h2>
+        <p className="text-[#E65473] font-bold text-xs uppercase tracking-widest mb-6">Session Focus</p>
+        
+        <div className="text-left bg-gray-50 rounded-2xl p-5 mb-8">
+          <p className="text-[#737380] text-sm leading-relaxed mb-4">
+            {brief.text}
+          </p>
+          <div className="flex gap-3 items-start">
+            <Info size={18} className="text-[#E65473] shrink-0 mt-0.5" />
+            <p className="text-[#1A1A26] text-sm font-semibold italic">
+              "{brief.instruction}"
+            </p>
+          </div>
+        </div>
+
         <button 
           onClick={onStart}
-          className="w-full h-14 bg-[#E65473] text-white font-bold text-lg rounded-xl shadow-lg shadow-pink-500/30 active:scale-95 transition-transform"
+          className="w-full h-14 bg-[#E65473] text-white font-bold text-lg rounded-2xl shadow-lg shadow-pink-500/30 active:scale-95 transition-transform flex items-center justify-center gap-2"
         >
-          I'm Ready
+          <Play size={20} fill="currentColor" /> Start Session
         </button>
       </div>
     </div>
   );
 };
 
-const UpNextTray = ({ nextVideo, isExpanded, onToggle }) => {
-  if (!nextVideo) return null;
-  
+// B. Instructions Drawer (Slide Up)
+const InstructionsDrawer = ({ isOpen, onClose, currentVideo }) => {
   return (
-    <div 
-      onClick={onToggle}
-      className={`absolute bottom-28 left-4 right-4 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 transition-all duration-300 overflow-hidden cursor-pointer ${isExpanded ? 'h-32' : 'h-16'}`}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-black/20 flex items-center justify-center text-white/50 text-xs font-bold">
-            Next
+    <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] transition-transform duration-500 ease-in-out z-30 ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+      <div className="p-6 pb-8">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-[#1A1A26]">How to Follow</h3>
+          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+            <ChevronDown size={20} />
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 p-4 bg-purple-50 rounded-2xl border border-purple-100">
+            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">1x</div>
+            <div>
+              <p className="font-bold text-[#1A1A26]">Follow Along</p>
+              <p className="text-xs text-gray-500">Do exactly what the instructor does. No need to count reps.</p>
+            </div>
           </div>
-          <div>
-            <p className="text-white text-sm font-bold truncate max-w-[200px]">{nextVideo.title}</p>
-            <p className="text-white/50 text-xs">{nextVideo.duration || "1:00"}</p>
+          <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">1 Set</div>
+            <div>
+              <p className="font-bold text-[#1A1A26]">One Round Only</p>
+              <p className="text-xs text-gray-500">This 5-minute session is your complete workout for today.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 p-4 bg-orange-50 rounded-2xl border border-orange-100">
+            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold">Tip</div>
+            <div>
+              <p className="font-bold text-[#1A1A26]">Quality {'>'} Quantity</p>
+              <p className="text-xs text-gray-500">If you get tired, pause. Sloppy reps don't build strength.</p>
+            </div>
           </div>
         </div>
-        {isExpanded ? <ChevronDown className="text-white/50" /> : <ChevronUp className="text-white/50" />}
-      </div>
-      
-      {/* Expanded Details */}
-      <div className={`mt-4 text-white/70 text-xs leading-relaxed transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
-        <p>Prepare to transition. Keep your core engaged and breath steady.</p>
       </div>
     </div>
   );
 };
 
+// --- MAIN PLAYER COMPONENT ---
 export default function DailyRoutinePlayer({ playlist, onClose, onProgressMarked }) {
   const videoRef = useRef(null);
   const { userDetails } = useUserData();
   
-  // State
+  // Player State
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false); // Start paused for popup
-  const [showPopup, setShowPopup] = useState(true); // Show popup first
-  const [showControls, setShowControls] = useState(true);
-  const [progress, setProgress] = useState(0); // Current video progress %
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showPopup, setShowPopup] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   
-  // Interstitial State
-  const [showUpNextOverlay, setShowUpNextOverlay] = useState(false);
+  // Transition State
+  const [showTransition, setShowTransition] = useState(false);
   const [countdown, setCountdown] = useState(3);
   
-  // Session State
+  // Completion State
   const [isComplete, setIsComplete] = useState(false);
   const [hasMarkedForSession, setHasMarkedForSession] = useState(false);
-  const [showTrayDetails, setShowTrayDetails] = useState(false);
 
   const currentVideo = playlist && playlist[currentIndex];
   const nextVideo = playlist && playlist[currentIndex + 1];
 
-  // --- STARTUP LOGIC ---
+  // --- LOGIC ---
+
   const handleStartSession = () => {
     setShowPopup(false);
     setIsPlaying(true);
-    if (videoRef.current) videoRef.current.play();
+    // Slight delay to ensure video DOM is ready
+    setTimeout(() => {
+      if (videoRef.current) videoRef.current.play();
+    }, 100);
   };
 
-  // --- VIDEO LOGIC ---
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentVideo) return;
@@ -126,7 +180,6 @@ export default function DailyRoutinePlayer({ playlist, onClose, onProgressMarked
       const pct = (video.currentTime / video.duration) * 100;
       setProgress(pct);
 
-      // Streak Logic (5-second rule)
       if (video.currentTime > 5 && !hasMarkedForSession) {
         setHasMarkedForSession(true);
         if (onProgressMarked) onProgressMarked();
@@ -149,9 +202,8 @@ export default function DailyRoutinePlayer({ playlist, onClose, onProgressMarked
     };
   }, [currentIndex, nextVideo, hasMarkedForSession]);
 
-  // --- TRANSITION LOGIC ---
   const triggerTransition = () => {
-    setShowUpNextOverlay(true);
+    setShowTransition(true);
     setCountdown(3);
     let count = 3;
     const timer = setInterval(() => {
@@ -159,55 +211,58 @@ export default function DailyRoutinePlayer({ playlist, onClose, onProgressMarked
       setCountdown(count);
       if (count <= 0) {
         clearInterval(timer);
-        setShowUpNextOverlay(false);
+        setShowTransition(false);
         setCurrentIndex(p => p + 1);
         setProgress(0);
-        setIsPlaying(true); // Auto-play next
+        setIsPlaying(true);
       }
     }, 1000);
   };
 
-  // --- CONTROLS ---
   const togglePlay = () => {
     if (videoRef.current.paused) { videoRef.current.play(); setIsPlaying(true); }
     else { videoRef.current.pause(); setIsPlaying(false); }
   };
 
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
+    }
+  };
+
+  const seek = (val) => { if (videoRef.current) videoRef.current.currentTime += val; };
   const skip = (direction) => {
     if (direction === 'next' && nextVideo) setCurrentIndex(p => p + 1);
     if (direction === 'prev' && currentIndex > 0) setCurrentIndex(p => p - 1);
   };
 
-  const seek = (seconds) => {
-    if (videoRef.current) videoRef.current.currentTime += seconds;
-  };
-
-  // --- RENDER ---
   if (!currentVideo) return null;
 
-  // 1. COMPLETION SCREEN
+  // 1. COMPLETION SCREEN (Celebration)
   if (isComplete) return (
     <div className="fixed inset-0 z-[100] bg-[#E65473] flex flex-col items-center justify-center p-8 animate-pop-in">
-      <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 shadow-2xl animate-breathe">
+      <div className="absolute inset-0 bg-[url('/confetti.png')] opacity-20 animate-pulse"></div>
+      <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 shadow-2xl animate-breathe z-10">
         <CheckCircle2 size={64} className="text-[#E65473]" />
       </div>
-      <h2 className="text-4xl font-extrabold text-white text-center mb-4">You Did It!</h2>
-      <p className="text-white/90 text-center mb-12 text-lg font-medium max-w-xs">
+      <h2 className="text-4xl font-extrabold text-white text-center mb-4 z-10">Streak Saved!</h2>
+      <p className="text-white/90 text-center mb-12 text-lg font-medium max-w-xs z-10">
         Daily session complete. Your consistency is building real strength.
       </p>
       <button 
         onClick={onClose} 
-        className="w-full h-14 bg-white text-[#E65473] font-bold text-lg rounded-2xl shadow-lg active:scale-95 transition-transform"
+        className="w-full h-14 bg-white text-[#E65473] font-bold text-lg rounded-2xl shadow-lg active:scale-95 transition-transform z-10"
       >
-        Finish & Save
+        Finish & Return Home
       </button>
     </div>
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col h-full overflow-hidden">
       
-      {/* 2. COACHING POPUP (Overlay) */}
+      {/* 2. POPUP */}
       {showPopup && (
         <CoachingPopup 
           goal={userDetails?.selectedTarget?.title} 
@@ -215,20 +270,29 @@ export default function DailyRoutinePlayer({ playlist, onClose, onProgressMarked
         />
       )}
 
-      {/* 3. VIDEO LAYER */}
-      <div className="relative flex-1 bg-gray-900 flex items-center justify-center overflow-hidden" onClick={() => setShowControls(p => !p)}>
+      {/* 3. VIDEO AREA (Top 70-75%) */}
+      <div className="relative h-[70vh] w-full bg-gray-900 flex items-center justify-center overflow-hidden">
         <video
           ref={videoRef}
           src={currentVideo.url}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           playsInline
-          // Video auto-plays only if popup is gone
           autoPlay={!showPopup} 
         />
         
-        {/* TRANSITION OVERLAY */}
-        {showUpNextOverlay && (
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-30 animate-fade-in">
+        {/* Video Overlay Controls (Mute/Close) */}
+        <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-20">
+           <button onClick={onClose} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors">
+             <X size={20} />
+           </button>
+           <button onClick={toggleMute} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors">
+             {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+           </button>
+        </div>
+
+        {/* Transition Overlay */}
+        {showTransition && (
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center z-30 animate-fade-in">
             <p className="text-white/60 text-sm font-bold uppercase tracking-widest mb-4">Up Next</p>
             <h3 className="text-white text-3xl font-bold mb-8 text-center px-6">{nextVideo?.title}</h3>
             <div className="w-24 h-24 rounded-full border-4 border-[#E65473] flex items-center justify-center">
@@ -238,84 +302,81 @@ export default function DailyRoutinePlayer({ playlist, onClose, onProgressMarked
         )}
       </div>
 
-      {/* 4. CONTROLS UI (Top & Bottom Bars) */}
-      <div className={`absolute inset-0 pointer-events-none flex flex-col justify-between transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+      {/* 4. COMMAND CENTER (Bottom 30%) */}
+      <div className="h-[30vh] bg-white rounded-t-[32px] -mt-6 relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] flex flex-col">
         
-        {/* TOP BAR: Segmented Progress */}
-        <div className="p-6 pt-12 pointer-events-auto bg-gradient-to-b from-black/80 to-transparent">
-           <div className="flex gap-1 mb-4">
-             {playlist.map((_, idx) => (
-               <div key={idx} className="h-1 flex-1 rounded-full bg-white/20 overflow-hidden">
-                 <div 
-                   className={`h-full bg-white transition-all duration-300 ${idx < currentIndex ? 'w-full' : idx === currentIndex ? 'w-full origin-left scale-x-[var(--prog)]' : 'w-0'}`} 
-                   style={idx === currentIndex ? { '--prog': progress / 100, transform: `scaleX(${progress/100})` } : {}}
-                 />
-               </div>
-             ))}
-           </div>
-           
-           <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-white text-xl font-bold leading-tight">{currentVideo.title}</h2>
-                <p className="text-white/60 text-xs font-medium mt-1">
-                  Exercise {currentIndex + 1} of {playlist.length}
-                </p>
-              </div>
-              <button onClick={onClose} className="p-2 bg-white/10 rounded-full backdrop-blur-md hover:bg-white/20 transition-colors">
-                <X className="text-white" size={24} />
-              </button>
-           </div>
+        {/* Drag Handle */}
+        <div className="w-full flex justify-center pt-3 pb-1">
+          <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
         </div>
 
-        {/* BOTTOM BAR: Controls & Queue */}
-        <div className="p-6 pb-10 pointer-events-auto bg-gradient-to-t from-black/90 via-black/50 to-transparent">
-          
-          {/* Up Next Tray */}
-          {nextVideo && !showUpNextOverlay && (
-            <UpNextTray 
-              nextVideo={nextVideo} 
-              isExpanded={showTrayDetails} 
-              onToggle={(e) => { e.stopPropagation(); setShowTrayDetails(p => !p); }} 
-            />
-          )}
+        {/* Info Area */}
+        <div className="px-6 pt-2 pb-2 flex justify-between items-center">
+          <div>
+            <p className="text-[#E65473] text-xs font-bold uppercase tracking-wider mb-1">
+              Step {currentIndex + 1} of {playlist.length}
+            </p>
+            <h2 className="text-[#1A1A26] text-xl font-extrabold truncate max-w-[250px]">{currentVideo.title}</h2>
+          </div>
+          <button 
+            onClick={() => setShowInstructions(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-lg text-xs font-bold text-[#1A1A26] hover:bg-gray-200 transition-colors"
+          >
+            <List size={14} /> Instructions
+          </button>
+        </div>
 
-          {/* Main Controls */}
-          <div className="flex items-center justify-between px-2 mt-20"> {/* Margin top pushes it down if tray is missing */}
-            
-            {/* Rewind 10s */}
-            <button onClick={(e) => { e.stopPropagation(); seek(-10); }} className="text-white/80 hover:text-white p-2">
-              <RotateCcw size={28} />
-            </button>
-
-            {/* Prev */}
-            <button onClick={(e) => { e.stopPropagation(); skip('prev'); }} disabled={currentIndex === 0} className="text-white/80 disabled:opacity-30 p-2">
-              <SkipBack size={32} />
-            </button>
-
-            {/* Play/Pause (Big) */}
-            <button 
-              onClick={(e) => { e.stopPropagation(); togglePlay(); }} 
-              className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-95 transition-transform"
-            >
-              {isPlaying ? (
-                <Pause size={36} className="text-[#1A1A26] fill-[#1A1A26]" />
-              ) : (
-                <Play size={36} className="text-[#1A1A26] fill-[#1A1A26] ml-1" />
-              )}
-            </button>
-
-            {/* Next */}
-            <button onClick={(e) => { e.stopPropagation(); skip('next'); }} disabled={!nextVideo} className="text-white/80 disabled:opacity-30 p-2">
-              <SkipForward size={32} />
-            </button>
-
-            {/* Forward 10s */}
-            <button onClick={(e) => { e.stopPropagation(); seek(10); }} className="text-white/80 hover:text-white p-2">
-              <RotateCw size={28} />
-            </button>
+        {/* Progress Bar */}
+        <div className="px-6 py-4">
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-[#E65473] transition-all duration-200 ease-linear" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="flex justify-between mt-1.5">
+             <span className="text-[10px] font-bold text-gray-400">0:00</span>
+             <span className="text-[10px] font-bold text-gray-400">1:00</span>
           </div>
         </div>
+
+        {/* Main Controls (Big Buttons for Accessibility) */}
+        <div className="flex-1 flex items-center justify-between px-8 pb-6">
+           <button onClick={() => seek(-10)} className="p-3 text-gray-400 hover:text-[#1A1A26] transition-colors">
+             <RotateCcw size={28} />
+           </button>
+
+           <div className="flex items-center gap-6">
+             <button onClick={() => skip('prev')} disabled={currentIndex === 0} className="text-[#1A1A26] disabled:opacity-20 transition-opacity">
+               <SkipBack size={32} />
+             </button>
+
+             <button 
+               onClick={togglePlay} 
+               className="w-20 h-20 bg-[#E65473] rounded-[28px] flex items-center justify-center shadow-xl shadow-pink-500/40 active:scale-95 transition-transform"
+             >
+               {isPlaying ? (
+                 <Pause size={36} className="text-white fill-white" />
+               ) : (
+                 <Play size={36} className="text-white fill-white ml-1" />
+               )}
+             </button>
+
+             <button onClick={() => skip('next')} disabled={!nextVideo} className="text-[#1A1A26] disabled:opacity-20 transition-opacity">
+               <SkipForward size={32} />
+             </button>
+           </div>
+
+           <button onClick={() => seek(10)} className="p-3 text-gray-400 hover:text-[#1A1A26] transition-colors">
+             <RotateCw size={28} />
+           </button>
+        </div>
       </div>
+
+      {/* Instructions Drawer Overlay */}
+      <InstructionsDrawer 
+        isOpen={showInstructions} 
+        onClose={() => setShowInstructions(false)} 
+        currentVideo={currentVideo} 
+      />
+
     </div>
   );
 }
