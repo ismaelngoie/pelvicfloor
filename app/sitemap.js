@@ -3,52 +3,59 @@ import path from 'path';
 
 export default async function sitemap() {
   const baseUrl = 'https://pelvi.health';
-  const blogDirectory = path.join(process.cwd(), 'public/blog');
-
+   
   // 1. Define Static Pages (The Core App)
   const staticPages = [
     {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 1.0, // Homepage is King
+      priority: 1.0,
     },
     {
       url: `${baseUrl}/blog`,
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 0.9, // Blog Index is Queen
+      priority: 0.9,
     },
   ];
 
-  // 2. Dynamic Blog Posts (Auto-detected from public/blog folder)
+  // 2. Dynamic Blog Posts (Read from public/blog)
   let blogPages = [];
-  
+   
   try {
-    // Read the directory
+    const blogDirectory = path.join(process.cwd(), 'public/blog');
+    
+    // Check if directory exists first to avoid crash
+    try {
+        await fs.access(blogDirectory);
+    } catch {
+        console.warn("⚠️ Sitemap Warning: 'public/blog' folder not found. Skipping blog posts.");
+        return staticPages;
+    }
+
     const files = await fs.readdir(blogDirectory);
 
-    // Filter out system files or assets (images, etc.) if any accidentally live there
+    // Filter valid files (ignore system files & assets)
     const validFiles = files.filter(file => {
       const lower = file.toLowerCase();
-      // Ignore common non-page assets just in case
-      return !['.ds_store', '.jpg', '.png', '.webp', '.svg', '.css', '.js'].some(ext => lower.endsWith(ext));
+      const isSystemFile = ['.ds_store', 'thumbs.db'].some(ext => lower.includes(ext));
+      const isAsset = ['.jpg', '.png', '.webp', '.svg', '.css', '.js'].some(ext => lower.endsWith(ext));
+      return !isSystemFile && !isAsset;
     });
 
-    // Map files to sitemap objects
+    // Generate Sitemap Entries
     blogPages = await Promise.all(
       validFiles.map(async (file) => {
-        // Get file stats for "lastModified" (SEO Win)
         const filePath = path.join(blogDirectory, file);
         const stats = await fs.stat(filePath);
 
-        // Remove file extension for the URL (e.g., "guide.html" -> "guide")
-        // If it's a folder, it keeps the name as is.
-        const slug = file.replace(/\.(md|mdx|html|json|txt)$/, '');
+        // Clean slug: remove extension (e.g. "my-post.html" -> "my-post")
+        const slug = file.replace(/\.(html|md|mdx|json|txt)$/, '');
 
         return {
           url: `${baseUrl}/blog/${slug}`,
-          lastModified: stats.mtime, // Uses the actual file update time
+          lastModified: stats.mtime, // Uses file's actual "Modified Time"
           changeFrequency: 'weekly',
           priority: 0.8,
         };
@@ -56,10 +63,8 @@ export default async function sitemap() {
     );
 
   } catch (error) {
-    console.error("Sitemap Error: Could not read public/blog directory.", error);
-    // Continue with just static pages so the build doesn't crash
+    console.error("Sitemap Generation Error:", error);
   }
 
-  // 3. Combine and Return
   return [...staticPages, ...blogPages];
 }
