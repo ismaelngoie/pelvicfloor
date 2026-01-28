@@ -32,23 +32,28 @@ const reviews = [
 ];
 
 // --- BUTTERFLY COMPONENT ---
-// Replicates the random logic from Swift: size (25-50), random X, duration (8-15s)
 const ButterflyContainer = ({ count, isBehind }) => {
   const [butterflies, setButterflies] = useState([]);
 
   useEffect(() => {
-    // Generate static random values on client mount to match Swift logic
-    const items = Array.from({ length: count }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100, // 0% to 100% of screen width
-      size: 25 + Math.random() * 25, // 25px to 50px
-      duration: 8 + Math.random() * 7, // 8s to 15s
-      delay: Math.random() * 5, // Stagger starts
-      rotation: (Math.random() - 0.5) * 60, // -30 to 30 degrees tilt
-      isPink: Math.random() > 0.3, // 70% chance of pink, 30% white
-    }));
+    // Generate static values
+    const items = Array.from({ length: count }).map((_, i) => {
+      const duration = 12 + Math.random() * 10; // 12s to 22s duration
+      return {
+        id: i,
+        left: Math.random() * 100, // 0-100% width
+        size: 30 + Math.random() * 30, // Bigger size (30-60px)
+        duration: duration,
+        // NEGATIVE DELAY: This makes them start "mid-flight" immediately
+        delay: -(Math.random() * duration), 
+        rotation: (Math.random() - 0.5) * 60, // -30 to 30 deg
+      };
+    });
     setButterflies(items);
   }, [count]);
+
+  // CSS Filter to force Brand Pink (#E65473) on the image
+  const pinkFilter = 'brightness(0) saturate(100%) invert(35%) sepia(34%) saturate(3033%) hue-rotate(320deg) brightness(97%) contrast(106%)';
 
   return (
     <>
@@ -57,25 +62,24 @@ const ButterflyContainer = ({ count, isBehind }) => {
           0% { transform: translateY(110vh) translateX(0px) rotate(0deg); opacity: 0; }
           10% { opacity: 1; }
           90% { opacity: 1; }
-          100% { transform: translateY(-20vh) translateX(30px) rotate(20deg); opacity: 0; }
+          100% { transform: translateY(-20vh) translateX(40px) rotate(20deg); opacity: 0; }
         }
       `}</style>
       
       {butterflies.map((b) => (
         <div
           key={b.id}
-          className={`absolute pointer-events-none ${isBehind ? 'z-0' : 'z-20'}`}
+          // z-index: 0 for behind, 50 for front (to fly OVER the button/text)
+          className={`absolute pointer-events-none ${isBehind ? 'z-0' : 'z-50'}`}
           style={{
             left: `${b.left}%`,
             width: `${b.size}px`,
             height: `${b.size}px`,
-            bottom: '-100px', // Start below screen
+            bottom: '-100px',
             animation: `floatUp ${b.duration}s linear infinite`,
             animationDelay: `${b.delay}s`,
-            opacity: isBehind ? 0.2 : (b.isPink ? 0.8 : 0.4), // Match Swift alphas
-            filter: b.isPink 
-              ? 'brightness(0) saturate(100%) invert(35%) sepia(34%) saturate(3033%) hue-rotate(320deg) brightness(97%) contrast(106%)' // Approx Pink filter
-              : 'none', // White
+            opacity: isBehind ? 0.3 : 0.8, // Brand color opacity
+            filter: pinkFilter, // FORCE PINK ON ALL
             transform: `rotate(${b.rotation}deg)`
           }}
         >
@@ -140,11 +144,11 @@ export default function WelcomeScreen({ onNext }) {
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-between pb-8 bg-gradient-to-b from-pink-50/50 to-white overflow-hidden">
       
-      {/* --- SWIFT LOGIC BUTTERFLIES --- */}
-      {/* 3 Butterflies Behind (Low Opacity) */}
-      <ButterflyContainer count={3} isBehind={true} />
-      {/* 12 Butterflies Front (Higher Opacity) */}
-      <ButterflyContainer count={12} isBehind={false} />
+      {/* 5 Butterflies Behind (Faint, Background) */}
+      <ButterflyContainer count={5} isBehind={true} />
+      
+      {/* 8 Butterflies Front (Bright, Over Everything) */}
+      <ButterflyContainer count={8} isBehind={false} />
 
       {/* Main Content */}
       <div className={`z-10 flex flex-col items-center px-6 pt-16 w-full transition-all duration-1000 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -200,7 +204,7 @@ export default function WelcomeScreen({ onNext }) {
           ))}
         </div>
 
-        {/* Button */}
+        {/* Button - z-40 ensures it's above background elements but below front butterflies (z-50) */}
         <button 
           onClick={onNext}
           className="w-full h-14 bg-app-primary text-white font-bold text-lg rounded-full shadow-xl shadow-app-primary/30 animate-breathe active:scale-95 transition-transform relative z-40"
