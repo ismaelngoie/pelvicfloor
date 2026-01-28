@@ -31,56 +31,60 @@ const reviews = [
   { text: "From wobbly to steady, lifting my baby feels safe.", author: "Mia, 33" },
 ];
 
-// --- BUTTERFLY COMPONENT ---
-const ButterflyContainer = ({ count, isBehind }) => {
+// --- FULL SCREEN BUTTERFLY BACKGROUND ---
+const ButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
   useEffect(() => {
-    // Generate static values
+    // Generate 25 butterflies with NEGATIVE delays so they are already flying
+    const count = 25;
     const items = Array.from({ length: count }).map((_, i) => {
-      const duration = 12 + Math.random() * 10; // 12s to 22s duration
+      const duration = 15 + Math.random() * 15; // Slow, graceful (15-30s)
       return {
         id: i,
-        left: Math.random() * 100, // 0-100% width
-        size: 30 + Math.random() * 30, // Bigger size (30-60px)
+        left: Math.random() * 100, // 0-100% screen width
+        size: 20 + Math.random() * 30, // 20px - 50px
         duration: duration,
-        // NEGATIVE DELAY: This makes them start "mid-flight" immediately
+        // Negative delay = Start mid-animation
         delay: -(Math.random() * duration), 
-        rotation: (Math.random() - 0.5) * 60, // -30 to 30 deg
+        rotation: (Math.random() - 0.5) * 60, // Tilt
+        isBehind: Math.random() > 0.6 // 40% are behind elements
       };
     });
     setButterflies(items);
-  }, [count]);
+  }, []);
 
-  // CSS Filter to force Brand Pink (#E65473) on the image
-  const pinkFilter = 'brightness(0) saturate(100%) invert(35%) sepia(34%) saturate(3033%) hue-rotate(320deg) brightness(97%) contrast(106%)';
+  // Filter to force Brand Pink (#E65473)
+  // This assumes the source image is black or white.
+  // Calculated to approximate #E65473
+  const brandPinkFilter = 'brightness(0) saturate(100%) invert(48%) sepia(91%) saturate(343%) hue-rotate(304deg) brightness(91%) contrast(96%)';
 
   return (
-    <>
-      <style jsx global>{`
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <style jsx>{`
         @keyframes floatUp {
           0% { transform: translateY(110vh) translateX(0px) rotate(0deg); opacity: 0; }
           10% { opacity: 1; }
           90% { opacity: 1; }
-          100% { transform: translateY(-20vh) translateX(40px) rotate(20deg); opacity: 0; }
+          100% { transform: translateY(-20vh) translateX(50px) rotate(20deg); opacity: 0; }
         }
       `}</style>
       
       {butterflies.map((b) => (
         <div
           key={b.id}
-          // z-index: 0 for behind, 50 for front (to fly OVER the button/text)
-          className={`absolute pointer-events-none ${isBehind ? 'z-0' : 'z-50'}`}
+          className="absolute"
           style={{
             left: `${b.left}%`,
             width: `${b.size}px`,
             height: `${b.size}px`,
-            bottom: '-100px',
+            top: '0', // Positioned by transform/animation
             animation: `floatUp ${b.duration}s linear infinite`,
             animationDelay: `${b.delay}s`,
-            opacity: isBehind ? 0.3 : 0.8, // Brand color opacity
-            filter: pinkFilter, // FORCE PINK ON ALL
-            transform: `rotate(${b.rotation}deg)`
+            opacity: b.isBehind ? 0.3 : 0.7, 
+            filter: brandPinkFilter,
+            transform: `rotate(${b.rotation}deg)`,
+            zIndex: b.isBehind ? 0 : 50 // High Z-Index ensures they fly OVER text
           }}
         >
           <img 
@@ -90,7 +94,7 @@ const ButterflyContainer = ({ count, isBehind }) => {
           />
         </div>
       ))}
-    </>
+    </div>
   );
 };
 
@@ -104,10 +108,26 @@ export default function WelcomeScreen({ onNext }) {
 
   // --- 1. INSTANT REDIRECT CHECK ---
   useEffect(() => {
+    // Check LocalStorage directly for instant speed (bypass Context loading time)
+    const storedData = localStorage.getItem('pelvic_user_data');
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData);
+        if (parsed.isPremium) {
+          router.replace('/dashboard');
+          return;
+        }
+      } catch (e) {
+        console.error("Error parsing user data", e);
+      }
+    }
+
+    // Fallback to Context check
     if (userDetails && userDetails.isPremium) {
       router.replace('/dashboard');
     } else {
-      setTimeout(() => setShowContent(true), 100);
+      // Show content immediately if not premium
+      setShowContent(true);
     }
   }, [userDetails, router]);
 
@@ -139,18 +159,13 @@ export default function WelcomeScreen({ onNext }) {
     return () => clearInterval(timer);
   }, []);
 
-  if (userDetails?.isPremium) return null;
-
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-between pb-8 bg-gradient-to-b from-pink-50/50 to-white overflow-hidden">
       
-      {/* 5 Butterflies Behind (Faint, Background) */}
-      <ButterflyContainer count={5} isBehind={true} />
-      
-      {/* 8 Butterflies Front (Bright, Over Everything) */}
-      <ButterflyContainer count={8} isBehind={false} />
+      {/* --- INSTANT FLYING BUTTERFLIES --- */}
+      <ButterflyBackground />
 
-      {/* Main Content */}
+      {/* Main Content (z-10 to stay above background but allow butterflies to fly over if z=50) */}
       <div className={`z-10 flex flex-col items-center px-6 pt-16 w-full transition-all duration-1000 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         
         {/* Logo */}
@@ -167,7 +182,7 @@ export default function WelcomeScreen({ onNext }) {
         </p>
 
         {/* Benefits List */}
-        <div className="flex flex-col gap-6 w-full max-w-xs items-start pl-2">
+        <div className="flex flex-col gap-6 w-full max-w-xs items-start pl-2 bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/50">
           <div className="flex items-start gap-4">
             <div className="shrink-0 pt-1"><RunIcon /></div>
             <span className="text-app-textPrimary font-semibold text-[16px] leading-snug">A new 5-minute plan, just for you, every day.</span>
@@ -204,7 +219,7 @@ export default function WelcomeScreen({ onNext }) {
           ))}
         </div>
 
-        {/* Button - z-40 ensures it's above background elements but below front butterflies (z-50) */}
+        {/* Button */}
         <button 
           onClick={onNext}
           className="w-full h-14 bg-app-primary text-white font-bold text-lg rounded-full shadow-xl shadow-app-primary/30 animate-breathe active:scale-95 transition-transform relative z-40"
