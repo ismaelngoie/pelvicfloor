@@ -2,9 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserData } from '@/context/UserDataContext';
-import { Star, ChevronDown, Activity, Play, Brain, Timer, X, Loader2 } from 'lucide-react';
+import { Star, ChevronDown, ChevronUp, Activity, Play, Brain, Timer, X, Loader2, Lock, Mail } from 'lucide-react';
 import { loadStripe } from "@stripe/stripe-js";
-// 👇 IMPORT LinkAuthenticationElement
 import { Elements, PaymentElement, LinkAuthenticationElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 // --- STRIPE SETUP ---
@@ -18,6 +17,18 @@ const REVIEW_IMAGES = [
   "/review4.png", 
   "/review2.png"
 ];
+
+// --- LOGIC: Button Grammar Mapping ---
+const getButtonText = (goalTitle) => {
+  const g = (goalTitle || "").toLowerCase();
+  if (g.includes("pregnancy")) return "Start My Pregnancy Plan";
+  if (g.includes("postpartum")) return "Start My Postpartum Plan";
+  if (g.includes("leak")) return "Start My Leak-Free Plan";
+  if (g.includes("intimacy") || g.includes("sex")) return "Start My Intimacy Plan";
+  if (g.includes("pain")) return "Start My Relief Plan";
+  if (g.includes("core") || g.includes("strength")) return "Start My Core Plan";
+  return "Start My Personalized Plan";
+};
 
 // --- LOGIC: Review Mapping ---
 const getReviewsForGoal = (goalTitle) => {
@@ -96,7 +107,7 @@ const CheckoutForm = ({ onClose }) => {
   
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState(''); // State to track email
+  const [email, setEmail] = useState(''); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -109,7 +120,6 @@ const CheckoutForm = ({ onClose }) => {
       elements,
       confirmParams: {
         return_url: "https://pelvi.health/dashboard?plan=monthly", 
-        // We pass the collected email here for receipt
         receipt_email: email,
       },
       redirect: "if_required",
@@ -128,11 +138,10 @@ const CheckoutForm = ({ onClose }) => {
     }
   };
   
-  // Custom Styling for the Stripe Elements inputs
   const paymentElementOptions = {
     layout: "tabs",
     fields: {
-      phone: 'never', // 👈 THIS REMOVES THE PHONE NUMBER FIELD
+      phone: 'never', 
     }
   };
 
@@ -156,15 +165,12 @@ const CheckoutForm = ({ onClose }) => {
       </div>
       
       <div className="flex flex-col gap-4">
-        {/* 1. REQUIRED EMAIL FIELD (Handles Validation + Link 1-Click) */}
         <div className="text-white">
           <LinkAuthenticationElement 
             id="link-authentication-element"
             onChange={(e) => setEmail(e.value.email)}
           />
         </div>
-
-        {/* 2. PAYMENT ELEMENT (Includes Apple Pay / Google Pay automatically) */}
         <PaymentElement id="payment-element" options={paymentElementOptions} />
       </div>
       
@@ -183,6 +189,73 @@ const CheckoutForm = ({ onClose }) => {
   );
 };
 
+// --- CUSTOM RESTORE MODAL ---
+const RestoreModal = ({ onClose }) => {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { saveUserData } = useUserData();
+
+  const handleRestoreSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Simulate API check delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    if (email && email.includes("@")) {
+      saveUserData('isPremium', true);
+      saveUserData('joinDate', new Date().toISOString());
+      router.push('https://pelvi.health/dashboard');
+    } else {
+      setIsLoading(false);
+      alert("Please enter a valid email address.");
+    }
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm bg-[#1A1A26] border border-white/10 rounded-3xl p-6 shadow-2xl animate-scale-up"
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-white">Restore Purchase</h3>
+          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10"><X size={18} className="text-white" /></button>
+        </div>
+
+        <p className="text-white/60 text-sm mb-6">
+          Enter the email address you used to purchase your subscription. We'll find your account.
+        </p>
+
+        <form onSubmit={handleRestoreSubmit} className="flex flex-col gap-4">
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+            <input 
+              type="email" 
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:border-[#E65473] transition-colors"
+              autoFocus
+            />
+          </div>
+
+          <button 
+            disabled={isLoading}
+            className="w-full h-12 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            {isLoading ? <Loader2 className="animate-spin" /> : "Find My Plan"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // --- MAIN PAYWALL SCREEN ---
 export default function PaywallScreen() {
   const router = useRouter();
@@ -196,17 +269,18 @@ export default function PaywallScreen() {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [dateString, setDateString] = useState(""); 
   
-  // Stripe State
+  // Modals & Logic
   const [clientSecret, setClientSecret] = useState("");
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  
-  // Loading State
+  const [showRestoreModal, setShowRestoreModal] = useState(false); // New Restore Modal State
+  const [isFaqOpen, setIsFaqOpen] = useState(false); // FAQ Toggle State
   const [isButtonLoading, setIsButtonLoading] = useState(false);
 
   // Derived Data
   const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const userName = userDetails?.name || "Ready";
   const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
+  const buttonText = getButtonText(goalTitle); // Corrected Grammar
 
   // Effects
   useEffect(() => {
@@ -265,15 +339,6 @@ export default function PaywallScreen() {
     
     setIsButtonLoading(false);
     setShowCheckoutModal(true);
-  };
-
-  const handleRestore = () => {
-    const email = prompt("Please enter the email you used to purchase:");
-    if (email && email.includes("@")) {
-      saveUserData('isPremium', true);
-      saveUserData('joinDate', new Date().toISOString());
-      router.push('https://pelvi.health/dashboard');
-    }
   };
 
   const stripeAppearance = {
@@ -379,18 +444,31 @@ export default function PaywallScreen() {
           <p className="text-[13px] text-white/70 text-center mt-2 font-medium">Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.</p>
         </div>
 
-        {/* Footer Links */}
+        {/* FAQ & Legal (Refined Accordion) */}
         <div className="flex flex-col gap-4 mb-8">
-           <div className="w-full bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm">
+           <div 
+             onClick={() => setIsFaqOpen(!isFaqOpen)}
+             className="w-full bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm cursor-pointer active:scale-[0.98] transition-transform"
+           >
               <div className="flex items-center justify-center gap-2 text-white/90">
                  <span className="text-[14px] font-semibold">How do I get my money back?</span>
-                 <ChevronDown size={14} className="text-white/60" />
+                 {isFaqOpen ? <ChevronUp size={14} className="text-white/60" /> : <ChevronDown size={14} className="text-white/60" />}
               </div>
-              <p className="text-[13px] text-white/60 text-center mt-2 leading-relaxed">Tap “Refund” in Settings → “Billing” → Done.</p>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isFaqOpen ? 'max-h-20 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                <p className="text-[13px] text-white/60 text-center leading-relaxed">
+                  Tap “Refund” in Settings → “Billing” → Done. No questions asked.
+                </p>
+              </div>
            </div>
            
+           {/* Footer Links */}
            <div className="flex justify-center items-center gap-3 text-[11px] font-medium text-white/50">
-              <button onClick={handleRestore} className="underline decoration-white/30 hover:text-white transition-colors">Restore Purchase</button>
+              <button 
+                onClick={() => setShowRestoreModal(true)} 
+                className="underline decoration-white/30 hover:text-white transition-colors"
+              >
+                Restore Purchase
+              </button>
               <span>•</span>
               <span className="cursor-default">Physio-Designed</span>
               <span>•</span>
@@ -409,7 +487,7 @@ export default function PaywallScreen() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] transition-all group-hover:scale-105" />
           <div className="relative flex items-center gap-2 z-10">
              {isButtonLoading && <Loader2 className="animate-spin text-white" size={24} />}
-             <span className="text-[18px] font-bold text-white">Start My {goalTitle.split(' ').slice(-2).join(' ')} Plan</span>
+             <span className="text-[18px] font-bold text-white">{buttonText}</span>
           </div>
         </button>
         <p className="text-center text-white/70 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">{getCtaSubtext()}</p>
@@ -427,6 +505,11 @@ export default function PaywallScreen() {
             </Elements>
           </div>
         </div>
+      )}
+
+      {/* 5. RESTORE OVERLAY MODAL */}
+      {showRestoreModal && (
+        <RestoreModal onClose={() => setShowRestoreModal(false)} />
       )}
 
     </div>
