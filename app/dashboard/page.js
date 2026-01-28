@@ -323,10 +323,8 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
           {days.map((day, idx) => {
           if (todayIndex === -1) return null;
 
-          // streak ends today if done, otherwise ends yesterday
           const end = isTodayDone ? todayIndex : todayIndex - 1;
 
-          // If end is before Monday (e.g., it's Monday and not done), nothing to show in this week
           if (end < 0) {
             const barColor = "#EBEBF0";
             return (
@@ -339,7 +337,6 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
             );
           }
 
-          // Fill last `streak` days up to `end`
           const start = end - (streak - 1);
           const isActive = streak > 0 && idx >= start && idx <= end;
 
@@ -449,7 +446,22 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState({ text: "Good morning", icon: Sun });
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  // Init
+  // --- 1. NEW: CONVERSION TRACKING CLEANUP ---
+  useEffect(() => {
+    // Only run on client
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      // Check if we just arrived from payment
+      if (params.get('plan') === 'monthly') {
+        // Clean URL so refresh doesn't trigger conversion again
+        // "replaceState" updates the URL bar without reloading the page
+        const cleanUrl = window.location.pathname; 
+        window.history.replaceState(null, '', cleanUrl);
+      }
+    }
+  }, []);
+
+  // --- 2. Init Data ---
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) setGreeting({ text: "Good morning", icon: Sun });
@@ -487,7 +499,7 @@ export default function DashboardPage() {
   if (loading) return <div className="w-full h-screen bg-[#FAF9FA]" />;
 
   const userGoal = userDetails?.selectedTarget?.title || "Core Strength";
-  // ✅ FIX: Use the User's name if available, otherwise "Friend"
+  // Fallback name if none provided
   const userName = userDetails?.name || "Friend";
 
   const getTheme = () => {
