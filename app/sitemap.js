@@ -3,68 +3,73 @@ import path from 'path';
 
 export default async function sitemap() {
   const baseUrl = 'https://pelvi.health';
-   
+  const blogDirectory = path.join(process.cwd(), 'public/blog');
+
   // 1. Define Static Pages (The Core App)
   const staticPages = [
     {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 1.0,
+      priority: 1.0, // Homepage is King
     },
     {
       url: `${baseUrl}/blog`,
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 0.9,
+      priority: 0.9, // Blog Index is Queen
     },
   ];
 
-  // 2. Dynamic Blog Posts (Read from public/blog)
+  // 2. Dynamic Blog Posts (Scan Directories)
   let blogPages = [];
-   
+  
   try {
-    const blogDirectory = path.join(process.cwd(), 'public/blog');
-    
-    // Check if directory exists first to avoid crash
-    try {
-        await fs.access(blogDirectory);
-    } catch {
-        console.warn("⚠️ Sitemap Warning: 'public/blog' folder not found. Skipping blog posts.");
-        return staticPages;
-    }
+    // Read the main blog folder
+    const entries = await fs.readdir(blogDirectory, { withFileTypes: true });
 
-    const files = await fs.readdir(blogDirectory);
+    // Filter for DIRECTORIES only (since your blogs are folders like /blog/my-post/)
+    const blogFolders = entries.filter(entry => entry.isDirectory());
 
-    // Filter valid files (ignore system files & assets)
-    const validFiles = files.filter(file => {
-      const lower = file.toLowerCase();
-      const isSystemFile = ['.ds_store', 'thumbs.db'].some(ext => lower.includes(ext));
-      const isAsset = ['.jpg', '.png', '.webp', '.svg', '.css', '.js'].some(ext => lower.endsWith(ext));
-      return !isSystemFile && !isAsset;
-    });
-
-    // Generate Sitemap Entries
+    // Map folders to sitemap entries
     blogPages = await Promise.all(
-      validFiles.map(async (file) => {
-        const filePath = path.join(blogDirectory, file);
-        const stats = await fs.stat(filePath);
+      blogFolders.map(async (folder) => {
+        const folderName = folder.name;
+        
+        // Skip any hidden system folders or asset folders if they exist
+        if (folderName.startsWith('.') || folderName === '_astro') return null;
 
-        // Clean slug: remove extension (e.g. "my-post.html" -> "my-post")
-        const slug = file.replace(/\.(html|md|mdx|json|txt)$/, '');
+        // Path to the index.html inside that folder
+        const indexHtmlPath = path.join(blogDirectory, folderName, 'index.html');
+        
+        let lastModified = new Date(); // Default to today
+        
+        try {
+            // Try to get the actual modification time of index.html
+            const stats = await fs.stat(indexHtmlPath);
+            lastModified = stats.mtime;
+        } catch (err) {
+            // If index.html doesn't exist, this might not be a valid blog folder
+            // console.warn(`Skipping ${folderName}: No index.html found`);
+            return null;
+        }
 
         return {
-          url: `${baseUrl}/blog/${slug}`,
-          lastModified: stats.mtime, // Uses file's actual "Modified Time"
+          url: `${baseUrl}/blog/${folderName}`, // URL is /blog/folder-name
+          lastModified: lastModified,
           changeFrequency: 'weekly',
           priority: 0.8,
         };
       })
     );
 
+    // Filter out any nulls (folders without index.html)
+    blogPages = blogPages.filter(Boolean);
+
   } catch (error) {
-    console.error("Sitemap Generation Error:", error);
+    console.error("Sitemap Error: Could not read public/blog directory.", error);
   }
 
+  // 3. Combine and Return
   return [...staticPages, ...blogPages];
 }
