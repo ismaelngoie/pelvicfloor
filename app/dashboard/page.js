@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUserData } from '@/context/UserDataContext';
 import { 
   Sun, CloudSun, Moon, Flame, ChevronRight, Play, RotateCw, 
-  Trophy, Calendar, Zap, Activity, Info, Heart, Droplets
+  Trophy, Calendar, Zap, Activity, Info, Heart, Droplets,
+  Settings, CreditCard, Mail, X, ExternalLink, Loader2, User
 } from 'lucide-react';
 
 import DailyRoutinePlayer from '@/components/DailyRoutinePlayer';
@@ -46,9 +47,135 @@ const GOAL_TIPS = {
   ]
 };
 
-// --- SUBCOMPONENTS ---
+// --- PROFILE SETTINGS MODAL ---
+const ProfileSettingsModal = ({ onClose, joinDate, userName }) => {
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false);
 
-const DashboardHeader = ({ name, greeting }) => {
+  const handleManageSubscription = async () => {
+    // In this MVP flow, we ask for email because we don't have a database ID.
+    // In a real logged-in app, you'd pass the ID automatically.
+    const email = prompt("To manage your subscription, confirm your billing email:");
+    if (!email) return;
+
+    setIsLoadingPortal(true);
+    try {
+      const res = await fetch('/api/create-portal-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: email,
+          returnUrl: window.location.href 
+        })
+      });
+      
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url; // Redirect to Stripe
+      } else {
+        alert("We couldn't find a subscription with that email. Please contact support.");
+        setIsLoadingPortal(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong. Please contact support.");
+      setIsLoadingPortal(false);
+    }
+  };
+
+  const formattedDate = joinDate ? new Date(joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "January 2026";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in" onClick={onClose}>
+      <div 
+        className="w-full max-w-sm bg-white rounded-t-[32px] sm:rounded-[32px] p-6 pb-10 sm:pb-6 shadow-2xl animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-100 shadow-md">
+               <img src="/coachMiaAvatar.png" className="w-full h-full object-cover" alt="Profile" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-[#1A1A26]">{userName}</h3>
+              <p className="text-sm text-gray-500">Member since {formattedDate}</p>
+              <div className="flex items-center gap-1.5 mt-1.5 bg-green-100 px-2.5 py-0.5 rounded-full w-fit">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"/>
+                <span className="text-[11px] font-bold text-green-700 uppercase tracking-wide">Active Premium</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Menu Items */}
+        <div className="space-y-3">
+          
+          {/* Subscription (The Money Button) */}
+          <button 
+            onClick={handleManageSubscription}
+            disabled={isLoadingPortal}
+            className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:scale-110 transition-transform">
+                <CreditCard size={20} />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-[#1A1A26] text-sm">Subscription</p>
+                <p className="text-xs text-gray-500">Manage plan / Cancel</p>
+              </div>
+            </div>
+            {isLoadingPortal ? <Loader2 size={18} className="animate-spin text-gray-400" /> : <ChevronRight size={18} className="text-gray-400" />}
+          </button>
+
+          {/* Support */}
+          <a 
+            href="mailto:contact@pelvi.health"
+            className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:scale-110 transition-transform">
+                <Mail size={20} />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-[#1A1A26] text-sm">Contact Support</p>
+                <p className="text-xs text-gray-500">We're here to help</p>
+              </div>
+            </div>
+            <ExternalLink size={18} className="text-gray-400" />
+          </a>
+
+          {/* Get App */}
+          <a 
+            href="https://apps.apple.com/us/app/pelvic-floor-core-coach/id6642654729"
+            target="_blank"
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-br from-[#1A1A26] to-[#2C2C3E] text-white rounded-2xl shadow-lg group hover:shadow-xl transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
+                <img src="/logo.png" className="w-5 h-5 object-contain" alt="Logo" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-sm">Get the App</p>
+                <p className="text-xs text-white/60">Offline mode & Reminders</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-white/60" />
+          </a>
+
+        </div>
+        
+        <p className="text-center text-[10px] text-gray-300 mt-6">Version 2.4.0 • Pelvi Health Inc.</p>
+      </div>
+    </div>
+  );
+};
+
+// --- DASHBOARD HEADER (UPDATED) ---
+const DashboardHeader = ({ name, greeting, onProfileClick }) => {
   const Icon = greeting.icon;
   const [liveCount, setLiveCount] = useState(124);
   
@@ -77,14 +204,20 @@ const DashboardHeader = ({ name, greeting }) => {
            <span className="text-xs font-medium text-[#737380]">Live: {liveCount} members online</span>
         </div>
       </div>
-      <button className="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-white group relative">
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-all" />
+      
+      {/* Profile Button (Triggers Modal) */}
+      <button 
+        onClick={onProfileClick}
+        className="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-white group relative hover:scale-105 transition-transform active:scale-95"
+      >
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
         <img src="/coachMiaAvatar.png" className="w-full h-full object-cover" alt="Profile" />
       </button>
     </div>
   );
 };
 
+// --- VIDEO PREVIEW COMPONENT ---
 const VideoPreview = ({ url }) => {
   const videoRef = useRef(null);
 
@@ -117,13 +250,12 @@ const VideoPreview = ({ url }) => {
   );
 };
 
-// --- FIXED WEEKLY GRAPH ---
+// --- WEEKLY GRAPH ---
 const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
   const days = ["M", "T", "W", "T", "F", "S", "S"];
   const [todayIndex, setTodayIndex] = useState(-1);
 
   useEffect(() => {
-    // Calculate today (0=Mon ... 6=Sun)
     let current = new Date().getDay() - 1; 
     if (current === -1) current = 6; 
     setTodayIndex(current);
@@ -137,43 +269,42 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
           {streak} Day Streak
         </span>
       </div>
-      <div className="flex justify-between h-24 gap-2 items-stretch">
-  {days.map((day, idx) => {
-  if (todayIndex === -1) return null;
+      
+      <div className="flex justify-between items-end h-24 gap-2">
+        {days.map((day, idx) => {
+          let isActive = false;
+          if (todayIndex !== -1) {
+             const daysAgo = todayIndex - idx; 
+             if (daysAgo >= 0) {
+                 if (isTodayDone) {
+                     isActive = daysAgo < streak; 
+                 } else {
+                     isActive = daysAgo > 0 && daysAgo <= streak;
+                 }
+             }
+          }
 
-  // streak ends today if done, otherwise ends yesterday
-  const end = isTodayDone ? todayIndex : todayIndex - 1;
-
-  // If end is before Monday (e.g., it's Monday and not done), nothing to show in this week
-  if (end < 0) {
-    const barColor = "#EBEBF0";
-    return (
-      <div key={idx} className="flex flex-col items-center gap-2 flex-1 h-full">
-        <div className="w-full flex-1 flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
-          <div className="w-2 rounded-full transition-all duration-700 ease-out" style={{ height: "15%", backgroundColor: barColor }} />
-        </div>
-        <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>{day}</span>
+          const height = isActive ? "80%" : "15%";
+          const barColor = isActive ? goalColor : "#EBEBF0";
+          
+          return (
+            <div key={idx} className="flex flex-col items-center gap-2 flex-1">
+              <div className="w-full h-full flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
+                <div 
+                  className="w-2 rounded-full transition-all duration-700 ease-out"
+                  style={{ 
+                    height: height, 
+                    backgroundColor: barColor 
+                  }}
+                />
+              </div>
+              <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>
+                {day}
+              </span>
+            </div>
+          );
+        })}
       </div>
-    );
-  }
-
-  // Fill last `streak` days up to `end`
-  const start = end - (streak - 1);
-  const isActive = streak > 0 && idx >= start && idx <= end;
-
-  const height = isActive ? "80%" : "15%";
-  const barColor = isActive ? goalColor : "#EBEBF0";
-
-  return (
-    <div key={idx} className="flex flex-col items-center gap-2 flex-1 h-full">
-      <div className="w-full flex-1 flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
-        <div className="w-2 rounded-full transition-all duration-700 ease-out" style={{ height, backgroundColor: barColor }} />
-      </div>
-      <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>{day}</span>
-    </div>
-  );
-})}
-</div>
     </div>
   );
 };
@@ -216,14 +347,12 @@ const CoachTipCard = ({ goalColor, userGoal }) => {
 const DownloadAppCard = () => {
   return (
     <div className="relative overflow-hidden rounded-[32px] bg-[#1A1A26] p-6 text-white shadow-2xl animate-slide-up" style={{ animationDelay: '500ms' }}>
-      {/* Background Graphic */}
       <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-purple-500 rounded-full blur-[60px] opacity-40"></div>
       <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-pink-500 rounded-full blur-[60px] opacity-40"></div>
 
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shadow-lg border border-white/10">
-            {/* USE ACTUAL APP ICON HERE */}
             <img src="/logo.png" alt="App Logo" className="w-8 h-8 object-contain" />
           </div>
           <h3 className="text-lg font-bold">Get the Full Experience</h3>
@@ -234,7 +363,6 @@ const DownloadAppCard = () => {
         </p>
 
         <div className="flex flex-col gap-3">
-          {/* iOS Button */}
           <a 
             href="https://apps.apple.com/us/app/pelvic-floor-core-coach/id6642654729" 
             target="_blank" 
@@ -245,7 +373,6 @@ const DownloadAppCard = () => {
             <span>Download on iOS</span>
           </a>
 
-          {/* Android Button */}
           <button 
             disabled 
             className="flex items-center justify-center gap-3 w-full py-3.5 bg-white/10 text-gray-400 rounded-xl font-bold border border-white/10 cursor-not-allowed"
@@ -269,16 +396,17 @@ export default function DashboardPage() {
   const [streak, setStreak] = useState(0);
   const [completedToday, setCompletedToday] = useState(false);
   const [greeting, setGreeting] = useState({ text: "Good morning", icon: Sun });
+  
+  // Modal State
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Init
   useEffect(() => {
-    // 1. Time of Day
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) setGreeting({ text: "Good morning", icon: Sun });
     else if (hour >= 12 && hour < 18) setGreeting({ text: "Good afternoon", icon: CloudSun });
     else setGreeting({ text: "Good evening", icon: Moon });
 
-    // 2. Load User Data
     if (userDetails) {
       const data = getDailyPlaylist(userDetails.selectedTarget?.title, userDetails.joinDate);
       setRoutineData(data);
@@ -297,12 +425,10 @@ export default function DashboardPage() {
   const handleProgressMarked = () => {
     if (completedToday) return;
 
-    // Instant Update for Graph and Streak
     setCompletedToday(true);
     const newStreak = streak + 1;
     setStreak(newStreak);
 
-    // Persist
     saveUserData('lastWorkoutDate', new Date().toISOString());
     saveUserData('streak', newStreak);
     
@@ -327,7 +453,7 @@ export default function DashboardPage() {
   const previewVideoUrl = routineData?.videos?.[0]?.url;
 
   return (
-    <div className="min-h-screen bg-[#FAF9FA] pb-32 overflow-x-hidden">
+    <div className="min-h-screen bg-[#FAF9FA] pb-32 overflow-x-hidden relative">
       
       {showPlayer && routineData && (
         <DailyRoutinePlayer 
@@ -337,12 +463,25 @@ export default function DashboardPage() {
         />
       )}
 
+      {/* PROFILE MODAL OVERLAY */}
+      {showProfileModal && (
+        <ProfileSettingsModal 
+          onClose={() => setShowProfileModal(false)}
+          userName={userName}
+          joinDate={userDetails.joinDate}
+        />
+      )}
+
       <div className="h-6" /> 
       
       <div className="px-6 pt-8 pb-4 space-y-8 max-w-md mx-auto">
         
-        {/* Header */}
-        <DashboardHeader name={userName} greeting={greeting} />
+        {/* Header - Now Clickable */}
+        <DashboardHeader 
+          name={userName} 
+          greeting={greeting} 
+          onProfileClick={() => setShowProfileModal(true)} 
+        />
 
         {/* Daily Routine Card */}
         <div 
@@ -350,6 +489,7 @@ export default function DashboardPage() {
           className="group w-full relative overflow-hidden rounded-[32px] bg-white border border-[#EBEBF0] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 transition-all duration-300 active:scale-[0.98] animate-slide-up cursor-pointer"
           style={{ animationDelay: '100ms' }}
         >
+          {/* ... (Existing Card Content - Unchanged) ... */}
           <div className="flex justify-between items-start mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -369,8 +509,6 @@ export default function DashboardPage() {
 
           <div className="relative w-full h-16 flex items-center gap-5">
             <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
-               
-               {/* 1. Video Preview (Visible if NOT complete) */}
                {!completedToday && previewVideoUrl ? (
                    <div className="absolute inset-0 w-full h-full rounded-full overflow-hidden shadow-md">
                       <VideoPreview url={previewVideoUrl} />
@@ -380,7 +518,6 @@ export default function DashboardPage() {
                       </svg>
                    </div>
                ) : (
-                   /* 2. Standard Ring */
                    <>
                      <svg className="absolute w-full h-full rotate-[-90deg]">
                         <circle cx="32" cy="32" r="28" stroke="#F3F4F6" strokeWidth="6" fill="none" />
@@ -403,13 +540,9 @@ export default function DashboardPage() {
                      </svg>
                    </>
                )}
-
-               {/* Play Button */}
                <div className={`w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center z-20 ${completedToday ? 'hidden' : ''}`}>
                    <Play size={12} className="text-white fill-white ml-0.5" />
                </div>
-
-               {/* Checkmark */}
                {completedToday && (
                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${themeGradient} flex items-center justify-center shadow-lg z-20`}>
                     <RotateCw size={18} className="text-white" />
