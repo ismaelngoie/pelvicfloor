@@ -1,0 +1,160 @@
+/*
+================================================================
+Pelvi.health Blog - Main Stylesheet v5 (Final Design)
+Description: All custom styles for the /blog hub and articles.
+================================================================
+*/
+
+/* --- Core Setup & Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+body {
+    background-color: #050505; /* A slightly softer black */
+    color: #E5E7EB;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden; /* Prevent horizontal scroll from effects */
+}
+
+/* --- Dynamic Background Effects --- */
+#particle-canvas {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none;
+}
+#mouse-glow {
+  position: fixed; top: 0; left: 0; width: 400px; height: 400px; background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, rgba(236, 72, 153, 0) 60%); border-radius: 50%; pointer-events: none; z-index: -1; transition: transform 0.1s ease-out; transform: translate(-50%, -50%);
+}
+
+/* --- Typography System --- */
+.article-content {
+    font-family: 'Lora', serif;
+    font-size: 1.125rem; /* 18px */
+    line-height: 1.75;
+    color: #D1D5DB;
+}
+.article-content h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 2.25rem; /* 36px */
+    font-weight: 700;
+    color: #F9FAFB;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.75rem;
+}
+.article-content h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.5rem; /* 24px */
+    font-weight: 600;
+    color: #F3F4F6;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+}
+.article-content a {
+    color: #F472B6;
+    text-decoration: underline;
+    text-decoration-color: rgba(244, 114, 182, 0.4);
+    transition: all 0.2s ease;
+}
+.article-content a:hover {
+    color: #F9A8D4;
+    text-decoration-color: rgba(249, 168, 212, 1);
+}
+.article-content blockquote {
+    border-left: 4px solid #A78BFA;
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    font-style: italic;
+    color: #D1D5DB;
+}
+
+/* --- Blog Hub: Horizontal Scrolling Shelves --- */
+.scroll-shelf {
+    display: flex;
+    overflow-x: auto;
+    padding: 1.5rem 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.scroll-shelf::-webkit-scrollbar { display: none; }
+.scroll-shelf > * {
+    flex-shrink: 0;
+    margin-right: 1.5rem;
+}
+
+/* --- Article Card Styles (for the Hub) --- */
+.blog-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.blog-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(244, 114, 182, 0.1);
+    border-color: rgba(244, 114, 182, 0.3);
+}
+
+/* --- Article Page: Layout --- */
+.article-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4rem;
+}
+@media (min-width: 1024px) {
+    .article-layout {
+        grid-template-columns: 1fr 280px;
+    }
+}
+.sticky-sidebar {
+    position: sticky;
+    top: 6rem; /* 96px */
+    height: calc(100vh - 8rem);
+}
+
+/* --- Article Page: Special Components --- */
+.app-cta-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+}
+.app-cta-card .cta-button {
+    color: white !important; /* Button Text Color Fix */
+}
+.key-takeaways {
+    background: linear-gradient(145deg, rgba(31, 41, 55, 0.3), rgba(17, 24, 39, 0.3));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2rem;
+    border-radius: 1rem;
+    margin: 2.5rem 0;
+}
+.key-takeaways h2 {
+    margin-top: 0;
+    font-family: 'Inter', sans-serif;
+    color: #F9FAFB;
+    display: flex;
+    align-items: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border: none;
+    padding: 0;
+}
+.key-takeaways ul { list-style: none; padding: 0; margin-top: 1.5rem; }
+.key-takeaways li { display: flex; align-items: flex-start; font-family: 'Lora', serif; color: #D1D5DB; margin-bottom: 1rem; }
+.key-takeaways .icon { flex-shrink: 0; margin-right: 0.75rem; color: #F472B6; width: 24px; height: 24px; margin-top: 2px; }
+
+/* --- General Utilities --- */
+.gradient-text {
+    background: linear-gradient(90deg, #F9A8D4, #C084FC);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.scroll-animation {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+.scroll-animation.animate { opacity: 1; transform: translateY(0); }
+
+/* --- SEO & ACCESSIBILITY ADDITIONS --- */
+.article-content h2 {
+    scroll-margin-top: 96px; /* Anchor offset for fixed header */
+}
+
