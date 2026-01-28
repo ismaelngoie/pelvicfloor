@@ -1,0 +1,18 @@
+// app/robots.txt
+
+export default function robots() {
+  return {
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: [
+          '/api/',      // Don't index backend API routes
+          '/dashboard/', // Don't index private user dashboard (optional)
+          '/admin/',    // Don't index admin panels
+        ],
+      },
+    ],
+    sitemap: 'https://pelvi.health/sitemap.xml',
+  }
+}
