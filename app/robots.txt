@@ -1,5 +1,3 @@
-// app/robots.txt
-
 export default function robots() {
   return {
     rules: [
@@ -7,9 +5,10 @@ export default function robots() {
         userAgent: '*',
         allow: '/',
         disallow: [
-          '/api/',      // Don't index backend API routes
-          '/dashboard/', // Don't index private user dashboard (optional)
-          '/admin/',    // Don't index admin panels
+          '/api/',
+          '/dashboard/', // Protects private user health data
+          '/admin/',
+          '/*?plan=',    // Prevents indexing of checkout/conversion URLs
         ],
       },
     ],
