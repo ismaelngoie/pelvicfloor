@@ -55,8 +55,6 @@ const ButterflyBackground = () => {
   }, []);
 
   // Filter to force Brand Pink (#E65473)
-  // This assumes the source image is black or white.
-  // Calculated to approximate #E65473
   const brandPinkFilter = 'brightness(0) saturate(100%) invert(48%) sepia(91%) saturate(343%) hue-rotate(304deg) brightness(91%) contrast(96%)';
 
   return (
@@ -78,13 +76,13 @@ const ButterflyBackground = () => {
             left: `${b.left}%`,
             width: `${b.size}px`,
             height: `${b.size}px`,
-            top: '0', // Positioned by transform/animation
+            top: '0', 
             animation: `floatUp ${b.duration}s linear infinite`,
             animationDelay: `${b.delay}s`,
             opacity: b.isBehind ? 0.3 : 0.7, 
             filter: brandPinkFilter,
             transform: `rotate(${b.rotation}deg)`,
-            zIndex: b.isBehind ? 0 : 50 // High Z-Index ensures they fly OVER text
+            zIndex: b.isBehind ? 0 : 50 
           }}
         >
           <img 
@@ -106,28 +104,34 @@ export default function WelcomeScreen({ onNext }) {
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [showContent, setShowContent] = useState(false);
 
-  // --- 1. INSTANT REDIRECT CHECK ---
+  // --- 1. INSTANT REDIRECT CHECK (SPEED OPTIMIZED) ---
   useEffect(() => {
-    // Check LocalStorage directly for instant speed (bypass Context loading time)
-    const storedData = localStorage.getItem('pelvic_user_data');
-    if (storedData) {
+    // A: Check LocalStorage DIRECTLY (Faster than waiting for Context)
+    // We look for the raw JSON string saved by useUserData
+    if (typeof window !== 'undefined') {
       try {
-        const parsed = JSON.parse(storedData);
-        if (parsed.isPremium) {
-          router.replace('/dashboard');
-          return;
+        const storedData = localStorage.getItem('pelvic_user_data');
+        if (storedData) {
+          const parsed = JSON.parse(storedData);
+          // If 'isPremium' is true (whether from payment or restore), go to dashboard
+          if (parsed.isPremium === true) {
+            router.replace('/dashboard');
+            return; // Stop execution so we don't show content
+          }
         }
       } catch (e) {
-        console.error("Error parsing user data", e);
+        // Ignore parsing errors, fall through to normal flow
       }
     }
 
-    // Fallback to Context check
+    // B: Fallback Context Check (in case localStorage check failed or is empty)
     if (userDetails && userDetails.isPremium) {
       router.replace('/dashboard');
     } else {
-      // Show content immediately if not premium
-      setShowContent(true);
+      // Only show content if we are certain they are NOT premium
+      // Small delay ensures the redirect happens before fade-in if they are premium
+      const timer = setTimeout(() => setShowContent(true), 50); 
+      return () => clearTimeout(timer);
     }
   }, [userDetails, router]);
 
@@ -159,6 +163,10 @@ export default function WelcomeScreen({ onNext }) {
     return () => clearInterval(timer);
   }, []);
 
+  // While checking status, render nothing (or a white screen) to prevent flash
+  // We only render content once showContent is true
+  if (!showContent && (userDetails?.isPremium)) return null;
+
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-between pb-8 bg-gradient-to-b from-pink-50/50 to-white overflow-hidden">
       
@@ -182,7 +190,7 @@ export default function WelcomeScreen({ onNext }) {
         </p>
 
         {/* Benefits List */}
-        <div className="flex flex-col gap-6 w-full max-w-xs items-start pl-2 bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/50">
+        <div className="flex flex-col gap-6 w-full max-w-xs items-start pl-2 bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="shrink-0 pt-1"><RunIcon /></div>
             <span className="text-app-textPrimary font-semibold text-[16px] leading-snug">A new 5-minute plan, just for you, every day.</span>
