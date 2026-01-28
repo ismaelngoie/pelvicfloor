@@ -6,7 +6,6 @@ import { UserDataProvider } from "@/context/UserDataContext";
 const inter = Inter({ subsets: ["latin"] });
 
 // --- 1. VIEWPORT CONFIGURATION ---
-// Optimized for mobile-first but responsive
 export const viewport = {
   width: "device-width",
   initialScale: 1,
@@ -16,16 +15,16 @@ export const viewport = {
   themeColor: "#E65473",
 };
 
-// --- 2. SEO & METADATA (INTIMACY & LEAKS FOCUS) ---
+// --- 2. SEO & METADATA ---
 export const metadata = {
   metadataBase: new URL('https://pelvi.health'),
   title: {
     default: "Pelvic Floor Exercises | Stop Leaks & Improve Intimacy",
     template: "%s | Pelvi Health"
   },
+  // YOUR EXACT OPTIMIZED DESCRIPTION
   description: "Improve intimacy, stop bladder leaks and build core strength with our personalized 5-Minute daily home plan for Men & Women. No equipment needed.",
   
-  // High-Intent Keywords (Swapped Prolapse for Intimacy)
   keywords: [
     "pelvic floor exercises",
     "stop bladder leaks",
@@ -47,7 +46,7 @@ export const metadata = {
 
   openGraph: {
     title: "Stop Leaks & Improve Intimacy | Pelvi Health",
-    description: "Heal your core and transform your intimacy in 5 minutes a day. The #1 App for Pelvic Health.",
+    description: "Improve intimacy, stop bladder leaks and build core strength with our personalized 5-Minute daily home plan.",
     url: 'https://pelvi.health',
     siteName: 'Pelvi Health',
     images: [
@@ -79,27 +78,19 @@ export const metadata = {
   robots: {
     index: true,
     follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
   },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      {/* LAYOUT UPDATE:
-         - Removed 'fixed inset-0' so desktop users can scroll.
-         - Removed 'sm:w-[400px]' phone box constraints.
-         - Added 'bg-[#FAF9FA]' for a premium dashboard background feel.
+      {/* BODY BACKGROUND:
+        - Mobile: White (#FAF9FA)
+        - Desktop: Darker Gray (#F2F1F2) to make the centered app 'pop'
       */}
-      <body className={`${inter.className} bg-[#FAF9FA] min-h-screen flex flex-col`}>
+      <body className={`${inter.className} bg-[#FAF9FA] md:bg-[#F2F1F2] min-h-screen flex flex-col`}>
         
-        {/* --- 3. GOOGLE ADS TAG --- */}
+        {/* --- GOOGLE ADS & ANALYTICS --- */}
         <Script
           strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=AW-17911323675"
@@ -113,7 +104,7 @@ export default function RootLayout({ children }) {
           `}
         </Script>
 
-        {/* --- 4. MICROSOFT CLARITY --- */}
+        {/* --- MICROSOFT CLARITY --- */}
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
             (function(c,l,a,r,i,t,y){
@@ -124,11 +115,16 @@ export default function RootLayout({ children }) {
           `}
         </Script>
 
-        {/* APP CONTAINER:
-           - On Mobile: Full width, behaves like a native app.
-           - On Desktop: Centered, max-width constrained for readability, but NOT a tiny phone box.
+        {/* MAIN APP CONTAINER (The "Phone/Desktop" Shell):
+           - w-full: Always use full available width
+           - min-h-screen: Always full height
+           - bg-[#FAF9FA]: The app's actual background color
+           - md:max-w-6xl: On desktop, restricts width to ~1150px (perfect 2/3 size)
+           - md:mx-auto: Centers it on desktop
+           - md:shadow-2xl: Adds premium depth on desktop
+           - md:border-x: Subtle border to define edges on desktop
         */}
-        <div className="w-full min-h-screen flex flex-col mx-auto bg-app-background shadow-sm">
+        <div className="w-full min-h-screen flex flex-col mx-auto bg-[#FAF9FA] md:max-w-6xl md:shadow-2xl md:border-x md:border-white/50">
           <UserDataProvider>
             {children}
           </UserDataProvider>
