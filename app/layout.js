@@ -23,7 +23,7 @@ export const metadata = {
     default: "Pelvic Floor Exercises | Stop Leaks & Improve Intimacy",
     template: "%s | Pelvi Health"
   },
-  description: "Personalized 5-minute daily routines routines for Men & Women to stop bladder leaks, improve intimacy, and build core strength. No equipment needed.",
+  description: "Improve intimacy, stop bladder leaks and build core strength with our personalized 5-Minute daily home plan for Men & Women. No equipment needed.",
   
   // High-Intent Keywords (Swapped Prolapse for Intimacy)
   keywords: [
