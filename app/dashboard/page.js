@@ -4,7 +4,7 @@ import { useUserData } from '@/context/UserDataContext';
 import { 
   Sun, CloudSun, Moon, Flame, ChevronRight, Play, RotateCw, 
   Trophy, Calendar, Zap, Activity, Info, Heart, Droplets,
-  Settings, CreditCard, Mail, X, ExternalLink, Loader2, User
+  CreditCard, Mail, X, ExternalLink, Loader2, ArrowLeft
 } from 'lucide-react';
 
 import DailyRoutinePlayer from '@/components/DailyRoutinePlayer';
@@ -49,12 +49,16 @@ const GOAL_TIPS = {
 
 // --- PROFILE SETTINGS MODAL ---
 const ProfileSettingsModal = ({ onClose, joinDate, userName }) => {
+  const [view, setView] = useState('menu'); // 'menu' or 'email_input'
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
+  const [email, setEmail] = useState("");
 
-  const handleManageSubscription = async () => {
-    // In this MVP flow, we ask for email because we don't have a database ID.
-    // In a real logged-in app, you'd pass the ID automatically.
-    const email = prompt("To manage your subscription, confirm your billing email:");
+  const handleManageSubscriptionClick = () => {
+    setView('email_input');
+  };
+
+  const handlePortalSubmit = async (e) => {
+    e.preventDefault();
     if (!email) return;
 
     setIsLoadingPortal(true);
@@ -72,12 +76,12 @@ const ProfileSettingsModal = ({ onClose, joinDate, userName }) => {
       if (data.url) {
         window.location.href = data.url; // Redirect to Stripe
       } else {
-        alert("We couldn't find a subscription with that email. Please contact support.");
+        alert("We couldn't find a subscription with that email. Please check for typos.");
         setIsLoadingPortal(false);
       }
     } catch (err) {
       console.error(err);
-      alert("Something went wrong. Please contact support.");
+      alert("Something went wrong. Please try again later.");
       setIsLoadingPortal(false);
     }
   };
@@ -87,86 +91,131 @@ const ProfileSettingsModal = ({ onClose, joinDate, userName }) => {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in" onClick={onClose}>
       <div 
-        className="w-full max-w-sm bg-white rounded-t-[32px] sm:rounded-[32px] p-6 pb-10 sm:pb-6 shadow-2xl animate-slide-up"
+        className="w-full max-w-sm bg-white rounded-t-[32px] sm:rounded-[32px] p-6 pb-10 sm:pb-6 shadow-2xl animate-slide-up overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-100 shadow-md">
-               <img src="/coachMiaAvatar.png" className="w-full h-full object-cover" alt="Profile" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-[#1A1A26]">{userName}</h3>
-              <p className="text-sm text-gray-500">Member since {formattedDate}</p>
-              <div className="flex items-center gap-1.5 mt-1.5 bg-green-100 px-2.5 py-0.5 rounded-full w-fit">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"/>
-                <span className="text-[11px] font-bold text-green-700 uppercase tracking-wide">Active Premium</span>
+        
+        {/* VIEW 1: MAIN MENU */}
+        {view === 'menu' && (
+          <>
+            {/* Header */}
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-100 shadow-md">
+                   <img src="/coachMiaAvatar.png" className="w-full h-full object-cover" alt="Profile" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-[#1A1A26]">{userName}</h3>
+                  <p className="text-sm text-gray-500">Member since {formattedDate}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5 bg-green-100 px-2.5 py-0.5 rounded-full w-fit">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"/>
+                    <span className="text-[11px] font-bold text-green-700 uppercase tracking-wide">Active Premium</span>
+                  </div>
+                </div>
               </div>
+              <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200">
+                <X size={20} />
+              </button>
             </div>
+
+            {/* Menu Items */}
+            <div className="space-y-3">
+              
+              {/* Subscription Button */}
+              <button 
+                onClick={handleManageSubscriptionClick}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:scale-110 transition-transform">
+                    <CreditCard size={20} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-[#1A1A26] text-sm">Subscription</p>
+                    <p className="text-xs text-gray-500">Manage plan / Cancel</p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-gray-400" />
+              </button>
+
+              {/* Support */}
+              <a 
+                href="mailto:contact@pelvi.health?subject=Support Request - Pelvic Floor Coach"
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:scale-110 transition-transform">
+                    <Mail size={20} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-[#1A1A26] text-sm">Contact Support</p>
+                    <p className="text-xs text-gray-500">We're here to help</p>
+                  </div>
+                </div>
+                <ExternalLink size={18} className="text-gray-400" />
+              </a>
+
+              {/* Get App */}
+              <a 
+                href="https://apps.apple.com/us/app/pelvic-floor-core-coach/id6642654729"
+                target="_blank"
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-br from-[#1A1A26] to-[#2C2C3E] text-white rounded-2xl shadow-lg group hover:shadow-xl transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
+                    <img src="/logo.png" className="w-5 h-5 object-contain" alt="Logo" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-sm">Get the App</p>
+                    <p className="text-xs text-white/60">Offline mode & Reminders</p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-white/60" />
+              </a>
+            </div>
+          </>
+        )}
+
+        {/* VIEW 2: EMAIL INPUT (BEAUTIFUL FORM) */}
+        {view === 'email_input' && (
+          <div className="animate-slide-up">
+            <div className="flex items-center gap-2 mb-6">
+              <button 
+                onClick={() => setView('menu')}
+                className="p-2 -ml-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <h3 className="text-lg font-bold text-[#1A1A26]">Manage Subscription</h3>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-6">
+              Enter the email address associated with your subscription to access the secure billing portal.
+            </p>
+
+            <form onSubmit={handlePortalSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wide">Email Address</label>
+                <input 
+                  type="email" 
+                  autoFocus
+                  required
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-[#1A1A26] font-medium focus:outline-none focus:ring-2 focus:ring-[#E65473]/20 focus:border-[#E65473] transition-all"
+                />
+              </div>
+
+              <button 
+                disabled={isLoadingPortal}
+                className="w-full h-12 bg-[#1A1A26] text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              >
+                {isLoadingPortal ? <Loader2 size={18} className="animate-spin" /> : "Access Portal"}
+              </button>
+            </form>
           </div>
-          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Menu Items */}
-        <div className="space-y-3">
-          
-          {/* Subscription (The Money Button) */}
-          <button 
-            onClick={handleManageSubscription}
-            disabled={isLoadingPortal}
-            className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:scale-110 transition-transform">
-                <CreditCard size={20} />
-              </div>
-              <div className="text-left">
-                <p className="font-bold text-[#1A1A26] text-sm">Subscription</p>
-                <p className="text-xs text-gray-500">Manage plan / Cancel</p>
-              </div>
-            </div>
-            {isLoadingPortal ? <Loader2 size={18} className="animate-spin text-gray-400" /> : <ChevronRight size={18} className="text-gray-400" />}
-          </button>
-
-          {/* Support */}
-          <a 
-            href="mailto:contact@pelvi.health"
-            className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:scale-110 transition-transform">
-                <Mail size={20} />
-              </div>
-              <div className="text-left">
-                <p className="font-bold text-[#1A1A26] text-sm">Contact Support</p>
-                <p className="text-xs text-gray-500">We're here to help</p>
-              </div>
-            </div>
-            <ExternalLink size={18} className="text-gray-400" />
-          </a>
-
-          {/* Get App */}
-          <a 
-            href="https://apps.apple.com/us/app/pelvic-floor-core-coach/id6642654729"
-            target="_blank"
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-br from-[#1A1A26] to-[#2C2C3E] text-white rounded-2xl shadow-lg group hover:shadow-xl transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
-                <img src="/logo.png" className="w-5 h-5 object-contain" alt="Logo" />
-              </div>
-              <div className="text-left">
-                <p className="font-bold text-sm">Get the App</p>
-                <p className="text-xs text-white/60">Offline mode & Reminders</p>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-white/60" />
-          </a>
-
-        </div>
+        )}
         
         <p className="text-center text-[10px] text-gray-300 mt-6">Version 2.4.0 • Pelvi Health Inc.</p>
       </div>
@@ -174,7 +223,7 @@ const ProfileSettingsModal = ({ onClose, joinDate, userName }) => {
   );
 };
 
-// --- DASHBOARD HEADER (UPDATED) ---
+// --- DASHBOARD HEADER ---
 const DashboardHeader = ({ name, greeting, onProfileClick }) => {
   const Icon = greeting.icon;
   const [liveCount, setLiveCount] = useState(124);
@@ -205,7 +254,7 @@ const DashboardHeader = ({ name, greeting, onProfileClick }) => {
         </div>
       </div>
       
-      {/* Profile Button (Triggers Modal) */}
+      {/* Profile Button */}
       <button 
         onClick={onProfileClick}
         className="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-white group relative hover:scale-105 transition-transform active:scale-95"
@@ -250,7 +299,7 @@ const VideoPreview = ({ url }) => {
   );
 };
 
-// --- WEEKLY GRAPH ---
+// --- WEEKLY GRAPH (YOUR EXACT CODE) ---
 const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
   const days = ["M", "T", "W", "T", "F", "S", "S"];
   const [todayIndex, setTodayIndex] = useState(-1);
@@ -270,42 +319,42 @@ const WeeklyProgressGraph = ({ streak, goalColor, isTodayDone }) => {
         </span>
       </div>
       
-      <div className="flex justify-between items-end h-24 gap-2">
-        {days.map((day, idx) => {
-  if (todayIndex === -1) return null;
+      <div className="flex justify-between h-24 gap-2 items-stretch">
+          {days.map((day, idx) => {
+          if (todayIndex === -1) return null;
 
-  // streak ends today if done, otherwise ends yesterday
-  const end = isTodayDone ? todayIndex : todayIndex - 1;
+          // streak ends today if done, otherwise ends yesterday
+          const end = isTodayDone ? todayIndex : todayIndex - 1;
 
-  // If end is before Monday (e.g., it's Monday and not done), nothing to show in this week
-  if (end < 0) {
-    const barColor = "#EBEBF0";
-    return (
-      <div key={idx} className="flex flex-col items-center gap-2 flex-1 h-full">
-        <div className="w-full flex-1 flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
-          <div className="w-2 rounded-full transition-all duration-700 ease-out" style={{ height: "15%", backgroundColor: barColor }} />
-        </div>
-        <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>{day}</span>
-      </div>
-    );
-  }
+          // If end is before Monday (e.g., it's Monday and not done), nothing to show in this week
+          if (end < 0) {
+            const barColor = "#EBEBF0";
+            return (
+              <div key={idx} className="flex flex-col items-center gap-2 flex-1 h-full">
+                <div className="w-full flex-1 flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
+                  <div className="w-2 rounded-full transition-all duration-700 ease-out" style={{ height: "15%", backgroundColor: barColor }} />
+                </div>
+                <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>{day}</span>
+              </div>
+            );
+          }
 
-  // Fill last `streak` days up to `end`
-  const start = end - (streak - 1);
-  const isActive = streak > 0 && idx >= start && idx <= end;
+          // Fill last `streak` days up to `end`
+          const start = end - (streak - 1);
+          const isActive = streak > 0 && idx >= start && idx <= end;
 
-  const height = isActive ? "80%" : "15%";
-  const barColor = isActive ? goalColor : "#EBEBF0";
+          const height = isActive ? "80%" : "15%";
+          const barColor = isActive ? goalColor : "#EBEBF0";
 
-  return (
-    <div key={idx} className="flex flex-col items-center gap-2 flex-1 h-full">
-      <div className="w-full flex-1 flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
-        <div className="w-2 rounded-full transition-all duration-700 ease-out" style={{ height, backgroundColor: barColor }} />
-      </div>
-      <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>{day}</span>
-    </div>
-  );
-})}
+          return (
+            <div key={idx} className="flex flex-col items-center gap-2 flex-1 h-full">
+              <div className="w-full flex-1 flex items-end justify-center rounded-lg bg-[#FAF9FA] overflow-hidden relative">
+                <div className="w-2 rounded-full transition-all duration-700 ease-out" style={{ height, backgroundColor: barColor }} />
+              </div>
+              <span className={`text-[10px] font-bold ${idx === todayIndex ? 'text-[#1A1A26]' : 'text-[#737380]'}`}>{day}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -398,8 +447,6 @@ export default function DashboardPage() {
   const [streak, setStreak] = useState(0);
   const [completedToday, setCompletedToday] = useState(false);
   const [greeting, setGreeting] = useState({ text: "Good morning", icon: Sun });
-  
-  // Modal State
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Init
@@ -440,6 +487,7 @@ export default function DashboardPage() {
   if (loading) return <div className="w-full h-screen bg-[#FAF9FA]" />;
 
   const userGoal = userDetails?.selectedTarget?.title || "Core Strength";
+  // ✅ FIX: Use the User's name if available, otherwise "Friend"
   const userName = userDetails?.name || "Friend";
 
   const getTheme = () => {
@@ -491,7 +539,6 @@ export default function DashboardPage() {
           className="group w-full relative overflow-hidden rounded-[32px] bg-white border border-[#EBEBF0] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 transition-all duration-300 active:scale-[0.98] animate-slide-up cursor-pointer"
           style={{ animationDelay: '100ms' }}
         >
-          {/* ... (Existing Card Content - Unchanged) ... */}
           <div className="flex justify-between items-start mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -588,7 +635,7 @@ export default function DashboardPage() {
            <ChevronRight size={16} className="text-gray-500" />
         </div>
 
-        {/* Graph (Fixed) */}
+        {/* Graph (YOUR EXACT CODE) */}
         <WeeklyProgressGraph streak={streak} goalColor={themeColor} isTodayDone={completedToday} />
 
         {/* Tips */}
