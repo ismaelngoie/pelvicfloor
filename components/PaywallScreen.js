@@ -189,7 +189,7 @@ const CheckoutForm = ({ onClose }) => {
   );
 };
 
-// --- CUSTOM RESTORE MODAL ---
+// --- REAL RESTORE MODAL ---
 const RestoreModal = ({ onClose }) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -198,18 +198,39 @@ const RestoreModal = ({ onClose }) => {
 
   const handleRestoreSubmit = async (e) => {
     e.preventDefault();
+    if (!email.includes("@")) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate API check delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const res = await fetch('/api/restore-purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+      });
 
-    if (email && email.includes("@")) {
-      saveUserData('isPremium', true);
-      saveUserData('joinDate', new Date().toISOString());
-      router.push('https://pelvi.health/dashboard');
-    } else {
+      const data = await res.json();
+
+      if (data.isPremium) {
+        // SUCCESS: Unlock Premium
+        saveUserData('isPremium', true);
+        saveUserData('joinDate', new Date().toISOString()); 
+        if (data.customerName) saveUserData('name', data.customerName);
+        
+        // Redirect to Dashboard
+        router.push('https://pelvi.health/dashboard');
+      } else {
+        // FAIL: Show Error
+        alert("We found your email, but no active subscription was detected.");
+        setIsLoading(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Unable to verify purchase. Please check your internet connection.");
       setIsLoading(false);
-      alert("Please enter a valid email address.");
     }
   };
 
@@ -272,15 +293,15 @@ export default function PaywallScreen() {
   // Modals & Logic
   const [clientSecret, setClientSecret] = useState("");
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [showRestoreModal, setShowRestoreModal] = useState(false); // New Restore Modal State
-  const [isFaqOpen, setIsFaqOpen] = useState(false); // FAQ Toggle State
+  const [showRestoreModal, setShowRestoreModal] = useState(false); 
+  const [isFaqOpen, setIsFaqOpen] = useState(false); 
   const [isButtonLoading, setIsButtonLoading] = useState(false);
 
   // Derived Data
   const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const userName = userDetails?.name || "Ready";
   const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
-  const buttonText = getButtonText(goalTitle); // Corrected Grammar
+  const buttonText = getButtonText(goalTitle); 
 
   // Effects
   useEffect(() => {
