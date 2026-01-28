@@ -42,77 +42,26 @@
     <script src="https://unpkg.com/lucide@latest" defer></script>
     <link rel="stylesheet" href="/_astro/_slug_.CQzeT8_j.css">
     <script type="module">
-        document.addEventListener("DOMContentLoaded", () => {
-            window.lucide && lucide.createIcons();
-            const l = document.querySelectorAll(".scroll-animation"),
-                s = new IntersectionObserver(e => {
-                    e.forEach(i => {
-                        i.isIntersecting && (i.target.classList.add("animate"), s.unobserve(i.target))
-                    })
-                }, { threshold: .1 });
-            l.forEach(e => s.observe(e));
-            const d = window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-                r = document.getElementById("mouse-glow");
-            r && !d && document.body.addEventListener("mousemove", e => {
-                r.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`
-            });
-            const t = document.getElementById("particle-canvas");
-            if (t && !d) {
-                let e = function() {
-                        t.width = window.innerWidth, t.height = document.body.scrollHeight
-                    },
-                    i = function() {
-                        a = [];
-                        const o = Math.min(t.height * t.width / 9e3, 150);
-                        for (let h = 0; h < o; h++) a.push(new m)
-                    },
-                    c = function() {
-                        n.clearRect(0, 0, t.width, t.height);
-                        for (const o of a) o.update(), o.draw();
-                        requestAnimationFrame(c)
-                    };
-                const n = t.getContext("2d");
-                let a = [];
-                e();
-                class m {
-                    constructor() {
-                        this.x = Math.random() * t.width, this.y = Math.random() * t.height, this.size = Math.random() * 1.5 + .5, this.speedY = Math.random() * .5 + .1, this.opacity = Math.random() * .5 + .2
-                    }
-                    update() {
-                        this.y -= this.speedY, this.y < 0 && (this.y = t.height + 10, this.x = Math.random() * t.width)
-                    }
-                    draw() {
-                        n.fillStyle = `rgba(244, 114, 182, ${this.opacity})`, n.beginPath(), n.arc(this.x, this.y, this.size, 0, Math.PI * 2), n.fill()
-                    }
-                }
-                i(), c(), window.addEventListener("resize", () => {
-                    e(), i()
-                })
-            }
-        });
+        document.addEventListener("DOMContentLoaded",()=>{window.lucide&&lucide.createIcons();const l=document.querySelectorAll(".scroll-animation"),s=new IntersectionObserver(e=>{e.forEach(i=>{i.isIntersecting&&(i.target.classList.add("animate"),s.unobserve(i.target))})},{threshold:.1});l.forEach(e=>s.observe(e));const d=window.matchMedia("(prefers-reduced-motion: reduce)").matches,r=document.getElementById("mouse-glow");r&&!d&&document.body.addEventListener("mousemove",e=>{r.style.transform=`translate(${e.clientX}px, ${e.clientY}px)`});const t=document.getElementById("particle-canvas");if(t&&!d){let e=function(){t.width=window.innerWidth,t.height=document.body.scrollHeight},i=function(){a=[];const o=Math.min(t.height*t.width/9e3,150);for(let h=0;h<o;h++)a.push(new m)},c=function(){n.clearRect(0,0,t.width,t.height);for(const o of a)o.update(),o.draw();requestAnimationFrame(c)};const n=t.getContext("2d");let a=[];e();class m{constructor(){this.x=Math.random()*t.width,this.y=Math.random()*t.height,this.size=Math.random()*1.5+.5,this.speedY=Math.random()*.5+.1,this.opacity=Math.random()*.5+.2}update(){this.y-=this.speedY,this.y<0&&(this.y=t.height+10,this.x=Math.random()*t.width)}draw(){n.fillStyle=`rgba(244, 114, 182, ${this.opacity})`,n.beginPath(),n.arc(this.x,this.y,this.size,0,Math.PI*2),n.fill()}}i(),c(),window.addEventListener("resize",()=>{e(),i()})}});
     </script>
 </head>
 <body class="overflow-x-hidden">
     <canvas id="particle-canvas" aria-hidden="true"></canvas>
     <div id="mouse-glow" aria-hidden="true"></div>
-    
     <header class="fixed top-0 left-0 right-0 z-20 p-4 backdrop-blur-sm bg-black/30">
         <div class="container mx-auto flex justify-between items-center">
             <a href="/" class="flex items-center space-x-3">
                 <img src="/logo.png" alt="Pelvi Health App Logo" class="h-8 w-8">
                 <span class="font-bold text-xl text-white">Pelvi Health</span>
             </a>
-            <nav class="hidden md:flex items-center space-x-6">
-                <a href="/blog/" class="text-white font-semibold">Pelvic Health Blog</a>
-            </nav>
             <a href="https://apps.apple.com/us/app/pelvic-floor-core-coach/id6642654729" target="_blank" rel="noopener" class="cta-button text-white font-semibold py-2 px-5 rounded-full text-sm">
                 Download Now
             </a>
         </div>
     </header>
 
-    <main class="pt-16">
-        <section class="text-center py-12 md:py-20 px-4">
+    <main class="pt-24">
+        <section class="text-center py-16 md:py-24 px-4">
             <div class="container mx-auto">
                 <h1 class="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-4 scroll-animation">
                     Pelvic Health <span class="gradient-text">Blog</span>
@@ -131,42 +80,77 @@
                         <div class="p-6">
                             <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
                             <h3 class="font-bold text-lg text-white mt-2">Beyond Kegels: 5 Advanced Pelvic Floor Exercises for Core Strength</h3>
-                            <p class="text-sm text-gray-400 mt-2 h-20">Already nailed the basics.</p>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Already nailed the basics. </p>
                         </div>
                     </a>
                     <a href="/blog/breathing-for-pelvic-floor-exercises/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
                         <div class="p-6">
                             <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
                             <h3 class="font-bold text-lg text-white mt-2">The Role of Breathing in Pelvic Floor Exercises: The Diaphragm Connection</h3>
-                            <p class="text-sm text-gray-400 mt-2 h-20">Your breath is the engine of pelvic floor training.</p>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Your breath is the engine of pelvic floor training. </p>
                         </div>
                     </a>
                     <a href="/blog/common-pelvic-floor-exercise-mistakes/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
                         <div class="p-6">
                             <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
                             <h3 class="font-bold text-lg text-white mt-2">Common Mistakes in Pelvic Floor Exercises (And How to Fix Them)</h3>
-                            <p class="text-sm text-gray-400 mt-2 h-20">If Kegels haven’t worked, it’s not you—it’s the method.</p>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> If Kegels haven’t worked, it’s not you—it’s the method. </p>
                         </div>
                     </a>
                     <a href="/blog/how-to-do-kegels-correctly/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
                         <div class="p-6">
                             <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
                             <h3 class="font-bold text-lg text-white mt-2">How to Do Kegels Correctly: A Step-by-Step Guide to Pelvic Floor Exercises</h3>
-                            <p class="text-sm text-gray-400 mt-2 h-20">Master the correct way to do pelvic floor exercises (Kegels).</p>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Master the correct way to do pelvic floor exercises (Kegels). </p>
                         </div>
                     </a>
                     <a href="/blog/pelvic-floor-exercises-for-beginners/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
                         <div class="p-6">
                             <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
                             <h3 class="font-bold text-lg text-white mt-2">Pelvic Floor Exercises for Beginners: Your First 7-Day Plan</h3>
-                            <p class="text-sm text-gray-400 mt-2 h-20">Start here.</p>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Start here. </p>
                         </div>
                     </a>
                     <a href="/blog/pelvic-floor-exercises-for-intimacy/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
                         <div class="p-6">
                             <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
                             <h3 class="font-bold text-lg text-white mt-2">Can Pelvic Floor Exercises Improve Intimacy? The Science Explained</h3>
-                            <p class="text-sm text-gray-400 mt-2 h-20">Understand how pelvic floor training affects arousal, lubrication, erection quality, orgasm, and comfort.</p>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Understand how pelvic floor training affects arousal, lubrication, erection quality, orgasm, and comfort—plus a step-by-step plan that blends relaxation with strength. </p>
+                        </div>
+                    </a>
+                    <a href="/blog/pelvic-floor-exercises-for-men/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
+                        <div class="p-6">
+                            <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
+                            <h3 class="font-bold text-lg text-white mt-2">Pelvic Floor Exercises for Men: A Complete Guide for Bladder Control and Performance</h3>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Men can dramatically improve bladder control, reduce post-void dribbling, and enhance sexual function with correct pelvic floor training. </p>
+                        </div>
+                    </a>
+                    <a href="/blog/pelvic-floor-exercises-for-prolapse/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
+                        <div class="p-6">
+                            <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
+                            <h3 class="font-bold text-lg text-white mt-2">Pelvic Floor Exercises for Prolapse: Gentle Routines for Support and Relief</h3>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> A calm, confidence-building plan for prolapse. </p>
+                        </div>
+                    </a>
+                    <a href="/blog/postpartum-pelvic-floor-exercises/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
+                        <div class="p-6">
+                            <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
+                            <h3 class="font-bold text-lg text-white mt-2">Postpartum Pelvic Floor Exercises: A 12-Week Healing and Recovery Plan</h3>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Your complete, trimester-style roadmap for the fourth trimester. </p>
+                        </div>
+                    </a>
+                    <a href="/blog/safe-pelvic-floor-exercises-for-pregnancy/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
+                        <div class="p-6">
+                            <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
+                            <h3 class="font-bold text-lg text-white mt-2">Safe Pelvic Floor Exercises for Every Stage of Pregnancy</h3>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> A trimester-by-trimester guide to safe pelvic floor training in pregnancy. </p>
+                        </div>
+                    </a>
+                    <a href="/blog/ultimate-guide-to-pelvic-floor-exercises/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
+                        <div class="p-6">
+                            <span class="text-xs font-bold uppercase text-rose-400">Pelvic Floor Exercises</span>
+                            <h3 class="font-bold text-lg text-white mt-2">The Ultimate Guide to Pelvic Floor Exercises: For Beginners to Advanced</h3>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> The definitive, evidence-based guide to pelvic floor exercises (Kegels). </p>
                         </div>
                     </a>
                 </div>
@@ -179,26 +163,34 @@
                         <div class="p-6">
                             <span class="text-xs font-bold uppercase text-pink-400">Leakproof Control</span>
                             <h3 class="font-bold text-lg text-white mt-2">How to Stop Leaking When You Cough or Sneeze (The Knack Method)</h3>
-                            <p class="text-sm text-gray-400 mt-2 h-20">Tired of embarrassing leaks when you cough, sneeze, or laugh.</p>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Tired of embarrassing leaks when you cough, sneeze, or laugh. </p>
                         </div>
                     </a>
                     <a href="/blog/top-5-foods-that-irritate-your-bladder/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
                         <div class="p-6">
                             <span class="text-xs font-bold uppercase text-pink-400">Leakproof Control</span>
                             <h3 class="font-bold text-lg text-white mt-2">Top 5 Foods and Drinks That Can Irritate Your Bladder</h3>
-                            <p class="text-sm text-gray-400 mt-2 h-20">Struggling with bladder urgency or frequency.</p>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Struggling with bladder urgency or frequency. </p>
                         </div>
                     </a>
                     <a href="/blog/understanding-urge-vs-stress-incontinence/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
                         <div class="p-6">
                             <span class="text-xs font-bold uppercase text-pink-400">Leakproof Control</span>
-                            <h3 class="font-bold text-lg text-white mt-2">Urge vs. Stress Incontinence: What's the Difference?</h3>
-                            <p class="text-sm text-gray-400 mt-2 h-20">Not all leaks are the same.</p>
+                            <h3 class="font-bold text-lg text-white mt-2">Urge vs. Stress Incontinence: What&#39;s the Difference?</h3>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Not all leaks are the same. </p>
+                        </div>
+                    </a>
+                    <a href="/blog/why-am-i-still-leaking-after-kegels/" class="blog-card w-72 md:w-80 bg-gray-900/50 rounded-xl overflow-hidden">
+                        <div class="p-6">
+                            <span class="text-xs font-bold uppercase text-pink-400">Leakproof Control</span>
+                            <h3 class="font-bold text-lg text-white mt-2">Why Am I Still Leaking After Doing Kegels for Weeks?</h3>
+                            <p class="text-sm text-gray-400 mt-2 h-20"> Feeling frustrated that your Kegels aren&#39;t stopping leaks. </p>
                         </div>
                     </a>
                 </div>
             </section>
-        </div>
+            
+            </div>
     </main>
 
     <footer class="py-8 px-4 text-center text-gray-500 text-sm">
