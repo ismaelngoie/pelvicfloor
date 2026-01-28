@@ -446,17 +446,32 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState({ text: "Good morning", icon: Sun });
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  // --- 1. NEW: CONVERSION TRACKING CLEANUP ---
+  // --- 1. NEW: EXPLICIT GOOGLE ADS TRIGGER + DELAYED CLEANUP ---
   useEffect(() => {
     // Only run on client
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       // Check if we just arrived from payment
       if (params.get('plan') === 'monthly') {
-        // Clean URL so refresh doesn't trigger conversion again
-        // "replaceState" updates the URL bar without reloading the page
-        const cleanUrl = window.location.pathname; 
-        window.history.replaceState(null, '', cleanUrl);
+        
+        // A. MANUALLY FIRE THE CONVERSION EVENT (IMMEDIATE)
+        if (window.gtag) {
+          window.gtag('event', 'conversion', {
+            'send_to': 'AW-17911323675', 
+            'value': 24.99,
+            'currency': 'USD',
+            'transaction_id': Date.now() // Unique ID prevents dups
+          });
+          console.log("✅ Google Ads Conversion Fired");
+        }
+
+        // B. DELAY URL CLEANUP (5 Seconds)
+        // This keeps ?plan=monthly visible so simple URL matching works too,
+        // and gives you visual confirmation.
+        setTimeout(() => {
+          const cleanUrl = window.location.pathname; 
+          window.history.replaceState(null, '', cleanUrl);
+        }, 5000); 
       }
     }
   }, []);
@@ -499,7 +514,6 @@ export default function DashboardPage() {
   if (loading) return <div className="w-full h-screen bg-[#FAF9FA]" />;
 
   const userGoal = userDetails?.selectedTarget?.title || "Core Strength";
-  // Fallback name if none provided
   const userName = userDetails?.name || "Friend";
 
   const getTheme = () => {
