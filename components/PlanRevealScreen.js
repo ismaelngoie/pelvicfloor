@@ -387,7 +387,7 @@ export default function PlanRevealScreen({ onNext }) {
       {/* --- ADDITION: Bottom scrim ONLY for phase 2 & 3 (same “paywall bottom method”) --- */}
       {(phase === 'personalizing' || phase === 'showingTimeline') && (
         <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
-          <div className="w-full h-[calc(env(safe-area-inset-bottom)+260px)] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
+          <div className="w-full h-[calc(env(safe-area-inset-bottom)+64px)] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
         </div>
       )}
       
