@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserData } from '@/context/UserDataContext';
-import { Star, ChevronDown, ChevronUp, Activity, Play, Brain, Timer, X, Loader2, Lock, Mail } from 'lucide-react';
+import { Star, ChevronDown, ChevronUp, Activity, Play, Brain, Timer, X, Loader2, Link, Mail } from 'lucide-react';
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, LinkAuthenticationElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
@@ -111,7 +111,6 @@ const CheckoutForm = ({ onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!stripe || !elements) return;
 
     setIsLoading(true);
@@ -175,7 +174,7 @@ const CheckoutForm = ({ onClose }) => {
       </div>
       
       {message && <div className="text-red-400 text-sm mt-4 bg-red-500/10 p-3 rounded-xl border border-red-500/20">{message}</div>}
-
+      
       <button 
         disabled={isLoading || !stripe || !elements} 
         id="submit"
@@ -202,7 +201,6 @@ const RestoreModal = ({ onClose }) => {
       alert("Please enter a valid email address.");
       return;
     }
-
     setIsLoading(true);
 
     try {
@@ -211,9 +209,9 @@ const RestoreModal = ({ onClose }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email })
       });
-
+      
       const data = await res.json();
-
+      
       if (data.isPremium) {
         // SUCCESS: Unlock Premium
         saveUserData('isPremium', true);
@@ -247,11 +245,9 @@ const RestoreModal = ({ onClose }) => {
           <h3 className="text-xl font-bold text-white">Restore Purchase</h3>
           <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10"><X size={18} className="text-white" /></button>
         </div>
-
         <p className="text-white/60 text-sm mb-6">
           Enter the email address you used to purchase your subscription. We'll find your account.
         </p>
-
         <form onSubmit={handleRestoreSubmit} className="flex flex-col gap-4">
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
@@ -264,7 +260,6 @@ const RestoreModal = ({ onClose }) => {
               autoFocus
             />
           </div>
-
           <button 
             disabled={isLoading}
             className="w-full h-12 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -303,6 +298,31 @@ export default function PaywallScreen() {
   const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
   const buttonText = getButtonText(goalTitle); 
 
+  // --- 🔥 THEME OVERRIDE (FIX FOR iOS) ---
+  useEffect(() => {
+    // 1. Force the standard theme-color to black
+    const metaTheme = document.querySelector('meta[name="theme-color"]') || document.createElement('meta');
+    metaTheme.name = "theme-color";
+    metaTheme.content = "#000000";
+    document.head.appendChild(metaTheme);
+
+    // 2. Force iOS specific status bar style to transparent/black
+    const metaApple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') || document.createElement('meta');
+    metaApple.name = "apple-mobile-web-app-status-bar-style";
+    metaApple.content = "black-translucent"; // This is the key for iOS video bleeding
+    document.head.appendChild(metaApple);
+
+    // 3. Force HTML and BODY to be black (overrides global.css)
+    document.documentElement.style.backgroundColor = "#000000";
+    document.body.style.backgroundColor = "#000000";
+
+    return () => {
+        // Optional: Restore to your app default if needed
+        // document.documentElement.style.backgroundColor = ""; 
+        // document.body.style.backgroundColor = ""; 
+    };
+  }, []);
+
   // Effects
   useEffect(() => {
     const date = new Date();
@@ -329,10 +349,8 @@ export default function PaywallScreen() {
   }, [showContent]);
 
   // --- ACTIONS ---
-
   const handleStartPlan = async () => {
     setIsButtonLoading(true);
-
     if (!clientSecret) {
       try {
         const res = await fetch("/api/create-payment-intent", {
@@ -344,11 +362,10 @@ export default function PaywallScreen() {
            const errText = await res.text();
            throw new Error(`Server Error: ${res.status} - ${errText}`);
         }
-
+        
         const data = await res.json();
         
         if (data.error) throw new Error(data.error);
-
         setClientSecret(data.clientSecret);
       } catch (err) {
         console.error("Stripe Error:", err);
@@ -381,7 +398,8 @@ export default function PaywallScreen() {
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-black overflow-hidden">
+    // Fixed container to cover viewport exactly
+    <div className="fixed inset-0 w-full h-full flex flex-col bg-black overflow-hidden">
       
       {/* 1. Video Background */}
       <div className="absolute inset-0 z-0">
@@ -448,19 +466,20 @@ export default function PaywallScreen() {
             </div>
             <span className="text-[11px] font-medium text-white/80 uppercase tracking-wide">App Store Rating</span>
           </div>
+
           <div className="w-full min-h-[70px] flex items-center justify-center relative">
-             {reviews.map((review, idx) => (
-               <div 
-                 key={idx} 
-                 className={`absolute w-full flex flex-col items-center transition-all duration-500 ${idx === currentReviewIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}
-               >
-                 <div className="flex flex-col items-center gap-2">
-                    <img src={review.image} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-sm" alt={review.name} />
-                    <p className="text-[15px] italic text-white text-center font-medium drop-shadow-md">"{review.text}"</p>
-                    <p className="text-[12px] font-bold text-white/90 drop-shadow-md">{review.name}</p>
-                 </div>
-               </div>
-             ))}
+              {reviews.map((review, idx) => (
+                <div 
+                  key={idx} 
+                  className={`absolute w-full flex flex-col items-center transition-all duration-500 ${idx === currentReviewIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                     <img src={review.image} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-sm" alt={review.name} />
+                     <p className="text-[15px] italic text-white text-center font-medium drop-shadow-md">"{review.text}"</p>
+                     <p className="text-[12px] font-bold text-white/90 drop-shadow-md">{review.name}</p>
+                  </div>
+                </div>
+              ))}
           </div>
           <p className="text-[13px] text-white/70 text-center mt-2 font-medium">Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.</p>
         </div>
@@ -507,8 +526,8 @@ export default function PaywallScreen() {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] transition-all group-hover:scale-105" />
           <div className="relative flex items-center gap-2 z-10">
-             {isButtonLoading && <Loader2 className="animate-spin text-white" size={24} />}
-             <span className="text-[18px] font-bold text-white">{buttonText}</span>
+              {isButtonLoading && <Loader2 className="animate-spin text-white" size={24} />}
+              <span className="text-[18px] font-bold text-white">{buttonText}</span>
           </div>
         </button>
         <p className="text-center text-white/70 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">{getCtaSubtext()}</p>
@@ -532,7 +551,6 @@ export default function PaywallScreen() {
       {showRestoreModal && (
         <RestoreModal onClose={() => setShowRestoreModal(false)} />
       )}
-
     </div>
   );
 }
