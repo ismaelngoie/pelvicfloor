@@ -117,7 +117,15 @@ export default function RootLayout({ children }) {
         <div className="flex h-dvh flex-col min-h-0">
           <div className="w-full flex-1 min-h-0 overflow-hidden">
             <div className="w-full h-full mx-auto bg-[#FAF9FA] md:max-w-6xl md:shadow-2xl md:border-x md:border-white/50 flex flex-col min-h-0">
-              <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] no-scrollbar">
+              {/* ✅ scroll area + safe-area padding for iPhone notch/dynamic island */}
+              <main
+                className="
+                  flex-1 min-h-0 overflow-y-auto overscroll-contain
+                  [-webkit-overflow-scrolling:touch] no-scrollbar
+                  pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]
+                  pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]
+                "
+              >
                 <UserDataProvider>{children}</UserDataProvider>
               </main>
             </div>
