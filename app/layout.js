@@ -24,7 +24,6 @@ export const metadata = {
   },
   description:
     "Improve intimacy, stop bladder leaks and build core strength with our personalized 5-Minute daily home plan for Men & Women. No equipment needed.",
-
   keywords: [
     "pelvic floor exercises",
     "stop bladder leaks",
@@ -37,13 +36,11 @@ export const metadata = {
     "bladder control",
     "pelvic health app",
   ],
-
   icons: {
     icon: "/icon.png",
     shortcut: "/icon.png",
     apple: "/logo.png",
   },
-
   openGraph: {
     title: "Stop Leaks & Improve Intimacy | Pelvi Health",
     description:
@@ -61,21 +58,18 @@ export const metadata = {
     locale: "en_US",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
     title: "Stop Leaks & Improve Intimacy",
     description: "Heal your core in 5 minutes a day.",
     images: ["/og-image.png"],
   },
-
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Pelvi Health",
   },
-
   robots: {
     index: true,
     follow: true,
@@ -84,9 +78,9 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full bg-[var(--app-frame-bg)]">
       <body
-        className={`${inter.className} fixed inset-0 h-full overflow-hidden bg-[#FAF9FA] md:bg-[#F2F1F2]`}
+        className={`${inter.className} fixed inset-0 h-full overflow-hidden bg-[var(--app-frame-bg)] md:bg-[#F2F1F2]`}
       >
         {/* --- GOOGLE ADS & ANALYTICS --- */}
         <Script
@@ -116,13 +110,13 @@ export default function RootLayout({ children }) {
         {/* Full-height frame; body locked; ONLY interior scrolls */}
         <div className="flex h-dvh flex-col min-h-0">
           <div className="w-full flex-1 min-h-0 overflow-hidden">
-            <div className="w-full h-full mx-auto bg-[#FAF9FA] md:max-w-6xl md:shadow-2xl md:border-x md:border-white/50 flex flex-col min-h-0">
-              {/* ✅ scroll area + safe-area padding for iPhone notch/dynamic island */}
+            <div className="w-full h-full mx-auto bg-[var(--app-frame-bg)] md:max-w-6xl md:shadow-2xl md:border-x md:border-white/50 flex flex-col min-h-0">
+              {/* ✅ Scroll area + safe-area padding controlled by CSS vars */}
               <main
                 className="
                   flex-1 min-h-0 overflow-y-auto overscroll-contain
                   [-webkit-overflow-scrolling:touch] no-scrollbar
-                  pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]
+                  pt-[var(--app-safe-top)] pb-[var(--app-safe-bottom)]
                   pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]
                 "
               >
