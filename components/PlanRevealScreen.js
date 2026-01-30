@@ -52,6 +52,43 @@ const PersonalizingConstants = {
   phase2Scale: 0.20,
 };
 
+// --- ADDITION: Safari bottom bar congruency (ONLY for phase 2 & 3) ---
+const usePlanRevealChrome = (enabled, color = "#000000") => {
+  useEffect(() => {
+    if (!enabled) return;
+
+    let meta = document.querySelector('meta[name="theme-color"]');
+    let created = false;
+
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      document.head.appendChild(meta);
+      created = true;
+    }
+
+    const prevTheme = meta.getAttribute("content");
+    meta.setAttribute("content", color);
+
+    const html = document.documentElement;
+    const body = document.body;
+
+    const prevHtmlBg = html.style.backgroundColor;
+    const prevBodyBg = body.style.backgroundColor;
+
+    html.style.backgroundColor = color;
+    body.style.backgroundColor = color;
+
+    return () => {
+      if (created) meta.remove();
+      else if (prevTheme) meta.setAttribute("content", prevTheme);
+
+      html.style.backgroundColor = prevHtmlBg;
+      body.style.backgroundColor = prevBodyBg;
+    };
+  }, [enabled, color]);
+};
+
 // --- MARK: - Copy Providers (EXACT SWIFT PORT) ---
 
 const getHealthCopy = (goal) => {
@@ -243,6 +280,9 @@ export default function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
   const [phase, setPhase] = useState('askingHealthInfo'); 
   
+  // --- ADDITION: enable chrome + bottom background ONLY in phase 2 & 3 ---
+  usePlanRevealChrome(phase === 'personalizing' || phase === 'showingTimeline', "#000000");
+  
   // Phase 1 State
   const [selectedConditions, setSelectedConditions] = useState([]);
   const [noneSelected, setNoneSelected] = useState(false);
@@ -260,56 +300,6 @@ export default function PlanRevealScreen({ onNext }) {
   const healthCopy = getHealthCopy(goalTitle);
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
-
-  // --- 🔥 THEME OVERRIDE (Fix for stubborn Next.js Layouts) 🔥 ---
-  useEffect(() => {
-    // Helper to force update both meta and body style
-    const updateThemeColor = (color) => {
-        // 1. Force Theme Color Meta
-        let metaTheme = document.querySelector('meta[name="theme-color"]');
-        if (!metaTheme) {
-            metaTheme = document.createElement('meta');
-            metaTheme.name = "theme-color";
-            document.head.appendChild(metaTheme);
-        }
-        if (metaTheme.content !== color) {
-            metaTheme.setAttribute('content', color);
-        }
-
-        // 2. Inject Style Tag for Force (Overcomes Tailwind classes)
-        let styleTag = document.getElementById('force-theme-style');
-        if (!styleTag) {
-            styleTag = document.createElement('style');
-            styleTag.id = 'force-theme-style';
-            document.head.appendChild(styleTag);
-        }
-        styleTag.innerHTML = `
-            html, body { background-color: ${color} !important; }
-            div[class*="bg-[#FAF9FA]"] { background-color: ${color} !important; }
-        `;
-    };
-
-    if (phase === 'askingHealthInfo') {
-        // Light Phase
-        updateThemeColor('#FAF9FA');
-    } else {
-        // Dark Phase
-        updateThemeColor('#000000');
-    }
-
-    // Use MutationObserver to fight Next.js router resets
-    const observer = new MutationObserver(() => {
-        const color = phase === 'askingHealthInfo' ? '#FAF9FA' : '#000000';
-        updateThemeColor(color);
-    });
-    observer.observe(document.head, { childList: true, subtree: true, attributes: true });
-
-    return () => {
-        observer.disconnect();
-        const styleTag = document.getElementById('force-theme-style');
-        if (styleTag) styleTag.remove();
-    };
-  }, [phase]);
 
   // --- Logic Phase 1 ---
   const toggleCondition = (id) => {
@@ -393,6 +383,13 @@ export default function PlanRevealScreen({ onNext }) {
   // --- RENDER ---
   return (
     <div className={`absolute inset-0 w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}`}>
+      
+      {/* --- ADDITION: Bottom scrim ONLY for phase 2 & 3 (same “paywall bottom method”) --- */}
+      {(phase === 'personalizing' || phase === 'showingTimeline') && (
+        <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
+          <div className="w-full h-[calc(env(safe-area-inset-bottom)+260px)] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
+        </div>
+      )}
       
       {/* ---------------- PHASE 1: HEALTH INFO (One Screen) ---------------- */}
       {phase === 'askingHealthInfo' && (
@@ -557,11 +554,11 @@ export default function PlanRevealScreen({ onNext }) {
             </div>
              <div className="mt-4">
                <button 
-                  onClick={onNext}
-                  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
-                >
-                  {timelineCopy.cta}
-                </button>
+  onClick={onNext}
+  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+>
+  {timelineCopy.cta}
+</button>
             </div>
           </div>
         </div>
