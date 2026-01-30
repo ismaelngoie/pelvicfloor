@@ -12,9 +12,8 @@ const THEME = {
   // Base Colors
   textPrimary: "text-slate-900",
   textSecondary: "text-slate-500",
-  bg: "bg-[#FAF9FA]", // Added explicit light BG variable for reference
   
-  // Selection States
+  // Selection States (Million Dollar Style)
   unselected: "bg-white border-gray-200 shadow-sm",
   selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
   
@@ -262,18 +261,24 @@ export default function PlanRevealScreen({ onNext }) {
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
-  // --- THEME COLOR CHANGE LOGIC ---
+  // --- NEW: DYNAMIC THEME COLOR LOGIC ---
   useEffect(() => {
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) return;
-
-    if (phase === 'askingHealthInfo') {
-        // Light Phase
-        meta.setAttribute('content', '#FAF9FA');
-    } else {
-        // Dark Phase (Personalizing or Timeline)
-        meta.setAttribute('content', '#000000');
+    // 1. Force Meta Tag (Status Bar)
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = "theme-color";
+      document.head.appendChild(meta);
     }
+    
+    // 2. Determine Color
+    const isLightPhase = phase === 'askingHealthInfo';
+    const targetColor = isLightPhase ? '#FAF9FA' : '#000000'; // Light vs Black
+
+    // 3. Apply to Meta and Body
+    meta.setAttribute('content', targetColor);
+    document.body.style.backgroundColor = targetColor;
+
   }, [phase]);
 
   // --- Logic Phase 1 ---
