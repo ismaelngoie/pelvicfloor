@@ -261,6 +261,56 @@ export default function PlanRevealScreen({ onNext }) {
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
+  // --- 🔥 THEME OVERRIDE (Fix for stubborn Next.js Layouts) 🔥 ---
+  useEffect(() => {
+    // Helper to force update both meta and body style
+    const updateThemeColor = (color) => {
+        // 1. Force Theme Color Meta
+        let metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (!metaTheme) {
+            metaTheme = document.createElement('meta');
+            metaTheme.name = "theme-color";
+            document.head.appendChild(metaTheme);
+        }
+        if (metaTheme.content !== color) {
+            metaTheme.setAttribute('content', color);
+        }
+
+        // 2. Inject Style Tag for Force (Overcomes Tailwind classes)
+        let styleTag = document.getElementById('force-theme-style');
+        if (!styleTag) {
+            styleTag = document.createElement('style');
+            styleTag.id = 'force-theme-style';
+            document.head.appendChild(styleTag);
+        }
+        styleTag.innerHTML = `
+            html, body { background-color: ${color} !important; }
+            div[class*="bg-[#FAF9FA]"] { background-color: ${color} !important; }
+        `;
+    };
+
+    if (phase === 'askingHealthInfo') {
+        // Light Phase
+        updateThemeColor('#FAF9FA');
+    } else {
+        // Dark Phase
+        updateThemeColor('#000000');
+    }
+
+    // Use MutationObserver to fight Next.js router resets
+    const observer = new MutationObserver(() => {
+        const color = phase === 'askingHealthInfo' ? '#FAF9FA' : '#000000';
+        updateThemeColor(color);
+    });
+    observer.observe(document.head, { childList: true, subtree: true, attributes: true });
+
+    return () => {
+        observer.disconnect();
+        const styleTag = document.getElementById('force-theme-style');
+        if (styleTag) styleTag.remove();
+    };
+  }, [phase]);
+
   // --- Logic Phase 1 ---
   const toggleCondition = (id) => {
     setNoneSelected(false);
@@ -507,11 +557,11 @@ export default function PlanRevealScreen({ onNext }) {
             </div>
              <div className="mt-4">
                <button 
-  onClick={onNext}
-  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
->
-  {timelineCopy.cta}
-</button>
+                  onClick={onNext}
+                  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+                >
+                  {timelineCopy.cta}
+                </button>
             </div>
           </div>
         </div>
