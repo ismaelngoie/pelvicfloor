@@ -641,12 +641,17 @@ export default function PaywallScreen() {
         </div>
       </div>
 
-      {/* 3) Sticky CTA */}
+     {/* 3) Sticky CTA */}
       <div
         className={`
           fixed md:absolute bottom-0 left-0 w-full z-30 px-6 pt-6
           pb-[calc(env(safe-area-inset-bottom)+2rem)]
-          bg-gradient-to-t from-[#0A0A10]/60 via-[#0A0A10]/70 to-transparent
+          /* GRADIENT EXPLANATION:
+            from-[#0A0A10]/90 -> Keeps the very bottom edge dark/anchored.
+            via-[#0A0A10]/30  -> Makes the area behind the button/text very glassy (30% opacity).
+            to-transparent    -> Fades out completely at the top.
+          */
+          bg-gradient-to-t from-[#0A0A10]/90 via-[#0A0A10]/30 to-transparent
           transition-all duration-700 delay-200
           ${showContent ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"}
         `}
@@ -663,7 +668,11 @@ export default function PaywallScreen() {
           </div>
         </button>
 
-        <p className="text-center text-white/50 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">
+        {/* TEXT UPDATE: 
+           Since the background is lighter, we made the text brighter (text-white/90)
+           and added 'drop-shadow-md' so it pops against the video.
+        */}
+        <p className="text-center text-white/90 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-md">
           {getCtaSubtext()}
         </p>
       </div>
