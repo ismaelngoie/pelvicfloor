@@ -10,21 +10,21 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, 
+  userScalable: false,
   viewportFit: "cover",
   themeColor: "#E65473",
 };
 
 // --- 2. SEO & METADATA ---
 export const metadata = {
-  metadataBase: new URL('https://pelvi.health'),
+  metadataBase: new URL("https://pelvi.health"),
   title: {
     default: "Pelvic Floor Exercises | Stop Leaks & Improve Intimacy",
-    template: "%s | Pelvi Health"
+    template: "%s | Pelvi Health",
   },
-  // YOUR EXACT OPTIMIZED DESCRIPTION
-  description: "Improve intimacy, stop bladder leaks and build core strength with our personalized 5-Minute daily home plan for Men & Women. No equipment needed.",
-  
+  description:
+    "Improve intimacy, stop bladder leaks and build core strength with our personalized 5-Minute daily home plan for Men & Women. No equipment needed.",
+
   keywords: [
     "pelvic floor exercises",
     "stop bladder leaks",
@@ -35,37 +35,38 @@ export const metadata = {
     "kegel exercises",
     "core strengthening",
     "bladder control",
-    "pelvic health app"
+    "pelvic health app",
   ],
 
   icons: {
-    icon: "/icon.png",        
-    shortcut: "/icon.png", 
-    apple: "/logo.png",       
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/logo.png",
   },
 
   openGraph: {
     title: "Stop Leaks & Improve Intimacy | Pelvi Health",
-    description: "Improve intimacy, stop bladder leaks and build core strength with our personalized 5-Minute daily home plan.",
-    url: 'https://pelvi.health',
-    siteName: 'Pelvi Health',
+    description:
+      "Improve intimacy, stop bladder leaks and build core strength with our personalized 5-Minute daily home plan.",
+    url: "https://pelvi.health",
+    siteName: "Pelvi Health",
     images: [
       {
-        url: '/og-image.png', 
+        url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: 'Pelvic Floor Coach Preview',
+        alt: "Pelvic Floor Coach Preview",
       },
     ],
-    locale: 'en_US',
-    type: 'website',
+    locale: "en_US",
+    type: "website",
   },
 
   twitter: {
-    card: 'summary_large_image',
+    card: "summary_large_image",
     title: "Stop Leaks & Improve Intimacy",
     description: "Heal your core in 5 minutes a day.",
-    images: ['/og-image.png'],
+    images: ["/og-image.png"],
   },
 
   manifest: "/manifest.json",
@@ -74,22 +75,17 @@ export const metadata = {
     statusBarStyle: "black-translucent",
     title: "Pelvi Health",
   },
-  
+
   robots: {
     index: true,
     follow: true,
   },
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      {/* BODY BACKGROUND:
-        - Mobile: White (#FAF9FA)
-        - Desktop: Darker Gray (#F2F1F2) to make the centered app 'pop'
-      */}
-      <body className={`${inter.className} bg-[#FAF9FA] md:bg-[#F2F1F2] min-h-screen flex flex-col`}>
-        
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} fixed inset-0 h-full overflow-hidden bg-[#FAF9FA] md:bg-[#F2F1F2]`}>
         {/* --- GOOGLE ADS & ANALYTICS --- */}
         <Script
           strategy="afterInteractive"
@@ -115,19 +111,16 @@ export default function RootLayout({ children }) {
           `}
         </Script>
 
-        {/* MAIN APP CONTAINER (The "Phone/Desktop" Shell):
-           - w-full: Always use full available width
-           - min-h-screen: Always full height
-           - bg-[#FAF9FA]: The app's actual background color
-           - md:max-w-6xl: On desktop, restricts width to ~1150px (perfect 2/3 size)
-           - md:mx-auto: Centers it on desktop
-           - md:shadow-2xl: Adds premium depth on desktop
-           - md:border-x: Subtle border to define edges on desktop
-        */}
-        <div className="w-full min-h-screen flex flex-col mx-auto bg-[#FAF9FA] md:max-w-6xl md:shadow-2xl md:border-x md:border-white/50">
-          <UserDataProvider>
-            {children}
-          </UserDataProvider>
+        {/* Full-height app shell; ONLY the inside scrolls */}
+        <div className="flex h-dvh flex-col min-h-0">
+          <div className="w-full flex-1 min-h-0 overflow-hidden">
+            <div className="w-full h-full mx-auto bg-[#FAF9FA] md:max-w-6xl md:shadow-2xl md:border-x md:border-white/50 flex flex-col min-h-0">
+              {/* ✅ Only this area scrolls */}
+              <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] no-scrollbar">
+                <UserDataProvider>{children}</UserDataProvider>
+              </main>
+            </div>
+          </div>
         </div>
       </body>
     </html>
