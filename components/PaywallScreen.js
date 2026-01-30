@@ -5,8 +5,10 @@ import { useUserData } from '@/context/UserDataContext';
 import { Star, ChevronDown, ChevronUp, Activity, Play, Brain, Timer, X, Loader2, Lock, Mail } from 'lucide-react';
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, LinkAuthenticationElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
 // --- STRIPE SETUP ---
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+
 // --- ASSETS ---
 const REVIEW_IMAGES = [
   "/review9.png", 
@@ -15,6 +17,7 @@ const REVIEW_IMAGES = [
   "/review4.png", 
   "/review2.png"
 ];
+
 // --- LOGIC: Button Grammar Mapping ---
 const getButtonText = (goalTitle) => {
   const g = (goalTitle || "").toLowerCase();
@@ -26,6 +29,7 @@ const getButtonText = (goalTitle) => {
   if (g.includes("core") || g.includes("strength")) return "Start My Core Plan";
   return "Start My Personalized Plan";
 };
+
 // --- LOGIC: Review Mapping ---
 const getReviewsForGoal = (goalTitle) => {
   const goal = (goalTitle || "").toLowerCase();
@@ -37,6 +41,7 @@ const getReviewsForGoal = (goalTitle) => {
       image: REVIEW_IMAGES[i % REVIEW_IMAGES.length]
     }));
   };
+
   if (goal.includes("leaks") || goal.includes("bladder")) {
     return pack(
       ["Emily D.", "Dana A.", "Hannah L.", "Priya S.", "Zoe M."],
@@ -85,12 +90,14 @@ const getReviewsForGoal = (goalTitle) => {
     ["This finally felt made for me", "Small wins in days I smiled", "Five minutes gave real change", "Pain eased and I breathed", "Confidence returned I feel in control"]
   );
 };
+
 const FEATURES = [
   { icon: <Brain size={28} className="text-white" />, text: "AI coach that adapts daily" },
   { icon: <Timer size={28} className="text-white" />, text: "5-minute personalized routines" },
   { icon: <Play size={28} className="text-white" fill="white" />, text: "300+ physio-approved videos" },
   { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" }
 ];
+
 // --- STRIPE CHECKOUT FORM ---
 const CheckoutForm = ({ onClose }) => {
   const stripe = useStripe();
@@ -101,10 +108,14 @@ const CheckoutForm = ({ onClose }) => {
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState(''); 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!stripe || !elements) return;
+
     setIsLoading(true);
+
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
@@ -113,6 +124,7 @@ const CheckoutForm = ({ onClose }) => {
       },
       redirect: "if_required",
     });
+
     if (error) {
       setMessage(error.message);
       setIsLoading(false);
@@ -132,6 +144,7 @@ const CheckoutForm = ({ onClose }) => {
       phone: 'never', 
     }
   };
+
   return (
     <form 
       onClick={(e) => e.stopPropagation()}
@@ -145,6 +158,7 @@ const CheckoutForm = ({ onClose }) => {
       >
         <X size={20} className="text-white" />
       </button>
+
       <div className="mb-6">
         <h3 className="text-xl font-bold text-white mb-1">Secure Checkout</h3>
         <p className="text-sm text-white/50">Total due: $24.99 / month</p>
@@ -161,6 +175,7 @@ const CheckoutForm = ({ onClose }) => {
       </div>
       
       {message && <div className="text-red-400 text-sm mt-4 bg-red-500/10 p-3 rounded-xl border border-red-500/20">{message}</div>}
+
       <button 
         disabled={isLoading || !stripe || !elements} 
         id="submit"
@@ -173,26 +188,32 @@ const CheckoutForm = ({ onClose }) => {
     </form>
   );
 };
+
 // --- REAL RESTORE MODAL ---
 const RestoreModal = ({ onClose }) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { saveUserData } = useUserData();
+
   const handleRestoreSubmit = async (e) => {
     e.preventDefault();
     if (!email.includes("@")) {
       alert("Please enter a valid email address.");
       return;
     }
+
     setIsLoading(true);
+
     try {
       const res = await fetch('/api/restore-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email })
       });
+
       const data = await res.json();
+
       if (data.isPremium) {
         // SUCCESS: Unlock Premium
         saveUserData('isPremium', true);
@@ -212,6 +233,7 @@ const RestoreModal = ({ onClose }) => {
       setIsLoading(false);
     }
   };
+
   return (
     <div 
       className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
@@ -225,9 +247,11 @@ const RestoreModal = ({ onClose }) => {
           <h3 className="text-xl font-bold text-white">Restore Purchase</h3>
           <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10"><X size={18} className="text-white" /></button>
         </div>
+
         <p className="text-white/60 text-sm mb-6">
           Enter the email address you used to purchase your subscription. We'll find your account.
         </p>
+
         <form onSubmit={handleRestoreSubmit} className="flex flex-col gap-4">
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
@@ -240,6 +264,7 @@ const RestoreModal = ({ onClose }) => {
               autoFocus
             />
           </div>
+
           <button 
             disabled={isLoading}
             className="w-full h-12 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -251,6 +276,7 @@ const RestoreModal = ({ onClose }) => {
     </div>
   );
 };
+
 // --- MAIN PAYWALL SCREEN ---
 export default function PaywallScreen() {
   const router = useRouter();
@@ -270,30 +296,12 @@ export default function PaywallScreen() {
   const [showRestoreModal, setShowRestoreModal] = useState(false); 
   const [isFaqOpen, setIsFaqOpen] = useState(false); 
   const [isButtonLoading, setIsButtonLoading] = useState(false);
+
   // Derived Data
   const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const userName = userDetails?.name || "Ready";
   const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
   const buttonText = getButtonText(goalTitle); 
-
-  // --- 🔥 FULL SCREEN BLACK BACKGROUND FIX 🔥 ---
-  useEffect(() => {
-    // 1. Force Body and HTML Background to Black using !important
-    // This overrides global CSS and Tailwind classes on the body/html tags
-    document.documentElement.style.setProperty('background-color', '#000000', 'important');
-    document.body.style.setProperty('background-color', '#000000', 'important');
-
-    // 2. Force Meta Theme Color to Black
-    let metaTheme = document.querySelector('meta[name="theme-color"]');
-    if (metaTheme) {
-      metaTheme.setAttribute('content', '#000000');
-    }
-
-    return () => {
-       // Optional: Cleanup when unmounting
-       // document.body.style.removeProperty('background-color');
-    };
-  }, []);
 
   // Effects
   useEffect(() => {
@@ -302,11 +310,13 @@ export default function PaywallScreen() {
     setDateString(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     setShowContent(true);
   }, []);
+
   useEffect(() => {
     const featureTimer = setInterval(() => setActiveFeatureIndex((p) => (p + 1) % FEATURES.length), 4000);
     const reviewTimer = setInterval(() => setCurrentReviewIndex((p) => (p + 1) % reviews.length), 5000);
     return () => { clearInterval(featureTimer); clearInterval(reviewTimer); };
   }, [reviews]);
+
   useEffect(() => {
     if (!showContent) return;
     let start = 9800;
@@ -317,22 +327,28 @@ export default function PaywallScreen() {
     }, 20);
     return () => clearInterval(timer);
   }, [showContent]);
+
   // --- ACTIONS ---
+
   const handleStartPlan = async () => {
     setIsButtonLoading(true);
+
     if (!clientSecret) {
       try {
         const res = await fetch("/api/create-payment-intent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
         });
+
         if (!res.ok) {
            const errText = await res.text();
            throw new Error(`Server Error: ${res.status} - ${errText}`);
         }
+
         const data = await res.json();
         
         if (data.error) throw new Error(data.error);
+
         setClientSecret(data.clientSecret);
       } catch (err) {
         console.error("Stripe Error:", err);
@@ -345,6 +361,7 @@ export default function PaywallScreen() {
     setIsButtonLoading(false);
     setShowCheckoutModal(true);
   };
+
   const stripeAppearance = {
     theme: 'night',
     variables: {
@@ -357,16 +374,17 @@ export default function PaywallScreen() {
       borderRadius: '12px',
     },
   };
+
   const getCtaSubtext = () => {
     if (!dateString) return ""; 
     return `Feel real progress by ${dateString}. If not, one tap full $24.99 refund.`;
   };
+
   return (
-    // Updated: h-[100dvh] for full mobile viewport height
-    <div className="relative w-full h-[100dvh] flex flex-col bg-black overflow-hidden">
+    <div className="relative w-full h-full flex flex-col bg-black overflow-hidden">
       
-      {/* 1. Video Background - Updated: Fixed position to stay behind status bars */}
-      <div className="fixed inset-0 z-0">
+      {/* 1. Video Background */}
+      <div className="absolute inset-0 z-0">
         <video 
           autoPlay 
           loop 
@@ -380,6 +398,7 @@ export default function PaywallScreen() {
         </video>
         <div className="absolute inset-0 bg-black/30" />
       </div>
+
       {/* 2. Scrollable Content */}
       <div className={`z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-12 pb-36 px-6 transition-all duration-700 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         
@@ -389,6 +408,7 @@ export default function PaywallScreen() {
           <span className="capitalize text-[#E65473]">{goalTitle.replace('Stop ', '').replace('Build ', '')}</span>?
           <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
         </h1>
+
         {/* Features */}
         <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl">
           <div className="pt-5 pb-2">
@@ -418,6 +438,7 @@ export default function PaywallScreen() {
             ))}
           </div>
         </div>
+
         {/* Reviews */}
         <div className="w-full bg-black/20 backdrop-blur-md border border-white/10 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
           <div className="flex flex-col items-center gap-1">
@@ -428,21 +449,22 @@ export default function PaywallScreen() {
             <span className="text-[11px] font-medium text-white/80 uppercase tracking-wide">App Store Rating</span>
           </div>
           <div className="w-full min-h-[70px] flex items-center justify-center relative">
-              {reviews.map((review, idx) => (
-                <div 
-                  key={idx} 
-                  className={`absolute w-full flex flex-col items-center transition-all duration-500 ${idx === currentReviewIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                     <img src={review.image} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-sm" alt={review.name} />
-                     <p className="text-[15px] italic text-white text-center font-medium drop-shadow-md">"{review.text}"</p>
-                     <p className="text-[12px] font-bold text-white/90 drop-shadow-md">{review.name}</p>
-                  </div>
-                </div>
-              ))}
+             {reviews.map((review, idx) => (
+               <div 
+                 key={idx} 
+                 className={`absolute w-full flex flex-col items-center transition-all duration-500 ${idx === currentReviewIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}
+               >
+                 <div className="flex flex-col items-center gap-2">
+                    <img src={review.image} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-sm" alt={review.name} />
+                    <p className="text-[15px] italic text-white text-center font-medium drop-shadow-md">"{review.text}"</p>
+                    <p className="text-[12px] font-bold text-white/90 drop-shadow-md">{review.name}</p>
+                 </div>
+               </div>
+             ))}
           </div>
           <p className="text-[13px] text-white/70 text-center mt-2 font-medium">Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.</p>
         </div>
+
         {/* FAQ & Legal (Refined Accordion) */}
         <div className="flex flex-col gap-4 mb-8">
            <div 
@@ -475,6 +497,7 @@ export default function PaywallScreen() {
            </div>
         </div>
       </div>
+
       {/* 3. Sticky Footer CTA */}
       <div className={`absolute bottom-0 left-0 w-full z-30 px-6 pb-8 pt-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent transition-all duration-700 delay-200 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         <button 
@@ -484,12 +507,13 @@ export default function PaywallScreen() {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] transition-all group-hover:scale-105" />
           <div className="relative flex items-center gap-2 z-10">
-              {isButtonLoading && <Loader2 className="animate-spin text-white" size={24} />}
-              <span className="text-[18px] font-bold text-white">{buttonText}</span>
+             {isButtonLoading && <Loader2 className="animate-spin text-white" size={24} />}
+             <span className="text-[18px] font-bold text-white">{buttonText}</span>
           </div>
         </button>
         <p className="text-center text-white/70 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-sm">{getCtaSubtext()}</p>
       </div>
+
       {/* 4. STRIPE OVERLAY MODAL */}
       {showCheckoutModal && clientSecret && (
         <div 
@@ -503,10 +527,12 @@ export default function PaywallScreen() {
           </div>
         </div>
       )}
+
       {/* 5. RESTORE OVERLAY MODAL */}
       {showRestoreModal && (
         <RestoreModal onClose={() => setShowRestoreModal(false)} />
       )}
+
     </div>
   );
 }
