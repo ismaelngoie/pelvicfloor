@@ -261,6 +261,42 @@ export default function PlanRevealScreen({ onNext }) {
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
+  // --- 🔥 THEME OVERRIDE (FIX FOR iOS) ---
+  useEffect(() => {
+    // Helper to force update both meta and body style
+    const updateThemeColor = (color, statusBarStyle) => {
+        // 1. Force Theme Color Meta
+        let metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (!metaTheme) {
+            metaTheme = document.createElement('meta');
+            metaTheme.name = "theme-color";
+            document.head.appendChild(metaTheme);
+        }
+        metaTheme.setAttribute('content', color);
+
+        // 2. Force Apple Status Bar Meta
+        let metaApple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+        if (!metaApple) {
+            metaApple = document.createElement('meta');
+            metaApple.name = "apple-mobile-web-app-status-bar-style";
+            document.head.appendChild(metaApple);
+        }
+        metaApple.setAttribute('content', statusBarStyle);
+
+        // 3. Force Body and HTML Background (overrides global css)
+        document.documentElement.style.backgroundColor = color;
+        document.body.style.backgroundColor = color;
+    };
+
+    if (phase === 'askingHealthInfo') {
+        // Light Phase
+        updateThemeColor('#FAF9FA', 'default');
+    } else {
+        // Dark Phase
+        updateThemeColor('#000000', 'black-translucent');
+    }
+  }, [phase]);
+
   // --- Logic Phase 1 ---
   const toggleCondition = (id) => {
     setNoneSelected(false);
@@ -507,11 +543,11 @@ export default function PlanRevealScreen({ onNext }) {
             </div>
              <div className="mt-4">
                <button 
-  onClick={onNext}
-  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
->
-  {timelineCopy.cta}
-</button>
+                  onClick={onNext}
+                  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+                >
+                  {timelineCopy.cta}
+                </button>
             </div>
           </div>
         </div>
