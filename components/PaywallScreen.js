@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUserData } from "@/context/UserDataContext";
@@ -14,6 +15,7 @@ import {
   Loader2,
   Mail,
 } from "lucide-react";
+
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -23,13 +25,57 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 
-import { useSystemBars } from "@/utils/useSystemBars";
-
 // --- STRIPE SETUP ---
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 // --- ASSETS ---
 const REVIEW_IMAGES = ["/review9.png", "/review1.png", "/review5.png", "/review4.png", "/review2.png"];
+
+/**
+ * NOTE (important):
+ * Your RootLayout adds pt-[env(safe-area-inset-top)] to <main>.
+ * That creates a TOP "padding band" *above* your Paywall component.
+ * iOS shows that band behind the Dynamic Island, which is why it stays white.
+ *
+ * Fix: pull the Paywall up with -mt-[env(safe-area-inset-top)]
+ * so it actually occupies that padded region, and paint a top "cap"
+ * behind the island + a full-viewport fixed background.
+ */
+
+// --- UI: Make Safari + any exposed areas feel congruent while paywall is mounted ---
+function usePaywallChrome(color = "#0A0A10") {
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="theme-color"]');
+    let created = false;
+
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      document.head.appendChild(meta);
+      created = true;
+    }
+
+    const prevTheme = meta.getAttribute("content");
+    meta.setAttribute("content", color);
+
+    const html = document.documentElement;
+    const body = document.body;
+
+    const prevHtmlBg = html.style.backgroundColor;
+    const prevBodyBg = body.style.backgroundColor;
+
+    html.style.backgroundColor = color;
+    body.style.backgroundColor = color;
+
+    return () => {
+      if (created) meta.remove();
+      else if (prevTheme) meta.setAttribute("content", prevTheme);
+
+      html.style.backgroundColor = prevHtmlBg;
+      body.style.backgroundColor = prevBodyBg;
+    };
+  }, [color]);
+}
 
 // --- LOGIC: Button Grammar Mapping ---
 const getButtonText = (goalTitle) => {
@@ -47,13 +93,12 @@ const getButtonText = (goalTitle) => {
 const getReviewsForGoal = (goalTitle) => {
   const goal = (goalTitle || "").toLowerCase();
 
-  const pack = (names, texts) => {
-    return names.map((name, i) => ({
+  const pack = (names, texts) =>
+    names.map((name, i) => ({
       name,
       text: texts[i],
       image: REVIEW_IMAGES[i % REVIEW_IMAGES.length],
     }));
-  };
 
   if (goal.includes("leaks") || goal.includes("bladder")) {
     return pack(
@@ -125,6 +170,7 @@ const CheckoutForm = ({ onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!stripe || !elements) return;
+
     setIsLoading(true);
 
     const { error, paymentIntent } = await stripe.confirmPayment({
@@ -151,9 +197,7 @@ const CheckoutForm = ({ onClose }) => {
 
   const paymentElementOptions = {
     layout: "tabs",
-    fields: {
-      phone: "never",
-    },
+    fields: { phone: "never" },
   };
 
   return (
@@ -217,16 +261,18 @@ const RestoreModal = ({ onClose }) => {
       alert("Please enter a valid email address.");
       return;
     }
+
     setIsLoading(true);
 
     try {
       const res = await fetch("/api/restore-purchase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email }),
+        body: JSON.stringify({ email }),
       });
 
       const data = await res.json();
+
       if (data.isPremium) {
         saveUserData("isPremium", true);
         saveUserData("joinDate", new Date().toISOString());
@@ -254,10 +300,7 @@ const RestoreModal = ({ onClose }) => {
       >
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-white">Restore Purchase</h3>
-          <button
-            onClick={onClose}
-            className="p-2 bg-white/5 rounded-full hover:bg-white/10"
-          >
+          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10">
             <X size={18} className="text-white" />
           </button>
         </div>
@@ -296,14 +339,8 @@ export default function PaywallScreen() {
   const router = useRouter();
   const { userDetails, saveUserData } = useUserData();
 
-  // ✅ Force full-bleed: remove layout safe padding + make bars dark
-  useSystemBars({
-    frameBg: "#000000",
-    safeTop: "0px",
-    safeBottom: "0px",
-    themeColor: "#0B0B12", // deep near-black (nicer than pure black)
-    colorScheme: "dark",
-  });
+  // Make any exposed areas (including overscroll) dark
+  usePaywallChrome("#0A0A10");
 
   // State
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
@@ -335,14 +372,8 @@ export default function PaywallScreen() {
   }, []);
 
   useEffect(() => {
-    const featureTimer = setInterval(
-      () => setActiveFeatureIndex((p) => (p + 1) % FEATURES.length),
-      4000
-    );
-    const reviewTimer = setInterval(
-      () => setCurrentReviewIndex((p) => (p + 1) % reviews.length),
-      5000
-    );
+    const featureTimer = setInterval(() => setActiveFeatureIndex((p) => (p + 1) % FEATURES.length), 4000);
+    const reviewTimer = setInterval(() => setCurrentReviewIndex((p) => (p + 1) % reviews.length), 5000);
     return () => {
       clearInterval(featureTimer);
       clearInterval(reviewTimer);
@@ -372,16 +403,19 @@ export default function PaywallScreen() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
         });
+
         if (!res.ok) {
           const errText = await res.text();
           throw new Error(`Server Error: ${res.status} - ${errText}`);
         }
+
         const data = await res.json();
         if (data.error) throw new Error(data.error);
+
         setClientSecret(data.clientSecret);
       } catch (err) {
         console.error("Stripe Error:", err);
-        alert(`Could not initialize payment: ${err.message}. Please try again later.`);
+        alert(`Could not initialize payment: ${err.message}. Please check your internet or try again later.`);
         setIsButtonLoading(false);
         return;
       }
@@ -410,9 +444,19 @@ export default function PaywallScreen() {
   };
 
   return (
-    <div className="fixed inset-0 md:absolute md:inset-0 w-full h-full flex flex-col bg-black overflow-hidden">
-      {/* 1. Video Background (FULL BLEED incl notch) */}
-      <div className="absolute inset-0 z-0">
+    <div
+      className={`
+        relative w-full bg-[#0A0A10] overflow-hidden flex flex-col
+        h-[calc(100dvh+env(safe-area-inset-top))]
+        -mt-[env(safe-area-inset-top)]
+        md:h-full md:mt-0
+      `}
+    >
+      {/* 1) Full-viewport background that truly reaches the Dynamic Island area */}
+      <div className="fixed md:absolute inset-0 z-0 pointer-events-none">
+        {/* Hard “cap” to guarantee island area is never white, even if video doesn't render there */}
+        <div className="absolute top-0 inset-x-0 h-[env(safe-area-inset-top)] bg-[#0A0A10]" />
+
         <video
           autoPlay
           loop
@@ -427,32 +471,44 @@ export default function PaywallScreen() {
           <source src="/paywall_video.mp4" type="video/mp4" />
         </video>
 
-        {/* Darken for readability */}
-        <div className="absolute inset-0 bg-black/35" />
+        {/* Base wash */}
+        <div className="absolute inset-0 bg-black/30" />
 
-        {/* Optional: extra dark just in the notch area (looks more “native”) */}
-        <div className="absolute top-0 left-0 right-0 h-[env(safe-area-inset-top)] bg-black/20" />
+        {/* Top scrim (helps the island area feel intentional) */}
+        <div
+          className="
+            absolute top-0 inset-x-0
+            h-[calc(env(safe-area-inset-top)+64px)]
+            bg-gradient-to-b from-[#0A0A10]/85 to-transparent
+          "
+        />
+
+        {/* Bottom scrim */}
+        <div
+          className="
+            absolute bottom-0 inset-x-0
+            h-[calc(env(safe-area-inset-bottom)+260px)]
+            bg-gradient-to-t from-[#0A0A10]/95 via-[#0A0A10]/75 to-transparent
+          "
+        />
       </div>
 
-      {/* 2. Scrollable Content (pad INSIDE screen, not in layout) */}
+      {/* 2) Scrollable content (add safe-area top padding here since we pulled the whole screen up) */}
       <div
-        className={`z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6 transition-all duration-700 ${
-          showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        } pt-[calc(env(safe-area-inset-top)+3rem)] pb-[calc(env(safe-area-inset-bottom)+9rem)]`}
+        className={`
+          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6
+          pt-[calc(env(safe-area-inset-top)+3rem)]
+          pb-[calc(9rem+env(safe-area-inset-bottom))]
+          transition-all duration-700
+          ${showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+        `}
       >
         {/* Headline */}
         <h1 className="text-[34px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
-          <span className="text-white">
-            {userName === "Ready" ? "Ready to" : `${userName}, ready to`}
-          </span>
+          <span className="text-white">{userName === "Ready" ? "Ready to" : `${userName}, ready to`}</span>
           <br />
-          <span className="capitalize text-[#E65473]">
-            {goalTitle.replace("Stop ", "").replace("Build ", "")}
-          </span>
-          ?
-          <span className="block text-[28px] text-white mt-1">
-            100% Money-Back Guarantee.
-          </span>
+          <span className="capitalize text-[#E65473]">{goalTitle.replace("Stop ", "").replace("Build ", "")}</span>?
+          <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
         </h1>
 
         {/* Features */}
@@ -470,9 +526,7 @@ export default function PaywallScreen() {
                 <div
                   key={index}
                   className={`absolute w-full flex flex-col items-center gap-3 transition-all duration-500 ease-out px-4 text-center ${
-                    isActive
-                      ? "opacity-100 translate-y-0 scale-100"
-                      : "opacity-0 translate-y-4 scale-95"
+                    isActive ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"
                   }`}
                 >
                   <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#E65473] to-[#C23A5B] flex items-center justify-center shadow-lg shadow-rose-500/30">
@@ -512,9 +566,7 @@ export default function PaywallScreen() {
                 <Star key={i} size={18} fill="currentColor" />
               ))}
             </div>
-            <span className="text-[11px] font-medium text-white/80 uppercase tracking-wide">
-              App Store Rating
-            </span>
+            <span className="text-[11px] font-medium text-white/80 uppercase tracking-wide">App Store Rating</span>
           </div>
 
           <div className="w-full min-h-[70px] flex items-center justify-center relative">
@@ -536,17 +588,14 @@ export default function PaywallScreen() {
                   <p className="text-[15px] italic text-white text-center font-medium drop-shadow-md">
                     "{review.text}"
                   </p>
-                  <p className="text-[12px] font-bold text-white/90 drop-shadow-md">
-                    {review.name}
-                  </p>
+                  <p className="text-[12px] font-bold text-white/90 drop-shadow-md">{review.name}</p>
                 </div>
               </div>
             ))}
           </div>
 
           <p className="text-[13px] text-white/70 text-center mt-2 font-medium">
-            Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span>{" "}
-            feeling strong.
+            Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.
           </p>
         </div>
 
@@ -576,6 +625,7 @@ export default function PaywallScreen() {
             </div>
           </div>
 
+          {/* Footer Links */}
           <div className="flex justify-center items-center gap-3 text-[11px] font-medium text-white/50">
             <button
               onClick={() => setShowRestoreModal(true)}
@@ -591,11 +641,15 @@ export default function PaywallScreen() {
         </div>
       </div>
 
-      {/* 3. Sticky Footer CTA (also safe-area aware) */}
+      {/* 3) Sticky CTA */}
       <div
-        className={`absolute bottom-0 left-0 w-full z-30 px-6 pt-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent transition-all duration-700 delay-200 ${
-          showContent ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
-        } pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
+        className={`
+          fixed md:absolute bottom-0 left-0 w-full z-30 px-6 pt-6
+          pb-[calc(env(safe-area-inset-bottom)+2rem)]
+          bg-gradient-to-t from-[#0A0A10]/95 via-[#0A0A10]/70 to-transparent
+          transition-all duration-700 delay-200
+          ${showContent ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"}
+        `}
       >
         <button
           onClick={handleStartPlan}
@@ -614,7 +668,7 @@ export default function PaywallScreen() {
         </p>
       </div>
 
-      {/* 4. STRIPE OVERLAY MODAL */}
+      {/* 4) STRIPE OVERLAY MODAL */}
       {showCheckoutModal && clientSecret && (
         <div
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
@@ -628,7 +682,7 @@ export default function PaywallScreen() {
         </div>
       )}
 
-      {/* 5. RESTORE OVERLAY MODAL */}
+      {/* 5) RESTORE OVERLAY MODAL */}
       {showRestoreModal && <RestoreModal onClose={() => setShowRestoreModal(false)} />}
     </div>
   );
