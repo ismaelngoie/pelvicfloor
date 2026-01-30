@@ -12,8 +12,9 @@ const THEME = {
   // Base Colors
   textPrimary: "text-slate-900",
   textSecondary: "text-slate-500",
+  bg: "bg-[#FAF9FA]", // Added explicit light BG variable for reference
   
-  // Selection States (Million Dollar Style)
+  // Selection States
   unselected: "bg-white border-gray-200 shadow-sm",
   selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
   
@@ -261,6 +262,20 @@ export default function PlanRevealScreen({ onNext }) {
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
+  // --- THEME COLOR CHANGE LOGIC ---
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) return;
+
+    if (phase === 'askingHealthInfo') {
+        // Light Phase
+        meta.setAttribute('content', '#FAF9FA');
+    } else {
+        // Dark Phase (Personalizing or Timeline)
+        meta.setAttribute('content', '#000000');
+    }
+  }, [phase]);
+
   // --- Logic Phase 1 ---
   const toggleCondition = (id) => {
     setNoneSelected(false);
@@ -507,11 +522,11 @@ export default function PlanRevealScreen({ onNext }) {
             </div>
              <div className="mt-4">
                <button 
-  onClick={onNext}
-  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
->
-  {timelineCopy.cta}
-</button>
+                  onClick={onNext}
+                  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+                >
+                  {timelineCopy.cta}
+                </button>
             </div>
           </div>
         </div>
