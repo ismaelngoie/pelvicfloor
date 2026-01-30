@@ -5,11 +5,6 @@
 :root {
   --foreground-rgb: 26, 26, 38;
   --background-rgb: 250, 249, 250;
-
-  /* ✅ NEW: layout-controlled vars (default = your current behavior) */
-  --app-frame-bg: #FAF9FA;
-  --app-safe-top: env(safe-area-inset-top);
-  --app-safe-bottom: env(safe-area-inset-bottom);
 }
 
 html, body {
@@ -18,14 +13,11 @@ html, body {
   overflow: hidden; /* Stops the body from scrolling */
   overscroll-behavior: none; /* Stops the "rubber band" bounce on iOS */
   -webkit-overflow-scrolling: touch;
-
-  /* ✅ Ensure the OS/notch area paints from the same background */
-  background: var(--app-frame-bg);
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: var(--app-frame-bg);
+  background: rgb(var(--background-rgb));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
