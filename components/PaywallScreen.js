@@ -31,10 +31,20 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 // --- ASSETS ---
 const REVIEW_IMAGES = ["/review9.png", "/review1.png", "/review5.png", "/review4.png", "/review2.png"];
 
-// --- UI: Make Safari + safe-area feel congruent while paywall is mounted ---
+/**
+ * NOTE (important):
+ * Your RootLayout adds pt-[env(safe-area-inset-top)] to <main>.
+ * That creates a TOP "padding band" *above* your Paywall component.
+ * iOS shows that band behind the Dynamic Island, which is why it stays white.
+ *
+ * Fix: pull the Paywall up with -mt-[env(safe-area-inset-top)]
+ * so it actually occupies that padded region, and paint a top "cap"
+ * behind the island + a full-viewport fixed background.
+ */
+
+// --- UI: Make Safari + any exposed areas feel congruent while paywall is mounted ---
 function usePaywallChrome(color = "#0A0A10") {
   useEffect(() => {
-    // Ensure there's a theme-color meta (Next usually creates one via viewport.themeColor)
     let meta = document.querySelector('meta[name="theme-color"]');
     let created = false;
 
@@ -48,7 +58,6 @@ function usePaywallChrome(color = "#0A0A10") {
     const prevTheme = meta.getAttribute("content");
     meta.setAttribute("content", color);
 
-    // Also set html/body background so any exposed area (overscroll, padding) stays dark
     const html = document.documentElement;
     const body = document.body;
 
@@ -84,13 +93,12 @@ const getButtonText = (goalTitle) => {
 const getReviewsForGoal = (goalTitle) => {
   const goal = (goalTitle || "").toLowerCase();
 
-  const pack = (names, texts) => {
-    return names.map((name, i) => ({
+  const pack = (names, texts) =>
+    names.map((name, i) => ({
       name,
       text: texts[i],
       image: REVIEW_IMAGES[i % REVIEW_IMAGES.length],
     }));
-  };
 
   if (goal.includes("leaks") || goal.includes("bladder")) {
     return pack(
@@ -213,7 +221,10 @@ const CheckoutForm = ({ onClose }) => {
 
       <div className="flex flex-col gap-4">
         <div className="text-white">
-          <LinkAuthenticationElement id="link-authentication-element" onChange={(e) => setEmail(e.value.email)} />
+          <LinkAuthenticationElement
+            id="link-authentication-element"
+            onChange={(e) => setEmail(e.value.email)}
+          />
         </div>
         <PaymentElement id="payment-element" options={paymentElementOptions} />
       </div>
@@ -279,7 +290,10 @@ const RestoreModal = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+      onClick={onClose}
+    >
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm bg-[#1A1A26] border border-white/10 rounded-3xl p-6 shadow-2xl animate-scale-up"
@@ -325,7 +339,7 @@ export default function PaywallScreen() {
   const router = useRouter();
   const { userDetails, saveUserData } = useUserData();
 
-  // Make safe-area + Safari UI feel like it matches this screen
+  // Make any exposed areas (including overscroll) dark
   usePaywallChrome("#0A0A10");
 
   // State
@@ -430,9 +444,19 @@ export default function PaywallScreen() {
   };
 
   return (
-    <div className="relative w-full h-[100dvh] flex flex-col bg-[#0A0A10] overflow-hidden">
-      {/* 1) FULL-VIEWPORT BACKGROUND LAYERS (covers safe-area padding + feels edge-to-edge on iOS) */}
+    <div
+      className={`
+        relative w-full bg-[#0A0A10] overflow-hidden flex flex-col
+        h-[calc(100dvh+env(safe-area-inset-top))]
+        -mt-[env(safe-area-inset-top)]
+        md:h-full md:mt-0
+      `}
+    >
+      {/* 1) Full-viewport background that truly reaches the Dynamic Island area */}
       <div className="fixed md:absolute inset-0 z-0 pointer-events-none">
+        {/* Hard “cap” to guarantee island area is never white, even if video doesn't render there */}
+        <div className="absolute top-0 inset-x-0 h-[env(safe-area-inset-top)] bg-[#0A0A10]" />
+
         <video
           autoPlay
           loop
@@ -450,16 +474,16 @@ export default function PaywallScreen() {
         {/* Base wash */}
         <div className="absolute inset-0 bg-black/30" />
 
-        {/* Top scrim to make notch/island area feel intentional */}
+        {/* Top scrim (helps the island area feel intentional) */}
         <div
           className="
             absolute top-0 inset-x-0
-            h-[calc(env(safe-area-inset-top)+56px)]
+            h-[calc(env(safe-area-inset-top)+64px)]
             bg-gradient-to-b from-[#0A0A10]/85 to-transparent
           "
         />
 
-        {/* Bottom scrim so bottom safe-area + CTA blends perfectly */}
+        {/* Bottom scrim */}
         <div
           className="
             absolute bottom-0 inset-x-0
@@ -469,11 +493,15 @@ export default function PaywallScreen() {
         />
       </div>
 
-      {/* 2. Scrollable Content */}
+      {/* 2) Scrollable content (add safe-area top padding here since we pulled the whole screen up) */}
       <div
-        className={`z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-12 pb-36 px-6 transition-all duration-700 ${
-          showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        }`}
+        className={`
+          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6
+          pt-[calc(env(safe-area-inset-top)+3rem)]
+          pb-[calc(9rem+env(safe-area-inset-bottom))]
+          transition-all duration-700
+          ${showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+        `}
       >
         {/* Headline */}
         <h1 className="text-[34px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
@@ -546,7 +574,9 @@ export default function PaywallScreen() {
               <div
                 key={idx}
                 className={`absolute w-full flex flex-col items-center transition-all duration-500 ${
-                  idx === currentReviewIndex ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none"
+                  idx === currentReviewIndex
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 translate-x-4 pointer-events-none"
                 }`}
               >
                 <div className="flex flex-col items-center gap-2">
@@ -577,10 +607,18 @@ export default function PaywallScreen() {
           >
             <div className="flex items-center justify-center gap-2 text-white/90">
               <span className="text-[14px] font-semibold">How do I get my money back?</span>
-              {isFaqOpen ? <ChevronUp size={14} className="text-white/60" /> : <ChevronDown size={14} className="text-white/60" />}
+              {isFaqOpen ? (
+                <ChevronUp size={14} className="text-white/60" />
+              ) : (
+                <ChevronDown size={14} className="text-white/60" />
+              )}
             </div>
 
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isFaqOpen ? "max-h-20 opacity-100 mt-2" : "max-h-0 opacity-0"}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isFaqOpen ? "max-h-20 opacity-100 mt-2" : "max-h-0 opacity-0"
+              }`}
+            >
               <p className="text-[13px] text-white/60 text-center leading-relaxed">
                 Tap “Refund” in Settings → “Billing” → Done. No questions asked.
               </p>
@@ -603,7 +641,7 @@ export default function PaywallScreen() {
         </div>
       </div>
 
-      {/* 3. Sticky Footer CTA (fixed on mobile so it blends with safe-area perfectly) */}
+      {/* 3) Sticky CTA */}
       <div
         className={`
           fixed md:absolute bottom-0 left-0 w-full z-30 px-6 pt-6
@@ -630,9 +668,12 @@ export default function PaywallScreen() {
         </p>
       </div>
 
-      {/* 4. STRIPE OVERLAY MODAL */}
+      {/* 4) STRIPE OVERLAY MODAL */}
       {showCheckoutModal && clientSecret && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto" onClick={() => setShowCheckoutModal(false)}>
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
+          onClick={() => setShowCheckoutModal(false)}
+        >
           <div className="min-h-full flex items-center justify-center p-4">
             <Elements options={{ clientSecret, appearance: stripeAppearance }} stripe={stripePromise}>
               <CheckoutForm onClose={() => setShowCheckoutModal(false)} />
@@ -641,7 +682,7 @@ export default function PaywallScreen() {
         </div>
       )}
 
-      {/* 5. RESTORE OVERLAY MODAL */}
+      {/* 5) RESTORE OVERLAY MODAL */}
       {showRestoreModal && <RestoreModal onClose={() => setShowRestoreModal(false)} />}
     </div>
   );
