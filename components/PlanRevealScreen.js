@@ -384,10 +384,18 @@ export default function PlanRevealScreen({ onNext }) {
   return (
     <div className={`absolute inset-0 w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}`}>
       
-      {/* --- UPDATED: Bottom area black ONLY below the progress/CTA (keeps progress + CTA fully transparent) --- */}
+      {/* --- ADDITION: Bottom scrim ONLY for phase 2 & 3 --- */}
       {(phase === 'personalizing' || phase === 'showingTimeline') && (
-        <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none">
-          <div className="w-full h-[calc(env(safe-area-inset-bottom)+12px)] bg-black" />
+        <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
+          
+          {/* 1. Dark Gradient Area (Behind buttons & progress) */}
+          {/* Starts fading out ABOVE the solid black bar */}
+          <div className="absolute bottom-0 w-full h-[calc(env(safe-area-inset-bottom)+240px)] bg-gradient-to-t from-black via-black/90 to-transparent" />
+          
+          {/* 2. SOLID BLACK BAR (Strictly for the Safe Area / Swipe Bar) */}
+          {/* This ensures the very bottom is always 100% pitch black */}
+          <div className="absolute bottom-0 w-full h-[env(safe-area-inset-bottom)] bg-black" />
+          
         </div>
       )}
       
