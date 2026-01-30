@@ -487,7 +487,7 @@ export default function PaywallScreen() {
         <div
           className="
             absolute bottom-0 inset-x-0
-            h-[calc(env(safe-area-inset-bottom)+64px)]
+            h-[calc(env(safe-area-inset-bottom)+2px)]
             bg-gradient-to-t from-[#0A0A10]/95 via-[#0A0A10]/75 to-transparent
           "
         />
