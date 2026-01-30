@@ -82,10 +82,12 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }) {
   return (
     <html lang="en" className="h-full">
-      <body className={`${inter.className} fixed inset-0 h-full overflow-hidden bg-[#FAF9FA] md:bg-[#F2F1F2]`}>
+      <body
+        className={`${inter.className} fixed inset-0 h-full overflow-hidden bg-[#FAF9FA] md:bg-[#F2F1F2]`}
+      >
         {/* --- GOOGLE ADS & ANALYTICS --- */}
         <Script
           strategy="afterInteractive"
@@ -111,11 +113,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           `}
         </Script>
 
-        {/* Full-height app shell; ONLY the inside scrolls */}
+        {/* Full-height frame; body locked; ONLY interior scrolls */}
         <div className="flex h-dvh flex-col min-h-0">
           <div className="w-full flex-1 min-h-0 overflow-hidden">
             <div className="w-full h-full mx-auto bg-[#FAF9FA] md:max-w-6xl md:shadow-2xl md:border-x md:border-white/50 flex flex-col min-h-0">
-              {/* ✅ Only this area scrolls */}
               <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] no-scrollbar">
                 <UserDataProvider>{children}</UserDataProvider>
               </main>
