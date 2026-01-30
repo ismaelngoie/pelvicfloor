@@ -384,11 +384,9 @@ export default function PlanRevealScreen({ onNext }) {
   return (
     <div className={`absolute inset-0 w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}`}>
       
-      {/* --- Bottom should be black ONLY below the progress/CTA (keeps progress + CTA fully transparent) --- */}
+      {/* --- ADDITION: Solid Black Safe Area ONLY (No Gradient) --- */}
       {(phase === 'personalizing' || phase === 'showingTimeline') && (
-        <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-0">
-          <div className="w-full h-[calc(env(safe-area-inset-bottom)+12px)] bg-black" />
-        </div>
+        <div className="fixed bottom-0 left-0 w-full bg-black z-50 h-[env(safe-area-inset-bottom)]" />
       )}
       
       {/* ---------------- PHASE 1: HEALTH INFO (One Screen) ---------------- */}
@@ -487,7 +485,7 @@ export default function PlanRevealScreen({ onNext }) {
 
       {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
       {phase === 'personalizing' && (
-        <div className="flex flex-col items-center justify-center h-full px-8 relative z-10 animate-in fade-in duration-1000" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           
           <div className={`transition-all duration-500 ${showChecklist ? 'scale-75 -translate-y-8 opacity-0' : 'scale-100 opacity-100'}`}>
             <AICoreView />
@@ -534,7 +532,7 @@ export default function PlanRevealScreen({ onNext }) {
 
       {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === 'showingTimeline' && (
-        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative z-10">
+        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
           <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
             <div>
               <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
