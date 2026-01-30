@@ -384,10 +384,10 @@ export default function PlanRevealScreen({ onNext }) {
   return (
     <div className={`absolute inset-0 w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? THEME.bg : 'bg-black'}`}>
       
-      {/* --- ADDITION: Bottom scrim ONLY for phase 2 & 3 (same “paywall bottom method”) --- */}
+      {/* --- UPDATED: Bottom area black ONLY below the progress/CTA (keeps progress + CTA fully transparent) --- */}
       {(phase === 'personalizing' || phase === 'showingTimeline') && (
-        <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
-          <div className="w-full h-[calc(env(safe-area-inset-bottom)+260px)] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
+        <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none">
+          <div className="w-full h-[calc(env(safe-area-inset-bottom)+12px)] bg-black" />
         </div>
       )}
       
