@@ -197,7 +197,7 @@ const CheckoutForm = ({ onClose }) => {
 
   const paymentElementOptions = {
     layout: "tabs",
-    fields: { phone: "never" },
+    fields: { billingDetails: { phone: "auto" } },
   };
 
   return (
