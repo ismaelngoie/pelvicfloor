@@ -186,7 +186,7 @@ function WelcomeScreen({ onNext }) {
   if (!showContent && (userDetails?.isPremium)) return null;
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-between pb-8 bg-gradient-to-b from-pink-50/50 to-white overflow-hidden">
+    <div className="relative w-full min-h-full flex flex-col items-center justify-between pb-8 bg-gradient-to-b from-pink-50/50 to-white overflow-hidden">
       
       {/* --- INSTANT FLYING BUTTERFLIES --- */}
       <ButterflyBackground />
@@ -303,7 +303,7 @@ function SelectGoalScreen({ onNext }) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col px-5 pt-8 pb-6 animate-fade-in relative bg-white/50">
+    <div className="w-full min-h-full flex flex-col px-5 pt-8 pb-6 animate-fade-in relative bg-white/50">
       
       {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
@@ -504,7 +504,7 @@ function HowItHelpsScreen({ onNext }) {
   }, []);
 
   return (
-    <div className="w-full h-full flex flex-col pt-12 px-4 pb-8 animate-fade-in relative bg-app-background overflow-hidden">
+    <div className="w-full min-h-full flex flex-col pt-12 px-4 pb-8 animate-fade-in relative bg-app-background overflow-hidden">
       
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-app-primary/5 rounded-full blur-3xl -z-10" />
@@ -1188,6 +1188,8 @@ function PlanRevealScreen({ onNext }) {
   
   // --- ADDITION: enable chrome + bottom background ONLY in phase 2 & 3 ---
   usePlanRevealChrome(phase === 'personalizing' || phase === 'showingTimeline', "#000000");
+
+  const allowScroll = phase === 'askingHealthInfo';
   
   // Phase 1 State
   const [selectedConditions, setSelectedConditions] = useState([]);
@@ -1288,8 +1290,13 @@ function PlanRevealScreen({ onNext }) {
 
   // --- RENDER ---
   return (
-    <div className={`absolute inset-0 w-full h-full flex flex-col transition-colors duration-700 overflow-hidden ${phase === 'askingHealthInfo' ? THEME_REVEAL.bg : 'bg-black'}`}>
-      
+    <div
+    className={`
+      w-full min-h-screen flex flex-col transition-colors duration-700
+      ${allowScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden'}
+      ${phase === 'askingHealthInfo' ? THEME_REVEAL.bg : 'bg-black'}
+    `}
+  >
       {/* --- ADDITION: Bottom scrim ONLY for phase 2 & 3 (same “paywall bottom method”) --- */}
       {(phase === 'personalizing' || phase === 'showingTimeline') && (
         <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
