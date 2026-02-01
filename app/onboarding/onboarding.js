@@ -2166,7 +2166,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full min-h-full flex flex-col">
       {currentStep === 'welcome' && (
         <WelcomeScreen onNext={() => handleNext('select_goal')} />
       )}
