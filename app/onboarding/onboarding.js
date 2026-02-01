@@ -145,7 +145,7 @@ const ButterflyBackground = () => {
             opacity: b.isBehind ? 0.3 : 0.7,
             filter: brandPinkFilter,
             transform: `rotate(${b.rotation}deg)`,
-            zIndex: 0,
+            zIndex: b.isBehind ? 0 : 50,
           }}
         >
           <img
@@ -354,42 +354,14 @@ const THEME_GOAL = {
 };
 
 const goals = [
-  {
-    id: "intimacy",
-    title: "Improve Intimacy",
-    icon: <Heart size={28} strokeWidth={2} />,
-  },
-  {
-    id: "leaks",
-    title: "Stop Bladder Leaks",
-    icon: <Droplets size={28} strokeWidth={2} />,
-  },
-  {
-    id: "pregnancy",
-    title: "Prepare for Pregnancy",
-    icon: <Baby size={28} strokeWidth={2} />,
-  },
-  {
-    id: "postpartum",
-    title: "Recover Postpartum",
-    icon: <Activity size={28} strokeWidth={2} />,
-  },
+  { id: "intimacy", title: "Improve Intimacy", icon: <Heart size={28} strokeWidth={2} /> },
+  { id: "leaks", title: "Stop Bladder Leaks", icon: <Droplets size={28} strokeWidth={2} /> },
+  { id: "pregnancy", title: "Prepare for Pregnancy", icon: <Baby size={28} strokeWidth={2} /> },
+  { id: "postpartum", title: "Recover Postpartum", icon: <Activity size={28} strokeWidth={2} /> },
   { id: "core", title: "Build Core Strength", icon: <Zap size={28} strokeWidth={2} /> },
-  {
-    id: "pain",
-    title: "Ease Pelvic Pain",
-    icon: <HeartHandshake size={28} strokeWidth={2} />,
-  },
-  {
-    id: "fitness",
-    title: "Support My Fitness",
-    icon: <Dumbbell size={28} strokeWidth={2} />,
-  },
-  {
-    id: "stability",
-    title: "Boost Stability",
-    icon: <Activity size={28} strokeWidth={2} />,
-  },
+  { id: "pain", title: "Ease Pelvic Pain", icon: <HeartHandshake size={28} strokeWidth={2} /> },
+  { id: "fitness", title: "Support My Fitness", icon: <Dumbbell size={28} strokeWidth={2} /> },
+  { id: "stability", title: "Boost Stability", icon: <Activity size={28} strokeWidth={2} /> },
 ];
 
 function SelectGoalScreen({ onNext }) {
@@ -412,21 +384,21 @@ function SelectGoalScreen({ onNext }) {
       </div>
 
       {/* Scrollable */}
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5 pt-8 pb-6 md:px-12 md:pt-12 md:pb-10 z-10">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5 pt-8 pb-6 z-10">
         {/* Header */}
         <div className="mb-4">
-          <h1 className="text-[26px] md:text-[34px] font-extrabold text-center text-app-textPrimary mb-1 leading-tight">
+          <h1 className="text-[26px] font-extrabold text-center text-app-textPrimary mb-1 leading-tight">
             Let's set your primary goal.
           </h1>
-          <p className="text-center text-app-textSecondary text-[14px] md:text-[16px] leading-snug px-4 font-medium md:max-w-2xl md:mx-auto">
+          <p className="text-center text-app-textSecondary text-[14px] leading-snug px-4 font-medium">
             This shapes your custom pelvic strengthening plan.
           </p>
         </div>
 
         {/* Grid */}
         <div className="w-full flex justify-center">
-          <div className="w-full max-w-md md:max-w-3xl">
-            <div className="grid grid-cols-2 gap-3 md:gap-4">
+          <div className="w-full max-w-md">
+            <div className="grid grid-cols-2 gap-3">
               {goals.map((goal) => {
                 const isSelected = selectedId === goal.id;
                 return (
@@ -434,8 +406,8 @@ function SelectGoalScreen({ onNext }) {
                     key={goal.id}
                     onClick={() => handleSelect(goal)}
                     className={`
-                      relative flex flex-col items-center justify-center p-3 md:p-5 rounded-[24px] md:rounded-[28px] border-[2px] 
-                      transition-all duration-300 ease-out h-[100px] md:h-[120px] w-full outline-none active:scale-95
+                      relative flex flex-col items-center justify-center p-3 rounded-[24px] border-[2px] 
+                      transition-all duration-300 ease-out h-[100px] w-full outline-none active:scale-95
                       ${isSelected ? THEME_GOAL.selected : `${THEME_GOAL.unselected} hover:bg-gray-50 z-10`}
                     `}
                   >
@@ -448,16 +420,20 @@ function SelectGoalScreen({ onNext }) {
                     </div>
 
                     <div
-                      className={`mb-2 md:mb-3 transition-all duration-300 ${
-                        isSelected ? THEME_GOAL.iconSelected : THEME_GOAL.iconUnselected
+                      className={`mb-2 transition-all duration-300 ${
+                        isSelected
+                          ? THEME_GOAL.iconSelected
+                          : THEME_GOAL.iconUnselected
                       }`}
                     >
                       {goal.icon}
                     </div>
 
                     <span
-                      className={`text-[13px] md:text-[15px] font-bold text-center leading-tight transition-colors duration-300 ${
-                        isSelected ? THEME_GOAL.textSelected : THEME_GOAL.textUnselected
+                      className={`text-[13px] font-bold text-center leading-tight transition-colors duration-300 ${
+                        isSelected
+                          ? THEME_GOAL.textSelected
+                          : THEME_GOAL.textUnselected
                       }`}
                     >
                       {goal.title}
@@ -471,7 +447,7 @@ function SelectGoalScreen({ onNext }) {
       </div>
 
       {/* Sticky Footer CTA */}
-      <div className="shrink-0 z-20 px-5 md:px-12 pb-6 md:pb-10">
+      <div className="shrink-0 z-20 px-5 pb-6">
         <button
           onClick={onNext}
           disabled={!selectedId}
@@ -639,15 +615,15 @@ function HowItHelpsScreen({ onNext }) {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-app-primary/5 rounded-full blur-3xl -z-10" />
 
       {/* Scrollable middle */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pt-12 md:pt-16 px-4 md:px-12 pb-8 md:pb-10">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pt-12 px-4 pb-8">
         {/* Header */}
         <div className="z-10 text-center mb-4">
-          <h1 className="text-3xl md:text-5xl font-bold text-app-textPrimary mb-4 leading-tight animate-slide-up">
+          <h1 className="text-3xl font-bold text-app-textPrimary mb-4 leading-tight animate-slide-up">
             Here's how we'll <br />
             <span className="text-app-primary">{goalTitle}</span>
           </h1>
           <p
-            className="text-app-textSecondary text-[16px] md:text-[18px] leading-relaxed px-4 md:px-0 animate-slide-up md:max-w-2xl md:mx-auto"
+            className="text-app-textSecondary text-[16px] leading-relaxed px-4 animate-slide-up"
             style={{ animationDelay: "0.1s" }}
           >
             {data.subtitle}
@@ -655,7 +631,7 @@ function HowItHelpsScreen({ onNext }) {
         </div>
 
         {/* Constellation */}
-        <div className="w-full relative flex items-center justify-center min-h-[380px] md:min-h-[520px] md:scale-110 md:origin-center">
+        <div className="w-full relative flex items-center justify-center min-h-[380px]">
           <div
             className={`absolute z-20 bg-white p-6 rounded-full shadow-xl shadow-app-primary/15 text-app-primary border border-app-borderIdle transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${
               animate ? "scale-100 opacity-100" : "scale-0 opacity-0"
@@ -717,7 +693,7 @@ function HowItHelpsScreen({ onNext }) {
       </div>
 
       {/* Sticky footer */}
-      <div className="shrink-0 z-20 px-4 md:px-12 pb-6 md:pb-10">
+      <div className="shrink-0 z-20 px-4 pb-6">
         <button
           onClick={onNext}
           className="w-full h-14 bg-gradient-to-r from-app-primary to-rose-500 text-white font-bold text-lg rounded-full shadow-lg shadow-app-primary/30 active:scale-95 transition-transform animate-fade-in"
@@ -858,7 +834,7 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
   }, []);
 
   return (
-    <div className="relative h-[220px] w-full max-w-[320px] md:max-w-[420px] mx-auto overflow-hidden mt-2">
+    <div className="relative h-[220px] w-full max-w-[320px] mx-auto overflow-hidden mt-2">
       <div className="absolute top-1/2 left-0 w-full h-[54px] -translate-y-1/2 border-t-2 border-b-2 border-app-primary/10 bg-app-primary/5 pointer-events-none z-10" />
 
       <div className="absolute top-0 left-0 w-full h-[80px] bg-gradient-to-b from-white via-white/90 to-transparent z-20 pointer-events-none" />
@@ -1715,14 +1691,14 @@ function PlanRevealScreen({ onNext }) {
         <div className="w-full h-full flex flex-col overflow-hidden">
           {/* Scrollable middle */}
           <div
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-5 md:px-12"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-5"
             style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
           >
             <div className="mb-2 shrink-0 text-center">
-              <h1 className={`text-[26px] md:text-[34px] font-extrabold text-center ${THEME_REVEAL.text} mb-1 leading-tight`}>
+              <h1 className={`text-[26px] font-extrabold text-center ${THEME_REVEAL.text} mb-1 leading-tight`}>
                 {healthCopy.headline}
               </h1>
-              <p className="text-center text-[rgb(26,26,38)]/60 text-sm md:text-[15px]">
+              <p className="text-center text-[rgb(26,26,38)]/60 text-sm">
                 {healthCopy.subtitle}
               </p>
             </div>
@@ -1730,21 +1706,21 @@ function PlanRevealScreen({ onNext }) {
             <div className="flex flex-col justify-center min-h-0">
               {/* Conditions */}
               <div>
-                <div className="grid grid-cols-2 gap-3 md:gap-4 mb-2">
+                <div className="grid grid-cols-2 gap-3 mb-2">
                   {CONDITIONS.map((item) => {
                     const isSelected = selectedConditions.includes(item.id);
                     return (
                       <button
                         key={item.id}
                         onClick={() => toggleCondition(item.id)}
-                        className={`relative flex flex-col items-center justify-center p-2 md:p-4 rounded-[24px] md:rounded-[28px] border-[2px] h-[100px] md:h-[120px] transition-all duration-300 active:scale-95 outline-none
+                        className={`relative flex flex-col items-center justify-center p-2 rounded-[24px] border-[2px] h-[100px] transition-all duration-300 active:scale-95 outline-none
                           ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
                         `}
                       >
                         <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME_REVEAL.iconSelected : THEME_REVEAL.iconUnselected}`}>
                           {item.icon}
                         </div>
-                        <span className={`text-[13px] md:text-[15px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${isSelected ? THEME_REVEAL.textSelected : THEME_REVEAL.textUnselected}`}>
+                        <span className={`text-[13px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${isSelected ? THEME_REVEAL.textSelected : THEME_REVEAL.textUnselected}`}>
                           {item.title}
                         </span>
                         <div className="absolute top-3 right-3">
@@ -1779,7 +1755,7 @@ function PlanRevealScreen({ onNext }) {
 
               {/* Activity */}
               <div className="mt-3">
-                <h3 className={`text-[15px] md:text-[16px] font-bold text-center ${THEME_REVEAL.text} mb-2`}>
+                <h3 className={`text-[15px] font-bold text-center ${THEME_REVEAL.text} mb-2`}>
                   Your typical activity level
                 </h3>
                 <div className="flex flex-col gap-2.5">
@@ -1819,7 +1795,7 @@ function PlanRevealScreen({ onNext }) {
           </div>
 
           {/* Sticky footer */}
-          <div className="shrink-0 px-5 md:px-12 pb-6 md:pb-10">
+          <div className="shrink-0 px-5 pb-6">
             <button
               onClick={handlePhase1Continue}
               disabled={!canContinue}
@@ -1904,14 +1880,14 @@ function PlanRevealScreen({ onNext }) {
       {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === "showingTimeline" && (
         <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
-          <div className="flex-1 flex flex-col justify-between px-6 md:px-12 z-10 min-h-0" style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+          <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-center text-white mb-2 leading-tight">
+              <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
                 <span className="text-white/90">{userDetails?.name || "Your"} path to</span>
                 <br />
                 <span className="text-[#E65473]">{goalTitle}</span> is ready.
               </h1>
-              <p className="text-center text-white/80 text-[15px] md:text-[16px] mb-4 leading-relaxed">
+              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
                 {formatRichText(timelineCopy.subtitle)}
               </p>
               <HolographicTimeline />
@@ -1928,7 +1904,7 @@ function PlanRevealScreen({ onNext }) {
                     <div className="mt-0.5 text-[#E65473] shrink-0">
                       <Sparkles size={18} />
                     </div>
-                    <p className="text-[13px] md:text-[14px] leading-snug text-white/90">
+                    <p className="text-[13px] leading-snug text-white/90">
                       {formatRichText(insight)}
                     </p>
                   </div>
@@ -2387,21 +2363,21 @@ function PaywallScreen() {
 
       <div
         className={`
-          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6 md:px-12
+          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6
           pt-[calc(env(safe-area-inset-top)+3rem)]
           pb-[calc(9rem+env(safe-area-inset-bottom))]
           transition-all duration-700
           ${showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
         `}
       >
-        <h1 className="text-[34px] md:text-[40px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
+        <h1 className="text-[34px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
           <span className="text-white">{userName === "Ready" ? "Ready to" : `${userName}, ready to`}</span>
           <br />
           <span className="capitalize text-[#E65473]">
             {goalTitle.replace("Stop ", "").replace("Build ", "")}
           </span>
           ?
-          <span className="block text-[28px] md:text-[32px] text-white mt-1">100% Money-Back Guarantee.</span>
+          <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
         </h1>
 
         <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl">
@@ -2534,7 +2510,7 @@ function PaywallScreen() {
 
       <div
         className={`
-          fixed md:absolute bottom-0 left-0 w-full z-30 px-6 md:px-12 pt-6
+          fixed md:absolute bottom-0 left-0 w-full z-30 px-6 pt-6
           pb-[calc(env(safe-area-inset-bottom)+2rem)]
           bg-gradient-to-t from-[#0A0A10]/90 via-[#0A0A10]/30 to-transparent
           transition-all duration-700 delay-200
@@ -2598,7 +2574,7 @@ const Star = ({ size, fill }) => (
 
 function DesktopMarketingPanel() {
   return (
-    <div className="hidden md:flex flex-1 flex-col justify-center pr-10 min-h-0 overflow-y-auto">
+    <div className="hidden md:flex flex-1 flex-col justify-center pr-10">
       <div className="max-w-xl">
         <div className="flex items-center gap-3 mb-6">
           <img src="/logo.png" alt="Pelvi Health" className="w-14 h-14 object-contain" />
@@ -2659,16 +2635,6 @@ function DesktopMarketingPanel() {
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState("welcome");
 
-  // Desktop behavior:
-  // - On welcome: hide marketing panel (avoids duplicate marketing copy).
-  // - After welcome: show marketing panel.
-  const showDesktopMarketing = currentStep !== "welcome";
-
-  // Desktop sizing behavior:
-  // - On welcome: keep the centered “welcome card” look.
-  // - After welcome: render as a full-size desktop web-app panel (no tiny phone sizing).
-  const isDesktopAppStep = currentStep !== "welcome";
-
   const Screen = () => {
     if (currentStep === "welcome") return <WelcomeScreen onNext={() => setCurrentStep("select_goal")} />;
     if (currentStep === "select_goal") return <SelectGoalScreen onNext={() => setCurrentStep("how_it_helps")} />;
@@ -2679,50 +2645,26 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="relative w-full h-full min-h-0 overflow-hidden">
+    <div className="relative w-full h-full min-h-0">
       {/* Desktop background glow */}
       <div className="hidden md:block absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/40 rounded-full blur-[90px]" />
         <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-pink-200/30 rounded-full blur-[90px]" />
       </div>
 
-      <div
-        className={`
-          w-full h-full min-h-0
-          md:flex md:items-stretch
-          ${showDesktopMarketing ? "md:gap-10 md:px-10 md:py-10" : "md:justify-center md:px-10 md:py-10"}
-        `}
-      >
-        {/* Left marketing panel (desktop only) */}
-        {showDesktopMarketing && <DesktopMarketingPanel />}
+      <div className="w-full h-full min-h-0 md:flex md:gap-10 md:px-10 md:py-10">
+        <DesktopMarketingPanel />
 
-        {/* Main app surface */}
-        <div
-          className={`
-            w-full h-full min-h-0
-            md:flex-1 md:min-w-0 md:flex md:justify-center
-            ${isDesktopAppStep ? "md:items-stretch" : "md:items-center"}
-          `}
-        >
+        {/* Phone frame */}
+        <div className="w-full h-full min-h-0 md:flex md:items-center md:justify-center">
           <div
-            className={`
-              w-full h-full min-h-0 relative
+            className="
+              w-full h-full
               overflow-visible md:overflow-hidden
-              ${
-                isDesktopAppStep
-                  ? `
-                    md:w-full md:h-full md:max-h-none
-                    md:rounded-[32px] md:border md:border-white/60 md:shadow-2xl
-                    md:bg-[#FAF9FA]
-                  `
-                  : `
-                    md:w-[460px] lg:w-[500px]
-                    md:h-[calc(100dvh-6rem)] md:max-h-[860px]
-                    md:rounded-[44px] md:border md:border-white/60 md:shadow-2xl
-                    md:bg-[#FAF9FA]
-                  `
-              }
-            `}
+              md:w-[420px] md:h-[calc(100dvh-5rem)] md:max-h-[820px]
+              md:rounded-[44px] md:border md:border-white/60 md:shadow-2xl
+              md:bg-[#FAF9FA] relative
+            "
           >
             <div className="w-full h-full flex flex-col min-h-0">
               <Screen />
