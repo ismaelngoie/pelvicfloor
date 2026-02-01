@@ -145,7 +145,7 @@ const ButterflyBackground = () => {
             opacity: b.isBehind ? 0.3 : 0.7,
             filter: brandPinkFilter,
             transform: `rotate(${b.rotation}deg)`,
-            zIndex: b.isBehind ? 0 : 50,
+            zIndex: 0,
           }}
         >
           <img
