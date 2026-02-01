@@ -87,22 +87,12 @@ const reviews = [
 ];
 
 // --- FULL SCREEN BUTTERFLY BACKGROUND ---
-type Butterfly = {
-  id: number;
-  left: number;
-  size: number;
-  duration: number;
-  delay: number;
-  rotation: number;
-  isBehind: boolean;
-};
-
 const ButterflyBackground = () => {
-  const [butterflies, setButterflies] = useState<Butterfly[]>([]);
+  const [butterflies, setButterflies] = useState([]);
 
   useEffect(() => {
     const count = 25;
-    const items: Butterfly[] = Array.from({ length: count }).map((_, i) => {
+    const items = Array.from({ length: count }).map((_, i) => {
       const duration = 15 + Math.random() * 15;
       return {
         id: i,
@@ -169,7 +159,7 @@ const ButterflyBackground = () => {
   );
 };
 
-function WelcomeScreen({ onNext }: { onNext: () => void }) {
+function WelcomeScreen({ onNext }) {
   const router = useRouter();
   const { userDetails } = useUserData();
 
@@ -194,7 +184,7 @@ function WelcomeScreen({ onNext }: { onNext: () => void }) {
       }
     }
 
-    if (userDetails && (userDetails as any).isPremium) {
+    if (userDetails && userDetails.isPremium) {
       router.replace("/dashboard");
     } else {
       const timer = setTimeout(() => setShowContent(true), 50);
@@ -230,7 +220,7 @@ function WelcomeScreen({ onNext }: { onNext: () => void }) {
     return () => clearInterval(timer);
   }, []);
 
-  if (!showContent && (userDetails as any)?.isPremium) return null;
+  if (!showContent && userDetails?.isPremium) return null;
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
@@ -369,13 +359,13 @@ const goals = [
   { id: "stability", title: "Boost Stability", icon: <Activity size={28} strokeWidth={2} /> },
 ];
 
-function SelectGoalScreen({ onNext }: { onNext: () => void }) {
+function SelectGoalScreen({ onNext }) {
   const { saveUserData, userDetails } = useUserData();
-  const [selectedId, setSelectedId] = useState<string | null>(
-    (userDetails as any).selectedTarget?.id || null
+  const [selectedId, setSelectedId] = useState(
+    userDetails.selectedTarget?.id || null
   );
 
-  const handleSelect = (goal: any) => {
+  const handleSelect = (goal) => {
     setSelectedId(goal.id);
     saveUserData("selectedTarget", goal);
   };
@@ -475,7 +465,7 @@ function SelectGoalScreen({ onNext }: { onNext: () => void }) {
 // SCREEN 3: HOW IT HELPS SCREEN
 // ==========================================
 
-function BabyIcon({ size }: { size: number }) {
+function BabyIcon({ size }) {
   return (
     <svg
       width={size}
@@ -495,7 +485,7 @@ function BabyIcon({ size }: { size: number }) {
   );
 }
 
-const benefitsData: any = {
+const benefitsData = {
   "Prepare for Pregnancy": {
     subtitle:
       "Your plan will build a strong, supportive foundation for a healthy pregnancy and smoother recovery.",
@@ -602,11 +592,11 @@ const benefitsData: any = {
   },
 };
 
-function HowItHelpsScreen({ onNext }: { onNext: () => void }) {
+function HowItHelpsScreen({ onNext }) {
   const { userDetails } = useUserData();
   const [animate, setAnimate] = useState(false);
 
-  const goalTitle = (userDetails as any).selectedTarget?.title || "Build Core Strength";
+  const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
   const data = benefitsData[goalTitle] || benefitsData["Build Core Strength"];
 
   useEffect(() => {
@@ -645,7 +635,7 @@ function HowItHelpsScreen({ onNext }: { onNext: () => void }) {
             {data.icon}
           </div>
 
-          {data.benefits.map((benefit: any, index: number) => {
+          {data.benefits.map((benefit, index) => {
             const total = data.benefits.length;
             const radius = 135;
             const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
@@ -715,7 +705,7 @@ function HowItHelpsScreen({ onNext }: { onNext: () => void }) {
 // SCREEN 4: PERSONAL INTAKE SCREEN
 // ==========================================
 
-const MIA_COPY: any = {
+const MIA_COPY = {
   "Prepare for Pregnancy": {
     ack: "Beautiful choice, {name}. We will gently prepare your pelvic floor and core so you feel supported every step of pregnancy.",
     age: "At {age}, we focus on calm breath, steady endurance, and safe strength so your body feels ready and held.",
@@ -784,10 +774,6 @@ const ChatBubble = ({
   text,
   isTyping,
   isUser,
-}: {
-  text?: string;
-  isTyping?: boolean;
-  isUser: boolean;
 }) => (
   <div
     className={`flex w-full mb-6 animate-fade-in-up ${
@@ -824,14 +810,8 @@ const WheelPicker = ({
   onChange,
   unit,
   formatLabel,
-}: {
-  range: number[];
-  value: number;
-  onChange: (v: number) => void;
-  unit?: string;
-  formatLabel?: (v: number) => string;
 }) => {
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const scrollerRef = useRef(null);
   const ITEM_HEIGHT = 54;
 
   const handleScroll = () => {
@@ -893,12 +873,12 @@ const WheelPicker = ({
   );
 };
 
-function PersonalIntakeScreen({ onNext }: { onNext: () => void }) {
+function PersonalIntakeScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
-  const [step, setStep] = useState<"name" | "age" | "weight" | "height">("name");
+  const [step, setStep] = useState("name");
   const [isTyping, setIsTyping] = useState(false);
-  const [history, setHistory] = useState<{ text?: string; sender: "mia" | "user" }[]>([]);
-  const chatBottomRef = useRef<HTMLDivElement | null>(null);
+  const [history, setHistory] = useState([]);
+  const chatBottomRef = useRef(null);
 
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
@@ -906,7 +886,7 @@ function PersonalIntakeScreen({ onNext }: { onNext: () => void }) {
   const [height, setHeight] = useState(65);
 
   const goalTitle =
-    (userDetails as any).selectedTarget?.title || "Build Core Strength";
+    userDetails.selectedTarget?.title || "Build Core Strength";
   const copy =
     MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
@@ -916,7 +896,7 @@ function PersonalIntakeScreen({ onNext }: { onNext: () => void }) {
     }, 100);
   };
 
-  const addMessage = (text: string, sender: "mia" | "user", delay = 0) => {
+  const addMessage = (text, sender, delay = 0) => {
     if (sender === "mia") setIsTyping(true);
 
     setTimeout(() => {
@@ -1115,7 +1095,7 @@ const PersonalizingConstants = {
   phase2Scale: 0.2,
 };
 
-const usePlanRevealChrome = (enabled: boolean, color = "#000000") => {
+const usePlanRevealChrome = (enabled, color = "#000000") => {
   useEffect(() => {
     if (!enabled) return;
     if (typeof window === "undefined") return;
@@ -1155,8 +1135,8 @@ const usePlanRevealChrome = (enabled: boolean, color = "#000000") => {
   }, [enabled, color]);
 };
 
-const getHealthCopy = (goal: string) => {
-  const map: any = {
+const getHealthCopy = (goal) => {
+  const map = {
     "Stop Bladder Leaks": {
       headline: "Any health notes before we target leaks?",
       subtitle: "This helps me map safe, effective bladder-control sessions.",
@@ -1207,7 +1187,7 @@ const getHealthCopy = (goal: string) => {
   return map[goal] || map.default;
 };
 
-const getHelperCopy = (selected: boolean, goal: string) => {
+const getHelperCopy = (selected, goal) => {
   if (selected) {
     if (goal.includes("Leak"))
       return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
@@ -1236,8 +1216,8 @@ const getHelperCopy = (selected: boolean, goal: string) => {
   }
 };
 
-const getPersonalizingCopy = (goal: string, name?: string) => {
-  const map: any = {
+const getPersonalizingCopy = (goal, name) => {
+  const map = {
     "Improve Intimacy": {
       title: `Designing your intimacy plan`,
       subtitle: "Comfort, sensation, confidence—gently built for your body.",
@@ -1325,8 +1305,8 @@ const getPersonalizingCopy = (goal: string, name?: string) => {
   return map[goal] || map.default;
 };
 
-const getTimelineCopy = (goal: string) => {
-  const map: any = {
+const getTimelineCopy = (goal) => {
+  const map = {
     "Prepare for Pregnancy": {
       subtitle: "Feel ready to carry and move with ease by **{date}**.",
       insights: [
@@ -1431,9 +1411,9 @@ const AICoreView = () => (
   </div>
 );
 
-const TypewriterText = ({ text }: { text: string }) => {
+const TypewriterText = ({ text }) => {
   const [displayed, setDisplayed] = useState("");
-  const timerRef = useRef<any>(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     if (timerRef.current) {
@@ -1473,12 +1453,8 @@ const ChecklistItem = ({
   text,
   delay,
   onComplete,
-}: {
-  text: string;
-  delay: number;
-  onComplete?: () => void;
 }) => {
-  const [status, setStatus] = useState<"waiting" | "processing" | "completed">("waiting");
+  const [status, setStatus] = useState("waiting");
 
   useEffect(() => {
     const t1 = setTimeout(() => setStatus("processing"), delay);
@@ -1577,9 +1553,9 @@ const HolographicTimeline = () => {
   );
 };
 
-function PlanRevealScreen({ onNext }: { onNext: () => void }) {
+function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
-  const [phase, setPhase] = useState<"askingHealthInfo" | "personalizing" | "showingTimeline">("askingHealthInfo");
+  const [phase, setPhase] = useState("askingHealthInfo");
 
   const isDark = phase === "personalizing" || phase === "showingTimeline";
 
@@ -1587,9 +1563,9 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
   usePlanRevealChrome(isDark, "#000000");
 
   // Phase 1 State
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
+  const [selectedConditions, setSelectedConditions] = useState([]);
   const [noneSelected, setNoneSelected] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState(null);
   const [helperText, setHelperText] = useState("");
   const [activityHelperText, setActivityHelperText] = useState("");
 
@@ -1598,16 +1574,16 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
   const [progressPercent, setProgressPercent] = useState(0);
   const [showChecklist, setShowChecklist] = useState(false);
 
-  const goalTitle = (userDetails as any)?.selectedTarget?.title || "Build Core Strength";
+  const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const healthCopy = getHealthCopy(goalTitle);
-  const personalizingCopy = getPersonalizingCopy(goalTitle, (userDetails as any)?.name);
+  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
-  const updateHelperText = (hasCondition: boolean) => {
+  const updateHelperText = (hasCondition) => {
     setHelperText(getHelperCopy(hasCondition, goalTitle));
   };
 
-  const toggleCondition = (id: string) => {
+  const toggleCondition = (id) => {
     setNoneSelected(false);
     setSelectedConditions((prev) => {
       const newSet = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
@@ -1623,7 +1599,7 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
     updateHelperText(newVal);
   };
 
-  const selectActivity = (act: string) => {
+  const selectActivity = (act) => {
     setSelectedActivity(act);
     setActivityHelperText("✓ Perfect, I'll match your pace & recovery.");
   };
@@ -1674,9 +1650,9 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
   };
 
   const calculateBMI = () => {
-    if (!(userDetails as any)?.weight || !(userDetails as any)?.height) return "22.5";
-    const h = (userDetails as any).height * 0.0254;
-    const w = (userDetails as any).weight * 0.453592;
+    if (!userDetails?.weight || !userDetails?.height) return "22.5";
+    const h = userDetails.height * 0.0254;
+    const w = userDetails.weight * 0.453592;
     return (w / (h * h)).toFixed(1);
   };
 
@@ -1684,7 +1660,7 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
   date.setDate(date.getDate() + 7);
   const dateString = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
-  const formatRichText = (text: string) => {
+  const formatRichText = (text) => {
     if (!text) return null;
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
@@ -1696,7 +1672,7 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
           content = selectedActivity
             ? ACTIVITIES.find((a) => a.id === selectedActivity)?.title.toLowerCase()
             : "active";
-        if (content === "{age}") content = (userDetails as any)?.age || "30";
+        if (content === "{age}") content = userDetails?.age || "30";
         if (content === "{condition}")
           content = selectedConditions.length > 0 ? "unique needs" : "body";
         return (
@@ -1882,7 +1858,7 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
                 {personalizingCopy.subtitle}
               </p>
               <div className="space-y-3">
-                {personalizingCopy.checklist.map((item: string, idx: number) => (
+                {personalizingCopy.checklist.map((item, idx) => (
                   <ChecklistItem
                     key={idx}
                     text={item}
@@ -1925,7 +1901,7 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
           <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
             <div>
               <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">{(userDetails as any)?.name || "Your"} path to</span>
+                <span className="text-white/90">{userDetails?.name || "Your"} path to</span>
                 <br />
                 <span className="text-[#E65473]">{goalTitle}</span> is ready.
               </h1>
@@ -1937,7 +1913,7 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
                 <h3 className="text-[16px] font-semibold text-white mb-1">
                   Your Personal Insights
                 </h3>
-                {timelineCopy.insights.map((insight: string, idx: number) => (
+                {timelineCopy.insights.map((insight, idx) => (
                   <div
                     key={idx}
                     className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700"
@@ -1973,7 +1949,7 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
 // SCREEN 6: PAYWALL SCREEN
 // ==========================================
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 const REVIEW_IMAGES = ["/review9.png", "/review1.png", "/review5.png", "/review4.png", "/review2.png"];
 
 function usePaywallChrome(color = "#0A0A10") {
@@ -2015,7 +1991,7 @@ function usePaywallChrome(color = "#0A0A10") {
   }, [color]);
 }
 
-const getButtonText = (goalTitle: string) => {
+const getButtonText = (goalTitle) => {
   const g = (goalTitle || "").toLowerCase();
   if (g.includes("pregnancy")) return "Start My Pregnancy Plan";
   if (g.includes("postpartum")) return "Start My Postpartum Plan";
@@ -2026,10 +2002,10 @@ const getButtonText = (goalTitle: string) => {
   return "Start My Personalized Plan";
 };
 
-const getReviewsForGoal = (goalTitle: string) => {
+const getReviewsForGoal = (goalTitle) => {
   const goal = (goalTitle || "").toLowerCase();
 
-  const pack = (names: string[], texts: string[]) =>
+  const pack = (names, texts) =>
     names.map((name, i) => ({
       name,
       text: texts[i],
@@ -2092,17 +2068,17 @@ const FEATURES = [
   { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" },
 ];
 
-const CheckoutForm = ({ onClose }: { onClose: () => void }) => {
+const CheckoutForm = ({ onClose }) => {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
   const { saveUserData } = useUserData();
 
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!stripe || !elements) return;
 
@@ -2130,7 +2106,7 @@ const CheckoutForm = ({ onClose }: { onClose: () => void }) => {
     }
   };
 
-  const paymentElementOptions: any = {
+  const paymentElementOptions = {
     layout: "tabs",
     fields: { billingDetails: { phone: "auto" } },
   };
@@ -2158,7 +2134,7 @@ const CheckoutForm = ({ onClose }: { onClose: () => void }) => {
         <div className="text-white">
           <LinkAuthenticationElement
             id="link-authentication-element"
-            onChange={(e: any) => setEmail(e.value.email)}
+            onChange={(e) => setEmail(e.value.email)}
           />
         </div>
         <PaymentElement id="payment-element" options={paymentElementOptions} />
@@ -2185,13 +2161,13 @@ const CheckoutForm = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
-const RestoreModal = ({ onClose }: { onClose: () => void }) => {
+const RestoreModal = ({ onClose }) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { saveUserData } = useUserData();
 
-  const handleRestoreSubmit = async (e: React.FormEvent) => {
+  const handleRestoreSubmit = async (e) => {
     e.preventDefault();
     if (!email.includes("@")) {
       alert("Please enter a valid email address.");
@@ -2292,8 +2268,8 @@ function PaywallScreen() {
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   const [isButtonLoading, setIsButtonLoading] = useState(false);
 
-  const goalTitle = (userDetails as any)?.selectedTarget?.title || "Build Core Strength";
-  const userName = (userDetails as any)?.name || "Ready";
+  const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
+  const userName = userDetails?.name || "Ready";
   const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
   const buttonText = getButtonText(goalTitle);
 
@@ -2345,7 +2321,7 @@ function PaywallScreen() {
         if (data.error) throw new Error(data.error);
 
         setClientSecret(data.clientSecret);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Stripe Error:", err);
         alert(`Could not initialize payment: ${err.message}. Please check your internet or try again later.`);
         setIsButtonLoading(false);
@@ -2357,7 +2333,7 @@ function PaywallScreen() {
     setShowCheckoutModal(true);
   };
 
-  const stripeAppearance: any = {
+  const stripeAppearance = {
     theme: "night",
     variables: {
       colorPrimary: "#E65473",
@@ -2486,7 +2462,7 @@ function PaywallScreen() {
           </div>
 
           <div className="w-full min-h-[70px] flex items-center justify-center relative">
-            {reviews.map((review: any, idx: number) => (
+            {reviews.map((review, idx) => (
               <div
                 key={idx}
                 className={`absolute w-full flex flex-col items-center transition-all duration-500 ${
@@ -2600,7 +2576,7 @@ function PaywallScreen() {
   );
 }
 
-const Star = ({ size, fill }: { size: number; fill: string }) => (
+const Star = ({ size, fill }) => (
   <svg
     width={size}
     height={size}
@@ -2620,9 +2596,7 @@ const Star = ({ size, fill }: { size: number; fill: string }) => (
 // ==========================================
 
 export default function Onboarding() {
-  const [currentStep, setCurrentStep] = useState<
-    "welcome" | "select_goal" | "how_it_helps" | "intake" | "plan_reveal" | "paywall"
-  >("welcome");
+  const [currentStep, setCurrentStep] = useState("welcome");
 
   const Screen = () => {
     if (currentStep === "welcome")
