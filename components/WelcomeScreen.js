@@ -233,7 +233,7 @@ export default function WelcomeScreen({ onNext }) {
           onClick={onNext}
           className="w-full h-14 bg-app-primary text-white font-bold text-lg rounded-full shadow-xl shadow-app-primary/30 animate-breathe active:scale-95 transition-transform relative z-40"
         >
-          Start My 5-Min Journey
+          Start Strengthening My Pelvic Floor
         </button>
 
         <p className="text-app-textSecondary text-[13px] font-medium">
