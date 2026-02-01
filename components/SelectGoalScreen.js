@@ -56,7 +56,7 @@ export default function SelectGoalScreen({ onNext }) {
           Let's set your primary goal.
         </h1>
         <p className="text-center text-app-textSecondary text-[14px] leading-snug px-4 font-medium">
-          This is the most important step. Your choice will shape every workout.
+          This shapes your custom pelvic strengthening plan.
         </p>
       </div>
 
