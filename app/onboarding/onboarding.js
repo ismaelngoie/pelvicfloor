@@ -2635,6 +2635,11 @@ function DesktopMarketingPanel() {
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState("welcome");
 
+  // Desktop-only UX fix:
+  // - Welcome screen already *is* marketing-heavy inside the phone preview.
+  // - So on desktop, hide the left marketing panel ONLY for that step to avoid "repeating" copy.
+  const showDesktopMarketing = currentStep !== "welcome";
+
   const Screen = () => {
     if (currentStep === "welcome") return <WelcomeScreen onNext={() => setCurrentStep("select_goal")} />;
     if (currentStep === "select_goal") return <SelectGoalScreen onNext={() => setCurrentStep("how_it_helps")} />;
@@ -2652,8 +2657,15 @@ export default function Onboarding() {
         <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-pink-200/30 rounded-full blur-[90px]" />
       </div>
 
-      <div className="w-full h-full min-h-0 md:flex md:gap-10 md:px-10 md:py-10">
-        <DesktopMarketingPanel />
+      <div
+        className={`
+          w-full h-full min-h-0
+          md:flex md:items-stretch md:px-10 md:py-10
+          ${showDesktopMarketing ? "md:gap-10" : "md:justify-center"}
+        `}
+      >
+        {/* Left marketing panel (desktop only) */}
+        {showDesktopMarketing && <DesktopMarketingPanel />}
 
         {/* Phone frame */}
         <div className="w-full h-full min-h-0 md:flex md:items-center md:justify-center">
@@ -2661,7 +2673,8 @@ export default function Onboarding() {
             className="
               w-full h-full
               overflow-visible md:overflow-hidden
-              md:w-[420px] md:h-[calc(100dvh-5rem)] md:max-h-[820px]
+              md:w-[460px] lg:w-[500px]
+              md:h-[calc(100dvh-6rem)] md:max-h-[860px]
               md:rounded-[44px] md:border md:border-white/60 md:shadow-2xl
               md:bg-[#FAF9FA] relative
             "
@@ -2675,3 +2688,4 @@ export default function Onboarding() {
     </div>
   );
 }
+
