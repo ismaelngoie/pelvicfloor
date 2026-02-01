@@ -182,8 +182,9 @@ export default function WelcomeScreen({ onNext }) {
         </div>
 
         <h1 className="text-[28px] font-extrabold text-app-textPrimary text-center mb-3 leading-tight">
-          Strength & Confidence<br/>From Your Core Outward.
-        </h1>
+  Pelvic Floor Strengthening<br/>
+  <span className="text-[24px]">5-Minute Daily Home Plan</span>
+</h1>
 
         <p className="text-app-textSecondary text-center mb-8 text-[16px] max-w-xs leading-relaxed">
           Your personal AI physio-coach for leaks, pain, and confidence.
