@@ -1,12 +1,33 @@
 "use client";
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUserData } from '@/context/UserDataContext';
-import { 
-  Baby, Activity, Zap, Droplets, HeartHandshake, Heart, Dumbbell, 
-  CheckCircle2, Circle, Leaf, Shield, PersonStanding, Sparkles, Move,
-  Check, User, Brain, Timer, Play, Loader2, Mail, X, ChevronDown, ChevronUp 
-} from 'lucide-react'; 
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useUserData } from "@/context/UserDataContext";
+import {
+  Baby,
+  Activity,
+  Zap,
+  Droplets,
+  HeartHandshake,
+  Heart,
+  Dumbbell,
+  CheckCircle2,
+  Circle,
+  Leaf,
+  Shield,
+  PersonStanding,
+  Sparkles,
+  Move,
+  Check,
+  User,
+  Brain,
+  Timer,
+  Play,
+  Loader2,
+  Mail,
+  X,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -23,19 +44,34 @@ import {
 
 // --- CUSTOM ICONS ---
 const RunIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-app-primary">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className="w-8 h-8 text-app-primary"
+  >
     <path d="M13.5 2c-1.1 0-2 .9-2 2s.9 2 2 2c1.11 0 2-.89 2-2s-.89-2-2-2zM19 6c0-1.66-1.34-3-3-3-1.25 0-2.3.8-2.77 1.91l-1.92 4.47-2.6-1.29.62-3.09c-.93-.25-1.91.13-2.42.92l-2.09 3.27c-.49.77-.28 1.8.49 2.29.77.49 1.8.28 2.29-.49l1.1-1.72.33 1.57L5 12v6c0 1.1.9 2 2 2s2-.9 2-2v-4.18l2.12.91 2.38 5.95c.33.83 1.28 1.24 2.11.91.83-.33 1.24-1.28.91-2.11L14.77 13l1.86-.92c.76-.38 1.37-1.34 1.37-2.18V6h1z" />
   </svg>
 );
 
 const VideoIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-app-primary">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className="w-8 h-8 text-app-primary"
+  >
     <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z" />
   </svg>
 );
 
 const ChatIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-app-primary">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className="w-8 h-8 text-app-primary"
+  >
     <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" />
   </svg>
 );
@@ -50,42 +86,51 @@ const reviews = [
 ];
 
 // --- FULL SCREEN BUTTERFLY BACKGROUND ---
+// IMPORTANT: use ABSOLUTE (not fixed) so desktop "phone preview" doesn't spill over the whole page.
 const ButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
   useEffect(() => {
-    // Generate 25 butterflies with NEGATIVE delays so they are already flying
     const count = 25;
     const items = Array.from({ length: count }).map((_, i) => {
-      const duration = 15 + Math.random() * 15; // Slow, graceful (15-30s)
+      const duration = 15 + Math.random() * 15;
       return {
         id: i,
-        left: Math.random() * 100, // 0-100% screen width
-        size: 20 + Math.random() * 30, // 20px - 50px
-        duration: duration,
-        // Negative delay = Start mid-animation
-        delay: -(Math.random() * duration), 
-        rotation: (Math.random() - 0.5) * 60, // Tilt
-        isBehind: Math.random() > 0.6 // 40% are behind elements
+        left: Math.random() * 100,
+        size: 20 + Math.random() * 30,
+        duration,
+        delay: -(Math.random() * duration),
+        rotation: (Math.random() - 0.5) * 60,
+        isBehind: Math.random() > 0.6,
       };
     });
     setButterflies(items);
   }, []);
 
-  // Filter to force Brand Pink (#E65473)
-  const brandPinkFilter = 'brightness(0) saturate(100%) invert(48%) sepia(91%) saturate(343%) hue-rotate(304deg) brightness(91%) contrast(96%)';
+  const brandPinkFilter =
+    "brightness(0) saturate(100%) invert(48%) sepia(91%) saturate(343%) hue-rotate(304deg) brightness(91%) contrast(96%)";
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
       <style jsx>{`
         @keyframes floatUp {
-          0% { transform: translateY(110vh) translateX(0px) rotate(0deg); opacity: 0; }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
-          100% { transform: translateY(-20vh) translateX(50px) rotate(20deg); opacity: 0; }
+          0% {
+            transform: translateY(110vh) translateX(0px) rotate(0deg);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-20vh) translateX(50px) rotate(20deg);
+            opacity: 0;
+          }
         }
       `}</style>
-      
+
       {butterflies.map((b) => (
         <div
           key={b.id}
@@ -94,19 +139,19 @@ const ButterflyBackground = () => {
             left: `${b.left}%`,
             width: `${b.size}px`,
             height: `${b.size}px`,
-            top: '0', 
+            top: "0",
             animation: `floatUp ${b.duration}s linear infinite`,
             animationDelay: `${b.delay}s`,
-            opacity: b.isBehind ? 0.3 : 0.7, 
+            opacity: b.isBehind ? 0.3 : 0.7,
             filter: brandPinkFilter,
             transform: `rotate(${b.rotation}deg)`,
-            zIndex: b.isBehind ? 0 : 50 
+            zIndex: b.isBehind ? 0 : 50,
           }}
         >
-          <img 
-            src="/butterfly_template.png" 
-            alt="" 
-            className="w-full h-full object-contain" 
+          <img
+            src="/butterfly_template.png"
+            alt=""
+            className="w-full h-full object-contain"
           />
         </div>
       ))}
@@ -117,38 +162,32 @@ const ButterflyBackground = () => {
 function WelcomeScreen({ onNext }) {
   const router = useRouter();
   const { userDetails } = useUserData();
-  
+
   const [socialProofCount, setSocialProofCount] = useState(9800);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [showContent, setShowContent] = useState(false);
 
   // --- 1. INSTANT REDIRECT CHECK (SPEED OPTIMIZED) ---
   useEffect(() => {
-    // A: Check LocalStorage DIRECTLY (Faster than waiting for Context)
-    // We look for the raw JSON string saved by useUserData
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        const storedData = localStorage.getItem('pelvic_user_data');
+        const storedData = localStorage.getItem("pelvic_user_data");
         if (storedData) {
           const parsed = JSON.parse(storedData);
-          // If 'isPremium' is true (whether from payment or restore), go to dashboard
           if (parsed.isPremium === true) {
-            router.replace('/dashboard');
-            return; // Stop execution so we don't show content
+            router.replace("/dashboard");
+            return;
           }
         }
       } catch (e) {
-        // Ignore parsing errors, fall through to normal flow
+        // ignore
       }
     }
 
-    // B: Fallback Context Check (in case localStorage check failed or is empty)
     if (userDetails && userDetails.isPremium) {
-      router.replace('/dashboard');
+      router.replace("/dashboard");
     } else {
-      // Only show content if we are certain they are NOT premium
-      // Small delay ensures the redirect happens before fade-in if they are premium
-      const timer = setTimeout(() => setShowContent(true), 50); 
+      const timer = setTimeout(() => setShowContent(true), 50);
       return () => clearTimeout(timer);
     }
   }, [userDetails, router]);
@@ -157,7 +196,7 @@ function WelcomeScreen({ onNext }) {
   useEffect(() => {
     if (!showContent) return;
     const finalValue = 10200;
-    const duration = 2000; 
+    const duration = 2000;
     const steps = 60;
     const increment = (finalValue - 9800) / steps;
     let current = 9800;
@@ -181,73 +220,110 @@ function WelcomeScreen({ onNext }) {
     return () => clearInterval(timer);
   }, []);
 
-  // While checking status, render nothing (or a white screen) to prevent flash
-  // We only render content once showContent is true
-  if (!showContent && (userDetails?.isPremium)) return null;
+  if (!showContent && userDetails?.isPremium) return null;
 
   return (
-    <div className="relative w-full min-h-full flex flex-col items-center justify-between pb-8 bg-gradient-to-b from-pink-50/50 to-white overflow-hidden">
-      
-      {/* --- INSTANT FLYING BUTTERFLIES --- */}
+    // Bulletproof pattern:
+    // - root owns layout (h-full, overflow-hidden)
+    // - middle scrolls (flex-1 min-h-0 overflow-y-auto)
+    // - bottom CTA is sticky (shrink-0)
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
       <ButterflyBackground />
 
-      {/* Main Content (z-10 to stay above background but allow butterflies to fly over if z=50) */}
-      <div className={`z-10 flex flex-col items-center px-6 pt-16 w-full transition-all duration-1000 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-        
-        {/* Logo */}
-        <div className="mb-6">
-           <img src="/logo.png" width={80} height={80} alt="Logo" className="object-contain" />
-        </div>
-
-        <h1 className="text-[28px] font-extrabold text-app-textPrimary text-center mb-3 leading-tight">
-  Pelvic Floor Strengthening<br/>
-  <span className="text-[24px]">5-Minute Daily Home Plan</span>
-</h1>
-
-        <p className="text-app-textSecondary text-center mb-8 text-[16px] max-w-xs leading-relaxed">
-  Stop bladder leaks, heal prolapse, and improve intimacy.
-</p>
-
-        {/* Benefits List */}
-        <div className="flex flex-col gap-6 w-full max-w-xs items-start pl-2 bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="shrink-0 pt-1"><RunIcon /></div>
-            <span className="text-app-textPrimary font-semibold text-[16px] leading-snug">A new 5-minute plan, just for you, every day.</span>
+      {/* Scrollable content */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar">
+        <div
+          className={`z-10 flex flex-col items-center px-6 pt-16 w-full transition-all duration-1000 ${
+            showContent
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-10"
+          }`}
+        >
+          {/* Logo */}
+          <div className="mb-6">
+            <img
+              src="/logo.png"
+              width={80}
+              height={80}
+              alt="Logo"
+              className="object-contain"
+            />
           </div>
-          <div className="flex items-start gap-4">
-            <div className="shrink-0 pt-1"><VideoIcon /></div>
-            <span className="text-app-textPrimary font-semibold text-[16px] leading-snug">300+ physio-approved videos for total wellness.</span>
+
+          <h1 className="text-[28px] font-extrabold text-app-textPrimary text-center mb-3 leading-tight">
+            Pelvic Floor Strengthening
+            <br />
+            <span className="text-[24px]">5-Minute Daily Home Plan</span>
+          </h1>
+
+          <p className="text-app-textSecondary text-center mb-8 text-[16px] max-w-xs leading-relaxed">
+            Stop bladder leaks, heal prolapse, and improve intimacy.
+          </p>
+
+          {/* Benefits List */}
+          <div className="flex flex-col gap-6 w-full max-w-xs items-start pl-2 bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 pt-1">
+                <RunIcon />
+              </div>
+              <span className="text-app-textPrimary font-semibold text-[16px] leading-snug">
+                A new 5-minute plan, just for you, every day.
+              </span>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 pt-1">
+                <VideoIcon />
+              </div>
+              <span className="text-app-textPrimary font-semibold text-[16px] leading-snug">
+                300+ physio-approved videos for total wellness.
+              </span>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 pt-1">
+                <ChatIcon />
+              </div>
+              <span className="text-app-textPrimary font-semibold text-[16px] leading-snug">
+                Chat with your AI Coach, Mia™, 24/7.
+              </span>
+            </div>
           </div>
-          <div className="flex items-start gap-4">
-            <div className="shrink-0 pt-1"><ChatIcon /></div>
-            <span className="text-app-textPrimary font-semibold text-[16px] leading-snug">Chat with your AI Coach, Mia™, 24/7.</span>
-          </div>
+
+          {/* little spacer so the bottom never feels cramped when scrolling */}
+          <div className="h-8" />
         </div>
       </div>
 
-      {/* Bottom Stack */}
-      <div className={`w-full px-8 flex flex-col gap-4 items-center z-30 transition-all duration-1000 delay-300 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-        
+      {/* Sticky bottom */}
+      <div
+        className={`w-full px-8 pb-8 flex flex-col gap-4 items-center z-30 transition-all duration-1000 delay-300 ${
+          showContent
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-10"
+        }`}
+      >
         {/* Review Ticker */}
         <div className="h-14 overflow-hidden w-full relative">
           {reviews.map((review, index) => (
-            <div 
+            <div
               key={index}
-              className={`absolute w-full text-center transition-all duration-500 ease-out flex flex-col items-center justify-center h-full`}
+              className="absolute w-full text-center transition-all duration-500 ease-out flex flex-col items-center justify-center h-full"
               style={{
                 transform: `translateY(${(index - currentReviewIndex) * 100}%)`,
-                opacity: index === currentReviewIndex ? 1 : 0
+                opacity: index === currentReviewIndex ? 1 : 0,
               }}
             >
               <p className="text-[15px] text-app-textPrimary/90 italic leading-snug">
-                “{review.text}” <br/><span className="font-bold not-italic text-sm text-app-textPrimary">– {review.author}</span>
+                “{review.text}” <br />
+                <span className="font-bold not-italic text-sm text-app-textPrimary">
+                  – {review.author}
+                </span>
               </p>
             </div>
           ))}
         </div>
 
         {/* Button */}
-        <button 
+        <button
           onClick={onNext}
           className="w-full h-14 bg-app-primary text-white font-bold text-lg rounded-full shadow-xl shadow-app-primary/30 animate-breathe active:scale-95 transition-transform relative z-40"
         >
@@ -255,7 +331,8 @@ function WelcomeScreen({ onNext }) {
         </button>
 
         <p className="text-app-textSecondary text-[13px] font-medium">
-          Join {socialProofCount.toLocaleString()}+ women strengthening their pelvic floor.
+          Join {socialProofCount.toLocaleString()}+ women strengthening their
+          pelvic floor.
         </p>
       </div>
     </div>
@@ -266,112 +343,120 @@ function WelcomeScreen({ onNext }) {
 // SCREEN 2: SELECT GOAL SCREEN
 // ==========================================
 
-// --- THEME CONFIGURATION ---
 const THEME_GOAL = {
-  // Unselected: White BG, Grey Border, Black Text
   unselected: "bg-white border-gray-200",
   textUnselected: "text-slate-900",
-  
-  // Selected: White BG, Rose Border, Rose Text, Glow
-  selected: "bg-white border-rose-500 shadow-xl shadow-rose-200 scale-[1.05] z-50",
+  selected:
+    "bg-white border-rose-500 shadow-xl shadow-rose-200 scale-[1.05] z-50",
   textSelected: "text-rose-600",
-
-  // Icons: Always Rose, but pop more when selected
   iconUnselected: "text-rose-500",
   iconSelected: "text-rose-600 scale-110 drop-shadow-sm",
 };
 
-// --- DATA ---
 const goals = [
-  { id: 'intimacy', title: "Improve Intimacy", icon: <Heart size={28} strokeWidth={2} /> },
-  { id: 'leaks', title: "Stop Bladder Leaks", icon: <Droplets size={28} strokeWidth={2} /> },
-  { id: 'pregnancy', title: "Prepare for Pregnancy", icon: <Baby size={28} strokeWidth={2} /> },
-  { id: 'postpartum', title: "Recover Postpartum", icon: <Activity size={28} strokeWidth={2} /> },
-  { id: 'core', title: "Build Core Strength", icon: <Zap size={28} strokeWidth={2} /> },
-  { id: 'pain', title: "Ease Pelvic Pain", icon: <HeartHandshake size={28} strokeWidth={2} /> },
-  { id: 'fitness', title: "Support My Fitness", icon: <Dumbbell size={28} strokeWidth={2} /> },
-  { id: 'stability', title: "Boost Stability", icon: <Activity size={28} strokeWidth={2} /> },
+  { id: "intimacy", title: "Improve Intimacy", icon: <Heart size={28} strokeWidth={2} /> },
+  { id: "leaks", title: "Stop Bladder Leaks", icon: <Droplets size={28} strokeWidth={2} /> },
+  { id: "pregnancy", title: "Prepare for Pregnancy", icon: <Baby size={28} strokeWidth={2} /> },
+  { id: "postpartum", title: "Recover Postpartum", icon: <Activity size={28} strokeWidth={2} /> },
+  { id: "core", title: "Build Core Strength", icon: <Zap size={28} strokeWidth={2} /> },
+  { id: "pain", title: "Ease Pelvic Pain", icon: <HeartHandshake size={28} strokeWidth={2} /> },
+  { id: "fitness", title: "Support My Fitness", icon: <Dumbbell size={28} strokeWidth={2} /> },
+  { id: "stability", title: "Boost Stability", icon: <Activity size={28} strokeWidth={2} /> },
 ];
 
 function SelectGoalScreen({ onNext }) {
   const { saveUserData, userDetails } = useUserData();
-  const [selectedId, setSelectedId] = useState(userDetails.selectedTarget?.id || null);
+  const [selectedId, setSelectedId] = useState(
+    userDetails.selectedTarget?.id || null
+  );
 
   const handleSelect = (goal) => {
     setSelectedId(goal.id);
-    saveUserData('selectedTarget', goal);
+    saveUserData("selectedTarget", goal);
   };
 
   return (
-    <div className="w-full min-h-full flex flex-col px-5 pt-8 pb-6 animate-fade-in relative bg-white/50">
-      
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-white/50">
       {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
         <div className="absolute top-[-10%] right-[-10%] w-[250px] h-[250px] bg-rose-200 rounded-full blur-[80px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[250px] h-[250px] bg-rose-100 rounded-full blur-[80px]" />
       </div>
 
-      {/* Header */}
-      <div className="z-10 mb-2 shrink-0">
-        <h1 className="text-[26px] font-extrabold text-center text-app-textPrimary mb-1 leading-tight">
-          Let's set your primary goal.
-        </h1>
-        <p className="text-center text-app-textSecondary text-[14px] leading-snug px-4 font-medium">
-          This shapes your custom pelvic strengthening plan.
-        </p>
-      </div>
+      {/* Scrollable */}
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5 pt-8 pb-6 z-10">
+        {/* Header */}
+        <div className="mb-4">
+          <h1 className="text-[26px] font-extrabold text-center text-app-textPrimary mb-1 leading-tight">
+            Let's set your primary goal.
+          </h1>
+          <p className="text-center text-app-textSecondary text-[14px] leading-snug px-4 font-medium">
+            This shapes your custom pelvic strengthening plan.
+          </p>
+        </div>
 
-      {/* Grid Container */}
-      <div className="z-10 flex-1 min-h-0 flex flex-col justify-center"> 
-        <div className="grid grid-cols-2 gap-3">
-          {goals.map((goal) => {
-            const isSelected = selectedId === goal.id;
-            
-            return (
-              <button
-                key={goal.id}
-                onClick={() => handleSelect(goal)}
-                className={`
-                  relative flex flex-col items-center justify-center p-3 rounded-[24px] border-[2px] 
-                  transition-all duration-300 ease-out h-[100px] w-full outline-none active:scale-95
-                  ${isSelected ? THEME_GOAL.selected : `${THEME_GOAL.unselected} hover:bg-gray-50 z-10`}
-                `}
-              >
-                {/* Badge: Checkmark if selected, Empty Circle if not */}
-                <div 
-                  className={`absolute top-2 right-2 transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-100 scale-100'}`}
-                >
-                  {isSelected ? (
-                    <CheckCircle2 size={20} className="fill-rose-500 text-white" />
-                  ) : (
-                    <Circle size={20} className="text-gray-200" strokeWidth={1.5} />
-                  )}
-                </div>
+        {/* Grid */}
+        <div className="w-full flex justify-center">
+          <div className="w-full max-w-md">
+            <div className="grid grid-cols-2 gap-3">
+              {goals.map((goal) => {
+                const isSelected = selectedId === goal.id;
+                return (
+                  <button
+                    key={goal.id}
+                    onClick={() => handleSelect(goal)}
+                    className={`
+                      relative flex flex-col items-center justify-center p-3 rounded-[24px] border-[2px] 
+                      transition-all duration-300 ease-out h-[100px] w-full outline-none active:scale-95
+                      ${isSelected ? THEME_GOAL.selected : `${THEME_GOAL.unselected} hover:bg-gray-50 z-10`}
+                    `}
+                  >
+                    <div className="absolute top-2 right-2">
+                      {isSelected ? (
+                        <CheckCircle2 size={20} className="fill-rose-500 text-white" />
+                      ) : (
+                        <Circle size={20} className="text-gray-200" strokeWidth={1.5} />
+                      )}
+                    </div>
 
-                {/* Icon */}
-                <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME_GOAL.iconSelected : THEME_GOAL.iconUnselected}`}>
-                   {goal.icon}
-                </div>
+                    <div
+                      className={`mb-2 transition-all duration-300 ${
+                        isSelected
+                          ? THEME_GOAL.iconSelected
+                          : THEME_GOAL.iconUnselected
+                      }`}
+                    >
+                      {goal.icon}
+                    </div>
 
-                {/* Title */}
-                <span className={`text-[13px] font-bold text-center leading-tight transition-colors duration-300 ${isSelected ? THEME_GOAL.textSelected : THEME_GOAL.textUnselected}`}>
-                  {goal.title}
-                </span>
-              </button>
-            );
-          })}
+                    <span
+                      className={`text-[13px] font-bold text-center leading-tight transition-colors duration-300 ${
+                        isSelected
+                          ? THEME_GOAL.textSelected
+                          : THEME_GOAL.textUnselected
+                      }`}
+                    >
+                      {goal.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Footer / CTA */}
-      <div className="z-20 mt-2 shrink-0">
-        <button 
+      {/* Sticky Footer CTA */}
+      <div className="shrink-0 z-20 px-5 pb-6">
+        <button
           onClick={onNext}
           disabled={!selectedId}
           className={`w-full h-14 font-bold text-[18px] rounded-full transition-all duration-300 shadow-xl
-            ${selectedId 
-              ? 'bg-app-primary text-white shadow-app-primary/30 animate-breathe active:scale-95 transform' 
-              : 'bg-app-borderIdle text-app-textSecondary/50 cursor-not-allowed shadow-none'}
+            ${
+              selectedId
+                ? "bg-app-primary text-white shadow-app-primary/30 animate-breathe active:scale-95 transform"
+                : "bg-app-borderIdle text-app-textSecondary/50 cursor-not-allowed shadow-none"
+            }
           `}
         >
           Set My Goal
@@ -385,210 +470,238 @@ function SelectGoalScreen({ onNext }) {
 // SCREEN 3: HOW IT HELPS SCREEN
 // ==========================================
 
-// Helper Icon for Baby since it was missing in standard map
 function BabyIcon({ size }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.5 1.5.5 2 0"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 12h.01" />
+      <path d="M15 12h.01" />
+      <path d="M10 16c.5.5 1.5.5 2 0" />
+      <path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1" />
+    </svg>
+  );
 }
 
-// --- 1. DATA MAPPING (Matches Swift "generatePersonalizedContent") ---
 const benefitsData = {
   "Prepare for Pregnancy": {
-    subtitle: "Your plan will build a strong, supportive foundation for a healthy pregnancy and smoother recovery.",
+    subtitle:
+      "Your plan will build a strong, supportive foundation for a healthy pregnancy and smoother recovery.",
     icon: <BabyIcon size={40} />,
     benefits: [
-      { icon: <Leaf size={20}/>, text: "Gentle prep for birth" },
-      { icon: <Heart size={20}/>, text: "Pelvic floor ready" },
-      { icon: <Dumbbell size={20}/>, text: "Core strong for birth" },
-      { icon: <PersonStanding size={20}/>, text: "Support your bump" },
-      { icon: <Move size={20}/>, text: "Ease back and hips" },
-      { icon: <Sparkles size={20}/>, text: "Calm body, calm mind" }
-    ]
+      { icon: <Leaf size={20} />, text: "Gentle prep for birth" },
+      { icon: <Heart size={20} />, text: "Pelvic floor ready" },
+      { icon: <Dumbbell size={20} />, text: "Core strong for birth" },
+      { icon: <PersonStanding size={20} />, text: "Support your bump" },
+      { icon: <Move size={20} />, text: "Ease back and hips" },
+      { icon: <Sparkles size={20} />, text: "Calm body, calm mind" },
+    ],
   },
   "Recover Postpartum": {
-    subtitle: "Your plan is designed to safely rebuild your foundation and restore your core after pregnancy.",
+    subtitle:
+      "Your plan is designed to safely rebuild your foundation and restore your core after pregnancy.",
     icon: <Heart size={40} />,
     benefits: [
-      { icon: <Heart size={20}/>, text: "Pelvic floor restored" },
-      { icon: <Activity size={20}/>, text: "Core reconnected" },
-      { icon: <Shield size={20}/>, text: "Gentle, safe progress" },
-      { icon: <PersonStanding size={20}/>, text: "Lift baby with ease" },
-      { icon: <Move size={20}/>, text: "Back feels supported" },
-      { icon: <Leaf size={20}/>, text: "C-section friendly" }
-    ]
+      { icon: <Heart size={20} />, text: "Pelvic floor restored" },
+      { icon: <Activity size={20} />, text: "Core reconnected" },
+      { icon: <Shield size={20} />, text: "Gentle, safe progress" },
+      { icon: <PersonStanding size={20} />, text: "Lift baby with ease" },
+      { icon: <Move size={20} />, text: "Back feels supported" },
+      { icon: <Leaf size={20} />, text: "C-section friendly" },
+    ],
   },
   "Build Core Strength": {
-    subtitle: "Your plan focuses on building deep, functional strength for better posture, power, and stability.",
+    subtitle:
+      "Your plan focuses on building deep, functional strength for better posture, power, and stability.",
     icon: <Zap size={40} />,
     benefits: [
-      { icon: <Zap size={20}/>, text: "Stronger, deeper core" },
-      { icon: <Dumbbell size={20}/>, text: "Confident lifts" },
-      { icon: <Activity size={20}/>, text: "Run tall, run free" },
-      { icon: <PersonStanding size={20}/>, text: "Posture that holds" },
-      { icon: <Shield size={20}/>, text: "Injury risk reduced" },
-      { icon: <Leaf size={20}/>, text: "Deeper core breath" }
-    ]
+      { icon: <Zap size={20} />, text: "Stronger, deeper core" },
+      { icon: <Dumbbell size={20} />, text: "Confident lifts" },
+      { icon: <Activity size={20} />, text: "Run tall, run free" },
+      { icon: <PersonStanding size={20} />, text: "Posture that holds" },
+      { icon: <Shield size={20} />, text: "Injury risk reduced" },
+      { icon: <Leaf size={20} />, text: "Deeper core breath" },
+    ],
   },
   "Stop Bladder Leaks": {
-    subtitle: "Your plan focuses on building a reliable 'leakproof seal' for total confidence in your daily life.",
+    subtitle:
+      "Your plan focuses on building a reliable 'leakproof seal' for total confidence in your daily life.",
     icon: <Shield size={40} />,
     benefits: [
-      { icon: <Droplets size={20}/>, text: "Sneeze without worry" },
-      { icon: <Activity size={20}/>, text: "Run and jump freely" },
-      { icon: <Leaf size={20}/>, text: "Drier nights" },
-      { icon: <Zap size={20}/>, text: "Urgency under control" },
-      { icon: <Dumbbell size={20}/>, text: "Confident workouts" },
-      { icon: <CheckCircle2 size={20}/>, text: "Leave pads behind" }
-    ]
+      { icon: <Droplets size={20} />, text: "Sneeze without worry" },
+      { icon: <Activity size={20} />, text: "Run and jump freely" },
+      { icon: <Leaf size={20} />, text: "Drier nights" },
+      { icon: <Zap size={20} />, text: "Urgency under control" },
+      { icon: <Dumbbell size={20} />, text: "Confident workouts" },
+      { icon: <CheckCircle2 size={20} />, text: "Leave pads behind" },
+    ],
   },
   "Ease Pelvic Pain": {
-    subtitle: "Your plan focuses on gentle release and building supportive strength to bring you lasting relief.",
-    icon: <Leaf size={40} />, // Bandage equivalent
+    subtitle:
+      "Your plan focuses on gentle release and building supportive strength to bring you lasting relief.",
+    icon: <Leaf size={40} />,
     benefits: [
-      { icon: <PersonStanding size={20}/>, text: "Pain-free sitting" },
-      { icon: <Move size={20}/>, text: "Comfort in movement" },
-      { icon: <Leaf size={20}/>, text: "Sleep through night" },
-      { icon: <Sparkles size={20}/>, text: "Gentle daily relief" },
-      { icon: <Heart size={20}/>, text: "Enjoy intimacy again" },
-      { icon: <Zap size={20}/>, text: "Release deep tension" }
-    ]
+      { icon: <PersonStanding size={20} />, text: "Pain-free sitting" },
+      { icon: <Move size={20} />, text: "Comfort in movement" },
+      { icon: <Leaf size={20} />, text: "Sleep through night" },
+      { icon: <Sparkles size={20} />, text: "Gentle daily relief" },
+      { icon: <Heart size={20} />, text: "Enjoy intimacy again" },
+      { icon: <Zap size={20} />, text: "Release deep tension" },
+    ],
   },
   "Improve Intimacy": {
-    subtitle: "Your plan focuses on enhancing sensation, comfort, and confidence for a more fulfilling intimate life.",
+    subtitle:
+      "Your plan focuses on enhancing sensation, comfort, and confidence for a more fulfilling intimate life.",
     icon: <Heart size={40} />,
     benefits: [
-      { icon: <Heart size={20}/>, text: "More sensation" },
-      { icon: <Sparkles size={20}/>, text: "Stronger orgasms" },
-      { icon: <Leaf size={20}/>, text: "Comfort in intimacy" },
-      { icon: <PersonStanding size={20}/>, text: "Confidence returns" },
-      { icon: <Activity size={20}/>, text: "Feel close again" },
-      { icon: <Zap size={20}/>, text: "Pelvic tone improved" }
-    ]
+      { icon: <Heart size={20} />, text: "More sensation" },
+      { icon: <Sparkles size={20} />, text: "Stronger orgasms" },
+      { icon: <Leaf size={20} />, text: "Comfort in intimacy" },
+      { icon: <PersonStanding size={20} />, text: "Confidence returns" },
+      { icon: <Activity size={20} />, text: "Feel close again" },
+      { icon: <Zap size={20} />, text: "Pelvic tone improved" },
+    ],
   },
   "Support My Fitness": {
-    subtitle: "Your plan will build the foundational core strength that powers all your other athletic goals.",
-    icon: <Dumbbell size={40} />, // Trophy equivalent
+    subtitle:
+      "Your plan will build the foundational core strength that powers all your other athletic goals.",
+    icon: <Dumbbell size={40} />,
     benefits: [
-      { icon: <Move size={20}/>, text: "Stronger every day" },
-      { icon: <Dumbbell size={20}/>, text: "Safe, guided workouts" },
-      { icon: <Activity size={20}/>, text: "Cardio, core, control" },
-      { icon: <Zap size={20}/>, text: "Progress you can feel" },
-      { icon: <Leaf size={20}/>, text: "5-min plan, daily" },
-      { icon: <PersonStanding size={20}/>, text: "Move with confidence" }
-    ]
+      { icon: <Move size={20} />, text: "Stronger every day" },
+      { icon: <Dumbbell size={20} />, text: "Safe, guided workouts" },
+      { icon: <Activity size={20} />, text: "Cardio, core, control" },
+      { icon: <Zap size={20} />, text: "Progress you can feel" },
+      { icon: <Leaf size={20} />, text: "5-min plan, daily" },
+      { icon: <PersonStanding size={20} />, text: "Move with confidence" },
+    ],
   },
-  "Boost Stability": { // Shortened title from SelectGoalScreen
-    subtitle: "Your plan focuses on creating a stable, balanced core for effortless posture and confident movement.",
+  "Boost Stability": {
+    subtitle:
+      "Your plan focuses on creating a stable, balanced core for effortless posture and confident movement.",
     icon: <PersonStanding size={40} />,
     benefits: [
-      { icon: <PersonStanding size={20}/>, text: "Balanced, stable core" },
-      { icon: <Activity size={20}/>, text: "Steady on your feet" },
-      { icon: <Move size={20}/>, text: "Walk tall, no wobble" },
-      { icon: <Shield size={20}/>, text: "Back feels supported" },
-      { icon: <Dumbbell size={20}/>, text: "Stronger hips, knees" },
-      { icon: <Zap size={20}/>, text: "Stable side to side" }
-    ]
-  }
+      { icon: <PersonStanding size={20} />, text: "Balanced, stable core" },
+      { icon: <Activity size={20} />, text: "Steady on your feet" },
+      { icon: <Move size={20} />, text: "Walk tall, no wobble" },
+      { icon: <Shield size={20} />, text: "Back feels supported" },
+      { icon: <Dumbbell size={20} />, text: "Stronger hips, knees" },
+      { icon: <Zap size={20} />, text: "Stable side to side" },
+    ],
+  },
 };
 
 function HowItHelpsScreen({ onNext }) {
   const { userDetails } = useUserData();
   const [animate, setAnimate] = useState(false);
 
-  // Retrieve Content
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  // Handle case where title might slightly mismatch or default
   const data = benefitsData[goalTitle] || benefitsData["Build Core Strength"];
 
   useEffect(() => {
-    setTimeout(() => setAnimate(true), 200);
+    const t = setTimeout(() => setAnimate(true), 200);
+    return () => clearTimeout(t);
   }, []);
 
   return (
-    <div className="w-full min-h-full flex flex-col pt-12 px-4 pb-8 animate-fade-in relative bg-app-background overflow-hidden">
-      
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-app-background">
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-app-primary/5 rounded-full blur-3xl -z-10" />
 
-      {/* Header */}
-      <div className="z-10 text-center mb-4">
-        <h1 className="text-3xl font-bold text-app-textPrimary mb-4 leading-tight animate-slide-up">
-          Here's how we'll <br/><span className="text-app-primary">{goalTitle}</span>
-        </h1>
-        <p className="text-app-textSecondary text-[16px] leading-relaxed px-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          {data.subtitle}
-        </p>
-      </div>
-
-      {/* Constellation Animation */}
-      <div className="flex-1 w-full relative flex items-center justify-center min-h-[350px]">
-        
-        {/* Center Hub */}
-        <div className={`absolute z-20 bg-white p-6 rounded-full shadow-xl shadow-app-primary/15 text-app-primary border border-app-borderIdle transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${animate ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
-           {data.icon}
+      {/* Scrollable middle */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pt-12 px-4 pb-8">
+        {/* Header */}
+        <div className="z-10 text-center mb-4">
+          <h1 className="text-3xl font-bold text-app-textPrimary mb-4 leading-tight animate-slide-up">
+            Here's how we'll <br />
+            <span className="text-app-primary">{goalTitle}</span>
+          </h1>
+          <p
+            className="text-app-textSecondary text-[16px] leading-relaxed px-4 animate-slide-up"
+            style={{ animationDelay: "0.1s" }}
+          >
+            {data.subtitle}
+          </p>
         </div>
 
-        {/* Satellites */}
-        {data.benefits.map((benefit, index) => {
-          const total = data.benefits.length;
-          // Calculate position in a circle (Radius 135px fits well on mobile)
-          const radius = 135;
-          const angle = (index / total) * 2 * Math.PI - (Math.PI / 2); // Start from top
-          const x = Math.cos(angle) * radius;
-          const y = Math.sin(angle) * radius;
+        {/* Constellation */}
+        <div className="w-full relative flex items-center justify-center min-h-[380px]">
+          <div
+            className={`absolute z-20 bg-white p-6 rounded-full shadow-xl shadow-app-primary/15 text-app-primary border border-app-borderIdle transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${
+              animate ? "scale-100 opacity-100" : "scale-0 opacity-0"
+            }`}
+          >
+            {data.icon}
+          </div>
 
-          return (
-            <React.Fragment key={index}>
-              {/* Connector Line (SVG) */}
-              <svg 
-                className="absolute top-1/2 left-1/2 pointer-events-none overflow-visible -z-10" 
-                style={{ width: '0px', height: '0px' }}
-              >
-                <line 
-                  x1="0" y1="0" 
-                  x2={x} y2={y} 
-                  stroke="#EBEBF0" 
-                  strokeWidth="2" 
-                  strokeDasharray="6 4"
-                  className={`transition-all duration-1000 ease-out ${animate ? 'opacity-100' : 'opacity-0'}`}
-                  style={{ transitionDelay: `${0.3 + (index * 0.1)}s` }}
-                />
-              </svg>
+          {data.benefits.map((benefit, index) => {
+            const total = data.benefits.length;
+            const radius = 135;
+            const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
 
-              {/* Benefit Node */}
-              <div 
-                className={`absolute flex flex-col items-center gap-1.5 transition-all duration-500`}
-                style={{ 
-                  transform: `translate(${x}px, ${y}px)`,
-                  opacity: animate ? 1 : 0,
-                  transitionDelay: `${0.5 + (index * 0.1)}s`,
-                  width: '90px' // Limit width for text wrapping
-                }}
-              >
-                {/* Node Icon */}
-                <div className="bg-white p-2.5 rounded-2xl shadow-md border border-app-borderIdle text-app-primary">
-                  {benefit.icon}
+            return (
+              <React.Fragment key={index}>
+                <svg
+                  className="absolute top-1/2 left-1/2 pointer-events-none overflow-visible -z-10"
+                  style={{ width: "0px", height: "0px" }}
+                >
+                  <line
+                    x1="0"
+                    y1="0"
+                    x2={x}
+                    y2={y}
+                    stroke="#EBEBF0"
+                    strokeWidth="2"
+                    strokeDasharray="6 4"
+                    className={`transition-all duration-1000 ease-out ${
+                      animate ? "opacity-100" : "opacity-0"
+                    }`}
+                    style={{ transitionDelay: `${0.3 + index * 0.1}s` }}
+                  />
+                </svg>
+
+                <div
+                  className="absolute flex flex-col items-center gap-1.5 transition-all duration-500"
+                  style={{
+                    transform: `translate(${x}px, ${y}px)`,
+                    opacity: animate ? 1 : 0,
+                    transitionDelay: `${0.5 + index * 0.1}s`,
+                    width: "90px",
+                  }}
+                >
+                  <div className="bg-white p-2.5 rounded-2xl shadow-md border border-app-borderIdle text-app-primary">
+                    {benefit.icon}
+                  </div>
+                  <span className="text-[11px] font-bold text-center text-app-textPrimary leading-tight bg-app-background/80 backdrop-blur-sm px-1 rounded">
+                    {benefit.text}
+                  </span>
                 </div>
-                {/* Node Text */}
-                <span className="text-[11px] font-bold text-center text-app-textPrimary leading-tight bg-app-background/80 backdrop-blur-sm px-1 rounded">
-                  {benefit.text}
-                </span>
-              </div>
-            </React.Fragment>
-          );
-        })}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        <div className="h-4" />
       </div>
 
-      {/* Footer CTA */}
-      <div className="z-20 pt-2 shrink-0">
-        <button 
+      {/* Sticky footer */}
+      <div className="shrink-0 z-20 px-4 pb-6">
+        <button
           onClick={onNext}
           className="w-full h-14 bg-gradient-to-r from-app-primary to-rose-500 text-white font-bold text-lg rounded-full shadow-lg shadow-app-primary/30 active:scale-95 transition-transform animate-fade-in"
-          style={{ animationDelay: '1.2s' }}
+          style={{ animationDelay: "1.2s" }}
         >
           Next: Personalize My Plan
         </button>
       </div>
-
     </div>
   );
 }
@@ -597,141 +710,157 @@ function HowItHelpsScreen({ onNext }) {
 // SCREEN 4: PERSONAL INTAKE SCREEN
 // ==========================================
 
-// --- A. DATA: Exact Copy from Swift MiaCopyProvider ---
 const MIA_COPY = {
   "Prepare for Pregnancy": {
     ack: "Beautiful choice, {name}. We will gently prepare your pelvic floor and core so you feel supported every step of pregnancy.",
     age: "At {age}, we focus on calm breath, steady endurance, and safe strength so your body feels ready and held.",
     weight: "Thanks. I will set positions and resistance that feel doable today and build quietly each week.",
-    height: "Got it. Your height helps me cue stance and reach so form feels natural from day one."
+    height: "Got it. Your height helps me cue stance and reach so form feels natural from day one.",
   },
   "Recover Postpartum": {
     ack: "I have you, {name}. We will rebuild your foundation with kindness and bring your core and confidence back.",
     age: "At {age}, I pace recovery for connection over intensity so healing feels steady and real.",
     weight: "Thank you. I will scale loads and positions so holding and lifting your little one feels safe again.",
-    height: "Noted. Your height lets me fine tune carry, lift, and reach so your body feels supported."
+    height: "Noted. Your height lets me fine tune carry, lift, and reach so your body feels supported.",
   },
   "Build Core Strength": {
     ack: "Love it, {name}. We will build a deep, steady core that supports every move you make.",
     age: "At {age}, we sharpen activation and use smart progressions so strength grows without strain.",
     weight: "Thanks. I will use this to set starting loads so work feels strong, not stressful.",
-    height: "Great. Your height helps me dial plank angles, hinge depth, and reach for clean form."
+    height: "Great. Your height helps me dial plank angles, hinge depth, and reach for clean form.",
   },
   "Stop Bladder Leaks": {
     ack: "On it, {name}. We will train control so sneezes, laughs, and runs stop owning your day.",
     age: "At {age}, we blend endurance with quick contractions so real life control shows up when you need it.",
     weight: "Thank you. I will scale impact and pressure so you stay dry while you move.",
-    height: "Noted. Your height guides setup so alignment and breath cues land perfectly."
+    height: "Noted. Your height guides setup so alignment and breath cues land perfectly.",
   },
   "Ease Pelvic Pain": {
     ack: "I am with you, {name}. We will release what is tight and strengthen what supports, gently and steadily.",
     age: "At {age}, we favor calming patterns and gradual load so relief lasts beyond the session.",
     weight: "Thanks. I will choose positions that lower strain and invite real ease.",
-    height: "Got it. Your height helps me fine tune angles so sitting, standing, and walking feel softer."
+    height: "Got it. Your height helps me fine tune angles so sitting, standing, and walking feel softer.",
   },
   "Improve Intimacy": {
     ack: "Let’s make this feel good again, {name}. We will build comfort, confidence, and sensation at your pace.",
     age: "At {age}, I balance relaxation and activation to support arousal and more reliable orgasms.",
     weight: "Thank you. I will set intensities that build tone without bracing for better blood flow and sensation.",
-    height: "Noted. I will cue supportive positions and angles so comfort stays high and climax is not cut short by tension."
+    height: "Noted. I will cue supportive positions and angles so comfort stays high and climax is not cut short by tension.",
   },
   "Support My Fitness": {
     ack: "Nice, {name}. We will turn your core into a quiet engine that powers every workout.",
     age: "At {age}, we pair stability with power so lifts and cardio feel solid and repeatable.",
     weight: "Thanks. I will set loads and tempos that build performance without extra fatigue.",
-    height: "Great. Your height lets me tune stance and range so reps feel clean and strong."
+    height: "Great. Your height lets me tune stance and range so reps feel clean and strong.",
   },
-  "Boost Stability": { 
+  "Boost Stability": {
     ack: "Excellent, {name}. We will stack you tall and steady so your body feels organized again.",
     age: "At {age}, we train deep core timing and endurance for all day support, not just during workouts.",
     weight: "Thank you. I will set progressions that protect your back while strength builds.",
-    height: "Noted. Your height guides stance and reach so alignment clicks quickly and stays with you."
+    height: "Noted. Your height guides stance and reach so alignment clicks quickly and stays with you.",
   },
-  // Fallback
-  "default": {
+  default: {
     ack: "Excellent choice, {name}. We will stack you tall and steady.",
     age: "At {age}, we train deep core timing for all-day support.",
     weight: "Thank you. I will set progressions that protect your back.",
-    height: "Noted. Your height guides stance so alignment clicks quickly."
-  }
+    height: "Noted. Your height guides stance so alignment clicks quickly.",
+  },
 };
 
-// --- B. HELPER: Typing Indicator ---
 const TypingIndicator = () => (
   <div className="flex space-x-1.5 p-1">
-    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
   </div>
 );
 
-// --- C. COMPONENT: Chat Bubble ---
 const ChatBubble = ({ text, isTyping, isUser }) => (
-  <div className={`flex w-full mb-6 animate-fade-in-up ${isUser ? 'justify-end' : 'justify-start'}`}>
+  <div
+    className={`flex w-full mb-6 animate-fade-in-up ${
+      isUser ? "justify-end" : "justify-start"
+    }`}
+  >
     {!isUser && (
       <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 mr-3 mt-auto">
-         <img src="/coachMiaAvatar.png" alt="Mia" className="w-full h-full object-cover" />
+        <img
+          src="/coachMiaAvatar.png"
+          alt="Mia"
+          className="w-full h-full object-cover"
+        />
       </div>
     )}
-    
-    <div className={`px-5 py-3.5 shadow-sm max-w-[85%] text-[16px] leading-relaxed font-medium
-      ${isUser 
-        ? 'bg-app-primary text-white rounded-2xl rounded-br-none' 
-        : 'bg-white border border-app-borderIdle text-app-textPrimary rounded-2xl rounded-bl-none'}
-    `}>
+
+    <div
+      className={`px-5 py-3.5 shadow-sm max-w-[85%] text-[16px] leading-relaxed font-medium
+      ${
+        isUser
+          ? "bg-app-primary text-white rounded-2xl rounded-br-none"
+          : "bg-white border border-app-borderIdle text-app-textPrimary rounded-2xl rounded-bl-none"
+      }
+    `}
+    >
       {isTyping ? <TypingIndicator /> : text}
     </div>
   </div>
 );
 
-// --- D. COMPONENT: Million Dollar Wheel Picker ---
 const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
   const scrollerRef = useRef(null);
-  const ITEM_HEIGHT = 54; // Height of each number in px
+  const ITEM_HEIGHT = 54;
 
   const handleScroll = () => {
     if (!scrollerRef.current) return;
     const scrollY = scrollerRef.current.scrollTop;
     const centerIndex = Math.round(scrollY / ITEM_HEIGHT);
     const newValue = range[centerIndex];
-    
+
     if (newValue !== undefined && newValue !== value) {
       onChange(newValue);
     }
   };
 
-  // Initial Scroll
   useEffect(() => {
     if (scrollerRef.current) {
       const index = range.indexOf(value);
       if (index !== -1) {
-        scrollerRef.current.scrollTo({ top: index * ITEM_HEIGHT, behavior: 'auto' });
+        scrollerRef.current.scrollTo({
+          top: index * ITEM_HEIGHT,
+          behavior: "auto",
+        });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="relative h-[220px] w-full max-w-[320px] mx-auto overflow-hidden mt-2">
-      {/* Selection Highlight */}
       <div className="absolute top-1/2 left-0 w-full h-[54px] -translate-y-1/2 border-t-2 border-b-2 border-app-primary/10 bg-app-primary/5 pointer-events-none z-10" />
-      
-      {/* Gradients */}
+
       <div className="absolute top-0 left-0 w-full h-[80px] bg-gradient-to-b from-white via-white/90 to-transparent z-20 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-[80px] bg-gradient-to-t from-white via-white/90 to-transparent z-20 pointer-events-none" />
 
-      <div 
+      <div
         ref={scrollerRef}
         onScroll={handleScroll}
         className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar py-[83px]"
       >
         {range.map((num) => (
-          <div 
-            key={num} 
+          <div
+            key={num}
             className={`h-[54px] flex items-center justify-center snap-center transition-all duration-200 
-              ${num === value ? 'scale-110 font-bold text-app-primary text-2xl' : 'scale-90 text-app-textSecondary/40 text-xl'}`}
+              ${
+                num === value
+                  ? "scale-110 font-bold text-app-primary text-2xl"
+                  : "scale-90 text-app-textSecondary/40 text-xl"
+              }`}
           >
             {formatLabel ? formatLabel(num) : num}
-            {unit && <span className="text-sm ml-1.5 mt-1 font-medium text-app-textSecondary/60">{unit}</span>}
+            {unit && (
+              <span className="text-sm ml-1.5 mt-1 font-medium text-app-textSecondary/60">
+                {unit}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -739,125 +868,126 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
   );
 };
 
-// --- E. MAIN SCREEN ---
 function PersonalIntakeScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
-  const [step, setStep] = useState('name'); 
+  const [step, setStep] = useState("name");
   const [isTyping, setIsTyping] = useState(false);
-  const [history, setHistory] = useState([]); 
+  const [history, setHistory] = useState([]);
   const chatBottomRef = useRef(null);
-  
-  // Data
+
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
   const [weight, setWeight] = useState(140);
-  const [height, setHeight] = useState(65); // Stored as inches
+  const [height, setHeight] = useState(65);
 
-  // Logic Lookup
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  // Robust fallback logic
   const copy = MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
-  // Helper: Auto Scroll
   const scrollToBottom = () => {
     setTimeout(() => {
       chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
   };
 
-  // Helper: Add Message
   const addMessage = (text, sender, delay = 0) => {
-    if (sender === 'mia') setIsTyping(true);
-    
+    if (sender === "mia") setIsTyping(true);
+
     setTimeout(() => {
-      if (sender === 'mia') setIsTyping(false);
-      setHistory(prev => [...prev, { text, sender }]);
+      if (sender === "mia") setIsTyping(false);
+      setHistory((prev) => [...prev, { text, sender }]);
       scrollToBottom();
     }, delay);
   };
 
-  // Initial Greeting
   useEffect(() => {
-    addMessage("Hi there! I'm Coach Mia, your personal physio-coach. What should I call you?", 'mia', 600);
+    addMessage("Hi there! I'm Coach Mia, your personal physio-coach. What should I call you?", "mia", 600);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- Step Handlers ---
   const handleNext = () => {
-    if (isTyping) return; // Prevent double taps
+    if (isTyping) return;
 
-    // 1. NAME STEP
-    if (step === 'name') {
+    if (step === "name") {
       if (name.length < 2) return;
-      saveUserData('name', name);
-      addMessage(name, 'user'); // Show user reply immediately
-      
+      saveUserData("name", name);
+      addMessage(name, "user");
+
       const nextText = copy.ack.replace("{name}", name) + " To start, what's your age?";
-      addMessage(nextText, 'mia', 1000); // Mia thinks for 1s
-      setStep('age');
-    } 
-    // 2. AGE STEP
-    else if (step === 'age') {
-      saveUserData('age', age);
-      addMessage(`${age}`, 'user');
-      
+      addMessage(nextText, "mia", 1000);
+      setStep("age");
+    } else if (step === "age") {
+      saveUserData("age", age);
+      addMessage(`${age}`, "user");
+
       const nextText = copy.age.replace("{age}", age) + " Now, what's your current weight?";
-      addMessage(nextText, 'mia', 1000);
-      setStep('weight');
-    } 
-    // 3. WEIGHT STEP
-    else if (step === 'weight') {
-      saveUserData('weight', weight);
-      addMessage(`${weight} lbs`, 'user');
-      
+      addMessage(nextText, "mia", 1000);
+      setStep("weight");
+    } else if (step === "weight") {
+      saveUserData("weight", weight);
+      addMessage(`${weight} lbs`, "user");
+
       const nextText = copy.weight + " And what's your height?";
-      addMessage(nextText, 'mia', 1200);
-      setStep('height');
-    } 
-    // 4. HEIGHT STEP (Final)
-    else if (step === 'height') {
-      saveUserData('height', height);
-      // Format height for chat bubble (5'5")
+      addMessage(nextText, "mia", 1200);
+      setStep("height");
+    } else if (step === "height") {
+      saveUserData("height", height);
       const feet = Math.floor(height / 12);
       const inches = height % 12;
-      addMessage(`${feet}'${inches}"`, 'user');
-      
-      // Short delay before transition
+      addMessage(`${feet}'${inches}"`, "user");
+
       setTimeout(() => {
         onNext();
       }, 800);
     }
   };
 
-  // --- Render Input ---
   const renderInput = () => {
-    if (isTyping) return <div className="h-[220px] flex items-center justify-center text-app-textSecondary/50 text-sm animate-pulse">Mia is thinking...</div>;
+    if (isTyping)
+      return (
+        <div className="h-[220px] flex items-center justify-center text-app-textSecondary/50 text-sm animate-pulse">
+          Mia is thinking...
+        </div>
+      );
 
     switch (step) {
-      case 'name':
+      case "name":
         return (
           <div className="w-full animate-slide-up py-10">
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Type your name..."
               className="w-full text-center text-3xl font-bold bg-transparent border-b-2 border-app-borderIdle focus:border-app-primary outline-none py-3 text-app-textPrimary placeholder:text-app-textSecondary/30"
               autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && handleNext()}
+              onKeyDown={(e) => e.key === "Enter" && handleNext()}
             />
           </div>
         );
-      case 'age':
-        return <WheelPicker range={Array.from({length: 80}, (_, i) => i + 16)} value={age} onChange={setAge} unit="years old" />;
-      case 'weight':
-        return <WheelPicker range={Array.from({length: 300}, (_, i) => i + 80)} value={weight} onChange={setWeight} unit="lbs" />;
-      case 'height':
+      case "age":
         return (
-          <WheelPicker 
-            range={Array.from({length: 40}, (_, i) => i + 48)} 
-            value={height} 
-            onChange={setHeight} 
-            // Fix: Show 5'5" format
+          <WheelPicker
+            range={Array.from({ length: 80 }, (_, i) => i + 16)}
+            value={age}
+            onChange={setAge}
+            unit="years old"
+          />
+        );
+      case "weight":
+        return (
+          <WheelPicker
+            range={Array.from({ length: 300 }, (_, i) => i + 80)}
+            value={weight}
+            onChange={setWeight}
+            unit="lbs"
+          />
+        );
+      case "height":
+        return (
+          <WheelPicker
+            range={Array.from({ length: 40 }, (_, i) => i + 48)}
+            value={height}
+            onChange={setHeight}
             formatLabel={(val) => `${Math.floor(val / 12)}'${val % 12}"`}
           />
         );
@@ -867,43 +997,41 @@ function PersonalIntakeScreen({ onNext }) {
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-app-background relative">
-      
-      {/* 1. Chat History Area */}
-      <div className="flex-1 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
+    <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
+      {/* Chat History Area (fix: min-h-0) */}
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
         {history.map((msg, index) => (
-          <ChatBubble key={index} text={msg.text} isTyping={false} isUser={msg.sender === 'user'} />
+          <ChatBubble
+            key={index}
+            text={msg.text}
+            isTyping={false}
+            isUser={msg.sender === "user"}
+          />
         ))}
-        
-        {/* Active Typing Indicator */}
+
         {isTyping && <ChatBubble isTyping={true} isUser={false} />}
-        
-        {/* Invisible spacer to scroll to */}
+
         <div ref={chatBottomRef} className="h-4" />
       </div>
 
-      {/* 2. Input Area (Fixed Bottom) */}
+      {/* Input Area */}
       <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20">
-        
-        {/* Input Component */}
-        <div className="mb-6">
-          {renderInput()}
-        </div>
+        <div className="mb-6">{renderInput()}</div>
 
-        {/* Continue Button */}
-        <button 
+        <button
           onClick={handleNext}
-          disabled={isTyping || (step === 'name' && name.length < 2)}
+          disabled={isTyping || (step === "name" && name.length < 2)}
           className={`w-full h-14 font-bold text-lg rounded-full shadow-xl transition-all duration-300
-            ${isTyping || (step === 'name' && name.length < 2)
-              ? 'bg-app-borderIdle text-app-textSecondary cursor-not-allowed opacity-50 shadow-none' 
-              : 'bg-app-primary text-white shadow-app-primary/30 active:scale-95 animate-breathe'}
+            ${
+              isTyping || (step === "name" && name.length < 2)
+                ? "bg-app-borderIdle text-app-textSecondary cursor-not-allowed opacity-50 shadow-none"
+                : "bg-app-primary text-white shadow-app-primary/30 active:scale-95 animate-breathe"
+            }
           `}
         >
-          {step === 'height' ? 'Continue' : 'Next'}
+          {step === "height" ? "Continue" : "Next"}
         </button>
       </div>
-
     </div>
   );
 }
@@ -912,53 +1040,47 @@ function PersonalIntakeScreen({ onNext }) {
 // SCREEN 5: PLAN REVEAL SCREEN
 // ==========================================
 
-// --- MARK: - Theme Configuration ---
-
 const THEME_REVEAL = {
-  // Base Colors
+  // added (fix): used in render
+  bg: "bg-app-background",
+  text: "text-slate-900",
+
   textPrimary: "text-slate-900",
   textSecondary: "text-slate-500",
-  
-  // Selection States (Million Dollar Style)
+
   unselected: "bg-white border-gray-200 shadow-sm",
-  selected: "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
-  
-  // Text Colors
+  selected:
+    "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
+
   textUnselected: "text-slate-900",
   textSelected: "text-[#E65473]",
-  
-  // Icon Colors
-  iconUnselected: "text-[#E65473] opacity-80", 
+
+  iconUnselected: "text-[#E65473] opacity-80",
   iconSelected: "text-[#E65473] scale-110",
 
-  // Helper Text (Green)
-  helper: "text-[#33B373]", 
-  
-  // Brand Gradient
+  helper: "text-[#33B373]",
   brandGradient: "from-[#E65473] to-[#C23A5B]",
 };
 
-// --- DATA ---
 const CONDITIONS = [
-  { id: 'pain', title: 'Pelvic Pain', icon: <HeartHandshake size={26} /> },
-  { id: 'postpartum', title: 'Postpartum', icon: <Baby size={26} /> },
-  { id: 'leaks', title: 'Incontinence', icon: <Droplets size={26} /> },
-  { id: 'prostate', title: 'Prostate', icon: <User size={26} /> },
+  { id: "pain", title: "Pelvic Pain", icon: <HeartHandshake size={26} /> },
+  { id: "postpartum", title: "Postpartum", icon: <Baby size={26} /> },
+  { id: "leaks", title: "Incontinence", icon: <Droplets size={26} /> },
+  { id: "prostate", title: "Prostate", icon: <User size={26} /> },
 ];
 
 const ACTIVITIES = [
-  { id: 'sedentary', title: 'Sedentary', sub: '(mostly sitting)' },
-  { id: 'moderate', title: 'Lightly Active', sub: '(daily walks)' },
-  { id: 'active', title: 'Very Active', sub: '(regular workouts)' },
+  { id: "sedentary", title: "Sedentary", sub: "(mostly sitting)" },
+  { id: "moderate", title: "Lightly Active", sub: "(daily walks)" },
+  { id: "active", title: "Very Active", sub: "(regular workouts)" },
 ];
 
 const PersonalizingConstants = {
   totalDuration: 7000,
   phase1Scale: 0.25,
-  phase2Scale: 0.20,
+  phase2Scale: 0.2,
 };
 
-// --- ADDITION: Safari bottom bar congruency (ONLY for phase 2 & 3) ---
 const usePlanRevealChrome = (enabled, color = "#000000") => {
   useEffect(() => {
     if (!enabled) return;
@@ -995,30 +1117,70 @@ const usePlanRevealChrome = (enabled, color = "#000000") => {
   }, [enabled, color]);
 };
 
-// --- MARK: - Copy Providers (EXACT SWIFT PORT) ---
-
 const getHealthCopy = (goal) => {
   const map = {
-    "Stop Bladder Leaks": { headline: "Any health notes before we target leaks?", subtitle: "This helps me map safe, effective bladder-control sessions.", cta: "Build My Leak-Free Plan" },
-    "Ease Pelvic Pain": { headline: "Any health notes before we ease pain?", subtitle: "I’ll protect sensitive ranges and focus on release first.", cta: "Build My Pain-Relief Plan" },
-    "Improve Intimacy": { headline: "Any health notes before we boost intimacy?", subtitle: "I’ll tailor for comfort, arousal, and pelvic tone.", cta: "Build My Intimacy Plan" },
-    "Recover Postpartum": { headline: "Any health notes before we rebuild gently?", subtitle: "I’ll keep everything postpartum-safe and progressive.", cta: "Build My Postpartum Plan" },
-    "Prepare for Pregnancy": { headline: "Any health notes before we prep for pregnancy?", subtitle: "I’ll prioritize circulation, breath, and core support.", cta: "Build My Prep Plan" },
-    "Build Core Strength": { headline: "Any health notes before we strengthen your core?", subtitle: "This ensures smart progressions and safe loading.", cta: "Build My Core Plan" },
-    "Support My Fitness": { headline: "Any health notes before we support your training?", subtitle: "I’ll sync to your routine and recovery needs.", cta: "Build My Fitness Plan" },
-    "Boost Stability": { headline: "Any health notes before we boost stability?", subtitle: "I’ll align mobility + deep core for posture wins.", cta: "Build My Stability Plan" },
-    "default": { headline: "Last step! Any health notes?", subtitle: "This ensures every exercise is safe and perfectly tailored to you.", cta: "Build My Custom Plan" }
+    "Stop Bladder Leaks": {
+      headline: "Any health notes before we target leaks?",
+      subtitle: "This helps me map safe, effective bladder-control sessions.",
+      cta: "Build My Leak-Free Plan",
+    },
+    "Ease Pelvic Pain": {
+      headline: "Any health notes before we ease pain?",
+      subtitle: "I’ll protect sensitive ranges and focus on release first.",
+      cta: "Build My Pain-Relief Plan",
+    },
+    "Improve Intimacy": {
+      headline: "Any health notes before we boost intimacy?",
+      subtitle: "I’ll tailor for comfort, arousal, and pelvic tone.",
+      cta: "Build My Intimacy Plan",
+    },
+    "Recover Postpartum": {
+      headline: "Any health notes before we rebuild gently?",
+      subtitle: "I’ll keep everything postpartum-safe and progressive.",
+      cta: "Build My Postpartum Plan",
+    },
+    "Prepare for Pregnancy": {
+      headline: "Any health notes before we prep for pregnancy?",
+      subtitle: "I’ll prioritize circulation, breath, and core support.",
+      cta: "Build My Prep Plan",
+    },
+    "Build Core Strength": {
+      headline: "Any health notes before we strengthen your core?",
+      subtitle: "This ensures smart progressions and safe loading.",
+      cta: "Build My Core Plan",
+    },
+    "Support My Fitness": {
+      headline: "Any health notes before we support your training?",
+      subtitle: "I’ll sync to your routine and recovery needs.",
+      cta: "Build My Fitness Plan",
+    },
+    "Boost Stability": {
+      headline: "Any health notes before we boost stability?",
+      subtitle: "I’ll align mobility + deep core for posture wins.",
+      cta: "Build My Stability Plan",
+    },
+    default: {
+      headline: "Last step! Any health notes?",
+      subtitle:
+        "This ensures every exercise is safe and perfectly tailored to you.",
+      cta: "Build My Custom Plan",
+    },
   };
-  return map[goal] || map["default"];
+  return map[goal] || map.default;
 };
 
 const getHelperCopy = (selected, goal) => {
   if (selected) {
-    if (goal.includes("Leak")) return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
-    if (goal.includes("Pain")) return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
-    if (goal.includes("Intimacy")) return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
-    if (goal.includes("Postpartum")) return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
-    if (goal.includes("Pregnancy")) return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
+    if (goal.includes("Leak"))
+      return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
+    if (goal.includes("Pain"))
+      return "✓ Noted. We’ll protect sensitive ranges and release tension first.";
+    if (goal.includes("Intimacy"))
+      return "✓ Noted. I’ll focus on comfort, arousal flow, and pelvic tone.";
+    if (goal.includes("Postpartum"))
+      return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
+    if (goal.includes("Pregnancy"))
+      return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
     if (goal.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
     if (goal.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
     if (goal.includes("Stability")) return "✓ Noted. Deep core + alignment for steady posture wins.";
@@ -1039,37 +1201,189 @@ const getHelperCopy = (selected, goal) => {
 const getPersonalizingCopy = (goal, name) => {
   const safeName = name || "there";
   const map = {
-    "Improve Intimacy": { title: `Designing your intimacy plan`, subtitle: "Comfort, sensation, confidence—gently built for your body.", connecting: "Checking your profile for arousal flow and comfort…", calibrating: "Balancing relax/contract patterns for stronger orgasms…", checklist: ["Comfort-first warmups", "Relax/contract patterns", "Tone for stronger orgasms", "Partner-friendly positions"] },
-    "Stop Bladder Leaks": { title: "Personalizing your leak-control plan", subtitle: "Train reflexes so sneezes and laughs don’t own your day.", connecting: "Mapping urge delays and quick-contract sets…", calibrating: "Dialing breath and pressure control for real-life moments…", checklist: ["Urge-delay reflex training", "Fast-twitch squeezes", "Breath + pressure control", "Run/jump confidence drills"] },
-    "Ease Pelvic Pain": { title: "Personalizing your pain-relief plan", subtitle: "Release tension, add support, and keep comfort front and center.", connecting: "Identifying tight patterns and sensitive ranges…", calibrating: "Layering gentle strength for lasting relief…", checklist: ["Down-train tight muscles", "Nerve-calming breath", "Gentle glute + core support", "Daily posture resets"] },
-    "Recover Postpartum": { title: "Personalizing your postpartum plan", subtitle: "Kind, steady rebuilding for your core, hips, and back.", connecting: "Checking diastasis-safe progressions…", calibrating: "Tuning lifts and carries so daily life feels stable…", checklist: ["Core connection breath", "Diastasis-safe moves", "Hip + back relief", "Lift-and-carry practice"] },
-    "Prepare for Pregnancy": { title: "Personalizing your prep plan", subtitle: "Circulation, breath, and a supportive core.", connecting: "Syncing breath-led endurance…", calibrating: "Setting hip mobility and pelvic coordination…", checklist: ["Circulation + breath", "Pelvic floor coordination", "Hip mobility", "Labor-prep positions"] },
-    "Build Core Strength": { title: "Personalizing your core plan", subtitle: "Deep, steady strength without guesswork.", connecting: "Targeting activation and timing…", calibrating: "Building anti-rotation and hinge patterns…", checklist: ["Deep core activation", "Anti-rotation work", "Hinge + squat mechanics", "Back-friendly progressions"] },
-    "Support My Fitness": { title: "Personalizing your training support", subtitle: "Make every workout you do feel more solid.", connecting: "Priming brace and breath for lifts/cardio…", calibrating: "Matching intensity to recovery…", checklist: ["Pre-workout core priming", "Brace + breathe", "Recovery mobilization", "Force transfer training"] },
-    "Boost Stability": { title: "Personalizing your stability plan", subtitle: "Tall, steady, and organized all day.", connecting: "Stacking rib-to-pelvis alignment…", calibrating: "Endurance for postural muscles…", checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"] },
-    "default": { title: `Personalizing your plan`, subtitle: "Tall, steady, and organized all day.", connecting: "Stacking rib-to-pelvis alignment…", calibrating: "Endurance for postural muscles…", checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"] }
+    "Improve Intimacy": {
+      title: `Designing your intimacy plan`,
+      subtitle: "Comfort, sensation, confidence—gently built for your body.",
+      connecting: "Checking your profile for arousal flow and comfort…",
+      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
+      checklist: [
+        "Comfort-first warmups",
+        "Relax/contract patterns",
+        "Tone for stronger orgasms",
+        "Partner-friendly positions",
+      ],
+    },
+    "Stop Bladder Leaks": {
+      title: "Personalizing your leak-control plan",
+      subtitle: "Train reflexes so sneezes and laughs don’t own your day.",
+      connecting: "Mapping urge delays and quick-contract sets…",
+      calibrating: "Dialing breath and pressure control for real-life moments…",
+      checklist: [
+        "Urge-delay reflex training",
+        "Fast-twitch squeezes",
+        "Breath + pressure control",
+        "Run/jump confidence drills",
+      ],
+    },
+    "Ease Pelvic Pain": {
+      title: "Personalizing your pain-relief plan",
+      subtitle: "Release tension, add support, and keep comfort front and center.",
+      connecting: "Identifying tight patterns and sensitive ranges…",
+      calibrating: "Layering gentle strength for lasting relief…",
+      checklist: [
+        "Down-train tight muscles",
+        "Nerve-calming breath",
+        "Gentle glute + core support",
+        "Daily posture resets",
+      ],
+    },
+    "Recover Postpartum": {
+      title: "Personalizing your postpartum plan",
+      subtitle: "Kind, steady rebuilding for your core, hips, and back.",
+      connecting: "Checking diastasis-safe progressions…",
+      calibrating: "Tuning lifts and carries so daily life feels stable…",
+      checklist: [
+        "Core connection breath",
+        "Diastasis-safe moves",
+        "Hip + back relief",
+        "Lift-and-carry practice",
+      ],
+    },
+    "Prepare for Pregnancy": {
+      title: "Personalizing your prep plan",
+      subtitle: "Circulation, breath, and a supportive core.",
+      connecting: "Syncing breath-led endurance…",
+      calibrating: "Setting hip mobility and pelvic coordination…",
+      checklist: ["Circulation + breath", "Pelvic floor coordination", "Hip mobility", "Labor-prep positions"],
+    },
+    "Build Core Strength": {
+      title: "Personalizing your core plan",
+      subtitle: "Deep, steady strength without guesswork.",
+      connecting: "Targeting activation and timing…",
+      calibrating: "Building anti-rotation and hinge patterns…",
+      checklist: ["Deep core activation", "Anti-rotation work", "Hinge + squat mechanics", "Back-friendly progressions"],
+    },
+    "Support My Fitness": {
+      title: "Personalizing your training support",
+      subtitle: "Make every workout you do feel more solid.",
+      connecting: "Priming brace and breath for lifts/cardio…",
+      calibrating: "Matching intensity to recovery…",
+      checklist: ["Pre-workout core priming", "Brace + breathe", "Recovery mobilization", "Force transfer training"],
+    },
+    "Boost Stability": {
+      title: "Personalizing your stability plan",
+      subtitle: "Tall, steady, and organized all day.",
+      connecting: "Stacking rib-to-pelvis alignment…",
+      calibrating: "Endurance for postural muscles…",
+      checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"],
+    },
+    default: {
+      title: `Personalizing your plan`,
+      subtitle: "Tall, steady, and organized all day.",
+      connecting: "Stacking rib-to-pelvis alignment…",
+      calibrating: "Endurance for postural muscles…",
+      checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"],
+    },
   };
-  return map[goal] || map["default"];
+  return map[goal] || map.default;
 };
 
 const getTimelineCopy = (goal) => {
   const map = {
-    "Prepare for Pregnancy": { subtitle: "Feel ready to carry and move with ease by **{date}**.", insights: ["Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.", "Because you’re **{activity}**, sessions are short, steady, and stick.", "At **{age}**, we train calm breath and deep core for a growing belly.", "Safe for **{condition}** with low-pressure positions."], cta: "Unlock My Pregnancy Prep" },
-    "Recover Postpartum": { subtitle: "Feel steady holding your baby again by **{date}**.", insights: ["Calibrated for your body (BMI **{bmi}**) to protect healing tissue.", "Matched to **{activity}**—works on low-sleep days.", "At **{age}**, we rebuild core connection so feeds, lifts, and stroller walks feel easier.", "Adjusted for **{condition}** including scar or tender areas."], cta: "Unlock My Postpartum Plan" },
-    "Build Core Strength": { subtitle: "Feel solid through your middle by **{date}**.", insights: ["Built for your body (BMI **{bmi}**)—strong, not stressful.", "Because you’re **{activity}**, sessions slot right into your day.", "At **{age}**, we focus on clean form and deep bracing you can feel.", "Respects **{condition}** with safe ranges."], cta: "Unlock My Core Plan" },
-    "Stop Bladder Leaks": { subtitle: "Confident coughs, laughs, and workouts by **{date}**.", insights: ["Tuned to your body (BMI **{bmi}**) to manage pressure.", "With **{activity}**, we train quick squeezes and urge delay you can use anywhere.", "At **{age}**, we blend long holds with fast pulses for real control.", "Plan respects **{condition}** while we rebuild trust."], cta: "Unlock My Leak-Free Plan" },
-    "Ease Pelvic Pain": { subtitle: "Less ache sitting, standing, and at bedtime by **{date}**.", insights: ["Built for your body (BMI **{bmi}**) to lower strain.", "**{activity}** friendly—start quiet, calm the system first.", "At **{age}**, we pair soft release with light strength that lasts.", "Guided by **{condition}** so every range feels safe."], cta: "Unlock My Pain Relief Plan" },
-    "Improve Intimacy": { subtitle: "More arousal, easy comfort, and reliable orgasm by **{date}**.", insights: ["Paced for your body (BMI **{bmi}**) to boost blood flow without pressure.", "With **{activity}**, we build relaxed release *and* strong tone for better sensation.", "At **{age}**, we tune reflexes so arousal starts sooner and orgasm lands stronger.", "Positions and pacing adjusted for **{condition}** so comfort stays high."], cta: "Unlock My Intimacy Plan" },
-    "Support My Fitness": { subtitle: "More power in lifts, runs, and classes by **{date}**.", insights: ["Calibrated for your body (BMI **{bmi}**) so intensity helps, not hurts.", "Synced to **{activity}**—easy to stack with training.", "At **{age}**, we pair stability with power you feel next workout.", "Safeguards in place for **{condition}**."], cta: "Unlock My Fitness Plan" },
-    "Boost Stability": { subtitle: "Feel taller and steady from desk to steps by **{date}**.", insights: ["Built for your body (BMI **{bmi}**)—steady holds you can keep all day.", "Because you’re **{activity}**, we target sitting time, walks, and carrying.", "At **{age}**, we train deep timing so standing and stairs feel smooth.", "Aligned with **{condition}**—easy on back, hips, and neck."], cta: "Unlock My Stability Plan" },
-    "default": { subtitle: "Your personalized plan is set. Expect to feel a real difference by **{date}**.", insights: ["Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.", "Because you have a **{activity}** activity level, we'll build your foundation safely.", "At **{age} years old**, your plan focuses on neuro-muscular connection.", "We've modified your plan to be safe and effective for your **{condition}**."], cta: "Unlock My Personal Plan" }
+    "Prepare for Pregnancy": {
+      subtitle: "Feel ready to carry and move with ease by **{date}**.",
+      insights: [
+        "Built for your body (BMI **{bmi}**) so joints and pelvic floor stay happy.",
+        "Because you’re **{activity}**, sessions are short, steady, and stick.",
+        "At **{age}**, we train calm breath and deep core for a growing belly.",
+        "Safe for **{condition}** with low-pressure positions.",
+      ],
+      cta: "Unlock My Pregnancy Prep",
+    },
+    "Recover Postpartum": {
+      subtitle: "Feel steady holding your baby again by **{date}**.",
+      insights: [
+        "Calibrated for your body (BMI **{bmi}**) to protect healing tissue.",
+        "Matched to **{activity}**—works on low-sleep days.",
+        "At **{age}**, we rebuild core connection so feeds, lifts, and stroller walks feel easier.",
+        "Adjusted for **{condition}** including scar or tender areas.",
+      ],
+      cta: "Unlock My Postpartum Plan",
+    },
+    "Build Core Strength": {
+      subtitle: "Feel solid through your middle by **{date}**.",
+      insights: [
+        "Built for your body (BMI **{bmi}**)—strong, not stressful.",
+        "Because you’re **{activity}**, sessions slot right into your day.",
+        "At **{age}**, we focus on clean form and deep bracing you can feel.",
+        "Respects **{condition}** with safe ranges.",
+      ],
+      cta: "Unlock My Core Plan",
+    },
+    "Stop Bladder Leaks": {
+      subtitle: "Confident coughs, laughs, and workouts by **{date}**.",
+      insights: [
+        "Tuned to your body (BMI **{bmi}**) to manage pressure.",
+        "With **{activity}**, we train quick squeezes and urge delay you can use anywhere.",
+        "At **{age}**, we blend long holds with fast pulses for real control.",
+        "Plan respects **{condition}** while we rebuild trust.",
+      ],
+      cta: "Unlock My Leak-Free Plan",
+    },
+    "Ease Pelvic Pain": {
+      subtitle: "Less ache sitting, standing, and at bedtime by **{date}**.",
+      insights: [
+        "Built for your body (BMI **{bmi}**) to lower strain.",
+        "**{activity}** friendly—start quiet, calm the system first.",
+        "At **{age}**, we pair soft release with light strength that lasts.",
+        "Guided by **{condition}** so every range feels safe.",
+      ],
+      cta: "Unlock My Pain Relief Plan",
+    },
+    "Improve Intimacy": {
+      subtitle: "More arousal, easy comfort, and reliable orgasm by **{date}**.",
+      insights: [
+        "Paced for your body (BMI **{bmi}**) to boost blood flow without pressure.",
+        "With **{activity}**, we build relaxed release *and* strong tone for better sensation.",
+        "At **{age}**, we tune reflexes so arousal starts sooner and orgasm lands stronger.",
+        "Positions and pacing adjusted for **{condition}** so comfort stays high.",
+      ],
+      cta: "Unlock My Intimacy Plan",
+    },
+    "Support My Fitness": {
+      subtitle: "More power in lifts, runs, and classes by **{date}**.",
+      insights: [
+        "Calibrated for your body (BMI **{bmi}**) so intensity helps, not hurts.",
+        "Synced to **{activity}**—easy to stack with training.",
+        "At **{age}**, we pair stability with power you feel next workout.",
+        "Safeguards in place for **{condition}**.",
+      ],
+      cta: "Unlock My Fitness Plan",
+    },
+    "Boost Stability": {
+      subtitle: "Feel taller and steady from desk to steps by **{date}**.",
+      insights: [
+        "Built for your body (BMI **{bmi}**)—steady holds you can keep all day.",
+        "Because you’re **{activity}**, we target sitting time, walks, and carrying.",
+        "At **{age}**, we train deep timing so standing and stairs feel smooth.",
+        "Aligned with **{condition}**—easy on back, hips, and neck.",
+      ],
+      cta: "Unlock My Stability Plan",
+    },
+    default: {
+      subtitle: "Your personalized plan is set. Expect to feel a real difference by **{date}**.",
+      insights: [
+        "Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.",
+        "Because you have a **{activity}** activity level, we'll build your foundation safely.",
+        "At **{age} years old**, your plan focuses on neuro-muscular connection.",
+        "We've modified your plan to be safe and effective for your **{condition}**.",
+      ],
+      cta: "Unlock My Personal Plan",
+    },
   };
-  return map[goal] || map["default"];
+  return map[goal] || map.default;
 };
 
-// --- MARK: - Sub-Components (Animation) ---
-
-// 1. AICoreView (Animation matching Swift layers)
 const AICoreView = () => (
   <div className="relative w-40 h-40 flex items-center justify-center">
     <div className="absolute w-[80px] h-[80px] border-[3px] border-[#E65473]/80 rounded-full animate-spin [animation-duration:8s] border-t-transparent border-l-transparent" />
@@ -1080,13 +1394,11 @@ const AICoreView = () => (
   </div>
 );
 
-// 2. Typewriter Effect
 const TypewriterText = ({ text }) => {
   const [displayed, setDisplayed] = useState("");
   const timerRef = useRef(null);
 
   useEffect(() => {
-    // hard-stop any existing timer before starting a new one
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -1120,17 +1432,18 @@ const TypewriterText = ({ text }) => {
   );
 };
 
-// 3. Checklist Item
 const ChecklistItem = ({ text, delay, onComplete }) => {
-  const [status, setStatus] = useState('waiting');
+  const [status, setStatus] = useState("waiting");
+
   useEffect(() => {
-    const t1 = setTimeout(() => setStatus('processing'), delay);
+    const t1 = setTimeout(() => setStatus("processing"), delay);
     return () => clearTimeout(t1);
   }, [delay]);
+
   useEffect(() => {
-    if (status === 'processing') {
+    if (status === "processing") {
       const t2 = setTimeout(() => {
-        setStatus('completed');
+        setStatus("completed");
         if (onComplete) onComplete();
       }, 1500);
       return () => clearTimeout(t2);
@@ -1138,59 +1451,96 @@ const ChecklistItem = ({ text, delay, onComplete }) => {
   }, [status, onComplete]);
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all duration-500 ${status === 'waiting' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
-      <div className={`absolute inset-0 bg-white/10 transition-transform duration-[1500ms] ease-out origin-left ${status === 'processing' ? 'scale-x-100' : status === 'completed' ? 'scale-x-100 opacity-0' : 'scale-x-0'}`} />
+    <div
+      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all duration-500 ${
+        status === "waiting" ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
+      }`}
+    >
+      <div
+        className={`absolute inset-0 bg-white/10 transition-transform duration-[1500ms] ease-out origin-left ${
+          status === "processing"
+            ? "scale-x-100"
+            : status === "completed"
+            ? "scale-x-100 opacity-0"
+            : "scale-x-0"
+        }`}
+      />
       <div className="relative flex items-center p-3 gap-3 z-10">
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${status === 'completed' ? 'bg-[#E65473] scale-110' : 'bg-white/10'}`}>
-          {status === 'completed' ? <Check size={14} className="text-white" strokeWidth={3} /> : <div className="w-2 h-2 bg-[#E65473]/60 rounded-full" />}
+        <div
+          className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
+            status === "completed" ? "bg-[#E65473] scale-110" : "bg-white/10"
+          }`}
+        >
+          {status === "completed" ? (
+            <Check size={14} className="text-white" strokeWidth={3} />
+          ) : (
+            <div className="w-2 h-2 bg-[#E65473]/60 rounded-full" />
+          )}
         </div>
-        <span className="text-[14px] font-medium text-white/90 leading-tight">{text}</span>
+        <span className="text-[14px] font-medium text-white/90 leading-tight">
+          {text}
+        </span>
       </div>
     </div>
   );
 };
 
-// 4. Holographic Timeline
 const HolographicTimeline = () => {
   const [show, setShow] = useState(false);
   useEffect(() => {
-  const t = setTimeout(() => setShow(true), 500);
-  return () => clearTimeout(t);
-}, []);
+    const t = setTimeout(() => setShow(true), 500);
+    return () => clearTimeout(t);
+  }, []);
   return (
     <div className="w-full h-36 relative my-2">
-       <svg className="absolute inset-0 w-full h-full overflow-visible">
+      <svg className="absolute inset-0 w-full h-full overflow-visible">
         <defs>
           <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(230, 84, 115, 0.2)" />
             <stop offset="100%" stopColor="rgba(230, 84, 115, 1)" />
           </linearGradient>
-          <filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
         </defs>
-        <path d="M 10,100 C 80,110 200,10 320,20" fill="none" stroke="url(#lineGradient)" strokeWidth="3" strokeLinecap="round" filter="url(#glow)"
-          className={`transition-all duration-[2000ms] ease-out ${show ? 'stroke-dasharray-[400] stroke-dashoffset-0' : 'stroke-dasharray-[400] stroke-dashoffset-[400]'}`} />
-        <g className={`transition-opacity duration-1000 delay-1000 ${show ? 'opacity-100' : 'opacity-0'}`}>
-            <circle cx="10" cy="100" r="4" fill="white" />
-            <text x="10" y="125" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">Today</text>
-            <circle cx="320" cy="20" r="6" fill="#E65473" stroke="white" strokeWidth="2" />
-            <text x="310" y="10" textAnchor="end" fill="#E65473" fontSize="12" fontWeight="bold">Goal</text>
+        <path
+          d="M 10,100 C 80,110 200,10 320,20"
+          fill="none"
+          stroke="url(#lineGradient)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          filter="url(#glow)"
+          className={`transition-all duration-[2000ms] ease-out ${
+            show
+              ? "stroke-dasharray-[400] stroke-dashoffset-0"
+              : "stroke-dasharray-[400] stroke-dashoffset-[400]"
+          }`}
+        />
+        <g className={`transition-opacity duration-1000 delay-1000 ${show ? "opacity-100" : "opacity-0"}`}>
+          <circle cx="10" cy="100" r="4" fill="white" />
+          <text x="10" y="125" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">
+            Today
+          </text>
+          <circle cx="320" cy="20" r="6" fill="#E65473" stroke="white" strokeWidth="2" />
+          <text x="310" y="10" textAnchor="end" fill="#E65473" fontSize="12" fontWeight="bold">
+            Goal
+          </text>
         </g>
-       </svg>
+      </svg>
     </div>
   );
 };
 
-// --- MARK: - Main Component ---
-
 function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
-  const [phase, setPhase] = useState('askingHealthInfo'); 
-  
-  // --- ADDITION: enable chrome + bottom background ONLY in phase 2 & 3 ---
-  usePlanRevealChrome(phase === 'personalizing' || phase === 'showingTimeline', "#000000");
+  const [phase, setPhase] = useState("askingHealthInfo");
 
-  const allowScroll = phase === 'askingHealthInfo';
-  
+  const isDark = phase === "personalizing" || phase === "showingTimeline";
+
+  // Safari/bottom bar congruency ONLY on dark phases
+  usePlanRevealChrome(isDark, "#000000");
+
   // Phase 1 State
   const [selectedConditions, setSelectedConditions] = useState([]);
   const [noneSelected, setNoneSelected] = useState(false);
@@ -1203,152 +1553,200 @@ function PlanRevealScreen({ onNext }) {
   const [progressPercent, setProgressPercent] = useState(0);
   const [showChecklist, setShowChecklist] = useState(false);
 
-  // Data Loading (Safety Checked)
   const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const healthCopy = getHealthCopy(goalTitle);
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
-  // --- Logic Phase 1 ---
+  // --- Phase 1 logic ---
+  const updateHelperText = (hasCondition) => {
+    setHelperText(getHelperCopy(hasCondition, goalTitle));
+  };
+
   const toggleCondition = (id) => {
     setNoneSelected(false);
-    setSelectedConditions(prev => {
-      const newSet = prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id];
-      updateHelperText(newSet.length > 0, selectedActivity);
+    setSelectedConditions((prev) => {
+      const newSet = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
+      updateHelperText(newSet.length > 0);
       return newSet;
     });
   };
+
   const toggleNone = () => {
     const newVal = !noneSelected;
     setNoneSelected(newVal);
     if (newVal) setSelectedConditions([]);
-    updateHelperText(newVal, selectedActivity);
+    updateHelperText(newVal);
   };
+
   const selectActivity = (act) => {
     setSelectedActivity(act);
-    updateHelperText(selectedConditions.length > 0 || noneSelected, act);
     setActivityHelperText("✓ Perfect, I'll match your pace & recovery.");
   };
-  const updateHelperText = (hasCondition, hasActivity) => {
-    setHelperText(getHelperCopy(hasCondition, goalTitle));
-  };
+
   const canContinue = (selectedConditions.length > 0 || noneSelected) && selectedActivity;
 
   const handlePhase1Continue = () => {
-    saveUserData('healthConditions', selectedConditions);
-    saveUserData('activityLevel', selectedActivity);
-    setPhase('personalizing');
+    saveUserData("healthConditions", selectedConditions);
+    saveUserData("activityLevel", selectedActivity);
+    setPhase("personalizing");
   };
 
-  // --- Logic Phase 2 ---
+  // --- Phase 2 logic ---
   useEffect(() => {
-    if (phase === 'personalizing') {
-      let startTime = Date.now();
-      setPersonalizingStatus(personalizingCopy.connecting);
-      const progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const p = Math.min(99, Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100));
-        setProgressPercent(p);
-      }, 50);
-      const t1 = setTimeout(() => { setPersonalizingStatus(personalizingCopy.calibrating); }, PersonalizingConstants.totalDuration * PersonalizingConstants.phase1Scale);
-      const t2 = setTimeout(() => { setPersonalizingStatus(""); setShowChecklist(true); }, PersonalizingConstants.totalDuration * (PersonalizingConstants.phase1Scale + PersonalizingConstants.phase2Scale));
-      return () => { clearInterval(progressInterval); clearTimeout(t1); clearTimeout(t2); };
-    }
-  }, [phase]);
+    if (phase !== "personalizing") return;
+
+    let startTime = Date.now();
+    setPersonalizingStatus(personalizingCopy.connecting);
+
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const p = Math.min(99, Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100));
+      setProgressPercent(p);
+    }, 50);
+
+    const t1 = setTimeout(() => {
+      setPersonalizingStatus(personalizingCopy.calibrating);
+    }, PersonalizingConstants.totalDuration * PersonalizingConstants.phase1Scale);
+
+    const t2 = setTimeout(() => {
+      setPersonalizingStatus("");
+      setShowChecklist(true);
+    }, PersonalizingConstants.totalDuration * (PersonalizingConstants.phase1Scale + PersonalizingConstants.phase2Scale));
+
+    return () => {
+      clearInterval(progressInterval);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [phase, personalizingCopy.connecting, personalizingCopy.calibrating]);
 
   const onChecklistComplete = () => {
     setProgressPercent(100);
     setPersonalizingStatus("Your plan is locked in—let’s go!");
-    setTimeout(() => { setPhase('showingTimeline'); }, 1200);
+    setTimeout(() => setPhase("showingTimeline"), 1200);
   };
 
-  // --- Logic Phase 3 ---
+  // --- Phase 3 logic ---
   const calculateBMI = () => {
     if (!userDetails?.weight || !userDetails?.height) return "22.5";
     const h = userDetails.height * 0.0254;
     const w = userDetails.weight * 0.453592;
     return (w / (h * h)).toFixed(1);
   };
-  const date = new Date(); date.setDate(date.getDate() + 7);
-  const dateString = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  const dateString = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+
   const formatRichText = (text) => {
     if (!text) return null;
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
+      if (part.startsWith("**") && part.endsWith("**")) {
         let content = part.slice(2, -2);
-        if (content === '{date}') content = dateString;
-        if (content === '{bmi}') content = calculateBMI();
-        if (content === '{activity}') content = selectedActivity ? ACTIVITIES.find(a => a.id === selectedActivity)?.title.toLowerCase() : "active";
-        if (content === '{age}') content = userDetails?.age || "30";
-        if (content === '{condition}') content = selectedConditions.length > 0 ? "unique needs" : "body";
-        return <span key={i} className="text-white font-extrabold">{content}</span>;
+        if (content === "{date}") content = dateString;
+        if (content === "{bmi}") content = calculateBMI();
+        if (content === "{activity}")
+          content = selectedActivity
+            ? ACTIVITIES.find((a) => a.id === selectedActivity)?.title.toLowerCase()
+            : "active";
+        if (content === "{age}") content = userDetails?.age || "30";
+        if (content === "{condition}") content = selectedConditions.length > 0 ? "unique needs" : "body";
+        return (
+          <span key={i} className="text-white font-extrabold">
+            {content}
+          </span>
+        );
       }
-      return <span key={i} className="text-white/80">{part}</span>;
+      return (
+        <span key={i} className="text-white/80">
+          {part}
+        </span>
+      );
     });
   };
 
-  // --- RENDER ---
+  // Root:
+  // - ALWAYS full-height (no min-h-screen phantom scroll)
+  // - allow dark phases to visually cover top/bottom padding bands inside RootLayout on mobile (like Paywall)
   return (
     <div
-    className={`
-      w-full min-h-screen flex flex-col transition-colors duration-700
-      ${allowScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden'}
-      ${phase === 'askingHealthInfo' ? THEME_REVEAL.bg : 'bg-black'}
-    `}
-  >
-      {/* --- ADDITION: Bottom scrim ONLY for phase 2 & 3 (same “paywall bottom method”) --- */}
-      {(phase === 'personalizing' || phase === 'showingTimeline') && (
+      className={`
+        relative w-full flex flex-col transition-colors duration-700
+        ${isDark ? "bg-black" : THEME_REVEAL.bg}
+        ${isDark ? "h-[calc(100%+env(safe-area-inset-top)+env(safe-area-inset-bottom))] -mt-[env(safe-area-inset-top)] -mb-[env(safe-area-inset-bottom)]" : "h-full"}
+        overflow-hidden
+      `}
+    >
+      {/* Bottom scrim ONLY for dark phases */}
+      {isDark && (
         <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
           <div className="w-full h-[calc(env(safe-area-inset-bottom)+20px)] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
         </div>
       )}
-      
-      {/* ---------------- PHASE 1: HEALTH INFO (One Screen) ---------------- */}
-      {phase === 'askingHealthInfo' && (
-        <div className="flex flex-col h-full w-full animate-in fade-in duration-700 px-5" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 10px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
-            
-            {/* Header - Moved Higher */}
+
+      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
+      {phase === "askingHealthInfo" && (
+        <div className="w-full h-full flex flex-col overflow-hidden">
+          {/* Scrollable middle */}
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-5"
+            style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
+          >
             <div className="mb-2 shrink-0 text-center">
-              <h1 className={`text-[26px] font-extrabold text-center ${THEME_REVEAL.text} mb-1 leading-tight`}>{healthCopy.headline}</h1>
-              <p className="text-center text-[rgb(26,26,38)]/60 text-sm">{healthCopy.subtitle}</p>
+              <h1 className={`text-[26px] font-extrabold text-center ${THEME_REVEAL.text} mb-1 leading-tight`}>
+                {healthCopy.headline}
+              </h1>
+              <p className="text-center text-[rgb(26,26,38)]/60 text-sm">
+                {healthCopy.subtitle}
+              </p>
             </div>
 
-            <div className="flex-1 flex flex-col justify-center min-h-0">
-              
+            <div className="flex flex-col justify-center min-h-0">
               {/* Conditions */}
               <div>
                 <div className="grid grid-cols-2 gap-3 mb-2">
                   {CONDITIONS.map((item) => {
                     const isSelected = selectedConditions.includes(item.id);
                     return (
-                      <button key={item.id} onClick={() => toggleCondition(item.id)}
+                      <button
+                        key={item.id}
+                        onClick={() => toggleCondition(item.id)}
                         className={`relative flex flex-col items-center justify-center p-2 rounded-[24px] border-[2px] h-[100px] transition-all duration-300 active:scale-95 outline-none
                           ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
                         `}
                       >
-                        <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME_REVEAL.iconSelected : THEME_REVEAL.iconUnselected}`}>{item.icon}</div>
-                        <span className={`text-[13px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${isSelected ? THEME_REVEAL.textSelected : THEME_REVEAL.textUnselected}`}>{item.title}</span>
-                        {/* Badge Logic: Checkmark if selected, Circle if unselected */}
+                        <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME_REVEAL.iconSelected : THEME_REVEAL.iconUnselected}`}>
+                          {item.icon}
+                        </div>
+                        <span className={`text-[13px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${isSelected ? THEME_REVEAL.textSelected : THEME_REVEAL.textUnselected}`}>
+                          {item.title}
+                        </span>
                         <div className="absolute top-3 right-3">
-                           {isSelected 
-                             ? <CheckCircle2 size={20} className="fill-[#E65473] text-white" /> 
-                             : <Circle size={20} className="text-gray-200" strokeWidth={1.5} />
-                           }
+                          {isSelected ? (
+                            <CheckCircle2 size={20} className="fill-[#E65473] text-white" />
+                          ) : (
+                            <Circle size={20} className="text-gray-200" strokeWidth={1.5} />
+                          )}
                         </div>
                       </button>
                     );
                   })}
                 </div>
 
-                 {/* Helper 1: GREEN */}
-                 <div className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mb-2 ${helperText ? 'opacity-100' : 'opacity-0'}`}>
+                <div className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mb-2 ${helperText ? "opacity-100" : "opacity-0"}`}>
                   {helperText}
                 </div>
 
-                <button onClick={toggleNone}
+                <button
+                  onClick={toggleNone}
                   className={`w-full py-3.5 rounded-full border-[1.5px] font-semibold text-[15px] transition-all duration-300 active:scale-95 outline-none
-                    ${noneSelected ? 'bg-white border-[2.5px] border-[#E65473] text-[#E65473] shadow-sm' : 'bg-white border-gray-200 text-slate-400'}
+                    ${
+                      noneSelected
+                        ? "bg-white border-[2.5px] border-[#E65473] text-[#E65473] shadow-sm"
+                        : "bg-white border-gray-200 text-slate-400"
+                    }
                   `}
                 >
                   ✓ None of the Above
@@ -1357,80 +1755,110 @@ function PlanRevealScreen({ onNext }) {
 
               {/* Activity */}
               <div className="mt-3">
-                <h3 className={`text-[15px] font-bold text-center ${THEME_REVEAL.text} mb-2`}>Your typical activity level</h3>
+                <h3 className={`text-[15px] font-bold text-center ${THEME_REVEAL.text} mb-2`}>
+                  Your typical activity level
+                </h3>
                 <div className="flex flex-col gap-2.5">
                   {ACTIVITIES.map((act) => {
                     const isSelected = selectedActivity === act.id;
                     return (
-                      <button key={act.id} onClick={() => selectActivity(act.id)}
+                      <button
+                        key={act.id}
+                        onClick={() => selectActivity(act.id)}
                         className={`w-full py-3.5 px-5 rounded-[22px] border-[2px] text-left flex items-center justify-between transition-all duration-300 active:scale-95 outline-none
                           ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
                         `}
                       >
                         <span className={`font-bold text-[15px] ${isSelected ? THEME_REVEAL.textSelected : THEME_REVEAL.textUnselected}`}>
-                          {act.title} <span className="text-xs opacity-70 font-normal ml-1">{act.sub}</span>
+                          {act.title}{" "}
+                          <span className="text-xs opacity-70 font-normal ml-1">
+                            {act.sub}
+                          </span>
                         </span>
-                        {isSelected 
-                             ? <CheckCircle2 size={22} className="fill-[#E65473] text-white" /> 
-                             : <Circle size={22} className="text-gray-200" strokeWidth={1.5} />
-                        }
+                        {isSelected ? (
+                          <CheckCircle2 size={22} className="fill-[#E65473] text-white" />
+                        ) : (
+                          <Circle size={22} className="text-gray-200" strokeWidth={1.5} />
+                        )}
                       </button>
                     );
                   })}
                 </div>
-                 {/* Helper 2: GREEN */}
-                 <div className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mt-2 ${activityHelperText ? 'opacity-100' : 'opacity-0'}`}>
+
+                <div className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mt-2 ${activityHelperText ? "opacity-100" : "opacity-0"}`}>
                   {activityHelperText}
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="mt-2">
-              <button onClick={handlePhase1Continue} disabled={!canContinue}
-                className={`w-full h-14 rounded-full font-bold text-lg text-white transition-all duration-300 active:scale-95 shadow-xl
-                  ${canContinue ? `bg-gradient-to-b ${THEME_REVEAL.brandGradient} shadow-[#E65473]/30` : 'bg-slate-300 cursor-not-allowed shadow-none'}
-                `}
-              >
-                {healthCopy.cta}
-              </button>
-            </div>
+            <div className="h-6" />
+          </div>
+
+          {/* Sticky footer */}
+          <div className="shrink-0 px-5 pb-6">
+            <button
+              onClick={handlePhase1Continue}
+              disabled={!canContinue}
+              className={`w-full h-14 rounded-full font-bold text-lg text-white transition-all duration-300 active:scale-95 shadow-xl
+                ${
+                  canContinue
+                    ? `bg-gradient-to-b ${THEME_REVEAL.brandGradient} shadow-[#E65473]/30`
+                    : "bg-slate-300 cursor-not-allowed shadow-none"
+                }
+              `}
+            >
+              {healthCopy.cta}
+            </button>
+          </div>
         </div>
       )}
 
       {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
-      {phase === 'personalizing' && (
-        <div className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          
-          <div className={`transition-all duration-500 ${showChecklist ? 'scale-75 -translate-y-8 opacity-0' : 'scale-100 opacity-100'}`}>
+      {phase === "personalizing" && (
+        <div
+          className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000"
+          style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className={`transition-all duration-500 ${showChecklist ? "scale-75 -translate-y-8 opacity-0" : "scale-100 opacity-100"}`}>
             <AICoreView />
           </div>
 
           {!showChecklist && (
-             <div className="mt-12 text-center h-20 px-4">
-               {/* 4XL Gradient Title + Typewriter */}
-               <h2 className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME_REVEAL.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
-                 <TypewriterText key={personalizingStatus} text={personalizingStatus} />
-               </h2>
-             </div>
+            <div className="mt-12 text-center h-20 px-4">
+              <h2 className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME_REVEAL.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
+                <TypewriterText key={personalizingStatus} text={personalizingStatus} />
+              </h2>
+            </div>
           )}
 
           {showChecklist && (
             <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
-               <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">{personalizingCopy.title}</h2>
-               <p className="text-center text-gray-400 text-sm mb-6">{personalizingCopy.subtitle}</p>
-               <div className="space-y-3">
-                  {personalizingCopy.checklist.map((item, idx) => (
-                    <ChecklistItem key={idx} text={item} delay={idx * 800} onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined} />
-                  ))}
-               </div>
-               <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
-                 {progressPercent === 100 ? "Ready!" : "Fine-tuning for: " + (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent/25))] || "Results")}
-               </div>
+              <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">
+                {personalizingCopy.title}
+              </h2>
+              <p className="text-center text-gray-400 text-sm mb-6">
+                {personalizingCopy.subtitle}
+              </p>
+              <div className="space-y-3">
+                {personalizingCopy.checklist.map((item, idx) => (
+                  <ChecklistItem
+                    key={idx}
+                    text={item}
+                    delay={idx * 800}
+                    onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined}
+                  />
+                ))}
+              </div>
+              <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
+                {progressPercent === 100
+                  ? "Ready!"
+                  : "Fine-tuning for: " +
+                    (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent / 25))] || "Results")}
+              </div>
             </div>
           )}
 
-          <div className="absolute bottom-8 left-0 w-full px-8" style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>
+          <div className="absolute bottom-8 left-0 w-full px-8" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
             <div className="flex justify-between items-end mb-2">
               <span className="text-white/60 font-medium text-sm">Progress</span>
               <span className="text-white font-mono text-xl font-bold">{progressPercent}%</span>
@@ -1439,39 +1867,58 @@ function PlanRevealScreen({ onNext }) {
               <div className="h-full bg-[#E65473] transition-all duration-100 ease-linear" style={{ width: `${progressPercent}%` }} />
             </div>
             <p className="text-center text-[#E65473] text-xs mt-2 font-medium min-h-[16px]">
-               {progressPercent < 30 ? "Syncing your goals..." : progressPercent < 100 ? "Preparing exercises..." : "Your plan is locked in—let’s go!"}
+              {progressPercent < 30
+                ? "Syncing your goals..."
+                : progressPercent < 100
+                ? "Preparing exercises..."
+                : "Your plan is locked in—let’s go!"}
             </p>
           </div>
         </div>
       )}
 
       {/* ---------------- PHASE 3: TIMELINE ---------------- */}
-      {phase === 'showingTimeline' && (
+      {phase === "showingTimeline" && (
         <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
-          <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+          <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
             <div>
               <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">{userDetails?.name || "Your"} path to</span><br/><span className="text-[#E65473]">{goalTitle}</span> is ready.
+                <span className="text-white/90">{userDetails?.name || "Your"} path to</span>
+                <br />
+                <span className="text-[#E65473]">{goalTitle}</span> is ready.
               </h1>
-              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">{formatRichText(timelineCopy.subtitle)}</p>
+              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
+                {formatRichText(timelineCopy.subtitle)}
+              </p>
               <HolographicTimeline />
               <div className="mt-4 space-y-3">
-                <h3 className="text-[16px] font-semibold text-white mb-1">Your Personal Insights</h3>
+                <h3 className="text-[16px] font-semibold text-white mb-1">
+                  Your Personal Insights
+                </h3>
                 {timelineCopy.insights.map((insight, idx) => (
-                  <div key={idx} className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700" style={{ animationDelay: `${idx * 150}ms` }}>
-                    <div className="mt-0.5 text-[#E65473] shrink-0"><Sparkles size={18} /></div>
-                    <p className="text-[13px] leading-snug text-white/90">{formatRichText(insight)}</p>
+                  <div
+                    key={idx}
+                    className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700"
+                    style={{ animationDelay: `${idx * 150}ms` }}
+                  >
+                    <div className="mt-0.5 text-[#E65473] shrink-0">
+                      <Sparkles size={18} />
+                    </div>
+                    <p className="text-[13px] leading-snug text-white/90">
+                      {formatRichText(insight)}
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
-             <div className="mt-4">
-               <button 
-  onClick={onNext}
-  className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
->
-  {timelineCopy.cta}
-</button>
+
+            <div className="mt-4">
+              <button
+                onClick={onNext}
+                className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+              >
+                {timelineCopy.cta}
+              </button>
             </div>
           </div>
         </div>
@@ -1484,24 +1931,9 @@ function PlanRevealScreen({ onNext }) {
 // SCREEN 6: PAYWALL SCREEN
 // ==========================================
 
-// --- STRIPE SETUP ---
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-
-// --- ASSETS ---
 const REVIEW_IMAGES = ["/review9.png", "/review1.png", "/review5.png", "/review4.png", "/review2.png"];
 
-/**
- * NOTE (important):
- * Your RootLayout adds pt-[env(safe-area-inset-top)] to <main>.
- * That creates a TOP "padding band" *above* your Paywall component.
- * iOS shows that band behind the Dynamic Island, which is why it stays white.
- *
- * Fix: pull the Paywall up with -mt-[env(safe-area-inset-top)]
- * so it actually occupies that padded region, and paint a top "cap"
- * behind the island + a full-viewport fixed background.
- */
-
-// --- UI: Make Safari + any exposed areas feel congruent while paywall is mounted ---
 function usePaywallChrome(color = "#0A0A10") {
   useEffect(() => {
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -1536,7 +1968,6 @@ function usePaywallChrome(color = "#0A0A10") {
   }, [color]);
 }
 
-// --- LOGIC: Button Grammar Mapping ---
 const getButtonText = (goalTitle) => {
   const g = (goalTitle || "").toLowerCase();
   if (g.includes("pregnancy")) return "Start My Pregnancy Plan";
@@ -1548,7 +1979,6 @@ const getButtonText = (goalTitle) => {
   return "Start My Personalized Plan";
 };
 
-// --- LOGIC: Review Mapping ---
 const getReviewsForGoal = (goalTitle) => {
   const goal = (goalTitle || "").toLowerCase();
 
@@ -1615,7 +2045,6 @@ const FEATURES = [
   { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" },
 ];
 
-// --- STRIPE CHECKOUT FORM ---
 const CheckoutForm = ({ onClose }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -1702,12 +2131,13 @@ const CheckoutForm = ({ onClose }) => {
         {isLoading ? <Loader2 className="animate-spin" /> : "Pay $24.99"}
       </button>
 
-      <p className="text-center text-white/30 text-xs mt-4">100% Secure Payment via Stripe</p>
+      <p className="text-center text-white/30 text-xs mt-4">
+        100% Secure Payment via Stripe
+      </p>
     </form>
   );
 };
 
-// --- REAL RESTORE MODAL ---
 const RestoreModal = ({ onClose }) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -1750,7 +2180,7 @@ const RestoreModal = ({ onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+      className="fixed md:absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
@@ -1759,7 +2189,10 @@ const RestoreModal = ({ onClose }) => {
       >
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-white">Restore Purchase</h3>
-          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10">
+          <button
+            onClick={onClose}
+            className="p-2 bg-white/5 rounded-full hover:bg-white/10"
+          >
             <X size={18} className="text-white" />
           </button>
         </div>
@@ -1793,15 +2226,12 @@ const RestoreModal = ({ onClose }) => {
   );
 };
 
-// --- MAIN PAYWALL SCREEN ---
 function PaywallScreen() {
   const router = useRouter();
   const { userDetails, saveUserData } = useUserData();
 
-  // Make any exposed areas (including overscroll) dark
   usePaywallChrome("#0A0A10");
 
-  // State
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [userCount, setUserCount] = useState(9800);
@@ -1809,20 +2239,17 @@ function PaywallScreen() {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [dateString, setDateString] = useState("");
 
-  // Modals & Logic
   const [clientSecret, setClientSecret] = useState("");
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   const [isButtonLoading, setIsButtonLoading] = useState(false);
 
-  // Derived Data
   const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const userName = userDetails?.name || "Ready";
   const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
   const buttonText = getButtonText(goalTitle);
 
-  // Effects
   useEffect(() => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
@@ -1852,7 +2279,6 @@ function PaywallScreen() {
     return () => clearInterval(timer);
   }, [showContent]);
 
-  // --- ACTIONS ---
   const handleStartPlan = async () => {
     setIsButtonLoading(true);
 
@@ -1911,9 +2337,7 @@ function PaywallScreen() {
         md:h-full md:mt-0
       `}
     >
-      {/* 1) Full-viewport background that truly reaches the Dynamic Island area */}
       <div className="fixed md:absolute inset-0 z-0 pointer-events-none">
-        {/* Hard “cap” to guarantee island area is never white, even if video doesn't render there */}
         <div className="absolute top-0 inset-x-0 h-[env(safe-area-inset-top)] bg-[#0A0A10]" />
 
         <video
@@ -1930,29 +2354,13 @@ function PaywallScreen() {
           <source src="/paywall_video.mp4" type="video/mp4" />
         </video>
 
-        {/* Base wash */}
         <div className="absolute inset-0 bg-black/30" />
 
-        {/* Top scrim (helps the island area feel intentional) */}
-        <div
-          className="
-            absolute top-0 inset-x-0
-            h-[calc(env(safe-area-inset-top)+64px)]
-            bg-gradient-to-b from-[#0A0A10]/85 to-transparent
-          "
-        />
+        <div className="absolute top-0 inset-x-0 h-[calc(env(safe-area-inset-top)+64px)] bg-gradient-to-b from-[#0A0A10]/85 to-transparent" />
 
-        {/* Bottom scrim */}
-        <div
-          className="
-            absolute bottom-0 inset-x-0
-            h-[calc(env(safe-area-inset-bottom)+2px)]
-            bg-gradient-to-t from-[#0A0A10]/95 via-[#0A0A10]/75 to-transparent
-          "
-        />
+        <div className="absolute bottom-0 inset-x-0 h-[calc(env(safe-area-inset-bottom)+2px)] bg-gradient-to-t from-[#0A0A10]/95 via-[#0A0A10]/75 to-transparent" />
       </div>
 
-      {/* 2) Scrollable content (add safe-area top padding here since we pulled the whole screen up) */}
       <div
         className={`
           z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6
@@ -1962,15 +2370,16 @@ function PaywallScreen() {
           ${showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
         `}
       >
-        {/* Headline */}
         <h1 className="text-[34px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
           <span className="text-white">{userName === "Ready" ? "Ready to" : `${userName}, ready to`}</span>
           <br />
-          <span className="capitalize text-[#E65473]">{goalTitle.replace("Stop ", "").replace("Build ", "")}</span>?
+          <span className="capitalize text-[#E65473]">
+            {goalTitle.replace("Stop ", "").replace("Build ", "")}
+          </span>
+          ?
           <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
         </h1>
 
-        {/* Features */}
         <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl">
           <div className="pt-5 pb-2">
             <h3 className="text-[17px] font-bold text-white text-center drop-shadow-md">
@@ -2016,7 +2425,6 @@ function PaywallScreen() {
           </div>
         </div>
 
-        {/* Reviews */}
         <div className="w-full bg-black/20 backdrop-blur-md border border-white/10 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
           <div className="flex flex-col items-center gap-1">
             <span className="text-[22px] font-bold text-white drop-shadow-sm">4.9</span>
@@ -2025,7 +2433,9 @@ function PaywallScreen() {
                 <Star key={i} size={18} fill="currentColor" />
               ))}
             </div>
-            <span className="text-[11px] font-medium text-white/80 uppercase tracking-wide">App Store Rating</span>
+            <span className="text-[11px] font-medium text-white/80 uppercase tracking-wide">
+              App Store Rating
+            </span>
           </div>
 
           <div className="w-full min-h-[70px] flex items-center justify-center relative">
@@ -2058,7 +2468,6 @@ function PaywallScreen() {
           </p>
         </div>
 
-        {/* FAQ & Legal */}
         <div className="flex flex-col gap-4 mb-8">
           <div
             onClick={() => setIsFaqOpen(!isFaqOpen)}
@@ -2084,7 +2493,6 @@ function PaywallScreen() {
             </div>
           </div>
 
-          {/* Footer Links */}
           <div className="flex justify-center items-center gap-3 text-[11px] font-medium text-white/50">
             <button
               onClick={() => setShowRestoreModal(true)}
@@ -2100,16 +2508,10 @@ function PaywallScreen() {
         </div>
       </div>
 
-     {/* 3) Sticky CTA */}
       <div
         className={`
           fixed md:absolute bottom-0 left-0 w-full z-30 px-6 pt-6
           pb-[calc(env(safe-area-inset-bottom)+2rem)]
-          /* GRADIENT EXPLANATION:
-            from-[#0A0A10]/90 -> Keeps the very bottom edge dark/anchored.
-            via-[#0A0A10]/30  -> Makes the area behind the button/text very glassy (30% opacity).
-            to-transparent    -> Fades out completely at the top.
-          */
           bg-gradient-to-t from-[#0A0A10]/90 via-[#0A0A10]/30 to-transparent
           transition-all duration-700 delay-200
           ${showContent ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"}
@@ -2127,19 +2529,15 @@ function PaywallScreen() {
           </div>
         </button>
 
-        {/* TEXT UPDATE: 
-           Since the background is lighter, we made the text brighter (text-white/90)
-           and added 'drop-shadow-md' so it pops against the video.
-        */}
         <p className="text-center text-white/90 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-md">
           {getCtaSubtext()}
         </p>
       </div>
 
-      {/* 4) STRIPE OVERLAY MODAL */}
+      {/* Stripe overlay (contain on desktop phone preview) */}
       {showCheckoutModal && clientSecret && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
+          className="fixed md:absolute inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
           onClick={() => setShowCheckoutModal(false)}
         >
           <div className="min-h-full flex items-center justify-center p-4">
@@ -2150,53 +2548,130 @@ function PaywallScreen() {
         </div>
       )}
 
-      {/* 5) RESTORE OVERLAY MODAL */}
       {showRestoreModal && <RestoreModal onClose={() => setShowRestoreModal(false)} />}
     </div>
   );
 }
 
-// Helper for Reviews Star
 const Star = ({ size, fill }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill={fill}
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
 );
+
+// ==========================================
+// DESKTOP SHELL (diastafix-style)
+// ==========================================
+
+function DesktopMarketingPanel() {
+  return (
+    <div className="hidden md:flex flex-1 flex-col justify-center pr-10">
+      <div className="max-w-xl">
+        <div className="flex items-center gap-3 mb-6">
+          <img src="/logo.png" alt="Pelvi Health" className="w-14 h-14 object-contain" />
+          <div>
+            <div className="text-[14px] font-semibold text-app-textSecondary tracking-wide uppercase">
+              Pelvi Health
+            </div>
+            <div className="text-[20px] font-extrabold text-app-textPrimary leading-tight">
+              Pelvic Floor Strengthening
+            </div>
+          </div>
+        </div>
+
+        <h1 className="text-[46px] font-extrabold leading-[1.05] text-app-textPrimary">
+          A <span className="text-gradient">5-minute</span> daily plan
+          <br />
+          to stop leaks & feel strong again.
+        </h1>
+
+        <p className="mt-5 text-[18px] leading-relaxed text-app-textSecondary max-w-lg">
+          Personalized routines, physio-approved videos, and an AI coach that adapts every day.
+        </p>
+
+        <div className="mt-8 grid grid-cols-2 gap-4 max-w-lg">
+          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
+            <div className="text-[13px] font-semibold text-app-textSecondary">Daily routine</div>
+            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">5 minutes</div>
+          </div>
+          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
+            <div className="text-[13px] font-semibold text-app-textSecondary">Videos</div>
+            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">300+</div>
+          </div>
+          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
+            <div className="text-[13px] font-semibold text-app-textSecondary">Rating</div>
+            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">4.9 ★</div>
+          </div>
+          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
+            <div className="text-[13px] font-semibold text-app-textSecondary">Guarantee</div>
+            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">Money-back</div>
+          </div>
+        </div>
+
+        <div className="mt-10 flex items-center gap-3 text-app-textSecondary">
+          <div className="w-2.5 h-2.5 rounded-full bg-app-primary" />
+          <span className="text-[14px]">
+            Use the phone preview on the right to complete onboarding.
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ==========================================
 // MAIN EXPORT: ONBOARDING FLOW MANAGER
 // ==========================================
 
 export default function Onboarding() {
-  const [currentStep, setCurrentStep] = useState('welcome');
+  const [currentStep, setCurrentStep] = useState("welcome");
 
-  const handleNext = (nextStep) => {
-    setCurrentStep(nextStep);
+  const Screen = () => {
+    if (currentStep === "welcome") return <WelcomeScreen onNext={() => setCurrentStep("select_goal")} />;
+    if (currentStep === "select_goal") return <SelectGoalScreen onNext={() => setCurrentStep("how_it_helps")} />;
+    if (currentStep === "how_it_helps") return <HowItHelpsScreen onNext={() => setCurrentStep("intake")} />;
+    if (currentStep === "intake") return <PersonalIntakeScreen onNext={() => setCurrentStep("plan_reveal")} />;
+    if (currentStep === "plan_reveal") return <PlanRevealScreen onNext={() => setCurrentStep("paywall")} />;
+    return <PaywallScreen />;
   };
 
   return (
-    <div className="w-full min-h-full flex flex-col">
-      {currentStep === 'welcome' && (
-        <WelcomeScreen onNext={() => handleNext('select_goal')} />
-      )}
+    <div className="relative w-full h-full min-h-0">
+      {/* Desktop background glow */}
+      <div className="hidden md:block absolute inset-0 -z-10 pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/40 rounded-full blur-[90px]" />
+        <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-pink-200/30 rounded-full blur-[90px]" />
+      </div>
 
-      {currentStep === 'select_goal' && (
-        <SelectGoalScreen onNext={() => handleNext('how_it_helps')} />
-      )}
+      <div className="w-full h-full min-h-0 md:flex md:gap-10 md:px-10 md:py-10">
+        <DesktopMarketingPanel />
 
-      {currentStep === 'how_it_helps' && (
-        <HowItHelpsScreen onNext={() => handleNext('intake')} />
-      )}
-
-      {currentStep === 'intake' && (
-        <PersonalIntakeScreen onNext={() => handleNext('plan_reveal')} />
-      )}
-
-      {currentStep === 'plan_reveal' && (
-        <PlanRevealScreen onNext={() => handleNext('paywall')} />
-      )}
-
-      {currentStep === 'paywall' && (
-        <PaywallScreen />
-      )}
+        {/* Phone frame */}
+        <div className="w-full h-full min-h-0 md:flex md:items-center md:justify-center">
+          <div
+            className="
+              w-full h-full
+              overflow-visible md:overflow-hidden
+              md:w-[420px] md:h-[calc(100dvh-5rem)] md:max-h-[820px]
+              md:rounded-[44px] md:border md:border-white/60 md:shadow-2xl
+              md:bg-[#FAF9FA] relative
+            "
+          >
+            <div className="w-full h-full flex flex-col min-h-0">
+              <Screen />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
