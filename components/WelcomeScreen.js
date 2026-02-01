@@ -187,8 +187,8 @@ export default function WelcomeScreen({ onNext }) {
 </h1>
 
         <p className="text-app-textSecondary text-center mb-8 text-[16px] max-w-xs leading-relaxed">
-          Your personal AI physio-coach for leaks, pain, and confidence.
-        </p>
+  Stop bladder leaks, heal prolapse, and improve intimacy.
+</p>
 
         {/* Benefits List */}
         <div className="flex flex-col gap-6 w-full max-w-xs items-start pl-2 bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm">
