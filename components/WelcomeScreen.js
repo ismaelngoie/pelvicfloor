@@ -237,7 +237,7 @@ export default function WelcomeScreen({ onNext }) {
         </button>
 
         <p className="text-app-textSecondary text-[13px] font-medium">
-          Join {socialProofCount.toLocaleString()}+ men & women strengthening their pelvic floor.
+          Join {socialProofCount.toLocaleString()}+ women strengthening their pelvic floor.
         </p>
       </div>
     </div>
