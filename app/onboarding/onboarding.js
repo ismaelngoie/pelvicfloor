@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUserData } from "@/context/UserDataContext";
@@ -86,13 +87,22 @@ const reviews = [
 ];
 
 // --- FULL SCREEN BUTTERFLY BACKGROUND ---
-// IMPORTANT: use ABSOLUTE (not fixed) so desktop "phone preview" doesn't spill over the whole page.
+type Butterfly = {
+  id: number;
+  left: number;
+  size: number;
+  duration: number;
+  delay: number;
+  rotation: number;
+  isBehind: boolean;
+};
+
 const ButterflyBackground = () => {
-  const [butterflies, setButterflies] = useState([]);
+  const [butterflies, setButterflies] = useState<Butterfly[]>([]);
 
   useEffect(() => {
     const count = 25;
-    const items = Array.from({ length: count }).map((_, i) => {
+    const items: Butterfly[] = Array.from({ length: count }).map((_, i) => {
       const duration = 15 + Math.random() * 15;
       return {
         id: i,
@@ -159,7 +169,7 @@ const ButterflyBackground = () => {
   );
 };
 
-function WelcomeScreen({ onNext }) {
+function WelcomeScreen({ onNext }: { onNext: () => void }) {
   const router = useRouter();
   const { userDetails } = useUserData();
 
@@ -184,7 +194,7 @@ function WelcomeScreen({ onNext }) {
       }
     }
 
-    if (userDetails && userDetails.isPremium) {
+    if (userDetails && (userDetails as any).isPremium) {
       router.replace("/dashboard");
     } else {
       const timer = setTimeout(() => setShowContent(true), 50);
@@ -220,13 +230,9 @@ function WelcomeScreen({ onNext }) {
     return () => clearInterval(timer);
   }, []);
 
-  if (!showContent && userDetails?.isPremium) return null;
+  if (!showContent && (userDetails as any)?.isPremium) return null;
 
   return (
-    // Bulletproof pattern:
-    // - root owns layout (h-full, overflow-hidden)
-    // - middle scrolls (flex-1 min-h-0 overflow-y-auto)
-    // - bottom CTA is sticky (shrink-0)
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
       <ButterflyBackground />
 
@@ -288,7 +294,6 @@ function WelcomeScreen({ onNext }) {
             </div>
           </div>
 
-          {/* little spacer so the bottom never feels cramped when scrolling */}
           <div className="h-8" />
         </div>
       </div>
@@ -364,13 +369,13 @@ const goals = [
   { id: "stability", title: "Boost Stability", icon: <Activity size={28} strokeWidth={2} /> },
 ];
 
-function SelectGoalScreen({ onNext }) {
+function SelectGoalScreen({ onNext }: { onNext: () => void }) {
   const { saveUserData, userDetails } = useUserData();
-  const [selectedId, setSelectedId] = useState(
-    userDetails.selectedTarget?.id || null
+  const [selectedId, setSelectedId] = useState<string | null>(
+    (userDetails as any).selectedTarget?.id || null
   );
 
-  const handleSelect = (goal) => {
+  const handleSelect = (goal: any) => {
     setSelectedId(goal.id);
     saveUserData("selectedTarget", goal);
   };
@@ -470,7 +475,7 @@ function SelectGoalScreen({ onNext }) {
 // SCREEN 3: HOW IT HELPS SCREEN
 // ==========================================
 
-function BabyIcon({ size }) {
+function BabyIcon({ size }: { size: number }) {
   return (
     <svg
       width={size}
@@ -490,7 +495,7 @@ function BabyIcon({ size }) {
   );
 }
 
-const benefitsData = {
+const benefitsData: any = {
   "Prepare for Pregnancy": {
     subtitle:
       "Your plan will build a strong, supportive foundation for a healthy pregnancy and smoother recovery.",
@@ -597,11 +602,11 @@ const benefitsData = {
   },
 };
 
-function HowItHelpsScreen({ onNext }) {
+function HowItHelpsScreen({ onNext }: { onNext: () => void }) {
   const { userDetails } = useUserData();
   const [animate, setAnimate] = useState(false);
 
-  const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
+  const goalTitle = (userDetails as any).selectedTarget?.title || "Build Core Strength";
   const data = benefitsData[goalTitle] || benefitsData["Build Core Strength"];
 
   useEffect(() => {
@@ -633,14 +638,14 @@ function HowItHelpsScreen({ onNext }) {
         {/* Constellation */}
         <div className="w-full relative flex items-center justify-center min-h-[380px]">
           <div
-            className={`absolute z-20 bg-white p-6 rounded-full shadow-xl shadow-app-primary/15 text-app-primary border border-app-borderIdle transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${
+            className={`absolute z-20 bg-white p-6 rounded-full shadow-xl shadow-app-primary/15 text-app-primary border border-app-borderIdle transition-all duration-700 ${
               animate ? "scale-100 opacity-100" : "scale-0 opacity-0"
             }`}
           >
             {data.icon}
           </div>
 
-          {data.benefits.map((benefit, index) => {
+          {data.benefits.map((benefit: any, index: number) => {
             const total = data.benefits.length;
             const radius = 135;
             const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
@@ -710,7 +715,7 @@ function HowItHelpsScreen({ onNext }) {
 // SCREEN 4: PERSONAL INTAKE SCREEN
 // ==========================================
 
-const MIA_COPY = {
+const MIA_COPY: any = {
   "Prepare for Pregnancy": {
     ack: "Beautiful choice, {name}. We will gently prepare your pelvic floor and core so you feel supported every step of pregnancy.",
     age: "At {age}, we focus on calm breath, steady endurance, and safe strength so your body feels ready and held.",
@@ -775,7 +780,15 @@ const TypingIndicator = () => (
   </div>
 );
 
-const ChatBubble = ({ text, isTyping, isUser }) => (
+const ChatBubble = ({
+  text,
+  isTyping,
+  isUser,
+}: {
+  text?: string;
+  isTyping?: boolean;
+  isUser: boolean;
+}) => (
   <div
     className={`flex w-full mb-6 animate-fade-in-up ${
       isUser ? "justify-end" : "justify-start"
@@ -805,8 +818,20 @@ const ChatBubble = ({ text, isTyping, isUser }) => (
   </div>
 );
 
-const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
-  const scrollerRef = useRef(null);
+const WheelPicker = ({
+  range,
+  value,
+  onChange,
+  unit,
+  formatLabel,
+}: {
+  range: number[];
+  value: number;
+  onChange: (v: number) => void;
+  unit?: string;
+  formatLabel?: (v: number) => string;
+}) => {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
   const ITEM_HEIGHT = 54;
 
   const handleScroll = () => {
@@ -868,20 +893,22 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
   );
 };
 
-function PersonalIntakeScreen({ onNext }) {
+function PersonalIntakeScreen({ onNext }: { onNext: () => void }) {
   const { userDetails, saveUserData } = useUserData();
-  const [step, setStep] = useState("name");
+  const [step, setStep] = useState<"name" | "age" | "weight" | "height">("name");
   const [isTyping, setIsTyping] = useState(false);
-  const [history, setHistory] = useState([]);
-  const chatBottomRef = useRef(null);
+  const [history, setHistory] = useState<{ text?: string; sender: "mia" | "user" }[]>([]);
+  const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
   const [weight, setWeight] = useState(140);
   const [height, setHeight] = useState(65);
 
-  const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  const copy = MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
+  const goalTitle =
+    (userDetails as any).selectedTarget?.title || "Build Core Strength";
+  const copy =
+    MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -889,7 +916,7 @@ function PersonalIntakeScreen({ onNext }) {
     }, 100);
   };
 
-  const addMessage = (text, sender, delay = 0) => {
+  const addMessage = (text: string, sender: "mia" | "user", delay = 0) => {
     if (sender === "mia") setIsTyping(true);
 
     setTimeout(() => {
@@ -900,7 +927,11 @@ function PersonalIntakeScreen({ onNext }) {
   };
 
   useEffect(() => {
-    addMessage("Hi there! I'm Coach Mia, your personal physio-coach. What should I call you?", "mia", 600);
+    addMessage(
+      "Hi there! I'm Coach Mia, your personal physio-coach. What should I call you?",
+      "mia",
+      600
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -912,14 +943,16 @@ function PersonalIntakeScreen({ onNext }) {
       saveUserData("name", name);
       addMessage(name, "user");
 
-      const nextText = copy.ack.replace("{name}", name) + " To start, what's your age?";
+      const nextText =
+        copy.ack.replace("{name}", name) + " To start, what's your age?";
       addMessage(nextText, "mia", 1000);
       setStep("age");
     } else if (step === "age") {
       saveUserData("age", age);
       addMessage(`${age}`, "user");
 
-      const nextText = copy.age.replace("{age}", age) + " Now, what's your current weight?";
+      const nextText =
+        copy.age.replace("{age}", age) + " Now, what's your current weight?";
       addMessage(nextText, "mia", 1000);
       setStep("weight");
     } else if (step === "weight") {
@@ -998,7 +1031,7 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      {/* Chat History Area (fix: min-h-0) */}
+      {/* Chat History Area */}
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
         {history.map((msg, index) => (
           <ChatBubble
@@ -1040,8 +1073,9 @@ function PersonalIntakeScreen({ onNext }) {
 // SCREEN 5: PLAN REVEAL SCREEN
 // ==========================================
 
+// (Everything below is your same logic/UI; only the desktop shell changed later.)
+
 const THEME_REVEAL = {
-  // added (fix): used in render
   bg: "bg-app-background",
   text: "text-slate-900",
 
@@ -1081,7 +1115,7 @@ const PersonalizingConstants = {
   phase2Scale: 0.2,
 };
 
-const usePlanRevealChrome = (enabled, color = "#000000") => {
+const usePlanRevealChrome = (enabled: boolean, color = "#000000") => {
   useEffect(() => {
     if (!enabled) return;
     if (typeof window === "undefined") return;
@@ -1121,8 +1155,8 @@ const usePlanRevealChrome = (enabled, color = "#000000") => {
   }, [enabled, color]);
 };
 
-const getHealthCopy = (goal) => {
-  const map = {
+const getHealthCopy = (goal: string) => {
+  const map: any = {
     "Stop Bladder Leaks": {
       headline: "Any health notes before we target leaks?",
       subtitle: "This helps me map safe, effective bladder-control sessions.",
@@ -1173,7 +1207,7 @@ const getHealthCopy = (goal) => {
   return map[goal] || map.default;
 };
 
-const getHelperCopy = (selected, goal) => {
+const getHelperCopy = (selected: boolean, goal: string) => {
   if (selected) {
     if (goal.includes("Leak"))
       return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
@@ -1202,9 +1236,8 @@ const getHelperCopy = (selected, goal) => {
   }
 };
 
-const getPersonalizingCopy = (goal, name) => {
-  const safeName = name || "there";
-  const map = {
+const getPersonalizingCopy = (goal: string, name?: string) => {
+  const map: any = {
     "Improve Intimacy": {
       title: `Designing your intimacy plan`,
       subtitle: "Comfort, sensation, confidence—gently built for your body.",
@@ -1292,8 +1325,8 @@ const getPersonalizingCopy = (goal, name) => {
   return map[goal] || map.default;
 };
 
-const getTimelineCopy = (goal) => {
-  const map = {
+const getTimelineCopy = (goal: string) => {
+  const map: any = {
     "Prepare for Pregnancy": {
       subtitle: "Feel ready to carry and move with ease by **{date}**.",
       insights: [
@@ -1398,9 +1431,9 @@ const AICoreView = () => (
   </div>
 );
 
-const TypewriterText = ({ text }) => {
+const TypewriterText = ({ text }: { text: string }) => {
   const [displayed, setDisplayed] = useState("");
-  const timerRef = useRef(null);
+  const timerRef = useRef<any>(null);
 
   useEffect(() => {
     if (timerRef.current) {
@@ -1436,8 +1469,16 @@ const TypewriterText = ({ text }) => {
   );
 };
 
-const ChecklistItem = ({ text, delay, onComplete }) => {
-  const [status, setStatus] = useState("waiting");
+const ChecklistItem = ({
+  text,
+  delay,
+  onComplete,
+}: {
+  text: string;
+  delay: number;
+  onComplete?: () => void;
+}) => {
+  const [status, setStatus] = useState<"waiting" | "processing" | "completed">("waiting");
 
   useEffect(() => {
     const t1 = setTimeout(() => setStatus("processing"), delay);
@@ -1536,9 +1577,9 @@ const HolographicTimeline = () => {
   );
 };
 
-function PlanRevealScreen({ onNext }) {
+function PlanRevealScreen({ onNext }: { onNext: () => void }) {
   const { userDetails, saveUserData } = useUserData();
-  const [phase, setPhase] = useState("askingHealthInfo");
+  const [phase, setPhase] = useState<"askingHealthInfo" | "personalizing" | "showingTimeline">("askingHealthInfo");
 
   const isDark = phase === "personalizing" || phase === "showingTimeline";
 
@@ -1546,9 +1587,9 @@ function PlanRevealScreen({ onNext }) {
   usePlanRevealChrome(isDark, "#000000");
 
   // Phase 1 State
-  const [selectedConditions, setSelectedConditions] = useState([]);
+  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [noneSelected, setNoneSelected] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
   const [helperText, setHelperText] = useState("");
   const [activityHelperText, setActivityHelperText] = useState("");
 
@@ -1557,17 +1598,16 @@ function PlanRevealScreen({ onNext }) {
   const [progressPercent, setProgressPercent] = useState(0);
   const [showChecklist, setShowChecklist] = useState(false);
 
-  const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
+  const goalTitle = (userDetails as any)?.selectedTarget?.title || "Build Core Strength";
   const healthCopy = getHealthCopy(goalTitle);
-  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
+  const personalizingCopy = getPersonalizingCopy(goalTitle, (userDetails as any)?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
-  // --- Phase 1 logic ---
-  const updateHelperText = (hasCondition) => {
+  const updateHelperText = (hasCondition: boolean) => {
     setHelperText(getHelperCopy(hasCondition, goalTitle));
   };
 
-  const toggleCondition = (id) => {
+  const toggleCondition = (id: string) => {
     setNoneSelected(false);
     setSelectedConditions((prev) => {
       const newSet = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
@@ -1583,7 +1623,7 @@ function PlanRevealScreen({ onNext }) {
     updateHelperText(newVal);
   };
 
-  const selectActivity = (act) => {
+  const selectActivity = (act: string) => {
     setSelectedActivity(act);
     setActivityHelperText("✓ Perfect, I'll match your pace & recovery.");
   };
@@ -1596,7 +1636,6 @@ function PlanRevealScreen({ onNext }) {
     setPhase("personalizing");
   };
 
-  // --- Phase 2 logic ---
   useEffect(() => {
     if (phase !== "personalizing") return;
 
@@ -1605,7 +1644,10 @@ function PlanRevealScreen({ onNext }) {
 
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const p = Math.min(99, Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100));
+      const p = Math.min(
+        99,
+        Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100)
+      );
       setProgressPercent(p);
     }, 50);
 
@@ -1631,11 +1673,10 @@ function PlanRevealScreen({ onNext }) {
     setTimeout(() => setPhase("showingTimeline"), 1200);
   };
 
-  // --- Phase 3 logic ---
   const calculateBMI = () => {
-    if (!userDetails?.weight || !userDetails?.height) return "22.5";
-    const h = userDetails.height * 0.0254;
-    const w = userDetails.weight * 0.453592;
+    if (!(userDetails as any)?.weight || !(userDetails as any)?.height) return "22.5";
+    const h = (userDetails as any).height * 0.0254;
+    const w = (userDetails as any).weight * 0.453592;
     return (w / (h * h)).toFixed(1);
   };
 
@@ -1643,7 +1684,7 @@ function PlanRevealScreen({ onNext }) {
   date.setDate(date.getDate() + 7);
   const dateString = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
-  const formatRichText = (text) => {
+  const formatRichText = (text: string) => {
     if (!text) return null;
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
@@ -1655,8 +1696,9 @@ function PlanRevealScreen({ onNext }) {
           content = selectedActivity
             ? ACTIVITIES.find((a) => a.id === selectedActivity)?.title.toLowerCase()
             : "active";
-        if (content === "{age}") content = userDetails?.age || "30";
-        if (content === "{condition}") content = selectedConditions.length > 0 ? "unique needs" : "body";
+        if (content === "{age}") content = (userDetails as any)?.age || "30";
+        if (content === "{condition}")
+          content = selectedConditions.length > 0 ? "unique needs" : "body";
         return (
           <span key={i} className="text-white font-extrabold">
             {content}
@@ -1671,19 +1713,19 @@ function PlanRevealScreen({ onNext }) {
     });
   };
 
-  // Root:
-  // - ALWAYS full-height (no min-h-screen phantom scroll)
-  // - allow dark phases to visually cover top/bottom padding bands inside RootLayout on mobile (like Paywall)
   return (
     <div
       className={`
         relative w-full flex flex-col transition-colors duration-700
         ${isDark ? "bg-black" : THEME_REVEAL.bg}
-        ${isDark ? "h-[calc(100%+env(safe-area-inset-top)+env(safe-area-inset-bottom))] -mt-[env(safe-area-inset-top)] -mb-[env(safe-area-inset-bottom)]" : "h-full"}
+        ${
+          isDark
+            ? "h-[calc(100%+env(safe-area-inset-top)+env(safe-area-inset-bottom))] -mt-[env(safe-area-inset-top)] -mb-[env(safe-area-inset-bottom)]"
+            : "h-full"
+        }
         overflow-hidden
       `}
     >
-      {/* Bottom scrim ONLY for dark phases */}
       {isDark && (
         <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
           <div className="w-full h-[calc(env(safe-area-inset-bottom)+20px)] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
@@ -1693,7 +1735,6 @@ function PlanRevealScreen({ onNext }) {
       {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
       {phase === "askingHealthInfo" && (
         <div className="w-full h-full flex flex-col overflow-hidden">
-          {/* Scrollable middle */}
           <div
             className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-5"
             style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
@@ -1708,7 +1749,6 @@ function PlanRevealScreen({ onNext }) {
             </div>
 
             <div className="flex flex-col justify-center min-h-0">
-              {/* Conditions */}
               <div>
                 <div className="grid grid-cols-2 gap-3 mb-2">
                   {CONDITIONS.map((item) => {
@@ -1757,7 +1797,6 @@ function PlanRevealScreen({ onNext }) {
                 </button>
               </div>
 
-              {/* Activity */}
               <div className="mt-3">
                 <h3 className={`text-[15px] font-bold text-center ${THEME_REVEAL.text} mb-2`}>
                   Your typical activity level
@@ -1798,7 +1837,6 @@ function PlanRevealScreen({ onNext }) {
             <div className="h-6" />
           </div>
 
-          {/* Sticky footer */}
           <div className="shrink-0 px-5 pb-6">
             <button
               onClick={handlePhase1Continue}
@@ -1844,7 +1882,7 @@ function PlanRevealScreen({ onNext }) {
                 {personalizingCopy.subtitle}
               </p>
               <div className="space-y-3">
-                {personalizingCopy.checklist.map((item, idx) => (
+                {personalizingCopy.checklist.map((item: string, idx: number) => (
                   <ChecklistItem
                     key={idx}
                     text={item}
@@ -1887,7 +1925,7 @@ function PlanRevealScreen({ onNext }) {
           <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
             <div>
               <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">{userDetails?.name || "Your"} path to</span>
+                <span className="text-white/90">{(userDetails as any)?.name || "Your"} path to</span>
                 <br />
                 <span className="text-[#E65473]">{goalTitle}</span> is ready.
               </h1>
@@ -1899,7 +1937,7 @@ function PlanRevealScreen({ onNext }) {
                 <h3 className="text-[16px] font-semibold text-white mb-1">
                   Your Personal Insights
                 </h3>
-                {timelineCopy.insights.map((insight, idx) => (
+                {timelineCopy.insights.map((insight: string, idx: number) => (
                   <div
                     key={idx}
                     className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700"
@@ -1935,7 +1973,7 @@ function PlanRevealScreen({ onNext }) {
 // SCREEN 6: PAYWALL SCREEN
 // ==========================================
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
 const REVIEW_IMAGES = ["/review9.png", "/review1.png", "/review5.png", "/review4.png", "/review2.png"];
 
 function usePaywallChrome(color = "#0A0A10") {
@@ -1977,7 +2015,7 @@ function usePaywallChrome(color = "#0A0A10") {
   }, [color]);
 }
 
-const getButtonText = (goalTitle) => {
+const getButtonText = (goalTitle: string) => {
   const g = (goalTitle || "").toLowerCase();
   if (g.includes("pregnancy")) return "Start My Pregnancy Plan";
   if (g.includes("postpartum")) return "Start My Postpartum Plan";
@@ -1988,10 +2026,10 @@ const getButtonText = (goalTitle) => {
   return "Start My Personalized Plan";
 };
 
-const getReviewsForGoal = (goalTitle) => {
+const getReviewsForGoal = (goalTitle: string) => {
   const goal = (goalTitle || "").toLowerCase();
 
-  const pack = (names, texts) =>
+  const pack = (names: string[], texts: string[]) =>
     names.map((name, i) => ({
       name,
       text: texts[i],
@@ -2054,17 +2092,17 @@ const FEATURES = [
   { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" },
 ];
 
-const CheckoutForm = ({ onClose }) => {
+const CheckoutForm = ({ onClose }: { onClose: () => void }) => {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
   const { saveUserData } = useUserData();
 
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
 
@@ -2080,7 +2118,7 @@ const CheckoutForm = ({ onClose }) => {
     });
 
     if (error) {
-      setMessage(error.message);
+      setMessage(error.message || "Payment error");
       setIsLoading(false);
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
       saveUserData("isPremium", true);
@@ -2092,7 +2130,7 @@ const CheckoutForm = ({ onClose }) => {
     }
   };
 
-  const paymentElementOptions = {
+  const paymentElementOptions: any = {
     layout: "tabs",
     fields: { billingDetails: { phone: "auto" } },
   };
@@ -2120,7 +2158,7 @@ const CheckoutForm = ({ onClose }) => {
         <div className="text-white">
           <LinkAuthenticationElement
             id="link-authentication-element"
-            onChange={(e) => setEmail(e.value.email)}
+            onChange={(e: any) => setEmail(e.value.email)}
           />
         </div>
         <PaymentElement id="payment-element" options={paymentElementOptions} />
@@ -2147,13 +2185,13 @@ const CheckoutForm = ({ onClose }) => {
   );
 };
 
-const RestoreModal = ({ onClose }) => {
+const RestoreModal = ({ onClose }: { onClose: () => void }) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { saveUserData } = useUserData();
 
-  const handleRestoreSubmit = async (e) => {
+  const handleRestoreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.includes("@")) {
       alert("Please enter a valid email address.");
@@ -2254,8 +2292,8 @@ function PaywallScreen() {
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   const [isButtonLoading, setIsButtonLoading] = useState(false);
 
-  const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
-  const userName = userDetails?.name || "Ready";
+  const goalTitle = (userDetails as any)?.selectedTarget?.title || "Build Core Strength";
+  const userName = (userDetails as any)?.name || "Ready";
   const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
   const buttonText = getButtonText(goalTitle);
 
@@ -2307,7 +2345,7 @@ function PaywallScreen() {
         if (data.error) throw new Error(data.error);
 
         setClientSecret(data.clientSecret);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Stripe Error:", err);
         alert(`Could not initialize payment: ${err.message}. Please check your internet or try again later.`);
         setIsButtonLoading(false);
@@ -2319,7 +2357,7 @@ function PaywallScreen() {
     setShowCheckoutModal(true);
   };
 
-  const stripeAppearance = {
+  const stripeAppearance: any = {
     theme: "night",
     variables: {
       colorPrimary: "#E65473",
@@ -2448,7 +2486,7 @@ function PaywallScreen() {
           </div>
 
           <div className="w-full min-h-[70px] flex items-center justify-center relative">
-            {reviews.map((review, idx) => (
+            {reviews.map((review: any, idx: number) => (
               <div
                 key={idx}
                 className={`absolute w-full flex flex-col items-center transition-all duration-500 ${
@@ -2543,7 +2581,7 @@ function PaywallScreen() {
         </p>
       </div>
 
-      {/* Stripe overlay (contain on desktop phone preview) */}
+      {/* Stripe overlay */}
       {showCheckoutModal && clientSecret && (
         <div
           className="fixed md:absolute inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
@@ -2562,7 +2600,7 @@ function PaywallScreen() {
   );
 }
 
-const Star = ({ size, fill }) => (
+const Star = ({ size, fill }: { size: number; fill: string }) => (
   <svg
     width={size}
     height={size}
@@ -2578,120 +2616,41 @@ const Star = ({ size, fill }) => (
 );
 
 // ==========================================
-// DESKTOP SHELL (diastafix-style)
-// ==========================================
-
-function DesktopMarketingPanel() {
-  return (
-    <div className="hidden md:flex flex-1 flex-col justify-center pr-10">
-      <div className="max-w-xl">
-        <div className="flex items-center gap-3 mb-6">
-          <img src="/logo.png" alt="Pelvi Health" className="w-14 h-14 object-contain" />
-          <div>
-            <div className="text-[14px] font-semibold text-app-textSecondary tracking-wide uppercase">
-              Pelvi Health
-            </div>
-            <div className="text-[20px] font-extrabold text-app-textPrimary leading-tight">
-              Pelvic Floor Strengthening
-            </div>
-          </div>
-        </div>
-
-        <h1 className="text-[46px] font-extrabold leading-[1.05] text-app-textPrimary">
-          A <span className="text-gradient">5-minute</span> daily plan
-          <br />
-          to stop leaks & feel strong again.
-        </h1>
-
-        <p className="mt-5 text-[18px] leading-relaxed text-app-textSecondary max-w-lg">
-          Personalized routines, physio-approved videos, and an AI coach that adapts every day.
-        </p>
-
-        <div className="mt-8 grid grid-cols-2 gap-4 max-w-lg">
-          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
-            <div className="text-[13px] font-semibold text-app-textSecondary">Daily routine</div>
-            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">5 minutes</div>
-          </div>
-          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
-            <div className="text-[13px] font-semibold text-app-textSecondary">Videos</div>
-            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">300+</div>
-          </div>
-          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
-            <div className="text-[13px] font-semibold text-app-textSecondary">Rating</div>
-            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">4.9 ★</div>
-          </div>
-          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
-            <div className="text-[13px] font-semibold text-app-textSecondary">Guarantee</div>
-            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">Money-back</div>
-          </div>
-        </div>
-
-        <div className="mt-10 flex items-center gap-3 text-app-textSecondary">
-          <div className="w-2.5 h-2.5 rounded-full bg-app-primary" />
-          <span className="text-[14px]">
-            Use the phone preview on the right to complete onboarding.
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
 // MAIN EXPORT: ONBOARDING FLOW MANAGER
 // ==========================================
 
 export default function Onboarding() {
-  const [currentStep, setCurrentStep] = useState("welcome");
-
-  // Desktop-only UX fix:
-  // - Welcome screen already *is* marketing-heavy inside the onboarding UI.
-  // - So on desktop, hide the left marketing panel ONLY for that step to avoid "repeating" copy.
-  const showDesktopMarketing = currentStep !== "welcome";
+  const [currentStep, setCurrentStep] = useState<
+    "welcome" | "select_goal" | "how_it_helps" | "intake" | "plan_reveal" | "paywall"
+  >("welcome");
 
   const Screen = () => {
-    if (currentStep === "welcome") return <WelcomeScreen onNext={() => setCurrentStep("select_goal")} />;
-    if (currentStep === "select_goal") return <SelectGoalScreen onNext={() => setCurrentStep("how_it_helps")} />;
-    if (currentStep === "how_it_helps") return <HowItHelpsScreen onNext={() => setCurrentStep("intake")} />;
-    if (currentStep === "intake") return <PersonalIntakeScreen onNext={() => setCurrentStep("plan_reveal")} />;
-    if (currentStep === "plan_reveal") return <PlanRevealScreen onNext={() => setCurrentStep("paywall")} />;
+    if (currentStep === "welcome")
+      return <WelcomeScreen onNext={() => setCurrentStep("select_goal")} />;
+    if (currentStep === "select_goal")
+      return <SelectGoalScreen onNext={() => setCurrentStep("how_it_helps")} />;
+    if (currentStep === "how_it_helps")
+      return <HowItHelpsScreen onNext={() => setCurrentStep("intake")} />;
+    if (currentStep === "intake")
+      return <PersonalIntakeScreen onNext={() => setCurrentStep("plan_reveal")} />;
+    if (currentStep === "plan_reveal")
+      return <PlanRevealScreen onNext={() => setCurrentStep("paywall")} />;
     return <PaywallScreen />;
   };
 
+  // ✅ Option A: Desktop-first, full-screen onboarding everywhere.
+  // ✅ No phone preview, no left marketing panel.
+  // ✅ Outer shell owns height + prevents body scroll; each screen manages its own internal scroll.
   return (
-    <div className="relative w-full h-full min-h-0 md:min-h-[100dvh] md:h-[100dvh]">
+    <div className="relative w-full h-[100dvh] min-h-[100dvh] overflow-hidden">
       {/* Desktop background glow */}
       <div className="hidden md:block absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/40 rounded-full blur-[90px]" />
         <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-pink-200/30 rounded-full blur-[90px]" />
       </div>
 
-      <div
-        className={`
-          w-full h-full min-h-0
-          md:flex md:items-stretch md:px-10 md:py-10
-          ${showDesktopMarketing ? "md:gap-10" : "md:justify-center"}
-        `}
-      >
-        {/* Left marketing panel (desktop only, hidden on welcome) */}
-        {showDesktopMarketing && <DesktopMarketingPanel />}
-
-        {/* Desktop app surface (fills right side; mobile unchanged) */}
-        <div className="w-full h-full min-h-0 md:flex md:flex-1 md:items-stretch md:justify-center">
-          <div
-            className="
-              w-full h-full
-              overflow-visible md:overflow-hidden
-              md:flex-1 md:w-full md:h-full
-              md:rounded-[32px] md:border md:border-white/60 md:shadow-2xl
-              md:bg-[#FAF9FA] relative
-            "
-          >
-            <div className="w-full h-full flex flex-col min-h-0">
-              <Screen />
-            </div>
-          </div>
-        </div>
+      <div className="w-full h-full min-h-0 flex flex-col">
+        <Screen />
       </div>
     </div>
   );
