@@ -3139,8 +3139,11 @@ export default function Onboarding() {
   };
 
   return (
-    // WRAPPER: Handles the "Desktop Card" vs "Mobile Full" logic
-    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:py-0 md:px-10 md:overflow-hidden">
+    // ✅ FIXED:
+    // - Desktop wrapper does NOT scroll (card never moves)
+    // - Scroll happens only INSIDE screens (inside card)
+    // - Mobile stays unchanged
+    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:h-[100dvh] md:px-10 md:pt-10 md:pb-10 md:items-start md:overflow-hidden">
       {/* DESKTOP BACKGROUND (keeps mobile identical) */}
       <div className="hidden md:block absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/60 rounded-full blur-[120px]" />
@@ -3154,16 +3157,16 @@ export default function Onboarding() {
       <LiveCommunitySidebar />
 
       <div
-  className="
-    relative z-10
-    w-full h-full
-    md:w-[420px] md:max-w-[420px]
-    md:h-[900px] md:max-h-[90dvh]
-    bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
-  "
->
-  <Screen />
-</div>
+        className="
+        relative z-10
+        w-full h-full 
+        md:w-[900px] md:max-w-[900px]
+        md:h-[850px] md:max-h-[90dvh]
+        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
+      "
+      >
+        <Screen />
+      </div>
     </div>
   );
 }
