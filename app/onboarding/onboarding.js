@@ -2572,7 +2572,7 @@ const CheckoutForm = ({ onClose }) => {
         <div className="text-white">
           <LinkAuthenticationElement
             id="link-authentication-element"
-            onChange={(e: any) => setEmail(e.value.email)}
+            onChange={(e) => setEmail(e.value.email)}
           />
         </div>
 
