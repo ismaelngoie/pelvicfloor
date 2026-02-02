@@ -1059,12 +1059,16 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
 
 function PersonalIntakeScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
+
   const [step, setStep] = useState("name");
   const [isTyping, setIsTyping] = useState(false);
   const [history, setHistory] = useState([]);
-  
-  // CHANGED: We now ref the container, not the bottom element
-  const scrollContainerRef = useRef(null); 
+
+  // ✅ NEW: ref to the scrollable chat container (we will scroll THIS, not the page)
+  const chatScrollRef = useRef(null);
+
+  // ✅ NEW: ref to the name input (manual focus without viewport scroll)
+  const nameInputRef = useRef(null);
 
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
@@ -1072,19 +1076,56 @@ function PersonalIntakeScreen({ onNext }) {
   const [height, setHeight] = useState(65);
 
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  const copy = MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
+  const copy =
+    MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
-  // CHANGED: Logic to scroll ONLY the container, not the window
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({
-          top: scrollContainerRef.current.scrollHeight,
-          behavior: "smooth",
-        });
+  // ✅ NEW: scroll the chat container itself (never window/page)
+  const scrollChatToBottom = (behavior = "smooth") => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+
+    // Wait for DOM/layout to settle
+    requestAnimationFrame(() => {
+      try {
+        el.scrollTo({ top: el.scrollHeight, behavior });
+      } catch {
+        // fallback (very old browsers)
+        el.scrollTop = el.scrollHeight;
       }
-    }, 100);
+    });
   };
+
+  // ✅ NEW: whenever messages or typing indicator changes, scroll the CHAT container
+  useEffect(() => {
+    // first render: no animation
+    const behavior = history.length <= 1 ? "auto" : "smooth";
+    scrollChatToBottom(behavior);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history.length, isTyping]);
+
+  // ✅ NEW: manual focus that cannot reposition viewport (no autoFocus)
+  useEffect(() => {
+    if (step !== "name") return;
+    if (isTyping) return;
+
+    const input = nameInputRef.current;
+    if (!input) return;
+
+    // Only do this on desktop to avoid mobile keyboard/viewport jumps.
+    if (typeof window !== "undefined") {
+      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+      if (!isDesktop) return;
+    }
+
+    // Focus without scrolling the page (supported by most modern browsers)
+    requestAnimationFrame(() => {
+      try {
+        input.focus({ preventScroll: true });
+      } catch {
+        input.focus();
+      }
+    });
+  }, [step, isTyping]);
 
   const addMessage = (text, sender, delay = 0) => {
     if (sender === "mia") setIsTyping(true);
@@ -1092,7 +1133,7 @@ function PersonalIntakeScreen({ onNext }) {
     setTimeout(() => {
       if (sender === "mia") setIsTyping(false);
       setHistory((prev) => [...prev, { text, sender }]);
-      scrollToBottom();
+      // ✅ no scrollIntoView here — scrolling happens in the effect above
     }, delay);
   };
 
@@ -1113,14 +1154,16 @@ function PersonalIntakeScreen({ onNext }) {
       saveUserData("name", name);
       addMessage(name, "user");
 
-      const nextText = copy.ack.replace("{name}", name) + " To start, what's your age?";
+      const nextText =
+        copy.ack.replace("{name}", name) + " To start, what's your age?";
       addMessage(nextText, "mia", 1000);
       setStep("age");
     } else if (step === "age") {
       saveUserData("age", age);
       addMessage(`${age}`, "user");
 
-      const nextText = copy.age.replace("{age}", age) + " Now, what's your current weight?";
+      const nextText =
+        copy.age.replace("{age}", age) + " Now, what's your current weight?";
       addMessage(nextText, "mia", 1000);
       setStep("weight");
     } else if (step === "weight") {
@@ -1155,16 +1198,18 @@ function PersonalIntakeScreen({ onNext }) {
         return (
           <div className="w-full animate-slide-up py-10">
             <input
+              ref={nameInputRef}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Type your name..."
               className="w-full text-center text-3xl font-bold bg-transparent border-b-2 border-app-borderIdle focus:border-app-primary outline-none py-3 text-app-textPrimary placeholder:text-app-textSecondary/30"
-              // CHANGED: Removed autoFocus to prevent browser jump
+              // ✅ removed autoFocus
               onKeyDown={(e) => e.key === "Enter" && handleNext()}
             />
           </div>
         );
+
       case "age":
         return (
           <WheelPicker
@@ -1174,6 +1219,7 @@ function PersonalIntakeScreen({ onNext }) {
             unit="years old"
           />
         );
+
       case "weight":
         return (
           <WheelPicker
@@ -1183,6 +1229,7 @@ function PersonalIntakeScreen({ onNext }) {
             unit="lbs"
           />
         );
+
       case "height":
         return (
           <WheelPicker
@@ -1192,6 +1239,7 @@ function PersonalIntakeScreen({ onNext }) {
             formatLabel={(val) => `${Math.floor(val / 12)}'${val % 12}"`}
           />
         );
+
       default:
         return null;
     }
@@ -1199,9 +1247,9 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      {/* CHANGED: Added ref={scrollContainerRef} here */}
-      <div 
-        ref={scrollContainerRef}
+      {/* ✅ Chat History Area (scroll container ref added) */}
+      <div
+        ref={chatScrollRef}
         className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col"
       >
         {history.map((msg, index) => (
@@ -1215,10 +1263,10 @@ function PersonalIntakeScreen({ onNext }) {
 
         {isTyping && <ChatBubble isTyping={true} isUser={false} />}
 
-        {/* CHANGED: Removed ref from this bottom div */}
-        <div className="h-4" />
+        {/* ✅ removed the scrollIntoView sentinel */}
       </div>
 
+      {/* Input Area */}
       <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20">
         <div className="mb-6">{renderInput()}</div>
 
@@ -3085,7 +3133,7 @@ export default function Onboarding() {
     // - Desktop wrapper does NOT scroll (card never moves)
     // - Scroll happens only INSIDE screens (inside card)
     // - Mobile stays unchanged
-    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:h-[100dvh] md:px-10 md:pt-10 md:pb-10 md:items-center md:overflow-hidden">
+    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:h-[100dvh] md:px-10 md:pt-10 md:pb-10 md:items-start md:overflow-hidden">
       {/* DESKTOP BACKGROUND (keeps mobile identical) */}
       <div className="hidden md:block absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/60 rounded-full blur-[120px]" />
