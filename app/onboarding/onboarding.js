@@ -46,12 +46,14 @@ const DesktopButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
   useEffect(() => {
+    // Generate butterflies only for the sides
     const count = 12;
     const items = Array.from({ length: count }).map((_, i) => {
       const duration = 20 + Math.random() * 15;
       const isLeft = Math.random() > 0.5;
       return {
         id: i,
+        // Position mainly on far left (0-20%) or far right (80-100%)
         left: isLeft ? Math.random() * 20 : 80 + Math.random() * 20,
         top: Math.random() * 100,
         size: 30 + Math.random() * 40,
@@ -136,8 +138,8 @@ const LiveCommunitySidebar = () => {
           ]
         );
         setShow(true);
-      }, 500);
-    }, 5000);
+      }, 500); // Wait for fade out
+    }, 5000); // Change every 5s
     return () => clearInterval(interval);
   }, []);
 
@@ -219,6 +221,8 @@ const reviews = [
   },
 ];
 
+// --- FULL SCREEN BUTTERFLY BACKGROUND ---
+// Changed to absolute so it stays inside the desktop card container
 const ButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
@@ -299,6 +303,7 @@ function WelcomeScreen({ onNext }) {
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [showContent, setShowContent] = useState(false);
 
+  // --- 1. INSTANT REDIRECT CHECK (SPEED OPTIMIZED) ---
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
@@ -310,7 +315,9 @@ function WelcomeScreen({ onNext }) {
             return;
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        // ignore
+      }
     }
 
     if (userDetails && userDetails.isPremium) {
@@ -321,6 +328,7 @@ function WelcomeScreen({ onNext }) {
     }
   }, [userDetails, router]);
 
+  // Social Proof Counter
   useEffect(() => {
     if (!showContent) return;
     const finalValue = 10200;
@@ -337,14 +345,15 @@ function WelcomeScreen({ onNext }) {
         setSocialProofCount(Math.floor(current));
       }
     }, duration / steps);
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [showContent]);
 
+  // Review Ticker
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
     }, 3000);
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, []);
 
   if (!showContent && userDetails?.isPremium) return null;
@@ -353,6 +362,7 @@ function WelcomeScreen({ onNext }) {
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
       <ButterflyBackground />
 
+      {/* Scrollable content */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar">
         <div
           className={`z-10 flex flex-col items-center px-6 pt-16 w-full transition-all duration-1000 ${
@@ -361,6 +371,7 @@ function WelcomeScreen({ onNext }) {
               : "opacity-0 translate-y-10"
           }`}
         >
+          {/* Logo */}
           <div className="mb-6">
             <img
               src="/logo.png"
@@ -381,6 +392,7 @@ function WelcomeScreen({ onNext }) {
             Stop bladder leaks, heal prolapse, and improve intimacy.
           </p>
 
+          {/* Benefits List */}
           <div className="flex flex-col gap-6 w-full max-w-xs items-start pl-2 bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm">
             <div className="flex items-start gap-4">
               <div className="shrink-0 pt-1">
@@ -412,6 +424,7 @@ function WelcomeScreen({ onNext }) {
         </div>
       </div>
 
+      {/* Sticky bottom */}
       <div
         className={`w-full px-8 pb-8 flex flex-col gap-4 items-center z-30 transition-all duration-1000 delay-300 ${
           showContent
@@ -419,6 +432,7 @@ function WelcomeScreen({ onNext }) {
             : "opacity-0 translate-y-10"
         }`}
       >
+        {/* Review Ticker */}
         <div className="h-14 overflow-hidden w-full relative">
           {reviews.map((review, index) => (
             <div
@@ -439,6 +453,7 @@ function WelcomeScreen({ onNext }) {
           ))}
         </div>
 
+        {/* Button */}
         <button
           onClick={onNext}
           className="w-full h-14 bg-app-primary text-white font-bold text-lg rounded-full shadow-xl shadow-app-primary/30 animate-breathe active:scale-95 transition-transform relative z-40"
@@ -525,12 +540,15 @@ function SelectGoalScreen({ onNext }) {
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-white/50">
+      {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
         <div className="absolute top-[-10%] right-[-10%] w-[250px] h-[250px] bg-rose-200 rounded-full blur-[80px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[250px] h-[250px] bg-rose-100 rounded-full blur-[80px]" />
       </div>
 
+      {/* Scrollable */}
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5 pt-8 pb-6 z-10">
+        {/* Header */}
         <div className="mb-4">
           <h1 className="text-[26px] font-extrabold text-center text-app-textPrimary mb-1 leading-tight">
             Let's set your primary goal.
@@ -540,6 +558,7 @@ function SelectGoalScreen({ onNext }) {
           </p>
         </div>
 
+        {/* Grid */}
         <div className="w-full flex justify-center">
           <div className="w-full max-w-md">
             <div className="grid grid-cols-2 gap-3">
@@ -601,6 +620,7 @@ function SelectGoalScreen({ onNext }) {
         </div>
       </div>
 
+      {/* Sticky Footer CTA */}
       <div className="shrink-0 z-20 px-5 pb-6">
         <button
           onClick={onNext}
@@ -765,9 +785,12 @@ function HowItHelpsScreen({ onNext }) {
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-app-background">
+      {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-app-primary/5 rounded-full blur-3xl -z-10" />
 
+      {/* Scrollable middle */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pt-12 px-4 pb-8">
+        {/* Header */}
         <div className="z-10 text-center mb-4">
           <h1 className="text-3xl font-bold text-app-textPrimary mb-4 leading-tight animate-slide-up">
             Here's how we'll <br />
@@ -781,6 +804,7 @@ function HowItHelpsScreen({ onNext }) {
           </p>
         </div>
 
+        {/* Constellation */}
         <div className="w-full relative flex items-center justify-center min-h-[380px]">
           <div
             className={`absolute z-20 bg-white p-6 rounded-full shadow-xl shadow-app-primary/15 text-app-primary border border-app-borderIdle transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${
@@ -842,6 +866,7 @@ function HowItHelpsScreen({ onNext }) {
         <div className="h-4" />
       </div>
 
+      {/* Sticky footer */}
       <div className="shrink-0 z-20 px-4 pb-6">
         <button
           onClick={onNext}
@@ -994,7 +1019,8 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
         });
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="relative h-[220px] w-full max-w-[320px] mx-auto overflow-hidden mt-2">
@@ -1069,7 +1095,8 @@ function PersonalIntakeScreen({ onNext }) {
       "mia",
       600
     );
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleNext = () => {
     if (isTyping) return;
@@ -1167,7 +1194,8 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col overscroll-contain">
+      {/* Chat History Area (fix: min-h-0) */}
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
         {history.map((msg, index) => (
           <ChatBubble
             key={index}
@@ -1182,6 +1210,7 @@ function PersonalIntakeScreen({ onNext }) {
         <div ref={chatBottomRef} className="h-4" />
       </div>
 
+      {/* Input Area */}
       <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20">
         <div className="mb-6">{renderInput()}</div>
 
@@ -1208,17 +1237,23 @@ function PersonalIntakeScreen({ onNext }) {
 // ==========================================
 
 const THEME_REVEAL = {
+  // added (fix): used in render
   bg: "bg-app-background",
   text: "text-slate-900",
+
   textPrimary: "text-slate-900",
   textSecondary: "text-slate-500",
+
   unselected: "bg-white border-gray-200 shadow-sm",
   selected:
     "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
+
   textUnselected: "text-slate-900",
   textSelected: "text-[#E65473]",
+
   iconUnselected: "text-[#E65473] opacity-80",
   iconSelected: "text-[#E65473] scale-110",
+
   helper: "text-[#33B373]",
   brandGradient: "from-[#E65473] to-[#C23A5B]",
 };
@@ -1247,6 +1282,7 @@ const usePlanRevealChrome = (enabled, color = "#000000") => {
     if (!enabled) return;
     if (typeof window === "undefined") return;
 
+    // Desktop should not mutate global chrome; keep it scoped to mobile.
     if (window.matchMedia("(min-width: 768px)").matches) return;
 
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -1373,13 +1409,15 @@ const getHelperCopy = (selected, goal) => {
   }
 };
 
-const getPersonalizingCopy = (goal) => {
+const getPersonalizingCopy = (goal, name) => {
+  const safeName = name || "there";
   const map = {
     "Improve Intimacy": {
       title: `Designing your intimacy plan`,
       subtitle: "Comfort, sensation, confidence—gently built for your body.",
       connecting: "Checking your profile for arousal flow and comfort…",
-      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
+      calibrating:
+        "Balancing relax/contract patterns for stronger orgasms…",
       checklist: [
         "Comfort-first warmups",
         "Relax/contract patterns",
@@ -1768,14 +1806,18 @@ function PlanRevealScreen({ onNext }) {
   const [phase, setPhase] = useState("askingHealthInfo");
 
   const isDark = phase === "personalizing" || phase === "showingTimeline";
+
+  // Safari/bottom bar congruency ONLY on dark phases
   usePlanRevealChrome(isDark, "#000000");
 
+  // Phase 1 State
   const [selectedConditions, setSelectedConditions] = useState([]);
   const [noneSelected, setNoneSelected] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [helperText, setHelperText] = useState("");
   const [activityHelperText, setActivityHelperText] = useState("");
 
+  // Phase 2 State
   const [personalizingStatus, setPersonalizingStatus] = useState("");
   const [progressPercent, setProgressPercent] = useState(0);
   const [showChecklist, setShowChecklist] = useState(false);
@@ -1785,6 +1827,7 @@ function PlanRevealScreen({ onNext }) {
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
+  // --- Phase 1 logic ---
   const updateHelperText = (hasCondition) => {
     setHelperText(getHelperCopy(hasCondition, goalTitle));
   };
@@ -1821,6 +1864,7 @@ function PlanRevealScreen({ onNext }) {
     setPhase("personalizing");
   };
 
+  // --- Phase 2 logic ---
   useEffect(() => {
     if (phase !== "personalizing") return;
 
@@ -1858,6 +1902,7 @@ function PlanRevealScreen({ onNext }) {
     setTimeout(() => setPhase("showingTimeline"), 1200);
   };
 
+  // --- Phase 3 logic ---
   const calculateBMI = () => {
     if (!userDetails?.weight || !userDetails?.height) return "22.5";
     const h = userDetails.height * 0.0254;
@@ -1908,20 +1953,23 @@ function PlanRevealScreen({ onNext }) {
         ${isDark ? "bg-black" : THEME_REVEAL.bg}
         ${
           isDark
-            ? "h-[calc(100%+env(safe-area-inset-top)+env(safe-area-inset-bottom))] -mt-[env(safe-area-inset-top)] -mb-[env(safe-area-inset-bottom)]"
+            ? "h-[calc(100%+env(safe-area-inset-top)+env(safe-area-inset-bottom))] -mt-[env(safe-area-inset-top)] -mb-[env(safe-area-inset-bottom))]"
             : "h-full"
         }
         overflow-hidden
       `}
     >
+      {/* Bottom scrim ONLY for dark phases */}
       {isDark && (
         <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
           <div className="w-full h-[calc(env(safe-area-inset-bottom)+20px)] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
         </div>
       )}
 
+      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
       {phase === "askingHealthInfo" && (
         <div className="w-full h-full flex flex-col overflow-hidden">
+          {/* Scrollable middle */}
           <div
             className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-5"
             style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
@@ -1938,6 +1986,7 @@ function PlanRevealScreen({ onNext }) {
             </div>
 
             <div className="flex flex-col justify-center min-h-0">
+              {/* Conditions */}
               <div>
                 <div className="grid grid-cols-2 gap-3 mb-2">
                   {CONDITIONS.map((item) => {
@@ -1947,11 +1996,7 @@ function PlanRevealScreen({ onNext }) {
                         key={item.id}
                         onClick={() => toggleCondition(item.id)}
                         className={`relative flex flex-col items-center justify-center p-2 rounded-[24px] border-[2px] h-[100px] transition-all duration-300 active:scale-95 outline-none
-                          ${
-                            isSelected
-                              ? THEME_REVEAL.selected
-                              : THEME_REVEAL.unselected
-                          }
+                          ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
                         `}
                       >
                         <div
@@ -2013,6 +2058,7 @@ function PlanRevealScreen({ onNext }) {
                 </button>
               </div>
 
+              {/* Activity */}
               <div className="mt-3">
                 <h3
                   className={`text-[15px] font-bold text-center ${THEME_REVEAL.text} mb-2`}
@@ -2027,11 +2073,7 @@ function PlanRevealScreen({ onNext }) {
                         key={act.id}
                         onClick={() => selectActivity(act.id)}
                         className={`w-full py-3.5 px-5 rounded-[22px] border-[2px] text-left flex items-center justify-between transition-all duration-300 active:scale-95 outline-none
-                          ${
-                            isSelected
-                              ? THEME_REVEAL.selected
-                              : THEME_REVEAL.unselected
-                          }
+                          ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
                         `}
                       >
                         <span
@@ -2076,6 +2118,7 @@ function PlanRevealScreen({ onNext }) {
             <div className="h-6" />
           </div>
 
+          {/* Sticky footer */}
           <div className="shrink-0 px-5 pb-6">
             <button
               onClick={handlePhase1Continue}
@@ -2094,6 +2137,7 @@ function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
+      {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
       {phase === "personalizing" && (
         <div
           className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000"
@@ -2187,13 +2231,16 @@ function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
+      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === "showingTimeline" && (
-        <div className="w-full h-full flex flex-col bg-black relative overflow-hidden animate-in fade-in duration-1000">
+        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative overflow-hidden">
+          {/* ✅ Scrollable content area */}
           <div
-            className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 z-10 overscroll-contain"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-6 z-10"
             style={{
               paddingTop: "calc(env(safe-area-inset-top) + 24px)",
-              paddingBottom: "24px",
+              paddingBottom:
+                "calc(7.5rem + env(safe-area-inset-bottom) + 16px)",
             }}
           >
             <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
@@ -2203,6 +2250,7 @@ function PlanRevealScreen({ onNext }) {
               <br />
               <span className="text-[#E65473]">{goalTitle}</span> is ready.
             </h1>
+
             <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
               {formatRichText(timelineCopy.subtitle)}
             </p>
@@ -2232,10 +2280,17 @@ function PlanRevealScreen({ onNext }) {
             <div className="h-6" />
           </div>
 
-          <div className="shrink-0 px-6 pt-4 pb-[calc(env(safe-area-inset-bottom)+16px)] z-30 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
+          {/* ✅ Sticky footer CTA (always visible on small screens) */}
+          <div
+            className="shrink-0 z-20 px-6 pt-4"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
+            }}
+          >
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black via-black/80 to-transparent" />
             <button
               onClick={onNext}
-              className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+              className={`relative w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
             >
               {timelineCopy.cta}
             </button>
@@ -2263,6 +2318,7 @@ function usePaywallChrome(color = "#0A0A10") {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Desktop should not mutate global chrome; keep it scoped to mobile.
     if (window.matchMedia("(min-width: 768px)").matches) return;
 
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -2418,22 +2474,10 @@ const getReviewsForGoal = (goalTitle) => {
 };
 
 const FEATURES = [
-  {
-    icon: <Brain size={28} className="text-white" />,
-    text: "AI coach that adapts daily",
-  },
-  {
-    icon: <Timer size={28} className="text-white" />,
-    text: "5-minute personalized routines",
-  },
-  {
-    icon: <Play size={28} className="text-white" fill="white" />,
-    text: "300+ physio-approved videos",
-  },
-  {
-    icon: <Activity size={28} className="text-white" />,
-    text: "Trackable progress & streaks",
-  },
+  { icon: <Brain size={28} className="text-white" />, text: "AI coach that adapts daily" },
+  { icon: <Timer size={28} className="text-white" />, text: "5-minute personalized routines" },
+  { icon: <Play size={28} className="text-white" fill="white" />, text: "300+ physio-approved videos" },
+  { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" },
 ];
 
 const CheckoutForm = ({ onClose }) => {
@@ -2499,6 +2543,7 @@ const CheckoutForm = ({ onClose }) => {
       </div>
 
       <div className="flex flex-col gap-4">
+        {/* credential thingy removed on DESKTOP ONLY; mobile stays the same */}
         <div className="text-white md:hidden">
           <LinkAuthenticationElement
             id="link-authentication-element"
@@ -2559,12 +2604,16 @@ const RestoreModal = ({ onClose }) => {
         if (data.customerName) saveUserData("name", data.customerName);
         router.push("https://pelvi.health/dashboard");
       } else {
-        alert("We found your email, but no active subscription was detected.");
+        alert(
+          "We found your email, but no active subscription was detected."
+        );
         setIsLoading(false);
       }
     } catch (err) {
       console.error(err);
-      alert("Unable to verify purchase. Please check your internet connection.");
+      alert(
+        "Unable to verify purchase. Please check your internet connection."
+      );
       setIsLoading(false);
     }
   };
@@ -2768,7 +2817,7 @@ function PaywallScreen() {
 
       <div
         className={`
-          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6 overscroll-contain
+          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6
           pt-[calc(env(safe-area-inset-top)+3rem)]
           pb-[calc(9rem+env(safe-area-inset-bottom))]
           transition-all duration-700
@@ -2960,6 +3009,7 @@ function PaywallScreen() {
         </p>
       </div>
 
+      {/* Stripe overlay (contain on desktop phone preview) */}
       {showCheckoutModal && clientSecret && (
         <div
           className="fixed md:absolute inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
@@ -2976,9 +3026,7 @@ function PaywallScreen() {
         </div>
       )}
 
-      {showRestoreModal && (
-        <RestoreModal onClose={() => setShowRestoreModal(false)} />
-      )}
+      {showRestoreModal && <RestoreModal onClose={() => setShowRestoreModal(false)} />}
     </div>
   );
 }
@@ -3005,48 +3053,6 @@ const Star = ({ size, fill }) => (
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState("welcome");
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const mq = window.matchMedia("(min-width: 768px)");
-    let locked = false;
-    let prevHtmlOverflow = "";
-    let prevBodyOverflow = "";
-
-    const lock = () => {
-      if (locked) return;
-      prevHtmlOverflow = document.documentElement.style.overflow || "";
-      prevBodyOverflow = document.body.style.overflow || "";
-      document.documentElement.style.overflow = "hidden";
-      document.body.style.overflow = "hidden";
-      locked = true;
-    };
-
-    const unlock = () => {
-      if (!locked) return;
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-      locked = false;
-    };
-
-    const apply = () => {
-      if (mq.matches) lock();
-      else unlock();
-    };
-
-    apply();
-
-    const onChange = () => apply();
-    if (mq.addEventListener) mq.addEventListener("change", onChange);
-    else mq.addListener(onChange);
-
-    return () => {
-      if (mq.removeEventListener) mq.removeEventListener("change", onChange);
-      else mq.removeListener(onChange);
-      unlock();
-    };
-  }, []);
-
   const handleNext = (nextStep) => {
     setCurrentStep(nextStep);
   };
@@ -3067,7 +3073,12 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:fixed md:inset-0 md:h-[100dvh] md:overflow-hidden md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:px-10 md:pt-12 md:items-start">
+    // ✅ FIXED:
+    // - Desktop wrapper does NOT scroll (card never moves)
+    // - Scroll happens only INSIDE screens (inside card)
+    // - Mobile stays unchanged
+    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:h-[100dvh] md:px-10 md:pt-10 md:pb-10 md:items-start md:overflow-hidden">
+      {/* DESKTOP BACKGROUND (keeps mobile identical) */}
       <div className="hidden md:block absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/60 rounded-full blur-[120px]" />
         <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-rose-100/70 rounded-full blur-[120px]" />
@@ -3081,12 +3092,12 @@ export default function Onboarding() {
 
       <div
         className="
-          relative z-10
-          w-full h-full
-          md:w-[900px] md:max-w-[calc(100vw-80px)]
-          md:h-[850px] md:max-h-[calc(100dvh-160px)]
-          bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
-        "
+        relative z-10
+        w-full h-full 
+        md:w-[900px] md:max-w-[900px]
+        md:h-[850px] md:max-h-[90dvh]
+        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
+      "
       >
         <Screen />
       </div>
