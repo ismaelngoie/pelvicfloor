@@ -1644,58 +1644,6 @@ const LiveCommunitySidebar = () => {
   );
 };
 
-const AuthoritySidebar = () => {
-  return (
-    <div className="hidden md:flex flex-col justify-center w-64 fixed right-10 top-1/2 -translate-y-1/2 gap-6 z-0">
-      
-      {/* Badge 1 */}
-      <div className="bg-white/60 backdrop-blur-md p-5 rounded-3xl shadow-sm border border-white/50 flex flex-col items-center text-center">
-        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mb-3">
-          <Shield size={24} />
-        </div>
-        <h4 className="font-bold text-slate-800 text-sm">Physio Approved</h4>
-        <p className="text-xs text-slate-500 mt-1">Clinically designed routines for safety.</p>
-      </div>
-
-      {/* Quote */}
-      <div className="bg-white/60 backdrop-blur-md p-5 rounded-3xl shadow-sm border border-white/50 relative">
-        <div className="absolute -top-3 -left-2 text-4xl text-rose-300 font-serif leading-none">“</div>
-        <p className="text-sm font-medium text-slate-700 italic relative z-10 leading-relaxed">
-          The most effective non-surgical method for pelvic strengthening I've seen.
-        </p>
-        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
-           <div className="w-8 h-8 bg-gray-200 rounded-full overflow-hidden">
-             <img src="/coachMiaAvatar.png" className="w-full h-full object-cover" alt="Dr"/>
-           </div>
-           <div>
-             <p className="text-xs font-bold text-slate-900">Dr. A. Thompson</p>
-             <p className="text-[10px] text-slate-500">Pelvic Health Specialist</p>
-           </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="bg-white/60 backdrop-blur-md p-4 rounded-3xl shadow-sm border border-white/50 flex items-center justify-between">
-         <div className="text-center">
-            <p className="text-lg font-bold text-slate-900">10k+</p>
-            <p className="text-[10px] text-slate-500">Women</p>
-         </div>
-         <div className="h-8 w-px bg-slate-200"></div>
-         <div className="text-center">
-            <p className="text-lg font-bold text-slate-900">4.9</p>
-            <p className="text-[10px] text-slate-500">Rating</p>
-         </div>
-         <div className="h-8 w-px bg-slate-200"></div>
-         <div className="text-center">
-            <p className="text-lg font-bold text-slate-900">100%</p>
-            <p className="text-[10px] text-slate-500">Safe</p>
-         </div>
-      </div>
-
-    </div>
-  );
-};
-
 // ==========================================
 // MAIN EXPORT: ONBOARDING FLOW MANAGER
 // ==========================================
@@ -1724,13 +1672,14 @@ export default function Onboarding() {
 
   return (
     // WRAPPER: Handles the "Desktop Card" vs "Mobile Full" logic
-    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-rose-50 via-white to-blue-50 md:py-10 relative overflow-hidden">
+    // Changed gradient to be symmetrical on left and right
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-rose-50 via-white to-rose-50 md:py-10 relative overflow-hidden">
       
       {/* Desktop Background Elements (Hidden on Mobile) */}
       <div className="hidden md:block absolute inset-0 z-0">
          <DesktopButterflyBackground />
          <LiveCommunitySidebar />
-         <AuthoritySidebar />
+         {/* AuthoritySidebar removed as requested */}
       </div>
 
       <div
