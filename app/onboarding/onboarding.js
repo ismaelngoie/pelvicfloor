@@ -222,7 +222,6 @@ const reviews = [
 ];
 
 // --- FULL SCREEN BUTTERFLY BACKGROUND ---
-// Changed to absolute so it stays inside the desktop card container
 const ButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
@@ -1194,7 +1193,7 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      {/* Chat History Area (fix: min-h-0) */}
+      {/* Chat History Area */}
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
         {history.map((msg, index) => (
           <ChatBubble
@@ -1237,7 +1236,6 @@ function PersonalIntakeScreen({ onNext }) {
 // ==========================================
 
 const THEME_REVEAL = {
-  // added (fix): used in render
   bg: "bg-app-background",
   text: "text-slate-900",
 
@@ -1410,14 +1408,12 @@ const getHelperCopy = (selected, goal) => {
 };
 
 const getPersonalizingCopy = (goal, name) => {
-  const safeName = name || "there";
   const map = {
     "Improve Intimacy": {
       title: `Designing your intimacy plan`,
       subtitle: "Comfort, sensation, confidence—gently built for your body.",
       connecting: "Checking your profile for arousal flow and comfort…",
-      calibrating:
-        "Balancing relax/contract patterns for stronger orgasms…",
+      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
       checklist: [
         "Comfort-first warmups",
         "Relax/contract patterns",
@@ -1429,8 +1425,7 @@ const getPersonalizingCopy = (goal, name) => {
       title: "Personalizing your leak-control plan",
       subtitle: "Train reflexes so sneezes and laughs don’t own your day.",
       connecting: "Mapping urge delays and quick-contract sets…",
-      calibrating:
-        "Dialing breath and pressure control for real-life moments…",
+      calibrating: "Dialing breath and pressure control for real-life moments…",
       checklist: [
         "Urge-delay reflex training",
         "Fast-twitch squeezes",
@@ -1801,6 +1796,13 @@ const HolographicTimeline = () => {
   );
 };
 
+/**
+ * ✅ UPDATED PlanRevealScreen:
+ * - Phase 3 (timeline) is scrollable on ALL screens
+ * - CTA is pinned (fixed on mobile, absolute in desktop card)
+ * - Extra padding so content never hides behind pinned CTA
+ * - Phase 2 also scroll-safe on tiny heights
+ */
 function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
   const [phase, setPhase] = useState("askingHealthInfo");
@@ -1902,7 +1904,7 @@ function PlanRevealScreen({ onNext }) {
     setTimeout(() => setPhase("showingTimeline"), 1200);
   };
 
-  // --- Phase 3 logic ---
+  // --- Phase 3 helpers ---
   const calculateBMI = () => {
     if (!userDetails?.weight || !userDetails?.height) return "22.5";
     const h = userDetails.height * 0.0254;
@@ -1946,9 +1948,6 @@ function PlanRevealScreen({ onNext }) {
     });
   };
 
-  // Root:
-  // - ALWAYS full-height (no min-h-screen phantom scroll)
-  // - allow dark phases to visually cover top/bottom padding bands inside RootLayout on mobile (like Paywall)
   return (
     <div
       className={`
@@ -2142,72 +2141,77 @@ function PlanRevealScreen({ onNext }) {
 
       {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
       {phase === "personalizing" && (
-        <div
-          className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000"
-          style={{
-            paddingTop: "env(safe-area-inset-top)",
-            paddingBottom: "env(safe-area-inset-bottom)",
-          }}
-        >
+        <div className="relative w-full h-full bg-black overflow-hidden animate-in fade-in duration-1000">
+          {/* Scrollable center content */}
           <div
-            className={`transition-all duration-500 ${
-              showChecklist
-                ? "scale-75 -translate-y-8 opacity-0"
-                : "scale-100 opacity-100"
-            }`}
+            className="flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col items-center justify-center px-8"
+            style={{
+              paddingTop: "env(safe-area-inset-top)",
+              // leave room for pinned progress footer
+              paddingBottom: "calc(140px + env(safe-area-inset-bottom))",
+            }}
           >
-            <AICoreView />
+            <div
+              className={`transition-all duration-500 ${
+                showChecklist
+                  ? "scale-75 -translate-y-8 opacity-0"
+                  : "scale-100 opacity-100"
+              }`}
+            >
+              <AICoreView />
+            </div>
+
+            {!showChecklist && (
+              <div className="mt-12 text-center h-20 px-4">
+                <h2
+                  className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME_REVEAL.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}
+                >
+                  <TypewriterText
+                    key={personalizingStatus}
+                    text={personalizingStatus}
+                  />
+                </h2>
+              </div>
+            )}
+
+            {showChecklist && (
+              <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
+                <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">
+                  {personalizingCopy.title}
+                </h2>
+                <p className="text-center text-gray-400 text-sm mb-6">
+                  {personalizingCopy.subtitle}
+                </p>
+                <div className="space-y-3">
+                  {personalizingCopy.checklist.map((item, idx) => (
+                    <ChecklistItem
+                      key={idx}
+                      text={item}
+                      delay={idx * 800}
+                      onComplete={
+                        idx === personalizingCopy.checklist.length - 1
+                          ? onChecklistComplete
+                          : undefined
+                      }
+                    />
+                  ))}
+                </div>
+                <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
+                  {progressPercent === 100
+                    ? "Ready!"
+                    : "Fine-tuning for: " +
+                      (personalizingCopy.checklist[
+                        Math.min(3, Math.floor(progressPercent / 25))
+                      ] || "Results")}
+                </div>
+              </div>
+            )}
           </div>
 
-          {!showChecklist && (
-            <div className="mt-12 text-center h-20 px-4">
-              <h2
-                className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME_REVEAL.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}
-              >
-                <TypewriterText
-                  key={personalizingStatus}
-                  text={personalizingStatus}
-                />
-              </h2>
-            </div>
-          )}
-
-          {showChecklist && (
-            <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
-              <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">
-                {personalizingCopy.title}
-              </h2>
-              <p className="text-center text-gray-400 text-sm mb-6">
-                {personalizingCopy.subtitle}
-              </p>
-              <div className="space-y-3">
-                {personalizingCopy.checklist.map((item, idx) => (
-                  <ChecklistItem
-                    key={idx}
-                    text={item}
-                    delay={idx * 800}
-                    onComplete={
-                      idx === personalizingCopy.checklist.length - 1
-                        ? onChecklistComplete
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
-              <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
-                {progressPercent === 100
-                  ? "Ready!"
-                  : "Fine-tuning for: " +
-                    (personalizingCopy.checklist[
-                      Math.min(3, Math.floor(progressPercent / 25))
-                    ] || "Results")}
-              </div>
-            </div>
-          )}
-
+          {/* Pinned progress footer */}
           <div
-            className="absolute bottom-8 left-0 w-full px-8"
-            style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+            className="fixed md:absolute bottom-0 left-0 w-full px-8 z-30"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
           >
             <div className="flex justify-between items-end mb-2">
               <span className="text-white/60 font-medium text-sm">
@@ -2236,55 +2240,68 @@ function PlanRevealScreen({ onNext }) {
 
       {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === "showingTimeline" && (
-        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
+        <div className="relative w-full h-full bg-black overflow-hidden animate-in fade-in duration-1000">
+          {/* Scrollable content */}
           <div
-            className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0"
+            className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6"
             style={{
               paddingTop: "calc(env(safe-area-inset-top) + 24px)",
-              paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
+              // leave room so CTA never covers bottom content
+              paddingBottom: "calc(110px + env(safe-area-inset-bottom))",
             }}
           >
-            <div>
-              <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">
-                  {userDetails?.name || "Your"} path to
-                </span>
-                <br />
-                <span className="text-[#E65473]">{goalTitle}</span> is ready.
-              </h1>
-              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
-                {formatRichText(timelineCopy.subtitle)}
-              </p>
-              <HolographicTimeline />
-              <div className="mt-4 space-y-3">
-                <h3 className="text-[16px] font-semibold text-white mb-1">
-                  Your Personal Insights
-                </h3>
-                {timelineCopy.insights.map((insight, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700"
-                    style={{ animationDelay: `${idx * 150}ms` }}
-                  >
-                    <div className="mt-0.5 text-[#E65473] shrink-0">
-                      <Sparkles size={18} />
-                    </div>
-                    <p className="text-[13px] leading-snug text-white/90">
-                      {formatRichText(insight)}
-                    </p>
+            <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
+              <span className="text-white/90">
+                {userDetails?.name || "Your"} path to
+              </span>
+              <br />
+              <span className="text-[#E65473]">{goalTitle}</span> is ready.
+            </h1>
+
+            <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
+              {formatRichText(timelineCopy.subtitle)}
+            </p>
+
+            <HolographicTimeline />
+
+            <div className="mt-4 space-y-3">
+              <h3 className="text-[16px] font-semibold text-white mb-1">
+                Your Personal Insights
+              </h3>
+
+              {timelineCopy.insights.map((insight, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700"
+                  style={{ animationDelay: `${idx * 150}ms` }}
+                >
+                  <div className="mt-0.5 text-[#E65473] shrink-0">
+                    <Sparkles size={18} />
                   </div>
-                ))}
-              </div>
+                  <p className="text-[13px] leading-snug text-white/90">
+                    {formatRichText(insight)}
+                  </p>
+                </div>
+              ))}
             </div>
 
-            <div className="mt-4">
-              <button
-                onClick={onNext}
-                className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
-              >
-                {timelineCopy.cta}
-              </button>
-            </div>
+            <div className="h-8" />
+          </div>
+
+          {/* Pinned CTA footer (always visible / reachable) */}
+          <div
+            className="
+              fixed md:absolute bottom-0 left-0 w-full z-30 px-6 pt-4
+              pb-[calc(env(safe-area-inset-bottom)+16px)]
+              bg-gradient-to-t from-black/95 via-black/70 to-transparent
+            "
+          >
+            <button
+              onClick={onNext}
+              className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+            >
+              {timelineCopy.cta}
+            </button>
           </div>
         </div>
       )}
@@ -2534,7 +2551,6 @@ const CheckoutForm = ({ onClose }) => {
       </div>
 
       <div className="flex flex-col gap-4">
-        {/* credential thingy removed on DESKTOP ONLY; mobile stays the same */}
         <div className="text-white md:hidden">
           <LinkAuthenticationElement
             id="link-authentication-element"
@@ -2595,16 +2611,12 @@ const RestoreModal = ({ onClose }) => {
         if (data.customerName) saveUserData("name", data.customerName);
         router.push("https://pelvi.health/dashboard");
       } else {
-        alert(
-          "We found your email, but no active subscription was detected."
-        );
+        alert("We found your email, but no active subscription was detected.");
         setIsLoading(false);
       }
     } catch (err) {
       console.error(err);
-      alert(
-        "Unable to verify purchase. Please check your internet connection."
-      );
+      alert("Unable to verify purchase. Please check your internet connection.");
       setIsLoading(false);
     }
   };
@@ -2800,9 +2812,7 @@ function PaywallScreen() {
         </video>
 
         <div className="absolute inset-0 bg-black/30" />
-
         <div className="absolute top-0 inset-x-0 h-[calc(env(safe-area-inset-top)+64px)] bg-gradient-to-b from-[#0A0A10]/85 to-transparent" />
-
         <div className="absolute bottom-0 inset-x-0 h-[calc(env(safe-area-inset-bottom)+2px)] bg-gradient-to-t from-[#0A0A10]/95 via-[#0A0A10]/75 to-transparent" />
       </div>
 
@@ -3000,7 +3010,7 @@ function PaywallScreen() {
         </p>
       </div>
 
-      {/* Stripe overlay (contain on desktop phone preview) */}
+      {/* Stripe overlay */}
       {showCheckoutModal && clientSecret && (
         <div
           className="fixed md:absolute inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
@@ -3017,7 +3027,9 @@ function PaywallScreen() {
         </div>
       )}
 
-      {showRestoreModal && <RestoreModal onClose={() => setShowRestoreModal(false)} />}
+      {showRestoreModal && (
+        <RestoreModal onClose={() => setShowRestoreModal(false)} />
+      )}
     </div>
   );
 }
@@ -3078,13 +3090,15 @@ export default function Onboarding() {
 
       <LiveCommunitySidebar />
 
+      {/* ✅ DESKTOP CARD WIDTH UPDATED TO 900PX */}
       <div
         className="
-        relative z-10
-        w-full h-full 
-        md:w-[420px] md:max-w-[420px] md:h-[850px] md:max-h-[90dvh]
-        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
-      "
+          relative z-10
+          w-full h-full 
+          md:w-[900px] md:max-w-[900px]
+          md:h-[850px] md:max-h-[90dvh]
+          bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
+        "
       >
         <Screen />
       </div>
