@@ -2556,7 +2556,7 @@ const CheckoutForm = ({ onClose }) => {
 
   <div className="mb-6">
     <h3 className="text-xl font-bold text-white mb-1">Join 10,243+ women strengthening their pelvic floor</h3>
-    <p className="text-sm text-white/50">Total due: $24.99 / month</p>
+    <p className="text-sm text-white/50">Total due: $14.99 / month</p>
   </div>
 
   <div className="flex flex-col gap-4">
@@ -2796,7 +2796,7 @@ function PaywallScreen() {
 
   const getCtaSubtext = () => {
     if (!dateString) return "";
-    return `Feel real progress by ${dateString}. If not, one tap full $24.99 refund.`;
+    return `Feel real progress by ${dateString}. If not, one tap full $14.99 refund.`;
   };
 
   return (
