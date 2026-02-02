@@ -258,7 +258,7 @@ const DashboardHeader = ({ name, greeting, onProfileClick }) => {
     const interval = setInterval(() => {
       setLiveCount((prev) => {
         const next = prev + (Math.random() > 0.5 ? 1 : -1);
-        return Math.max(80, Math.min(260, next)); // clamp to keep it realistic
+        return Math.max(80, Math.min(260, next));
       });
     }, 5000);
     return () => clearInterval(interval);
@@ -286,7 +286,7 @@ const DashboardHeader = ({ name, greeting, onProfileClick }) => {
         </div>
       </div>
 
-      {/* Profile Button */}
+      {/* Profile Button (KEEP THIS ONE) */}
       <button
         onClick={onProfileClick}
         className="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-white group relative hover:scale-105 transition-transform active:scale-95"
@@ -294,6 +294,41 @@ const DashboardHeader = ({ name, greeting, onProfileClick }) => {
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
         <img src="/coachMiaAvatar.png" className="w-full h-full object-cover" alt="Profile" />
       </button>
+    </div>
+  );
+};
+
+// --- COOL DESKTOP ORB (replaces duplicate avatar in sidebar top bar) ---
+const DesktopStatusOrb = ({ themeColor, completedToday }) => {
+  const dotColor = completedToday ? "#10B981" : themeColor;
+  const Icon = completedToday ? Trophy : Zap;
+
+  return (
+    <div className="relative">
+      <div
+        className="w-11 h-11 rounded-full p-[2px] shadow-lg"
+        style={{
+          background: `conic-gradient(from 180deg, ${themeColor}, rgba(255,255,255,0.35), ${themeColor})`,
+        }}
+      >
+        <div className="w-full h-full rounded-full bg-white flex items-center justify-center border border-white/60">
+          <div
+            className="relative w-7 h-7 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: `${themeColor}12` }}
+          >
+            <Icon size={16} style={{ color: themeColor }} />
+
+            {/* status dot */}
+            <div className="absolute -top-0.5 -right-0.5 w-2 h-2">
+              <span
+                className="absolute inset-0 rounded-full opacity-60 animate-ping"
+                style={{ backgroundColor: dotColor }}
+              />
+              <span className="absolute inset-0 rounded-full" style={{ backgroundColor: dotColor }} />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -442,7 +477,6 @@ const CoachTipCard = ({ goalColor, userGoal }) => {
       </div>
       <div className="flex-1">
         <p className="text-xs font-bold text-[#737380] uppercase tracking-wide mb-0.5">Coach Tip</p>
-        {/* key={index} forces the fade-in to restart cleanly when tip changes */}
         <p key={index} className="text-sm font-medium text-[#1A1A26] leading-snug animate-fade-in">
           {Tip.text}
         </p>
@@ -528,7 +562,7 @@ const StreakWidget = ({ streak, completedToday }) => {
   );
 };
 
-// --- REUSABLE: DAILY ROUTINE CARD (mobile unchanged, desktop gets premium sizing) ---
+// --- REUSABLE: DAILY ROUTINE CARD ---
 const DailyRoutineCard = ({
   routineData,
   userGoal,
@@ -537,7 +571,7 @@ const DailyRoutineCard = ({
   completedToday,
   previewVideoUrl,
   onClick,
-  variant = "mobile", // "mobile" | "desktop"
+  variant = "mobile",
 }) => {
   const isDesktop = variant === "desktop";
 
@@ -551,11 +585,16 @@ const DailyRoutineCard = ({
       ].join(" ")}
       style={{ animationDelay: isDesktop ? "80ms" : "100ms" }}
     >
-      {/* Subtle premium glow */}
       {isDesktop && (
         <>
-          <div className="absolute -top-20 -right-20 w-56 h-56 rounded-full blur-[70px] opacity-30" style={{ background: themeColor }} />
-          <div className="absolute -bottom-24 -left-24 w-56 h-56 rounded-full blur-[80px] opacity-20" style={{ background: themeColor }} />
+          <div
+            className="absolute -top-20 -right-20 w-56 h-56 rounded-full blur-[70px] opacity-30"
+            style={{ background: themeColor }}
+          />
+          <div
+            className="absolute -bottom-24 -left-24 w-56 h-56 rounded-full blur-[80px] opacity-20"
+            style={{ background: themeColor }}
+          />
         </>
       )}
 
@@ -668,14 +707,11 @@ const DailyRoutineCard = ({
           </div>
         </div>
 
-        {/* Desktop: subtle “Up next” preview */}
         {isDesktop && Array.isArray(routineData?.videos) && routineData.videos.length > 0 && (
           <div className="mt-6 hidden lg:block">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#737380]">Up next</p>
-              <p className="text-[11px] font-semibold text-[#737380]">
-                {routineData.videos.length} videos
-              </p>
+              <p className="text-[11px] font-semibold text-[#737380]">{routineData.videos.length} videos</p>
             </div>
             <div className="flex gap-2">
               {routineData.videos.slice(0, 3).map((v, i) => (
@@ -683,12 +719,8 @@ const DailyRoutineCard = ({
                   key={i}
                   className="flex-1 rounded-2xl border border-[#EBEBF0] bg-white/60 backdrop-blur-md px-3 py-2"
                 >
-                  <p className="text-[12px] font-bold text-[#1A1A26] truncate">
-                    {v?.title || `Exercise ${i + 1}`}
-                  </p>
-                  <p className="text-[11px] text-[#737380] truncate">
-                    {v?.duration ? `${v.duration}` : "Guided movement"}
-                  </p>
+                  <p className="text-[12px] font-bold text-[#1A1A26] truncate">{v?.title || `Exercise ${i + 1}`}</p>
+                  <p className="text-[11px] text-[#737380] truncate">{v?.duration ? `${v.duration}` : "Guided movement"}</p>
                 </div>
               ))}
             </div>
@@ -713,22 +745,18 @@ const DesktopDashboardShell = ({
   onStartSession,
   onOpenProfile,
 }) => {
-  const formattedJoinDate = useMemo(() => {
-    const jd = routineData?.joinDate;
-    if (!jd) return null;
-    try {
-      return new Date(jd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    } catch {
-      return null;
-    }
-  }, [routineData]);
-
   return (
     <div className="hidden md:block h-[100dvh] w-full overflow-hidden bg-[#FAF9FA]">
       {/* Background polish */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-48 left-1/2 -translate-x-1/2 w-[900px] h-[450px] rounded-full blur-[90px] opacity-[0.10]" style={{ background: themeColor }} />
-        <div className="absolute bottom-[-200px] right-[-200px] w-[520px] h-[520px] rounded-full blur-[100px] opacity-[0.08]" style={{ background: themeColor }} />
+        <div
+          className="absolute -top-48 left-1/2 -translate-x-1/2 w-[900px] h-[450px] rounded-full blur-[90px] opacity-[0.10]"
+          style={{ background: themeColor }}
+        />
+        <div
+          className="absolute bottom-[-200px] right-[-200px] w-[520px] h-[520px] rounded-full blur-[100px] opacity-[0.08]"
+          style={{ background: themeColor }}
+        />
       </div>
 
       <div className="relative h-full max-w-7xl mx-auto px-8 py-8">
@@ -748,12 +776,8 @@ const DesktopDashboardShell = ({
                   </div>
                 </div>
 
-                <button
-                  onClick={onOpenProfile}
-                  className="w-11 h-11 rounded-full overflow-hidden border border-white shadow-lg hover:scale-105 transition-transform"
-                >
-                  <img src="/coachMiaAvatar.png" alt="Profile" className="w-full h-full object-cover" />
-                </button>
+                {/* ✅ REPLACED DUPLICATE AVATAR WITH A COOL STATUS ORB */}
+                <DesktopStatusOrb themeColor={themeColor} completedToday={completedToday} />
               </div>
 
               <div className="mt-6">
@@ -762,7 +786,7 @@ const DesktopDashboardShell = ({
 
               {/* Goal pill */}
               <div className="mt-5 flex items-center gap-2">
-                <div className={`h-9 px-3 rounded-full bg-white border border-[#EBEBF0] shadow-sm flex items-center gap-2`}>
+                <div className="h-9 px-3 rounded-full bg-white border border-[#EBEBF0] shadow-sm flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: themeColor }} />
                   <span className="text-[12px] font-bold text-[#1A1A26]">Focus:</span>
                   <span className="text-[12px] font-semibold text-[#737380] truncate max-w-[240px]">{userGoal}</span>
@@ -793,9 +817,7 @@ const DesktopDashboardShell = ({
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-[#737380]">Today</p>
-                  <h2 className="text-3xl font-extrabold text-[#1A1A26] tracking-tight mt-1">
-                    Your 5-minute plan
-                  </h2>
+                  <h2 className="text-3xl font-extrabold text-[#1A1A26] tracking-tight mt-1">Your 5-minute plan</h2>
                   <p className="text-[14px] text-[#737380] mt-2 max-w-xl leading-relaxed">
                     Built around your goal and progress. Consistency is what creates the “wow” results.
                   </p>
@@ -811,7 +833,6 @@ const DesktopDashboardShell = ({
 
             {/* Main Scroll */}
             <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-10 py-10 space-y-8">
-              {/* Hero card */}
               <DailyRoutineCard
                 routineData={routineData}
                 userGoal={userGoal}
@@ -823,7 +844,6 @@ const DesktopDashboardShell = ({
                 variant="desktop"
               />
 
-              {/* Premium “insights” strip */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-[28px] border border-[#EBEBF0] bg-[#FAF9FA] p-6">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-[#737380]">Streak</p>
@@ -848,7 +868,6 @@ const DesktopDashboardShell = ({
                 </div>
               </div>
 
-              {/* Secondary section (optional future content hook) */}
               <div className="rounded-[36px] border border-[#EBEBF0] p-8 bg-white">
                 <div className="flex items-start justify-between mb-5">
                   <div>
@@ -945,7 +964,6 @@ export default function DashboardPage() {
     }
   }, [userDetails]);
 
-  // Actions
   const handleProgressMarked = () => {
     if (completedToday) return;
 
@@ -980,7 +998,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen md:h-[100dvh] bg-[#FAF9FA] overflow-x-hidden relative md:overflow-hidden">
-      {/* Player Overlay */}
       {showPlayer && routineData && (
         <DailyRoutinePlayer
           playlist={routineData.videos}
@@ -989,7 +1006,6 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Profile Modal Overlay */}
       {showProfileModal && (
         <ProfileSettingsModal
           onClose={() => setShowProfileModal(false)}
@@ -1016,9 +1032,7 @@ export default function DashboardPage() {
           />
 
           <StreakWidget streak={streak} completedToday={completedToday} />
-
           <WeeklyProgressGraph streak={streak} goalColor={themeColor} isTodayDone={completedToday} />
-
           <CoachTipCard goalColor={themeColor} userGoal={userGoal} />
 
           <div className="pt-4">
@@ -1027,7 +1041,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ✅ DESKTOP (NEW “million-dollar” split shell) */}
+      {/* ✅ DESKTOP */}
       <DesktopDashboardShell
         userName={userName}
         userGoal={userGoal}
