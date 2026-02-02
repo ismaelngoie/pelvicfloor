@@ -1022,17 +1022,19 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // CHANGED: Reduced height from h-[220px] to h-[160px] to fit small screens
+  // CHANGED: Reduced padding-y on the scroller from py-[83px] to py-[53px] (approx half height - half item)
   return (
-    <div className="relative h-[220px] w-full max-w-[320px] mx-auto overflow-hidden mt-2">
+    <div className="relative h-[160px] w-full max-w-[320px] mx-auto overflow-hidden mt-2">
       <div className="absolute top-1/2 left-0 w-full h-[54px] -translate-y-1/2 border-t-2 border-b-2 border-app-primary/10 bg-app-primary/5 pointer-events-none z-10" />
 
-      <div className="absolute top-0 left-0 w-full h-[80px] bg-gradient-to-b from-white via-white/90 to-transparent z-20 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-[80px] bg-gradient-to-t from-white via-white/90 to-transparent z-20 pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-[50px] bg-gradient-to-b from-white via-white/90 to-transparent z-20 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-[50px] bg-gradient-to-t from-white via-white/90 to-transparent z-20 pointer-events-none" />
 
       <div
         ref={scrollerRef}
         onScroll={handleScroll}
-        className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar py-[83px]"
+        className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar py-[53px]"
       >
         {range.map((num) => (
           <div
@@ -1063,7 +1065,6 @@ function PersonalIntakeScreen({ onNext }) {
   const [isTyping, setIsTyping] = useState(false);
   const [history, setHistory] = useState([]);
   
-  // Ref for the chat container
   const scrollContainerRef = useRef(null); 
 
   const [name, setName] = useState("");
@@ -1144,7 +1145,8 @@ function PersonalIntakeScreen({ onNext }) {
   const renderInput = () => {
     if (isTyping)
       return (
-        <div className="h-[220px] flex items-center justify-center text-app-textSecondary/50 text-sm animate-pulse">
+        // CHANGED: Reduced typing height placeholder to match new picker
+        <div className="h-[160px] flex items-center justify-center text-app-textSecondary/50 text-sm animate-pulse">
           Mia is thinking...
         </div>
       );
@@ -1152,7 +1154,8 @@ function PersonalIntakeScreen({ onNext }) {
     switch (step) {
       case "name":
         return (
-          <div className="w-full animate-slide-up py-10">
+          // CHANGED: Reduced vertical padding from py-10 to py-6
+          <div className="w-full animate-slide-up py-6">
             <input
               type="text"
               value={name}
@@ -1197,9 +1200,6 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      {/* 1. Flex-1 allows this top area to shrink when the bottom grows.
-         2. min-h-0 is crucial to allow flex items to shrink below their content size.
-      */}
       <div 
         ref={scrollContainerRef}
         className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col"
@@ -1216,11 +1216,14 @@ function PersonalIntakeScreen({ onNext }) {
         <div className="h-4" />
       </div>
 
-      {/* FIX: Added `shrink-0` to ensure this section is never cut off.
-         We keep z-20 so it sits on top of any scrolling content.
+      {/* CHANGED: 
+          1. Reduced padding-bottom from pb-10 to pb-6
+          2. Reduced padding-x from p-6 to px-5 (slimmer on edges)
+          3. Added pt-5 (slightly tighter top padding)
       */}
-      <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20 shrink-0">
-        <div className="mb-6">
+      <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] px-5 pt-5 pb-6 z-20 shrink-0">
+        {/* CHANGED: Reduced margin-bottom from mb-6 to mb-4 */}
+        <div className="mb-4">
           {renderInput()}
         </div>
 
