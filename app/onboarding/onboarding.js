@@ -994,6 +994,7 @@ const ChatBubble = ({ text, isTyping, isUser }) => (
   </div>
 );
 
+// ✅ UPDATED RESPONSIVE WheelPicker (paste this over your existing WheelPicker)
 const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
   const scrollerRef = useRef(null);
   const ITEM_HEIGHT = 54;
@@ -1029,10 +1030,10 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
         h-[180px] sm:h-[220px]
       "
     >
-      {/* center highlight */}
+      {/* Center highlight */}
       <div className="absolute top-1/2 left-0 w-full h-[54px] -translate-y-1/2 border-t-2 border-b-2 border-app-primary/10 bg-app-primary/5 pointer-events-none z-10" />
 
-      {/* fades (shorter on tiny screens) */}
+      {/* Fades (shorter on tiny screens) */}
       <div className="absolute top-0 left-0 w-full h-[60px] sm:h-[80px] bg-gradient-to-b from-white via-white/90 to-transparent z-20 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-[60px] sm:h-[80px] bg-gradient-to-t from-white via-white/90 to-transparent z-20 pointer-events-none" />
 
@@ -1067,6 +1068,7 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
   );
 };
 
+// ✅ COMPLETE PersonalIntakeScreen (.js)
 function PersonalIntakeScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
 
@@ -1074,11 +1076,11 @@ function PersonalIntakeScreen({ onNext }) {
   const [isTyping, setIsTyping] = useState(false);
   const [history, setHistory] = useState([]);
 
-  // ✅ Scroll ONLY the chat container (never window)
-  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  // Scroll container ref (scroll this, never window)
+  const chatScrollRef = useRef(null);
 
-  // ✅ Manual desktop-only focus (no mobile viewport jump)
-  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  // Name input ref (manual focus on desktop only)
+  const nameInputRef = useRef(null);
 
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
@@ -1089,28 +1091,28 @@ function PersonalIntakeScreen({ onNext }) {
   const copy =
     MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
-  // ✅ Autoscroll the CHAT container itself
-  const scrollChatToBottom = (behavior: ScrollBehavior = "smooth") => {
+  // Scroll chat container to bottom (no scrollIntoView)
+  const scrollChatToBottom = (behavior = "smooth") => {
     const el = chatScrollRef.current;
     if (!el) return;
 
     requestAnimationFrame(() => {
       try {
         el.scrollTo({ top: el.scrollHeight, behavior });
-      } catch {
+      } catch (e) {
         el.scrollTop = el.scrollHeight;
       }
     });
   };
 
-  // Keep chat pinned to bottom when messages / typing change
+  // Auto-scroll when messages/typing change
   useEffect(() => {
-    const behavior: ScrollBehavior = history.length <= 1 ? "auto" : "smooth";
+    const behavior = history.length <= 1 ? "auto" : "smooth";
     scrollChatToBottom(behavior);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history.length, isTyping]);
 
-  // ✅ Focus name input on desktop only, without scrolling viewport
+  // Focus name input on desktop only, without moving viewport
   useEffect(() => {
     if (step !== "name") return;
     if (isTyping) return;
@@ -1125,20 +1127,19 @@ function PersonalIntakeScreen({ onNext }) {
 
     requestAnimationFrame(() => {
       try {
-        input.focus({ preventScroll: true } as any);
-      } catch {
+        input.focus({ preventScroll: true });
+      } catch (e) {
         input.focus();
       }
     });
   }, [step, isTyping]);
 
-  const addMessage = (text: string, sender: "mia" | "user", delay = 0) => {
+  const addMessage = (text, sender, delay = 0) => {
     if (sender === "mia") setIsTyping(true);
 
     setTimeout(() => {
       if (sender === "mia") setIsTyping(false);
       setHistory((prev) => [...prev, { text, sender }]);
-      // ✅ No scrollIntoView — autoscroll happens via effect above
     }, delay);
   };
 
@@ -1191,12 +1192,13 @@ function PersonalIntakeScreen({ onNext }) {
   };
 
   const renderInput = () => {
-    if (isTyping)
+    if (isTyping) {
       return (
         <div className="h-[180px] sm:h-[220px] flex items-center justify-center text-app-textSecondary/50 text-sm animate-pulse">
           Mia is thinking...
         </div>
       );
+    }
 
     switch (step) {
       case "name":
@@ -1251,10 +1253,10 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      {/* Chat History Area */}
+      {/* Chat */}
       <div
         ref={chatScrollRef}
-        className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col"
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-6 sm:pt-8 pb-4 flex flex-col"
       >
         {history.map((msg, index) => (
           <ChatBubble
@@ -1268,7 +1270,7 @@ function PersonalIntakeScreen({ onNext }) {
         {isTyping && <ChatBubble isTyping={true} isUser={false} />}
       </div>
 
-      {/* Input Area */}
+      {/* Bottom input sheet (compressed on tiny screens + safe area) */}
       <div
         className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-5 sm:p-6 z-20"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
@@ -3152,15 +3154,16 @@ export default function Onboarding() {
       <LiveCommunitySidebar />
 
       <div
-        className="
-        relative z-10
-        w-full h-full 
-        md:w-[420px] md:max-w-[420px] md:h-[850px] md:max-h-[90dvh]
-        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
-      "
-      >
-        <Screen />
-      </div>
+  className="
+    relative z-10
+    w-full h-full
+    md:w-[420px] md:max-w-[420px]
+    md:h-[900px] md:max-h-[90dvh]
+    bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
+  "
+>
+  <Screen />
+</div>
     </div>
   );
 }
