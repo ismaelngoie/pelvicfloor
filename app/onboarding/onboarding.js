@@ -2542,68 +2542,52 @@ const CheckoutForm = ({ onClose }) => {
 
   return (
    <form
-      onClick={(e) => e.stopPropagation()}
-      onSubmit={handleSubmit}
-      className="w-full max-w-md bg-[#1A1A26] p-6 rounded-[32px] border border-white/10 shadow-[0_50px_120px_rgba(0,0,0,0.7)] animate-in slide-in-from-bottom-10 fade-in duration-500 relative my-auto mx-4 min-h-[400px]"
-    >
-      {paymentSuccess && <SuccessOverlay />}
+  onClick={(e) => e.stopPropagation()}
+  onSubmit={handleSubmit}
+  className="w-full max-w-md bg-[#1A1A26] p-6 rounded-3xl border border-white/10 shadow-2xl animate-slide-up relative my-auto mx-4"
+>
+  <button
+    type="button"
+    onClick={onClose}
+    className="absolute top-4 right-4 p-2 bg-white/5 rounded-full hover:bg-white/20 transition-colors z-10"
+  >
+    <X size={20} className="text-white" />
+  </button>
 
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute top-5 right-5 p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors z-10"
-      >
-        <X size={20} className="text-white/70" />
-      </button>
+  <div className="mb-6">
+    <h3 className="text-xl font-bold text-white mb-1">Join 10,243+ women strengthening their pelvic floor</h3>
+    <p className="text-sm text-white/50">Total due: $24.99 / month</p>
+  </div>
 
-      <div className="mb-6">
-        <h3
-          className="text-lg font-extrabold text-white mb-1 leading-tight"
-          style={{ fontFamily: "var(--font-lora)" }}
-        >
-          Join 10,243+ women strengthening their pelvic floor
-        </h3>
-        <p className="text-sm text-white/50 font-medium">
-          Total due: $24.99 / month
-        </p>
-      </div>
+  <div className="flex flex-col gap-4">
+    {/* credential thingy removed on DESKTOP ONLY; mobile stays the same */}
+    <div className="text-white md:hidden">
+      <LinkAuthenticationElement
+        id="link-authentication-element"
+        onChange={(e) => setEmail(e.value.email)}
+      />
+    </div>
+    <PaymentElement id="payment-element" options={paymentElementOptions} />
+  </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="text-white">
-          <LinkAuthenticationElement
-            id="link-authentication-element"
-            onChange={(e) => setEmail(e.value.email)}
-          />
-        </div>
+  {message && (
+    <div className="text-red-400 text-sm mt-4 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+      {message}
+    </div>
+  )}
 
-        <PaymentElement id="payment-element" options={paymentElementOptions} />
-      </div>
+  <button
+    disabled={isLoading || !stripe || !elements}
+    id="submit"
+    className="w-full mt-6 h-14 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+  >
+    {isLoading ? <Loader2 className="animate-spin" /> : "Pay $24.99"}
+  </button>
 
-      {message && (
-        <div className="text-red-300 text-sm mt-4 bg-red-500/10 p-3 rounded-xl border border-red-500/20 font-semibold">
-          {message}
-        </div>
-      )}
-
-      <button
-        disabled={isLoading || !stripe || !elements || paymentSuccess}
-        id="submit"
-        className="mt-6 w-full h-14 rounded-full bg-gradient-to-r from-[color:var(--pink)] to-[#C23A5B] text-white font-extrabold text-[17px] shadow-[0_10px_40px_rgba(230,84,115,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-      >
-        {isLoading ? <Loader2 className="animate-spin" /> : "Start My Healing"}
-      </button>
-
-      <div className="flex items-center justify-center gap-2 mt-4 text-white/30 text-[11px] font-semibold">
-        <p className="text-center text-white/70 text-[12px] font-semibold mt-3 leading-snug px-4 drop-shadow-sm">
-          {getStripeSubtext()}
-        </p>
-      </div>
-
-      <p className="text-center text-white/30 text-[11px] font-semibold mt-3">
-        <Lock size={12} />
-        100% secure payment.
-      </p>
-    </form>
+  <p className="text-center text-white/30 text-xs mt-4">
+    100% Secure Payment.
+  </p>
+</form>
   );
 };
 
