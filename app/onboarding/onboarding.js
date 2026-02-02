@@ -3077,8 +3077,7 @@ export default function Onboarding() {
     // - Desktop wrapper does NOT scroll (card never moves)
     // - Scroll happens only INSIDE screens (inside card)
     // - Mobile stays unchanged
-    // Change md:items-start to md:items-center
-<div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:h-[100dvh] md:px-10 md:pt-10 md:pb-10 md:items-center md:overflow-hidden">
+    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:h-[100dvh] md:px-10 md:pt-10 md:pb-10 md:items-start md:overflow-hidden">
       {/* DESKTOP BACKGROUND (keeps mobile identical) */}
       <div className="hidden md:block absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/60 rounded-full blur-[120px]" />
