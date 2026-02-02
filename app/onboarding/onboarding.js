@@ -46,14 +46,12 @@ const DesktopButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
   useEffect(() => {
-    // Generate butterflies only for the sides
     const count = 12;
     const items = Array.from({ length: count }).map((_, i) => {
       const duration = 20 + Math.random() * 15;
       const isLeft = Math.random() > 0.5;
       return {
         id: i,
-        // Position mainly on far left (0-20%) or far right (80-100%)
         left: isLeft ? Math.random() * 20 : 80 + Math.random() * 20,
         top: Math.random() * 100,
         size: 30 + Math.random() * 40,
@@ -138,8 +136,8 @@ const LiveCommunitySidebar = () => {
           ]
         );
         setShow(true);
-      }, 500); // Wait for fade out
-    }, 5000); // Change every 5s
+      }, 500);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -221,7 +219,6 @@ const reviews = [
   },
 ];
 
-// --- FULL SCREEN BUTTERFLY BACKGROUND ---
 const ButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
@@ -1170,7 +1167,7 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col overscroll-contain">
         {history.map((msg, index) => (
           <ChatBubble
             key={index}
@@ -1376,14 +1373,13 @@ const getHelperCopy = (selected, goal) => {
   }
 };
 
-const getPersonalizingCopy = (goal, name) => {
+const getPersonalizingCopy = (goal) => {
   const map = {
     "Improve Intimacy": {
       title: `Designing your intimacy plan`,
       subtitle: "Comfort, sensation, confidence—gently built for your body.",
       connecting: "Checking your profile for arousal flow and comfort…",
-      calibrating:
-        "Balancing relax/contract patterns for stronger orgasms…",
+      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
       checklist: [
         "Comfort-first warmups",
         "Relax/contract patterns",
@@ -2194,7 +2190,7 @@ function PlanRevealScreen({ onNext }) {
       {phase === "showingTimeline" && (
         <div className="w-full h-full flex flex-col bg-black relative overflow-hidden animate-in fade-in duration-1000">
           <div
-            className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 z-10"
+            className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 z-10 overscroll-contain"
             style={{
               paddingTop: "calc(env(safe-area-inset-top) + 24px)",
               paddingBottom: "24px",
@@ -2422,10 +2418,22 @@ const getReviewsForGoal = (goalTitle) => {
 };
 
 const FEATURES = [
-  { icon: <Brain size={28} className="text-white" />, text: "AI coach that adapts daily" },
-  { icon: <Timer size={28} className="text-white" />, text: "5-minute personalized routines" },
-  { icon: <Play size={28} className="text-white" fill="white" />, text: "300+ physio-approved videos" },
-  { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" },
+  {
+    icon: <Brain size={28} className="text-white" />,
+    text: "AI coach that adapts daily",
+  },
+  {
+    icon: <Timer size={28} className="text-white" />,
+    text: "5-minute personalized routines",
+  },
+  {
+    icon: <Play size={28} className="text-white" fill="white" />,
+    text: "300+ physio-approved videos",
+  },
+  {
+    icon: <Activity size={28} className="text-white" />,
+    text: "Trackable progress & streaks",
+  },
 ];
 
 const CheckoutForm = ({ onClose }) => {
@@ -2760,7 +2768,7 @@ function PaywallScreen() {
 
       <div
         className={`
-          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6
+          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6 overscroll-contain
           pt-[calc(env(safe-area-inset-top)+3rem)]
           pb-[calc(9rem+env(safe-area-inset-bottom))]
           transition-all duration-700
@@ -2997,6 +3005,48 @@ const Star = ({ size, fill }) => (
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState("welcome");
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mq = window.matchMedia("(min-width: 768px)");
+    let locked = false;
+    let prevHtmlOverflow = "";
+    let prevBodyOverflow = "";
+
+    const lock = () => {
+      if (locked) return;
+      prevHtmlOverflow = document.documentElement.style.overflow || "";
+      prevBodyOverflow = document.body.style.overflow || "";
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+      locked = true;
+    };
+
+    const unlock = () => {
+      if (!locked) return;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      locked = false;
+    };
+
+    const apply = () => {
+      if (mq.matches) lock();
+      else unlock();
+    };
+
+    apply();
+
+    const onChange = () => apply();
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else mq.addListener(onChange);
+
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", onChange);
+      else mq.removeListener(onChange);
+      unlock();
+    };
+  }, []);
+
   const handleNext = (nextStep) => {
     setCurrentStep(nextStep);
   };
@@ -3017,7 +3067,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:px-10 md:pt-12 md:pb-12 md:overflow-hidden md:items-start">
+    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:fixed md:inset-0 md:h-[100dvh] md:overflow-hidden md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:px-10 md:pt-12 md:items-start">
       <div className="hidden md:block absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/60 rounded-full blur-[120px]" />
         <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-rose-100/70 rounded-full blur-[120px]" />
