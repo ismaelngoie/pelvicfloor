@@ -39,6 +39,139 @@ import {
 } from "@stripe/react-stripe-js";
 
 // ==========================================
+// DESKTOP-ONLY COMPONENTS (Million Dollar Ideas)
+// ==========================================
+
+const DesktopButterflyBackground = () => {
+  const [butterflies, setButterflies] = useState([]);
+
+  useEffect(() => {
+    // Generate butterflies only for the sides
+    const count = 12;
+    const items = Array.from({ length: count }).map((_, i) => {
+      const duration = 20 + Math.random() * 15;
+      const isLeft = Math.random() > 0.5;
+      return {
+        id: i,
+        // Position mainly on far left (0-20%) or far right (80-100%)
+        left: isLeft ? Math.random() * 20 : 80 + Math.random() * 20,
+        top: Math.random() * 100,
+        size: 30 + Math.random() * 40,
+        duration,
+        delay: -(Math.random() * duration),
+        rotation: (Math.random() - 0.5) * 40,
+      };
+    });
+    setButterflies(items);
+  }, []);
+
+  const brandPinkFilter =
+    "brightness(0) saturate(100%) invert(48%) sepia(91%) saturate(343%) hue-rotate(304deg) brightness(91%) contrast(96%)";
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+      <style jsx>{`
+        @keyframes desktopFloat {
+          0% {
+            transform: translateY(100px) translateX(0px) rotate(0deg);
+            opacity: 0;
+          }
+          20% {
+            opacity: 0.6;
+          }
+          80% {
+            opacity: 0.6;
+          }
+          100% {
+            transform: translateY(-100vh) translateX(50px) rotate(10deg);
+            opacity: 0;
+          }
+        }
+      `}</style>
+      {butterflies.map((b) => (
+        <div
+          key={b.id}
+          className="absolute opacity-50"
+          style={{
+            left: `${b.left}%`,
+            top: `${b.top}%`,
+            width: `${b.size}px`,
+            height: `${b.size}px`,
+            animation: `desktopFloat ${b.duration}s linear infinite`,
+            animationDelay: `${b.delay}s`,
+            filter: brandPinkFilter,
+            transform: `rotate(${b.rotation}deg)`,
+          }}
+        >
+          <img
+            src="/butterfly_template.png"
+            alt=""
+            className="w-full h-full object-contain"
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const SOCIAL_PROOF_EVENTS = [
+  "Sarah from Ohio completed Day 1",
+  "Maria closed her gap by 1 finger",
+  "Emily joined the Postpartum plan",
+  "Jessica reported zero leaks today",
+  "142 women are working out right now",
+  "Dr. K recommended this to a patient",
+  "Anna achieved a 14-day streak",
+];
+
+const LiveCommunitySidebar = () => {
+  const [visibleEvent, setVisibleEvent] = useState(SOCIAL_PROOF_EVENTS[0]);
+  const [show, setShow] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShow(false);
+      setTimeout(() => {
+        setVisibleEvent(
+          SOCIAL_PROOF_EVENTS[
+            Math.floor(Math.random() * SOCIAL_PROOF_EVENTS.length)
+          ]
+        );
+        setShow(true);
+      }, 500); // Wait for fade out
+    }, 5000); // Change every 5s
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="hidden md:flex flex-col justify-end items-end w-64 fixed left-10 bottom-10 gap-4 z-0 pointer-events-none">
+      <div
+        className={`transition-all duration-500 transform ${
+          show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        }`}
+      >
+        <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-white/50 flex items-center gap-3">
+          <div className="relative">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse absolute -top-1 -right-1 border-2 border-white"></div>
+            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+              <Activity size={20} />
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+              Live Activity
+            </p>
+            <p className="text-sm font-semibold text-slate-800">
+              {visibleEvent}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
 // SCREEN 1: WELCOME SCREEN
 // ==========================================
 
@@ -82,13 +215,16 @@ const reviews = [
   { text: "Sneezed today. No panic. I’m free.", author: "Dana, 46" },
   { text: "More sensation, less worry, more us.", author: "Jess, 35" },
   { text: "Pain-free sitting. Sleep through the night.", author: "Olivia, 41" },
-  { text: "From wobbly to steady, lifting my baby feels safe.", author: "Mia, 33" },
+  {
+    text: "From wobbly to steady, lifting my baby feels safe.",
+    author: "Mia, 33",
+  },
 ];
 
 // --- FULL SCREEN BUTTERFLY BACKGROUND ---
 // Changed to absolute so it stays inside the desktop card container
 const ButterflyBackground = () => {
-  const [butterflies, setButterflies] = useState<any[]>([]);
+  const [butterflies, setButterflies] = useState([]);
 
   useEffect(() => {
     const count = 25;
@@ -159,7 +295,7 @@ const ButterflyBackground = () => {
   );
 };
 
-function WelcomeScreen({ onNext }: { onNext: () => void }) {
+function WelcomeScreen({ onNext }) {
   const router = useRouter();
   const { userDetails } = useUserData();
 
@@ -184,7 +320,7 @@ function WelcomeScreen({ onNext }: { onNext: () => void }) {
       }
     }
 
-    if (userDetails && (userDetails as any).isPremium) {
+    if (userDetails && userDetails.isPremium) {
       router.replace("/dashboard");
     } else {
       const timer = setTimeout(() => setShowContent(true), 50);
@@ -220,7 +356,7 @@ function WelcomeScreen({ onNext }: { onNext: () => void }) {
     return () => clearInterval(timer);
   }, []);
 
-  if (!showContent && (userDetails as any)?.isPremium) return null;
+  if (!showContent && userDetails?.isPremium) return null;
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
@@ -349,23 +485,55 @@ const THEME_GOAL = {
 };
 
 const goals = [
-  { id: "intimacy", title: "Improve Intimacy", icon: <Heart size={28} strokeWidth={2} /> },
-  { id: "leaks", title: "Stop Bladder Leaks", icon: <Droplets size={28} strokeWidth={2} /> },
-  { id: "pregnancy", title: "Prepare for Pregnancy", icon: <Baby size={28} strokeWidth={2} /> },
-  { id: "postpartum", title: "Recover Postpartum", icon: <Activity size={28} strokeWidth={2} /> },
-  { id: "core", title: "Build Core Strength", icon: <Zap size={28} strokeWidth={2} /> },
-  { id: "pain", title: "Ease Pelvic Pain", icon: <HeartHandshake size={28} strokeWidth={2} /> },
-  { id: "fitness", title: "Support My Fitness", icon: <Dumbbell size={28} strokeWidth={2} /> },
-  { id: "stability", title: "Boost Stability", icon: <Activity size={28} strokeWidth={2} /> },
+  {
+    id: "intimacy",
+    title: "Improve Intimacy",
+    icon: <Heart size={28} strokeWidth={2} />,
+  },
+  {
+    id: "leaks",
+    title: "Stop Bladder Leaks",
+    icon: <Droplets size={28} strokeWidth={2} />,
+  },
+  {
+    id: "pregnancy",
+    title: "Prepare for Pregnancy",
+    icon: <Baby size={28} strokeWidth={2} />,
+  },
+  {
+    id: "postpartum",
+    title: "Recover Postpartum",
+    icon: <Activity size={28} strokeWidth={2} />,
+  },
+  {
+    id: "core",
+    title: "Build Core Strength",
+    icon: <Zap size={28} strokeWidth={2} />,
+  },
+  {
+    id: "pain",
+    title: "Ease Pelvic Pain",
+    icon: <HeartHandshake size={28} strokeWidth={2} />,
+  },
+  {
+    id: "fitness",
+    title: "Support My Fitness",
+    icon: <Dumbbell size={28} strokeWidth={2} />,
+  },
+  {
+    id: "stability",
+    title: "Boost Stability",
+    icon: <Activity size={28} strokeWidth={2} />,
+  },
 ];
 
-function SelectGoalScreen({ onNext }: { onNext: () => void }) {
+function SelectGoalScreen({ onNext }) {
   const { saveUserData, userDetails } = useUserData();
   const [selectedId, setSelectedId] = useState(
-    (userDetails as any).selectedTarget?.id || null
+    userDetails.selectedTarget?.id || null
   );
 
-  const handleSelect = (goal: any) => {
+  const handleSelect = (goal) => {
     setSelectedId(goal.id);
     saveUserData("selectedTarget", goal);
   };
@@ -403,14 +571,25 @@ function SelectGoalScreen({ onNext }: { onNext: () => void }) {
                     className={`
                       relative flex flex-col items-center justify-center p-3 rounded-[24px] border-[2px] 
                       transition-all duration-300 ease-out h-[100px] w-full outline-none active:scale-95
-                      ${isSelected ? THEME_GOAL.selected : `${THEME_GOAL.unselected} hover:bg-gray-50 z-10`}
+                      ${
+                        isSelected
+                          ? THEME_GOAL.selected
+                          : `${THEME_GOAL.unselected} hover:bg-gray-50 z-10`
+                      }
                     `}
                   >
                     <div className="absolute top-2 right-2">
                       {isSelected ? (
-                        <CheckCircle2 size={20} className="fill-rose-500 text-white" />
+                        <CheckCircle2
+                          size={20}
+                          className="fill-rose-500 text-white"
+                        />
                       ) : (
-                        <Circle size={20} className="text-gray-200" strokeWidth={1.5} />
+                        <Circle
+                          size={20}
+                          className="text-gray-200"
+                          strokeWidth={1.5}
+                        />
                       )}
                     </div>
 
@@ -465,7 +644,7 @@ function SelectGoalScreen({ onNext }: { onNext: () => void }) {
 // SCREEN 3: HOW IT HELPS SCREEN
 // ==========================================
 
-function BabyIcon({ size }: { size: number }) {
+function BabyIcon({ size }) {
   return (
     <svg
       width={size}
@@ -485,7 +664,7 @@ function BabyIcon({ size }: { size: number }) {
   );
 }
 
-const benefitsData: any = {
+const benefitsData = {
   "Prepare for Pregnancy": {
     subtitle:
       "Your plan will build a strong, supportive foundation for a healthy pregnancy and smoother recovery.",
@@ -592,11 +771,11 @@ const benefitsData: any = {
   },
 };
 
-function HowItHelpsScreen({ onNext }: { onNext: () => void }) {
+function HowItHelpsScreen({ onNext }) {
   const { userDetails } = useUserData();
   const [animate, setAnimate] = useState(false);
 
-  const goalTitle = (userDetails as any).selectedTarget?.title || "Build Core Strength";
+  const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
   const data = benefitsData[goalTitle] || benefitsData["Build Core Strength"];
 
   useEffect(() => {
@@ -635,7 +814,7 @@ function HowItHelpsScreen({ onNext }: { onNext: () => void }) {
             {data.icon}
           </div>
 
-          {data.benefits.map((benefit: any, index: number) => {
+          {data.benefits.map((benefit, index) => {
             const total = data.benefits.length;
             const radius = 135;
             const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
@@ -705,54 +884,69 @@ function HowItHelpsScreen({ onNext }: { onNext: () => void }) {
 // SCREEN 4: PERSONAL INTAKE SCREEN
 // ==========================================
 
-const MIA_COPY: any = {
+const MIA_COPY = {
   "Prepare for Pregnancy": {
     ack: "Beautiful choice, {name}. We will gently prepare your pelvic floor and core so you feel supported every step of pregnancy.",
     age: "At {age}, we focus on calm breath, steady endurance, and safe strength so your body feels ready and held.",
-    weight: "Thanks. I will set positions and resistance that feel doable today and build quietly each week.",
-    height: "Got it. Your height helps me cue stance and reach so form feels natural from day one.",
+    weight:
+      "Thanks. I will set positions and resistance that feel doable today and build quietly each week.",
+    height:
+      "Got it. Your height helps me cue stance and reach so form feels natural from day one.",
   },
   "Recover Postpartum": {
     ack: "I have you, {name}. We will rebuild your foundation with kindness and bring your core and confidence back.",
     age: "At {age}, I pace recovery for connection over intensity so healing feels steady and real.",
-    weight: "Thank you. I will scale loads and positions so holding and lifting your little one feels safe again.",
-    height: "Noted. Your height lets me fine tune carry, lift, and reach so your body feels supported.",
+    weight:
+      "Thank you. I will scale loads and positions so holding and lifting your little one feels safe again.",
+    height:
+      "Noted. Your height lets me fine tune carry, lift, and reach so your body feels supported.",
   },
   "Build Core Strength": {
     ack: "Love it, {name}. We will build a deep, steady core that supports every move you make.",
     age: "At {age}, we sharpen activation and use smart progressions so strength grows without strain.",
-    weight: "Thanks. I will use this to set starting loads so work feels strong, not stressful.",
-    height: "Great. Your height helps me dial plank angles, hinge depth, and reach for clean form.",
+    weight:
+      "Thanks. I will use this to set starting loads so work feels strong, not stressful.",
+    height:
+      "Great. Your height helps me dial plank angles, hinge depth, and reach for clean form.",
   },
   "Stop Bladder Leaks": {
     ack: "On it, {name}. We will train control so sneezes, laughs, and runs stop owning your day.",
     age: "At {age}, we blend endurance with quick contractions so real life control shows up when you need it.",
-    weight: "Thank you. I will scale impact and pressure so you stay dry while you move.",
-    height: "Noted. Your height guides setup so alignment and breath cues land perfectly.",
+    weight:
+      "Thank you. I will scale impact and pressure so you stay dry while you move.",
+    height:
+      "Noted. Your height guides setup so alignment and breath cues land perfectly.",
   },
   "Ease Pelvic Pain": {
     ack: "I am with you, {name}. We will release what is tight and strengthen what supports, gently and steadily.",
     age: "At {age}, we favor calming patterns and gradual load so relief lasts beyond the session.",
     weight: "Thanks. I will choose positions that lower strain and invite real ease.",
-    height: "Got it. Your height helps me fine tune angles so sitting, standing, and walking feel softer.",
+    height:
+      "Got it. Your height helps me fine tune angles so sitting, standing, and walking feel softer.",
   },
   "Improve Intimacy": {
     ack: "Let’s make this feel good again, {name}. We will build comfort, confidence, and sensation at your pace.",
     age: "At {age}, I balance relaxation and activation to support arousal and more reliable orgasms.",
-    weight: "Thank you. I will set intensities that build tone without bracing for better blood flow and sensation.",
-    height: "Noted. I will cue supportive positions and angles so comfort stays high and climax is not cut short by tension.",
+    weight:
+      "Thank you. I will set intensities that build tone without bracing for better blood flow and sensation.",
+    height:
+      "Noted. I will cue supportive positions and angles so comfort stays high and climax is not cut short by tension.",
   },
   "Support My Fitness": {
     ack: "Nice, {name}. We will turn your core into a quiet engine that powers every workout.",
     age: "At {age}, we pair stability with power so lifts and cardio feel solid and repeatable.",
-    weight: "Thanks. I will set loads and tempos that build performance without extra fatigue.",
-    height: "Great. Your height lets me tune stance and range so reps feel clean and strong.",
+    weight:
+      "Thanks. I will set loads and tempos that build performance without extra fatigue.",
+    height:
+      "Great. Your height lets me tune stance and range so reps feel clean and strong.",
   },
   "Boost Stability": {
     ack: "Excellent, {name}. We will stack you tall and steady so your body feels organized again.",
     age: "At {age}, we train deep core timing and endurance for all day support, not just during workouts.",
-    weight: "Thank you. I will set progressions that protect your back while strength builds.",
-    height: "Noted. Your height guides stance and reach so alignment clicks quickly and stays with you.",
+    weight:
+      "Thank you. I will set progressions that protect your back while strength builds.",
+    height:
+      "Noted. Your height guides stance and reach so alignment clicks quickly and stays with you.",
   },
   default: {
     ack: "Excellent choice, {name}. We will stack you tall and steady.",
@@ -770,15 +964,7 @@ const TypingIndicator = () => (
   </div>
 );
 
-const ChatBubble = ({
-  text,
-  isTyping,
-  isUser,
-}: {
-  text?: string;
-  isTyping?: boolean;
-  isUser?: boolean;
-}) => (
+const ChatBubble = ({ text, isTyping, isUser }) => (
   <div
     className={`flex w-full mb-6 animate-fade-in-up ${
       isUser ? "justify-end" : "justify-start"
@@ -808,20 +994,8 @@ const ChatBubble = ({
   </div>
 );
 
-const WheelPicker = ({
-  range,
-  value,
-  onChange,
-  unit,
-  formatLabel,
-}: {
-  range: number[];
-  value: number;
-  onChange: (v: number) => void;
-  unit?: string;
-  formatLabel?: (n: number) => string;
-}) => {
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
+const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
+  const scrollerRef = useRef(null);
   const ITEM_HEIGHT = 54;
 
   const handleScroll = () => {
@@ -883,20 +1057,21 @@ const WheelPicker = ({
   );
 };
 
-function PersonalIntakeScreen({ onNext }: { onNext: () => void }) {
+function PersonalIntakeScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
   const [step, setStep] = useState("name");
   const [isTyping, setIsTyping] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
-  const chatBottomRef = useRef<HTMLDivElement | null>(null);
+  const [history, setHistory] = useState([]);
+  const chatBottomRef = useRef(null);
 
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
   const [weight, setWeight] = useState(140);
   const [height, setHeight] = useState(65);
 
-  const goalTitle = (userDetails as any).selectedTarget?.title || "Build Core Strength";
-  const copy = MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
+  const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
+  const copy =
+    MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -904,7 +1079,7 @@ function PersonalIntakeScreen({ onNext }: { onNext: () => void }) {
     }, 100);
   };
 
-  const addMessage = (text: string, sender: "mia" | "user", delay = 0) => {
+  const addMessage = (text, sender, delay = 0) => {
     if (sender === "mia") setIsTyping(true);
 
     setTimeout(() => {
@@ -1102,7 +1277,7 @@ const PersonalizingConstants = {
   phase2Scale: 0.2,
 };
 
-const usePlanRevealChrome = (enabled: boolean, color = "#000000") => {
+const usePlanRevealChrome = (enabled, color = "#000000") => {
   useEffect(() => {
     if (!enabled) return;
     if (typeof window === "undefined") return;
@@ -1142,8 +1317,8 @@ const usePlanRevealChrome = (enabled: boolean, color = "#000000") => {
   }, [enabled, color]);
 };
 
-const getHealthCopy = (goal: string) => {
-  const map: any = {
+const getHealthCopy = (goal) => {
+  const map = {
     "Stop Bladder Leaks": {
       headline: "Any health notes before we target leaks?",
       subtitle: "This helps me map safe, effective bladder-control sessions.",
@@ -1194,7 +1369,7 @@ const getHealthCopy = (goal: string) => {
   return map[goal] || map.default;
 };
 
-const getHelperCopy = (selected: boolean, goal: string) => {
+const getHelperCopy = (selected, goal) => {
   if (selected) {
     if (goal.includes("Leak"))
       return "✓ Got it. I’ll train urge delay and sneeze-proof reflexes.";
@@ -1206,31 +1381,43 @@ const getHelperCopy = (selected: boolean, goal: string) => {
       return "✓ Noted. We’ll keep it postpartum-safe with gentle progressions.";
     if (goal.includes("Pregnancy"))
       return "✓ Noted. I’ll prioritize breath, circulation, and foundation.";
-    if (goal.includes("Core")) return "✓ Noted. Smart progressions, no risky strain.";
-    if (goal.includes("Fitness")) return "✓ Noted. I’ll match your training load and recovery.";
-    if (goal.includes("Stability")) return "✓ Noted. Deep core + alignment for steady posture wins.";
+    if (goal.includes("Core"))
+      return "✓ Noted. Smart progressions, no risky strain.";
+    if (goal.includes("Fitness"))
+      return "✓ Noted. I’ll match your training load and recovery.";
+    if (goal.includes("Stability"))
+      return "✓ Noted. Deep core + alignment for steady posture wins.";
     return "✓ Understood. I'll tailor your plan accordingly.";
   } else {
-    if (goal.includes("Leak")) return "✓ Great. We’ll start with core reflexes for leak control.";
-    if (goal.includes("Pain")) return "✓ Great. Gentle release + support from day one.";
-    if (goal.includes("Intimacy")) return "✓ Great. Comfort, sensation, and confidence from the start.";
-    if (goal.includes("Postpartum")) return "✓ Great. Foundation work, safe and steady.";
-    if (goal.includes("Pregnancy")) return "✓ Great. Building a strong, calm base for you.";
-    if (goal.includes("Core")) return "✓ Great. Clean technique and deep core activation.";
-    if (goal.includes("Fitness")) return "✓ Great. We’ll slot in perfectly with your routine.";
-    if (goal.includes("Stability")) return "✓ Great. Alignment + deep core integration ahead.";
+    if (goal.includes("Leak"))
+      return "✓ Great. We’ll start with core reflexes for leak control.";
+    if (goal.includes("Pain"))
+      return "✓ Great. Gentle release + support from day one.";
+    if (goal.includes("Intimacy"))
+      return "✓ Great. Comfort, sensation, and confidence from the start.";
+    if (goal.includes("Postpartum"))
+      return "✓ Great. Foundation work, safe and steady.";
+    if (goal.includes("Pregnancy"))
+      return "✓ Great. Building a strong, calm base for you.";
+    if (goal.includes("Core"))
+      return "✓ Great. Clean technique and deep core activation.";
+    if (goal.includes("Fitness"))
+      return "✓ Great. We’ll slot in perfectly with your routine.";
+    if (goal.includes("Stability"))
+      return "✓ Great. Alignment + deep core integration ahead.";
     return "✓ Great! We'll start with a foundational plan.";
   }
 };
 
-const getPersonalizingCopy = (goal: string, name?: string) => {
+const getPersonalizingCopy = (goal, name) => {
   const safeName = name || "there";
-  const map: any = {
+  const map = {
     "Improve Intimacy": {
       title: `Designing your intimacy plan`,
       subtitle: "Comfort, sensation, confidence—gently built for your body.",
       connecting: "Checking your profile for arousal flow and comfort…",
-      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
+      calibrating:
+        "Balancing relax/contract patterns for stronger orgasms…",
       checklist: [
         "Comfort-first warmups",
         "Relax/contract patterns",
@@ -1242,7 +1429,8 @@ const getPersonalizingCopy = (goal: string, name?: string) => {
       title: "Personalizing your leak-control plan",
       subtitle: "Train reflexes so sneezes and laughs don’t own your day.",
       connecting: "Mapping urge delays and quick-contract sets…",
-      calibrating: "Dialing breath and pressure control for real-life moments…",
+      calibrating:
+        "Dialing breath and pressure control for real-life moments…",
       checklist: [
         "Urge-delay reflex training",
         "Fast-twitch squeezes",
@@ -1252,7 +1440,8 @@ const getPersonalizingCopy = (goal: string, name?: string) => {
     },
     "Ease Pelvic Pain": {
       title: "Personalizing your pain-relief plan",
-      subtitle: "Release tension, add support, and keep comfort front and center.",
+      subtitle:
+        "Release tension, add support, and keep comfort front and center.",
       connecting: "Identifying tight patterns and sensitive ranges…",
       calibrating: "Layering gentle strength for lasting relief…",
       checklist: [
@@ -1279,42 +1468,67 @@ const getPersonalizingCopy = (goal: string, name?: string) => {
       subtitle: "Circulation, breath, and a supportive core.",
       connecting: "Syncing breath-led endurance…",
       calibrating: "Setting hip mobility and pelvic coordination…",
-      checklist: ["Circulation + breath", "Pelvic floor coordination", "Hip mobility", "Labor-prep positions"],
+      checklist: [
+        "Circulation + breath",
+        "Pelvic floor coordination",
+        "Hip mobility",
+        "Labor-prep positions",
+      ],
     },
     "Build Core Strength": {
       title: "Personalizing your core plan",
       subtitle: "Deep, steady strength without guesswork.",
       connecting: "Targeting activation and timing…",
       calibrating: "Building anti-rotation and hinge patterns…",
-      checklist: ["Deep core activation", "Anti-rotation work", "Hinge + squat mechanics", "Back-friendly progressions"],
+      checklist: [
+        "Deep core activation",
+        "Anti-rotation work",
+        "Hinge + squat mechanics",
+        "Back-friendly progressions",
+      ],
     },
     "Support My Fitness": {
       title: "Personalizing your training support",
       subtitle: "Make every workout you do feel more solid.",
       connecting: "Priming brace and breath for lifts/cardio…",
       calibrating: "Matching intensity to recovery…",
-      checklist: ["Pre-workout core priming", "Brace + breathe", "Recovery mobilization", "Force transfer training"],
+      checklist: [
+        "Pre-workout core priming",
+        "Brace + breathe",
+        "Recovery mobilization",
+        "Force transfer training",
+      ],
     },
     "Boost Stability": {
       title: "Personalizing your stability plan",
       subtitle: "Tall, steady, and organized all day.",
       connecting: "Stacking rib-to-pelvis alignment…",
       calibrating: "Endurance for postural muscles…",
-      checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"],
+      checklist: [
+        "Stack-and-breathe",
+        "Midline endurance",
+        "Glute med activation",
+        "Desk reset routine",
+      ],
     },
     default: {
       title: `Personalizing your plan`,
       subtitle: "Tall, steady, and organized all day.",
       connecting: "Stacking rib-to-pelvis alignment…",
       calibrating: "Endurance for postural muscles…",
-      checklist: ["Stack-and-breathe", "Midline endurance", "Glute med activation", "Desk reset routine"],
+      checklist: [
+        "Stack-and-breathe",
+        "Midline endurance",
+        "Glute med activation",
+        "Desk reset routine",
+      ],
     },
   };
   return map[goal] || map.default;
 };
 
-const getTimelineCopy = (goal: string) => {
-  const map: any = {
+const getTimelineCopy = (goal) => {
+  const map = {
     "Prepare for Pregnancy": {
       subtitle: "Feel ready to carry and move with ease by **{date}**.",
       insights: [
@@ -1396,7 +1610,8 @@ const getTimelineCopy = (goal: string) => {
       cta: "Unlock My Stability Plan",
     },
     default: {
-      subtitle: "Your personalized plan is set. Expect to feel a real difference by **{date}**.",
+      subtitle:
+        "Your personalized plan is set. Expect to feel a real difference by **{date}**.",
       insights: [
         "Your plan is calibrated for a BMI of **{bmi}**, ensuring perfect intensity.",
         "Because you have a **{activity}** activity level, we'll build your foundation safely.",
@@ -1419,9 +1634,9 @@ const AICoreView = () => (
   </div>
 );
 
-const TypewriterText = ({ text }: { text: string }) => {
+const TypewriterText = ({ text }) => {
   const [displayed, setDisplayed] = useState("");
-  const timerRef = useRef<any>(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     if (timerRef.current) {
@@ -1457,16 +1672,8 @@ const TypewriterText = ({ text }: { text: string }) => {
   );
 };
 
-const ChecklistItem = ({
-  text,
-  delay,
-  onComplete,
-}: {
-  text: string;
-  delay: number;
-  onComplete?: () => void;
-}) => {
-  const [status, setStatus] = useState<"waiting" | "processing" | "completed">("waiting");
+const ChecklistItem = ({ text, delay, onComplete }) => {
+  const [status, setStatus] = useState("waiting");
 
   useEffect(() => {
     const t1 = setTimeout(() => setStatus("processing"), delay);
@@ -1486,7 +1693,9 @@ const ChecklistItem = ({
   return (
     <div
       className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all duration-500 ${
-        status === "waiting" ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
+        status === "waiting"
+          ? "opacity-0 translate-y-4"
+          : "opacity-100 translate-y-0"
       }`}
     >
       <div
@@ -1501,7 +1710,9 @@ const ChecklistItem = ({
       <div className="relative flex items-center p-3 gap-3 z-10">
         <div
           className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
-            status === "completed" ? "bg-[#E65473] scale-110" : "bg-white/10"
+            status === "completed"
+              ? "bg-[#E65473] scale-110"
+              : "bg-white/10"
           }`}
         >
           {status === "completed" ? (
@@ -1550,13 +1761,38 @@ const HolographicTimeline = () => {
               : "stroke-dasharray-[400] stroke-dashoffset-[400]"
           }`}
         />
-        <g className={`transition-opacity duration-1000 delay-1000 ${show ? "opacity-100" : "opacity-0"}`}>
+        <g
+          className={`transition-opacity duration-1000 delay-1000 ${
+            show ? "opacity-100" : "opacity-0"
+          }`}
+        >
           <circle cx="10" cy="100" r="4" fill="white" />
-          <text x="10" y="125" textAnchor="middle" fill="white" fontSize="10" opacity="0.7">
+          <text
+            x="10"
+            y="125"
+            textAnchor="middle"
+            fill="white"
+            fontSize="10"
+            opacity="0.7"
+          >
             Today
           </text>
-          <circle cx="320" cy="20" r="6" fill="#E65473" stroke="white" strokeWidth="2" />
-          <text x="310" y="10" textAnchor="end" fill="#E65473" fontSize="12" fontWeight="bold">
+          <circle
+            cx="320"
+            cy="20"
+            r="6"
+            fill="#E65473"
+            stroke="white"
+            strokeWidth="2"
+          />
+          <text
+            x="310"
+            y="10"
+            textAnchor="end"
+            fill="#E65473"
+            fontSize="12"
+            fontWeight="bold"
+          >
             Goal
           </text>
         </g>
@@ -1565,9 +1801,9 @@ const HolographicTimeline = () => {
   );
 };
 
-function PlanRevealScreen({ onNext }: { onNext: () => void }) {
+function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
-  const [phase, setPhase] = useState<"askingHealthInfo" | "personalizing" | "showingTimeline">("askingHealthInfo");
+  const [phase, setPhase] = useState("askingHealthInfo");
 
   const isDark = phase === "personalizing" || phase === "showingTimeline";
 
@@ -1575,9 +1811,9 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
   usePlanRevealChrome(isDark, "#000000");
 
   // Phase 1 State
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
+  const [selectedConditions, setSelectedConditions] = useState([]);
   const [noneSelected, setNoneSelected] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState(null);
   const [helperText, setHelperText] = useState("");
   const [activityHelperText, setActivityHelperText] = useState("");
 
@@ -1586,20 +1822,22 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
   const [progressPercent, setProgressPercent] = useState(0);
   const [showChecklist, setShowChecklist] = useState(false);
 
-  const goalTitle = (userDetails as any)?.selectedTarget?.title || "Build Core Strength";
+  const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
   const healthCopy = getHealthCopy(goalTitle);
-  const personalizingCopy = getPersonalizingCopy(goalTitle, (userDetails as any)?.name);
+  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
   // --- Phase 1 logic ---
-  const updateHelperText = (hasCondition: boolean) => {
+  const updateHelperText = (hasCondition) => {
     setHelperText(getHelperCopy(hasCondition, goalTitle));
   };
 
-  const toggleCondition = (id: string) => {
+  const toggleCondition = (id) => {
     setNoneSelected(false);
     setSelectedConditions((prev) => {
-      const newSet = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
+      const newSet = prev.includes(id)
+        ? prev.filter((c) => c !== id)
+        : [...prev, id];
       updateHelperText(newSet.length > 0);
       return newSet;
     });
@@ -1612,12 +1850,13 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
     updateHelperText(newVal);
   };
 
-  const selectActivity = (act: string) => {
+  const selectActivity = (act) => {
     setSelectedActivity(act);
     setActivityHelperText("✓ Perfect, I'll match your pace & recovery.");
   };
 
-  const canContinue = (selectedConditions.length > 0 || noneSelected) && selectedActivity;
+  const canContinue =
+    (selectedConditions.length > 0 || noneSelected) && selectedActivity;
 
   const handlePhase1Continue = () => {
     saveUserData("healthConditions", selectedConditions);
@@ -1634,7 +1873,10 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
 
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const p = Math.min(99, Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100));
+      const p = Math.min(
+        99,
+        Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100)
+      );
       setProgressPercent(p);
     }, 50);
 
@@ -1662,17 +1904,20 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
 
   // --- Phase 3 logic ---
   const calculateBMI = () => {
-    if (!(userDetails as any)?.weight || !(userDetails as any)?.height) return "22.5";
-    const h = (userDetails as any).height * 0.0254;
-    const w = (userDetails as any).weight * 0.453592;
+    if (!userDetails?.weight || !userDetails?.height) return "22.5";
+    const h = userDetails.height * 0.0254;
+    const w = userDetails.weight * 0.453592;
     return (w / (h * h)).toFixed(1);
   };
 
   const date = new Date();
   date.setDate(date.getDate() + 7);
-  const dateString = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  const dateString = date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+  });
 
-  const formatRichText = (text: string) => {
+  const formatRichText = (text) => {
     if (!text) return null;
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
@@ -1684,8 +1929,9 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
           content = selectedActivity
             ? ACTIVITIES.find((a) => a.id === selectedActivity)?.title.toLowerCase()
             : "active";
-        if (content === "{age}") content = (userDetails as any)?.age || "30";
-        if (content === "{condition}") content = selectedConditions.length > 0 ? "unique needs" : "body";
+        if (content === "{age}") content = userDetails?.age || "30";
+        if (content === "{condition}")
+          content = selectedConditions.length > 0 ? "unique needs" : "body";
         return (
           <span key={i} className="text-white font-extrabold">
             {content}
@@ -1700,12 +1946,19 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
     });
   };
 
+  // Root:
+  // - ALWAYS full-height (no min-h-screen phantom scroll)
+  // - allow dark phases to visually cover top/bottom padding bands inside RootLayout on mobile (like Paywall)
   return (
     <div
       className={`
         relative w-full flex flex-col transition-colors duration-700
         ${isDark ? "bg-black" : THEME_REVEAL.bg}
-        ${isDark ? "h-[calc(100%+env(safe-area-inset-top)+env(safe-area-inset-bottom))] -mt-[env(safe-area-inset-top)] -mb-[env(safe-area-inset-bottom)]" : "h-full"}
+        ${
+          isDark
+            ? "h-[calc(100%+env(safe-area-inset-top)+env(safe-area-inset-bottom))] -mt-[env(safe-area-inset-top)] -mb-[env(safe-area-inset-bottom)]"
+            : "h-full"
+        }
         overflow-hidden
       `}
     >
@@ -1725,7 +1978,9 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
             style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
           >
             <div className="mb-2 shrink-0 text-center">
-              <h1 className={`text-[26px] font-extrabold text-center ${THEME_REVEAL.text} mb-1 leading-tight`}>
+              <h1
+                className={`text-[26px] font-extrabold text-center ${THEME_REVEAL.text} mb-1 leading-tight`}
+              >
                 {healthCopy.headline}
               </h1>
               <p className="text-center text-[rgb(26,26,38)]/60 text-sm">
@@ -1747,17 +2002,36 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
                           ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
                         `}
                       >
-                        <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME_REVEAL.iconSelected : THEME_REVEAL.iconUnselected}`}>
+                        <div
+                          className={`mb-2 transition-all duration-300 ${
+                            isSelected
+                              ? THEME_REVEAL.iconSelected
+                              : THEME_REVEAL.iconUnselected
+                          }`}
+                        >
                           {item.icon}
                         </div>
-                        <span className={`text-[13px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${isSelected ? THEME_REVEAL.textSelected : THEME_REVEAL.textUnselected}`}>
+                        <span
+                          className={`text-[13px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${
+                            isSelected
+                              ? THEME_REVEAL.textSelected
+                              : THEME_REVEAL.textUnselected
+                          }`}
+                        >
                           {item.title}
                         </span>
                         <div className="absolute top-3 right-3">
                           {isSelected ? (
-                            <CheckCircle2 size={20} className="fill-[#E65473] text-white" />
+                            <CheckCircle2
+                              size={20}
+                              className="fill-[#E65473] text-white"
+                            />
                           ) : (
-                            <Circle size={20} className="text-gray-200" strokeWidth={1.5} />
+                            <Circle
+                              size={20}
+                              className="text-gray-200"
+                              strokeWidth={1.5}
+                            />
                           )}
                         </div>
                       </button>
@@ -1765,7 +2039,11 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
                   })}
                 </div>
 
-                <div className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mb-2 ${helperText ? "opacity-100" : "opacity-0"}`}>
+                <div
+                  className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mb-2 ${
+                    helperText ? "opacity-100" : "opacity-0"
+                  }`}
+                >
                   {helperText}
                 </div>
 
@@ -1785,7 +2063,9 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
 
               {/* Activity */}
               <div className="mt-3">
-                <h3 className={`text-[15px] font-bold text-center ${THEME_REVEAL.text} mb-2`}>
+                <h3
+                  className={`text-[15px] font-bold text-center ${THEME_REVEAL.text} mb-2`}
+                >
                   Your typical activity level
                 </h3>
                 <div className="flex flex-col gap-2.5">
@@ -1799,23 +2079,40 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
                           ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
                         `}
                       >
-                        <span className={`font-bold text-[15px] ${isSelected ? THEME_REVEAL.textSelected : THEME_REVEAL.textUnselected}`}>
+                        <span
+                          className={`font-bold text-[15px] ${
+                            isSelected
+                              ? THEME_REVEAL.textSelected
+                              : THEME_REVEAL.textUnselected
+                          }`}
+                        >
                           {act.title}{" "}
                           <span className="text-xs opacity-70 font-normal ml-1">
                             {act.sub}
                           </span>
                         </span>
                         {isSelected ? (
-                          <CheckCircle2 size={22} className="fill-[#E65473] text-white" />
+                          <CheckCircle2
+                            size={22}
+                            className="fill-[#E65473] text-white"
+                          />
                         ) : (
-                          <Circle size={22} className="text-gray-200" strokeWidth={1.5} />
+                          <Circle
+                            size={22}
+                            className="text-gray-200"
+                            strokeWidth={1.5}
+                          />
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mt-2 ${activityHelperText ? "opacity-100" : "opacity-0"}`}>
+                <div
+                  className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mt-2 ${
+                    activityHelperText ? "opacity-100" : "opacity-0"
+                  }`}
+                >
                   {activityHelperText}
                 </div>
               </div>
@@ -1847,16 +2144,30 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
       {phase === "personalizing" && (
         <div
           className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000"
-          style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+          style={{
+            paddingTop: "env(safe-area-inset-top)",
+            paddingBottom: "env(safe-area-inset-bottom)",
+          }}
         >
-          <div className={`transition-all duration-500 ${showChecklist ? "scale-75 -translate-y-8 opacity-0" : "scale-100 opacity-100"}`}>
+          <div
+            className={`transition-all duration-500 ${
+              showChecklist
+                ? "scale-75 -translate-y-8 opacity-0"
+                : "scale-100 opacity-100"
+            }`}
+          >
             <AICoreView />
           </div>
 
           {!showChecklist && (
             <div className="mt-12 text-center h-20 px-4">
-              <h2 className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME_REVEAL.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
-                <TypewriterText key={personalizingStatus} text={personalizingStatus} />
+              <h2
+                className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME_REVEAL.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}
+              >
+                <TypewriterText
+                  key={personalizingStatus}
+                  text={personalizingStatus}
+                />
               </h2>
             </div>
           )}
@@ -1870,12 +2181,16 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
                 {personalizingCopy.subtitle}
               </p>
               <div className="space-y-3">
-                {personalizingCopy.checklist.map((item: string, idx: number) => (
+                {personalizingCopy.checklist.map((item, idx) => (
                   <ChecklistItem
                     key={idx}
                     text={item}
                     delay={idx * 800}
-                    onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined}
+                    onComplete={
+                      idx === personalizingCopy.checklist.length - 1
+                        ? onChecklistComplete
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -1883,18 +2198,30 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
                 {progressPercent === 100
                   ? "Ready!"
                   : "Fine-tuning for: " +
-                    (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent / 25))] || "Results")}
+                    (personalizingCopy.checklist[
+                      Math.min(3, Math.floor(progressPercent / 25))
+                    ] || "Results")}
               </div>
             </div>
           )}
 
-          <div className="absolute bottom-8 left-0 w-full px-8" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
+          <div
+            className="absolute bottom-8 left-0 w-full px-8"
+            style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+          >
             <div className="flex justify-between items-end mb-2">
-              <span className="text-white/60 font-medium text-sm">Progress</span>
-              <span className="text-white font-mono text-xl font-bold">{progressPercent}%</span>
+              <span className="text-white/60 font-medium text-sm">
+                Progress
+              </span>
+              <span className="text-white font-mono text-xl font-bold">
+                {progressPercent}%
+              </span>
             </div>
             <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#E65473] transition-all duration-100 ease-linear" style={{ width: `${progressPercent}%` }} />
+              <div
+                className="h-full bg-[#E65473] transition-all duration-100 ease-linear"
+                style={{ width: `${progressPercent}%` }}
+              />
             </div>
             <p className="text-center text-[#E65473] text-xs mt-2 font-medium min-h-[16px]">
               {progressPercent < 30
@@ -1910,28 +2237,30 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
       {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === "showingTimeline" && (
         <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
-          {/* ✅ Scrollable middle (fix) */}
           <div
-            className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 z-10"
-            style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)" }}
+            className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0"
+            style={{
+              paddingTop: "calc(env(safe-area-inset-top) + 24px)",
+              paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
+            }}
           >
             <div>
               <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">{(userDetails as any)?.name || "Your"} path to</span>
+                <span className="text-white/90">
+                  {userDetails?.name || "Your"} path to
+                </span>
                 <br />
                 <span className="text-[#E65473]">{goalTitle}</span> is ready.
               </h1>
               <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
                 {formatRichText(timelineCopy.subtitle)}
               </p>
-
               <HolographicTimeline />
-
               <div className="mt-4 space-y-3">
                 <h3 className="text-[16px] font-semibold text-white mb-1">
                   Your Personal Insights
                 </h3>
-                {timelineCopy.insights.map((insight: string, idx: number) => (
+                {timelineCopy.insights.map((insight, idx) => (
                   <div
                     key={idx}
                     className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700"
@@ -1948,20 +2277,14 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
               </div>
             </div>
 
-            <div className="h-6" />
-          </div>
-
-          {/* ✅ Sticky footer CTA (fix) */}
-          <div
-            className="shrink-0 px-6 z-30"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
-          >
-            <button
-              onClick={onNext}
-              className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
-            >
-              {timelineCopy.cta}
-            </button>
+            <div className="mt-4">
+              <button
+                onClick={onNext}
+                className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+              >
+                {timelineCopy.cta}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1973,8 +2296,14 @@ function PlanRevealScreen({ onNext }: { onNext: () => void }) {
 // SCREEN 6: PAYWALL SCREEN
 // ==========================================
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
-const REVIEW_IMAGES = ["/review9.png", "/review1.png", "/review5.png", "/review4.png", "/review2.png"];
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const REVIEW_IMAGES = [
+  "/review9.png",
+  "/review1.png",
+  "/review5.png",
+  "/review4.png",
+  "/review2.png",
+];
 
 function usePaywallChrome(color = "#0A0A10") {
   useEffect(() => {
@@ -2015,21 +2344,23 @@ function usePaywallChrome(color = "#0A0A10") {
   }, [color]);
 }
 
-const getButtonText = (goalTitle: string) => {
+const getButtonText = (goalTitle) => {
   const g = (goalTitle || "").toLowerCase();
   if (g.includes("pregnancy")) return "Start My Pregnancy Plan";
   if (g.includes("postpartum")) return "Start My Postpartum Plan";
   if (g.includes("leak")) return "Start My Leak-Free Plan";
-  if (g.includes("intimacy") || g.includes("sex")) return "Start My Intimacy Plan";
+  if (g.includes("intimacy") || g.includes("sex"))
+    return "Start My Intimacy Plan";
   if (g.includes("pain")) return "Start My Relief Plan";
-  if (g.includes("core") || g.includes("strength")) return "Start My Core Plan";
+  if (g.includes("core") || g.includes("strength"))
+    return "Start My Core Plan";
   return "Start My Personalized Plan";
 };
 
-const getReviewsForGoal = (goalTitle: string) => {
+const getReviewsForGoal = (goalTitle) => {
   const goal = (goalTitle || "").toLowerCase();
 
-  const pack = (names: string[], texts: string[]) =>
+  const pack = (names, texts) =>
     names.map((name, i) => ({
       name,
       text: texts[i],
@@ -2039,49 +2370,97 @@ const getReviewsForGoal = (goalTitle: string) => {
   if (goal.includes("leaks") || goal.includes("bladder")) {
     return pack(
       ["Emily D.", "Dana A.", "Hannah L.", "Priya S.", "Zoe M."],
-      ["Week 1 I laughed and stayed dry", "Pads live in a drawer now", "I jogged today and stayed dry", "Bathroom maps deleted I feel free", "My bladder finally listens to me"]
+      [
+        "Week 1 I laughed and stayed dry",
+        "Pads live in a drawer now",
+        "I jogged today and stayed dry",
+        "Bathroom maps deleted I feel free",
+        "My bladder finally listens to me",
+      ]
     );
   }
   if (goal.includes("pain") || goal.includes("discomfort")) {
     return pack(
       ["Laura P.", "Ana R.", "Katie B.", "Mia K.", "Jen C."],
-      ["Meetings passed without that deep ache", "I enjoyed intimacy without flinching", "Gentle moves gave real relief", "I woke up calm not burning", "I lifted my toddler without bracing"]
+      [
+        "Meetings passed without that deep ache",
+        "I enjoyed intimacy without flinching",
+        "Gentle moves gave real relief",
+        "I woke up calm not burning",
+        "I lifted my toddler without bracing",
+      ]
     );
   }
   if (goal.includes("postpartum") || goal.includes("recover")) {
     return pack(
       ["Sarah W.", "Michelle T.", "Chloe N.", "Olivia G.", "Jess P."],
-      ["Week 2 stronger steadier with baby", "My core feels connected again", "From leaks to laughter with my baby", "Recovery finally makes sense", "Five minutes I actually keep"]
+      [
+        "Week 2 stronger steadier with baby",
+        "My core feels connected again",
+        "From leaks to laughter with my baby",
+        "Recovery finally makes sense",
+        "Five minutes I actually keep",
+      ]
     );
   }
   if (goal.includes("pregnancy") || goal.includes("prepare")) {
     return pack(
       ["Kara D.", "Ivy S.", "Bella R.", "Nora P.", "June K."],
-      ["Breath is calm belly supported", "Hips opened and sleep returned", "Week 2 my core feels ready", "Movements finally feel safe", "I feel ready for our baby"]
+      [
+        "Breath is calm belly supported",
+        "Hips opened and sleep returned",
+        "Week 2 my core feels ready",
+        "Movements finally feel safe",
+        "I feel ready for our baby",
+      ]
     );
   }
   if (goal.includes("intimacy") || goal.includes("sexual")) {
     return pack(
       ["Maya S.", "Dani R.", "Lina H.", "Brooke E.", "Kim W."],
-      ["More sensation and less worry", "Bedroom confidence is back", "Stronger connection with my partner", "I actually look forward to intimacy", "Orgasms came without fear"]
+      [
+        "More sensation and less worry",
+        "Bedroom confidence is back",
+        "Stronger connection with my partner",
+        "I actually look forward to intimacy",
+        "Orgasms came without fear",
+      ]
     );
   }
   if (goal.includes("strength") || goal.includes("fitness")) {
     return pack(
       ["Sam P.", "Helena R.", "Jules M.", "Tess K.", "Ana L."],
-      ["Runs feel springy and sure", "Deadlifts steady no pinch", "Balance finally clicked in yoga", "Core fired my pace improved", "Recovery better workouts stick"]
+      [
+        "Runs feel springy and sure",
+        "Deadlifts steady no pinch",
+        "Balance finally clicked in yoga",
+        "Core fired my pace improved",
+        "Recovery better workouts stick",
+      ]
     );
   }
   if (goal.includes("stability") || goal.includes("posture")) {
     return pack(
       ["Camille D.", "Erin S.", "Mina J.", "Paige R.", "Ruth N."],
-      ["Shoulders dropped I grew taller", "Neck stayed easy all day", "Stairs felt steady and safe", "Desk hours no longer punish", "Week 1 standing feels organized"]
+      [
+        "Shoulders dropped I grew taller",
+        "Neck stayed easy all day",
+        "Stairs felt steady and safe",
+        "Desk hours no longer punish",
+        "Week 1 standing feels organized",
+      ]
     );
   }
 
   return pack(
     ["Olivia G.", "Emily D.", "Sarah W.", "Emily J.", "Dana A."],
-    ["This finally felt made for me", "Small wins in days I smiled", "Five minutes gave real change", "Pain eased and I breathed", "Confidence returned I feel in control"]
+    [
+      "This finally felt made for me",
+      "Small wins in days I smiled",
+      "Five minutes gave real change",
+      "Pain eased and I breathed",
+      "Confidence returned I feel in control",
+    ]
   );
 };
 
@@ -2092,17 +2471,17 @@ const FEATURES = [
   { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" },
 ];
 
-const CheckoutForm = ({ onClose }: { onClose: () => void }) => {
+const CheckoutForm = ({ onClose }) => {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
   const { saveUserData } = useUserData();
 
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!stripe || !elements) return;
 
@@ -2112,13 +2491,13 @@ const CheckoutForm = ({ onClose }: { onClose: () => void }) => {
       elements,
       confirmParams: {
         return_url: "https://pelvi.health/dashboard?plan=monthly",
-        receipt_email: email,
+        receipt_email: email && email.includes("@") ? email : undefined,
       },
       redirect: "if_required",
     });
 
     if (error) {
-      setMessage(error.message || "Payment failed.");
+      setMessage(error.message);
       setIsLoading(false);
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
       saveUserData("isPremium", true);
@@ -2155,13 +2534,14 @@ const CheckoutForm = ({ onClose }: { onClose: () => void }) => {
       </div>
 
       <div className="flex flex-col gap-4">
-        <div className="text-white">
+        {/* credential thingy removed on DESKTOP ONLY; mobile stays the same */}
+        <div className="text-white md:hidden">
           <LinkAuthenticationElement
             id="link-authentication-element"
-            onChange={(e: any) => setEmail(e.value.email)}
+            onChange={(e) => setEmail(e.value.email)}
           />
         </div>
-        <PaymentElement id="payment-element" options={paymentElementOptions as any} />
+        <PaymentElement id="payment-element" options={paymentElementOptions} />
       </div>
 
       {message && (
@@ -2185,13 +2565,13 @@ const CheckoutForm = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
-const RestoreModal = ({ onClose }: { onClose: () => void }) => {
+const RestoreModal = ({ onClose }) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { saveUserData } = useUserData();
 
-  const handleRestoreSubmit = async (e: any) => {
+  const handleRestoreSubmit = async (e) => {
     e.preventDefault();
     if (!email.includes("@")) {
       alert("Please enter a valid email address.");
@@ -2215,12 +2595,16 @@ const RestoreModal = ({ onClose }: { onClose: () => void }) => {
         if (data.customerName) saveUserData("name", data.customerName);
         router.push("https://pelvi.health/dashboard");
       } else {
-        alert("We found your email, but no active subscription was detected.");
+        alert(
+          "We found your email, but no active subscription was detected."
+        );
         setIsLoading(false);
       }
     } catch (err) {
       console.error(err);
-      alert("Unable to verify purchase. Please check your internet connection.");
+      alert(
+        "Unable to verify purchase. Please check your internet connection."
+      );
       setIsLoading(false);
     }
   };
@@ -2245,12 +2629,16 @@ const RestoreModal = ({ onClose }: { onClose: () => void }) => {
         </div>
 
         <p className="text-white/60 text-sm mb-6">
-          Enter the email address you used to purchase your subscription. We'll find your account.
+          Enter the email address you used to purchase your subscription. We'll
+          find your account.
         </p>
 
         <form onSubmit={handleRestoreSubmit} className="flex flex-col gap-4">
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+            <Mail
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+              size={18}
+            />
             <input
               type="email"
               placeholder="name@example.com"
@@ -2292,21 +2680,29 @@ function PaywallScreen() {
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   const [isButtonLoading, setIsButtonLoading] = useState(false);
 
-  const goalTitle = (userDetails as any)?.selectedTarget?.title || "Build Core Strength";
-  const userName = (userDetails as any)?.name || "Ready";
+  const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
+  const userName = userDetails?.name || "Ready";
   const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
   const buttonText = getButtonText(goalTitle);
 
   useEffect(() => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
-    setDateString(date.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+    setDateString(
+      date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    );
     setShowContent(true);
   }, []);
 
   useEffect(() => {
-    const featureTimer = setInterval(() => setActiveFeatureIndex((p) => (p + 1) % FEATURES.length), 4000);
-    const reviewTimer = setInterval(() => setCurrentReviewIndex((p) => (p + 1) % reviews.length), 5000);
+    const featureTimer = setInterval(
+      () => setActiveFeatureIndex((p) => (p + 1) % FEATURES.length),
+      4000
+    );
+    const reviewTimer = setInterval(
+      () => setCurrentReviewIndex((p) => (p + 1) % reviews.length),
+      5000
+    );
     return () => {
       clearInterval(featureTimer);
       clearInterval(reviewTimer);
@@ -2345,9 +2741,11 @@ function PaywallScreen() {
         if (data.error) throw new Error(data.error);
 
         setClientSecret(data.clientSecret);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Stripe Error:", err);
-        alert(`Could not initialize payment: ${err.message}. Please check your internet or try again later.`);
+        alert(
+          `Could not initialize payment: ${err.message}. Please check your internet or try again later.`
+        );
         setIsButtonLoading(false);
         return;
       }
@@ -2418,13 +2816,17 @@ function PaywallScreen() {
         `}
       >
         <h1 className="text-[34px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
-          <span className="text-white">{userName === "Ready" ? "Ready to" : `${userName}, ready to`}</span>
+          <span className="text-white">
+            {userName === "Ready" ? "Ready to" : `${userName}, ready to`}
+          </span>
           <br />
           <span className="capitalize text-[#E65473]">
             {goalTitle.replace("Stop ", "").replace("Build ", "")}
           </span>
           ?
-          <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
+          <span className="block text-[28px] text-white mt-1">
+            100% Money-Back Guarantee.
+          </span>
         </h1>
 
         <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl">
@@ -2441,7 +2843,9 @@ function PaywallScreen() {
                 <div
                   key={index}
                   className={`absolute w-full flex flex-col items-center gap-3 transition-all duration-500 ease-out px-4 text-center ${
-                    isActive ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"
+                    isActive
+                      ? "opacity-100 translate-y-0 scale-100"
+                      : "opacity-0 translate-y-4 scale-95"
                   }`}
                 >
                   <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#E65473] to-[#C23A5B] flex items-center justify-center shadow-lg shadow-rose-500/30">
@@ -2457,7 +2861,10 @@ function PaywallScreen() {
 
           <div className="w-full px-6 pb-6 flex gap-1.5 h-1.5">
             {FEATURES.map((_, i) => (
-              <div key={i} className="h-full flex-1 bg-white/20 rounded-full overflow-hidden">
+              <div
+                key={i}
+                className="h-full flex-1 bg-white/20 rounded-full overflow-hidden"
+              >
                 <div
                   className={`h-full bg-white rounded-full transition-all ease-linear ${
                     i === activeFeatureIndex
@@ -2474,7 +2881,9 @@ function PaywallScreen() {
 
         <div className="w-full bg-black/20 backdrop-blur-md border border-white/10 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
           <div className="flex flex-col items-center gap-1">
-            <span className="text-[22px] font-bold text-white drop-shadow-sm">4.9</span>
+            <span className="text-[22px] font-bold text-white drop-shadow-sm">
+              4.9
+            </span>
             <div className="flex text-yellow-400 gap-1 drop-shadow-sm">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} size={18} fill="currentColor" />
@@ -2486,7 +2895,7 @@ function PaywallScreen() {
           </div>
 
           <div className="w-full min-h-[70px] flex items-center justify-center relative">
-            {reviews.map((review: any, idx: number) => (
+            {reviews.map((review, idx) => (
               <div
                 key={idx}
                 className={`absolute w-full flex flex-col items-center transition-all duration-500 ${
@@ -2504,14 +2913,20 @@ function PaywallScreen() {
                   <p className="text-[15px] italic text-white text-center font-medium drop-shadow-md">
                     "{review.text}"
                   </p>
-                  <p className="text-[12px] font-bold text-white/90 drop-shadow-md">{review.name}</p>
+                  <p className="text-[12px] font-bold text-white/90 drop-shadow-md">
+                    {review.name}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
 
           <p className="text-[13px] text-white/70 text-center mt-2 font-medium">
-            Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.
+            Join{" "}
+            <span className="font-bold text-white">
+              {userCount.toLocaleString()}+ women
+            </span>{" "}
+            feeling strong.
           </p>
         </div>
 
@@ -2521,7 +2936,9 @@ function PaywallScreen() {
             className="w-full bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm cursor-pointer active:scale-[0.98] transition-transform"
           >
             <div className="flex items-center justify-center gap-2 text-white/90">
-              <span className="text-[14px] font-semibold">How do I get my money back?</span>
+              <span className="text-[14px] font-semibold">
+                How do I get my money back?
+              </span>
               {isFaqOpen ? (
                 <ChevronUp size={14} className="text-white/60" />
               ) : (
@@ -2571,7 +2988,9 @@ function PaywallScreen() {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] transition-all group-hover:scale-105" />
           <div className="relative flex items-center gap-2 z-10">
-            {isButtonLoading && <Loader2 className="animate-spin text-white" size={24} />}
+            {isButtonLoading && (
+              <Loader2 className="animate-spin text-white" size={24} />
+            )}
             <span className="text-[18px] font-bold text-white">{buttonText}</span>
           </div>
         </button>
@@ -2588,7 +3007,10 @@ function PaywallScreen() {
           onClick={() => setShowCheckoutModal(false)}
         >
           <div className="min-h-full flex items-center justify-center p-4">
-            <Elements options={{ clientSecret, appearance: stripeAppearance as any }} stripe={stripePromise}>
+            <Elements
+              options={{ clientSecret, appearance: stripeAppearance }}
+              stripe={stripePromise}
+            >
               <CheckoutForm onClose={() => setShowCheckoutModal(false)} />
             </Elements>
           </div>
@@ -2600,7 +3022,7 @@ function PaywallScreen() {
   );
 }
 
-const Star = ({ size, fill }: { size: number; fill: string }) => (
+const Star = ({ size, fill }) => (
   <svg
     width={size}
     height={size}
@@ -2622,7 +3044,7 @@ const Star = ({ size, fill }: { size: number; fill: string }) => (
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState("welcome");
 
-  const handleNext = (nextStep: string) => {
+  const handleNext = (nextStep) => {
     setCurrentStep(nextStep);
   };
 
@@ -2643,12 +3065,25 @@ export default function Onboarding() {
 
   return (
     // WRAPPER: Handles the "Desktop Card" vs "Mobile Full" logic
-    <div className="w-full h-full flex items-center justify-center bg-gray-50 md:py-10 md:px-4">
+    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:py-0 md:px-10 md:overflow-hidden">
+      {/* DESKTOP BACKGROUND (keeps mobile identical) */}
+      <div className="hidden md:block absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/60 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-rose-100/70 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="hidden md:block">
+        <DesktopButterflyBackground />
+      </div>
+
+      <LiveCommunitySidebar />
+
       <div
         className="
+        relative z-10
         w-full h-full 
-        md:w-[min(900px,100%)] md:h-[850px] md:max-h-[90vh]
-        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden relative
+        md:w-[420px] md:max-w-[420px] md:h-[850px] md:max-h-[90dvh]
+        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
       "
       >
         <Screen />
