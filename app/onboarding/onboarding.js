@@ -2581,7 +2581,7 @@ const CheckoutForm = ({ onClose }) => {
     id="submit"
     className="w-full mt-6 h-14 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
   >
-    {isLoading ? <Loader2 className="animate-spin" /> : "Pay $24.99"}
+    {isLoading ? <Loader2 className="animate-spin" /> : "Start Strengthening My Pelvic Floor"}
   </button>
 
   <p className="text-center text-white/30 text-xs mt-4">
