@@ -1246,47 +1246,49 @@ function PersonalIntakeScreen({ onNext }) {
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      {/* ✅ Chat History Area (scroll container ref added) */}
-      <div
-        ref={chatScrollRef}
-        className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col"
-      >
-        {history.map((msg, index) => (
-          <ChatBubble
-            key={index}
-            text={msg.text}
-            isTyping={false}
-            isUser={msg.sender === "user"}
-          />
-        ))}
+  <div className="flex flex-col w-full min-h-[100dvh] h-[100dvh] md:min-h-0 md:h-full bg-app-background relative overflow-hidden">
+    {/* Chat History Area */}
+    <div
+      ref={chatScrollRef}
+      className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col"
+    >
+      {history.map((msg, index) => (
+        <ChatBubble
+          key={index}
+          text={msg.text}
+          isTyping={false}
+          isUser={msg.sender === "user"}
+        />
+      ))}
 
-        {isTyping && <ChatBubble isTyping={true} isUser={false} />}
-
-        {/* ✅ removed the scrollIntoView sentinel */}
-      </div>
-
-      {/* Input Area */}
-      <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20">
-        <div className="mb-6">{renderInput()}</div>
-
-        <button
-          onClick={handleNext}
-          disabled={isTyping || (step === "name" && name.length < 2)}
-          className={`w-full h-14 font-bold text-lg rounded-full shadow-xl transition-all duration-300
-            ${
-              isTyping || (step === "name" && name.length < 2)
-                ? "bg-app-borderIdle text-app-textSecondary cursor-not-allowed opacity-50 shadow-none"
-                : "bg-app-primary text-white shadow-app-primary/30 active:scale-95 animate-breathe"
-            }
-          `}
-        >
-          {step === "height" ? "Continue" : "Next"}
-        </button>
-      </div>
+      {isTyping && <ChatBubble isTyping={true} isUser={false} />}
     </div>
-  );
-}
+
+    {/* Input Area */}
+    <div
+      className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 z-20"
+      style={{
+        paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)",
+      }}
+    >
+      <div className="mb-6">{renderInput()}</div>
+
+      <button
+        onClick={handleNext}
+        disabled={isTyping || (step === "name" && name.length < 2)}
+        className={`w-full h-14 font-bold text-lg rounded-full shadow-xl transition-all duration-300 relative z-30
+          ${
+            isTyping || (step === "name" && name.length < 2)
+              ? "bg-app-borderIdle text-app-textSecondary cursor-not-allowed opacity-50 shadow-none"
+              : "bg-app-primary text-white shadow-app-primary/30 active:scale-95 animate-breathe"
+          }
+        `}
+      >
+        {step === "height" ? "Continue" : "Next"}
+      </button>
+    </div>
+  </div>
+);
 
 // ==========================================
 // SCREEN 5: PLAN REVEAL SCREEN
