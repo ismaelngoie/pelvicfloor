@@ -302,7 +302,6 @@ function WelcomeScreen({ onNext }) {
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [showContent, setShowContent] = useState(false);
 
-  // --- 1. INSTANT REDIRECT CHECK (SPEED OPTIMIZED) ---
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
@@ -314,9 +313,7 @@ function WelcomeScreen({ onNext }) {
             return;
           }
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
 
     if (userDetails && userDetails.isPremium) {
@@ -327,7 +324,6 @@ function WelcomeScreen({ onNext }) {
     }
   }, [userDetails, router]);
 
-  // Social Proof Counter
   useEffect(() => {
     if (!showContent) return;
     const finalValue = 10200;
@@ -347,7 +343,6 @@ function WelcomeScreen({ onNext }) {
     return () => clearInterval(timer);
   }, [showContent]);
 
-  // Review Ticker
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
@@ -361,7 +356,6 @@ function WelcomeScreen({ onNext }) {
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
       <ButterflyBackground />
 
-      {/* Scrollable content */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar">
         <div
           className={`z-10 flex flex-col items-center px-6 pt-16 w-full transition-all duration-1000 ${
@@ -370,7 +364,6 @@ function WelcomeScreen({ onNext }) {
               : "opacity-0 translate-y-10"
           }`}
         >
-          {/* Logo */}
           <div className="mb-6">
             <img
               src="/logo.png"
@@ -391,7 +384,6 @@ function WelcomeScreen({ onNext }) {
             Stop bladder leaks, heal prolapse, and improve intimacy.
           </p>
 
-          {/* Benefits List */}
           <div className="flex flex-col gap-6 w-full max-w-xs items-start pl-2 bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm">
             <div className="flex items-start gap-4">
               <div className="shrink-0 pt-1">
@@ -423,7 +415,6 @@ function WelcomeScreen({ onNext }) {
         </div>
       </div>
 
-      {/* Sticky bottom */}
       <div
         className={`w-full px-8 pb-8 flex flex-col gap-4 items-center z-30 transition-all duration-1000 delay-300 ${
           showContent
@@ -431,7 +422,6 @@ function WelcomeScreen({ onNext }) {
             : "opacity-0 translate-y-10"
         }`}
       >
-        {/* Review Ticker */}
         <div className="h-14 overflow-hidden w-full relative">
           {reviews.map((review, index) => (
             <div
@@ -452,7 +442,6 @@ function WelcomeScreen({ onNext }) {
           ))}
         </div>
 
-        {/* Button */}
         <button
           onClick={onNext}
           className="w-full h-14 bg-app-primary text-white font-bold text-lg rounded-full shadow-xl shadow-app-primary/30 animate-breathe active:scale-95 transition-transform relative z-40"
@@ -539,15 +528,12 @@ function SelectGoalScreen({ onNext }) {
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-white/50">
-      {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
         <div className="absolute top-[-10%] right-[-10%] w-[250px] h-[250px] bg-rose-200 rounded-full blur-[80px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[250px] h-[250px] bg-rose-100 rounded-full blur-[80px]" />
       </div>
 
-      {/* Scrollable */}
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5 pt-8 pb-6 z-10">
-        {/* Header */}
         <div className="mb-4">
           <h1 className="text-[26px] font-extrabold text-center text-app-textPrimary mb-1 leading-tight">
             Let's set your primary goal.
@@ -557,7 +543,6 @@ function SelectGoalScreen({ onNext }) {
           </p>
         </div>
 
-        {/* Grid */}
         <div className="w-full flex justify-center">
           <div className="w-full max-w-md">
             <div className="grid grid-cols-2 gap-3">
@@ -619,7 +604,6 @@ function SelectGoalScreen({ onNext }) {
         </div>
       </div>
 
-      {/* Sticky Footer CTA */}
       <div className="shrink-0 z-20 px-5 pb-6">
         <button
           onClick={onNext}
@@ -784,12 +768,9 @@ function HowItHelpsScreen({ onNext }) {
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-app-background">
-      {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-app-primary/5 rounded-full blur-3xl -z-10" />
 
-      {/* Scrollable middle */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pt-12 px-4 pb-8">
-        {/* Header */}
         <div className="z-10 text-center mb-4">
           <h1 className="text-3xl font-bold text-app-textPrimary mb-4 leading-tight animate-slide-up">
             Here's how we'll <br />
@@ -803,7 +784,6 @@ function HowItHelpsScreen({ onNext }) {
           </p>
         </div>
 
-        {/* Constellation */}
         <div className="w-full relative flex items-center justify-center min-h-[380px]">
           <div
             className={`absolute z-20 bg-white p-6 rounded-full shadow-xl shadow-app-primary/15 text-app-primary border border-app-borderIdle transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${
@@ -865,7 +845,6 @@ function HowItHelpsScreen({ onNext }) {
         <div className="h-4" />
       </div>
 
-      {/* Sticky footer */}
       <div className="shrink-0 z-20 px-4 pb-6">
         <button
           onClick={onNext}
@@ -1018,8 +997,7 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="relative h-[220px] w-full max-w-[320px] mx-auto overflow-hidden mt-2">
@@ -1094,8 +1072,7 @@ function PersonalIntakeScreen({ onNext }) {
       "mia",
       600
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNext = () => {
     if (isTyping) return;
@@ -1193,7 +1170,6 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      {/* Chat History Area */}
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
         {history.map((msg, index) => (
           <ChatBubble
@@ -1209,7 +1185,6 @@ function PersonalIntakeScreen({ onNext }) {
         <div ref={chatBottomRef} className="h-4" />
       </div>
 
-      {/* Input Area */}
       <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20">
         <div className="mb-6">{renderInput()}</div>
 
@@ -1238,20 +1213,15 @@ function PersonalIntakeScreen({ onNext }) {
 const THEME_REVEAL = {
   bg: "bg-app-background",
   text: "text-slate-900",
-
   textPrimary: "text-slate-900",
   textSecondary: "text-slate-500",
-
   unselected: "bg-white border-gray-200 shadow-sm",
   selected:
     "bg-white border-[#E65473] shadow-xl shadow-pink-200/50 scale-[1.02] z-20",
-
   textUnselected: "text-slate-900",
   textSelected: "text-[#E65473]",
-
   iconUnselected: "text-[#E65473] opacity-80",
   iconSelected: "text-[#E65473] scale-110",
-
   helper: "text-[#33B373]",
   brandGradient: "from-[#E65473] to-[#C23A5B]",
 };
@@ -1280,7 +1250,6 @@ const usePlanRevealChrome = (enabled, color = "#000000") => {
     if (!enabled) return;
     if (typeof window === "undefined") return;
 
-    // Desktop should not mutate global chrome; keep it scoped to mobile.
     if (window.matchMedia("(min-width: 768px)").matches) return;
 
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -1413,7 +1382,8 @@ const getPersonalizingCopy = (goal, name) => {
       title: `Designing your intimacy plan`,
       subtitle: "Comfort, sensation, confidence—gently built for your body.",
       connecting: "Checking your profile for arousal flow and comfort…",
-      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
+      calibrating:
+        "Balancing relax/contract patterns for stronger orgasms…",
       checklist: [
         "Comfort-first warmups",
         "Relax/contract patterns",
@@ -1425,7 +1395,8 @@ const getPersonalizingCopy = (goal, name) => {
       title: "Personalizing your leak-control plan",
       subtitle: "Train reflexes so sneezes and laughs don’t own your day.",
       connecting: "Mapping urge delays and quick-contract sets…",
-      calibrating: "Dialing breath and pressure control for real-life moments…",
+      calibrating:
+        "Dialing breath and pressure control for real-life moments…",
       checklist: [
         "Urge-delay reflex training",
         "Fast-twitch squeezes",
@@ -1796,30 +1767,19 @@ const HolographicTimeline = () => {
   );
 };
 
-/**
- * ✅ UPDATED PlanRevealScreen:
- * - Phase 3 (timeline) is scrollable on ALL screens
- * - CTA is pinned (fixed on mobile, absolute in desktop card)
- * - Extra padding so content never hides behind pinned CTA
- * - Phase 2 also scroll-safe on tiny heights
- */
 function PlanRevealScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
   const [phase, setPhase] = useState("askingHealthInfo");
 
   const isDark = phase === "personalizing" || phase === "showingTimeline";
-
-  // Safari/bottom bar congruency ONLY on dark phases
   usePlanRevealChrome(isDark, "#000000");
 
-  // Phase 1 State
   const [selectedConditions, setSelectedConditions] = useState([]);
   const [noneSelected, setNoneSelected] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [helperText, setHelperText] = useState("");
   const [activityHelperText, setActivityHelperText] = useState("");
 
-  // Phase 2 State
   const [personalizingStatus, setPersonalizingStatus] = useState("");
   const [progressPercent, setProgressPercent] = useState(0);
   const [showChecklist, setShowChecklist] = useState(false);
@@ -1829,7 +1789,6 @@ function PlanRevealScreen({ onNext }) {
   const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
   const timelineCopy = getTimelineCopy(goalTitle);
 
-  // --- Phase 1 logic ---
   const updateHelperText = (hasCondition) => {
     setHelperText(getHelperCopy(hasCondition, goalTitle));
   };
@@ -1866,7 +1825,6 @@ function PlanRevealScreen({ onNext }) {
     setPhase("personalizing");
   };
 
-  // --- Phase 2 logic ---
   useEffect(() => {
     if (phase !== "personalizing") return;
 
@@ -1904,7 +1862,6 @@ function PlanRevealScreen({ onNext }) {
     setTimeout(() => setPhase("showingTimeline"), 1200);
   };
 
-  // --- Phase 3 helpers ---
   const calculateBMI = () => {
     if (!userDetails?.weight || !userDetails?.height) return "22.5";
     const h = userDetails.height * 0.0254;
@@ -1961,17 +1918,14 @@ function PlanRevealScreen({ onNext }) {
         overflow-hidden
       `}
     >
-      {/* Bottom scrim ONLY for dark phases */}
       {isDark && (
         <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
           <div className="w-full h-[calc(env(safe-area-inset-bottom)+20px)] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
         </div>
       )}
 
-      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
       {phase === "askingHealthInfo" && (
         <div className="w-full h-full flex flex-col overflow-hidden">
-          {/* Scrollable middle */}
           <div
             className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-5"
             style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
@@ -1988,7 +1942,6 @@ function PlanRevealScreen({ onNext }) {
             </div>
 
             <div className="flex flex-col justify-center min-h-0">
-              {/* Conditions */}
               <div>
                 <div className="grid grid-cols-2 gap-3 mb-2">
                   {CONDITIONS.map((item) => {
@@ -1998,7 +1951,11 @@ function PlanRevealScreen({ onNext }) {
                         key={item.id}
                         onClick={() => toggleCondition(item.id)}
                         className={`relative flex flex-col items-center justify-center p-2 rounded-[24px] border-[2px] h-[100px] transition-all duration-300 active:scale-95 outline-none
-                          ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
+                          ${
+                            isSelected
+                              ? THEME_REVEAL.selected
+                              : THEME_REVEAL.unselected
+                          }
                         `}
                       >
                         <div
@@ -2060,7 +2017,6 @@ function PlanRevealScreen({ onNext }) {
                 </button>
               </div>
 
-              {/* Activity */}
               <div className="mt-3">
                 <h3
                   className={`text-[15px] font-bold text-center ${THEME_REVEAL.text} mb-2`}
@@ -2075,7 +2031,11 @@ function PlanRevealScreen({ onNext }) {
                         key={act.id}
                         onClick={() => selectActivity(act.id)}
                         className={`w-full py-3.5 px-5 rounded-[22px] border-[2px] text-left flex items-center justify-between transition-all duration-300 active:scale-95 outline-none
-                          ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
+                          ${
+                            isSelected
+                              ? THEME_REVEAL.selected
+                              : THEME_REVEAL.unselected
+                          }
                         `}
                       >
                         <span
@@ -2120,7 +2080,6 @@ function PlanRevealScreen({ onNext }) {
             <div className="h-6" />
           </div>
 
-          {/* Sticky footer */}
           <div className="shrink-0 px-5 pb-6">
             <button
               onClick={handlePhase1Continue}
@@ -2139,79 +2098,73 @@ function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
-      {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
       {phase === "personalizing" && (
-        <div className="relative w-full h-full bg-black overflow-hidden animate-in fade-in duration-1000">
-          {/* Scrollable center content */}
+        <div
+          className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000"
+          style={{
+            paddingTop: "env(safe-area-inset-top)",
+            paddingBottom: "env(safe-area-inset-bottom)",
+          }}
+        >
           <div
-            className="flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col items-center justify-center px-8"
-            style={{
-              paddingTop: "env(safe-area-inset-top)",
-              // leave room for pinned progress footer
-              paddingBottom: "calc(140px + env(safe-area-inset-bottom))",
-            }}
+            className={`transition-all duration-500 ${
+              showChecklist
+                ? "scale-75 -translate-y-8 opacity-0"
+                : "scale-100 opacity-100"
+            }`}
           >
-            <div
-              className={`transition-all duration-500 ${
-                showChecklist
-                  ? "scale-75 -translate-y-8 opacity-0"
-                  : "scale-100 opacity-100"
-              }`}
-            >
-              <AICoreView />
-            </div>
-
-            {!showChecklist && (
-              <div className="mt-12 text-center h-20 px-4">
-                <h2
-                  className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME_REVEAL.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}
-                >
-                  <TypewriterText
-                    key={personalizingStatus}
-                    text={personalizingStatus}
-                  />
-                </h2>
-              </div>
-            )}
-
-            {showChecklist && (
-              <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
-                <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">
-                  {personalizingCopy.title}
-                </h2>
-                <p className="text-center text-gray-400 text-sm mb-6">
-                  {personalizingCopy.subtitle}
-                </p>
-                <div className="space-y-3">
-                  {personalizingCopy.checklist.map((item, idx) => (
-                    <ChecklistItem
-                      key={idx}
-                      text={item}
-                      delay={idx * 800}
-                      onComplete={
-                        idx === personalizingCopy.checklist.length - 1
-                          ? onChecklistComplete
-                          : undefined
-                      }
-                    />
-                  ))}
-                </div>
-                <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
-                  {progressPercent === 100
-                    ? "Ready!"
-                    : "Fine-tuning for: " +
-                      (personalizingCopy.checklist[
-                        Math.min(3, Math.floor(progressPercent / 25))
-                      ] || "Results")}
-                </div>
-              </div>
-            )}
+            <AICoreView />
           </div>
 
-          {/* Pinned progress footer */}
+          {!showChecklist && (
+            <div className="mt-12 text-center h-20 px-4">
+              <h2
+                className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME_REVEAL.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}
+              >
+                <TypewriterText
+                  key={personalizingStatus}
+                  text={personalizingStatus}
+                />
+              </h2>
+            </div>
+          )}
+
+          {showChecklist && (
+            <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
+              <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">
+                {personalizingCopy.title}
+              </h2>
+              <p className="text-center text-gray-400 text-sm mb-6">
+                {personalizingCopy.subtitle}
+              </p>
+              <div className="space-y-3">
+                {personalizingCopy.checklist.map((item, idx) => (
+                  <ChecklistItem
+                    key={idx}
+                    text={item}
+                    delay={idx * 800}
+                    onComplete={
+                      idx === personalizingCopy.checklist.length - 1
+                        ? onChecklistComplete
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+              <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
+                {progressPercent === 100
+                  ? "Ready!"
+                  : "Fine-tuning for: " +
+                    (personalizingCopy.checklist[
+                      Math.min(3, Math.floor(progressPercent / 25))
+                    ] || "Results")}
+              </div>
+            </div>
+          )}
+
           <div
-            className="fixed md:absolute bottom-0 left-0 w-full px-8 z-30"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
+            className="absolute bottom-8 left-0 w-full px-8"
+            style={{ marginBottom: "env(safe-area-inset-bottom)" }}
           >
             <div className="flex justify-between items-end mb-2">
               <span className="text-white/60 font-medium text-sm">
@@ -2238,16 +2191,13 @@ function PlanRevealScreen({ onNext }) {
         </div>
       )}
 
-      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === "showingTimeline" && (
-        <div className="relative w-full h-full bg-black overflow-hidden animate-in fade-in duration-1000">
-          {/* Scrollable content */}
+        <div className="w-full h-full flex flex-col bg-black relative overflow-hidden animate-in fade-in duration-1000">
           <div
-            className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6"
+            className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 z-10"
             style={{
               paddingTop: "calc(env(safe-area-inset-top) + 24px)",
-              // leave room so CTA never covers bottom content
-              paddingBottom: "calc(110px + env(safe-area-inset-bottom))",
+              paddingBottom: "24px",
             }}
           >
             <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
@@ -2257,7 +2207,6 @@ function PlanRevealScreen({ onNext }) {
               <br />
               <span className="text-[#E65473]">{goalTitle}</span> is ready.
             </h1>
-
             <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
               {formatRichText(timelineCopy.subtitle)}
             </p>
@@ -2268,7 +2217,6 @@ function PlanRevealScreen({ onNext }) {
               <h3 className="text-[16px] font-semibold text-white mb-1">
                 Your Personal Insights
               </h3>
-
               {timelineCopy.insights.map((insight, idx) => (
                 <div
                   key={idx}
@@ -2285,17 +2233,10 @@ function PlanRevealScreen({ onNext }) {
               ))}
             </div>
 
-            <div className="h-8" />
+            <div className="h-6" />
           </div>
 
-          {/* Pinned CTA footer (always visible / reachable) */}
-          <div
-            className="
-              fixed md:absolute bottom-0 left-0 w-full z-30 px-6 pt-4
-              pb-[calc(env(safe-area-inset-bottom)+16px)]
-              bg-gradient-to-t from-black/95 via-black/70 to-transparent
-            "
-          >
+          <div className="shrink-0 px-6 pt-4 pb-[calc(env(safe-area-inset-bottom)+16px)] z-30 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
             <button
               onClick={onNext}
               className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
@@ -2326,7 +2267,6 @@ function usePaywallChrome(color = "#0A0A10") {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Desktop should not mutate global chrome; keep it scoped to mobile.
     if (window.matchMedia("(min-width: 768px)").matches) return;
 
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -2812,7 +2752,9 @@ function PaywallScreen() {
         </video>
 
         <div className="absolute inset-0 bg-black/30" />
+
         <div className="absolute top-0 inset-x-0 h-[calc(env(safe-area-inset-top)+64px)] bg-gradient-to-b from-[#0A0A10]/85 to-transparent" />
+
         <div className="absolute bottom-0 inset-x-0 h-[calc(env(safe-area-inset-bottom)+2px)] bg-gradient-to-t from-[#0A0A10]/95 via-[#0A0A10]/75 to-transparent" />
       </div>
 
@@ -3010,7 +2952,6 @@ function PaywallScreen() {
         </p>
       </div>
 
-      {/* Stripe overlay */}
       {showCheckoutModal && clientSecret && (
         <div
           className="fixed md:absolute inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
@@ -3076,9 +3017,7 @@ export default function Onboarding() {
   };
 
   return (
-    // WRAPPER: Handles the "Desktop Card" vs "Mobile Full" logic
-    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:py-0 md:px-10 md:overflow-hidden">
-      {/* DESKTOP BACKGROUND (keeps mobile identical) */}
+    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:px-10 md:pt-12 md:pb-12 md:overflow-hidden md:items-start">
       <div className="hidden md:block absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/60 rounded-full blur-[120px]" />
         <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-rose-100/70 rounded-full blur-[120px]" />
@@ -3090,13 +3029,12 @@ export default function Onboarding() {
 
       <LiveCommunitySidebar />
 
-      {/* ✅ DESKTOP CARD WIDTH UPDATED TO 900PX */}
       <div
         className="
           relative z-10
-          w-full h-full 
-          md:w-[900px] md:max-w-[900px]
-          md:h-[850px] md:max-h-[90dvh]
+          w-full h-full
+          md:w-[900px] md:max-w-[calc(100vw-80px)]
+          md:h-[850px] md:max-h-[calc(100dvh-160px)]
           bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
         "
       >
