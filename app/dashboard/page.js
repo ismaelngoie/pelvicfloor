@@ -282,7 +282,7 @@ const DashboardHeader = ({ name, greeting, onProfileClick }) => {
             <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"></div>
             <div className="relative w-2 h-2 bg-green-500 rounded-full"></div>
           </div>
-          <span className="text-xs font-medium text-[#737380]">Live: {liveCount} members online</span>
+          <span className="text-xs font-medium text-[#737380]">Live: {liveCount} members strengthening their pelvic floor</span>
         </div>
       </div>
 
