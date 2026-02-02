@@ -1059,16 +1059,12 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
 
 function PersonalIntakeScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
-
   const [step, setStep] = useState("name");
   const [isTyping, setIsTyping] = useState(false);
   const [history, setHistory] = useState([]);
-
-  // ✅ NEW: ref to the scrollable chat container (we will scroll THIS, not the page)
-  const chatScrollRef = useRef(null);
-
-  // ✅ NEW: ref to the name input (manual focus without viewport scroll)
-  const nameInputRef = useRef(null);
+  
+  // Ref for the chat container
+  const scrollContainerRef = useRef(null); 
 
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
@@ -1076,56 +1072,18 @@ function PersonalIntakeScreen({ onNext }) {
   const [height, setHeight] = useState(65);
 
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  const copy =
-    MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
+  const copy = MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
-  // ✅ NEW: scroll the chat container itself (never window/page)
-  const scrollChatToBottom = (behavior = "smooth") => {
-    const el = chatScrollRef.current;
-    if (!el) return;
-
-    // Wait for DOM/layout to settle
-    requestAnimationFrame(() => {
-      try {
-        el.scrollTo({ top: el.scrollHeight, behavior });
-      } catch {
-        // fallback (very old browsers)
-        el.scrollTop = el.scrollHeight;
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: "smooth",
+        });
       }
-    });
+    }, 100);
   };
-
-  // ✅ NEW: whenever messages or typing indicator changes, scroll the CHAT container
-  useEffect(() => {
-    // first render: no animation
-    const behavior = history.length <= 1 ? "auto" : "smooth";
-    scrollChatToBottom(behavior);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [history.length, isTyping]);
-
-  // ✅ NEW: manual focus that cannot reposition viewport (no autoFocus)
-  useEffect(() => {
-    if (step !== "name") return;
-    if (isTyping) return;
-
-    const input = nameInputRef.current;
-    if (!input) return;
-
-    // Only do this on desktop to avoid mobile keyboard/viewport jumps.
-    if (typeof window !== "undefined") {
-      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-      if (!isDesktop) return;
-    }
-
-    // Focus without scrolling the page (supported by most modern browsers)
-    requestAnimationFrame(() => {
-      try {
-        input.focus({ preventScroll: true });
-      } catch {
-        input.focus();
-      }
-    });
-  }, [step, isTyping]);
 
   const addMessage = (text, sender, delay = 0) => {
     if (sender === "mia") setIsTyping(true);
@@ -1133,7 +1091,7 @@ function PersonalIntakeScreen({ onNext }) {
     setTimeout(() => {
       if (sender === "mia") setIsTyping(false);
       setHistory((prev) => [...prev, { text, sender }]);
-      // ✅ no scrollIntoView here — scrolling happens in the effect above
+      scrollToBottom();
     }, delay);
   };
 
@@ -1154,16 +1112,14 @@ function PersonalIntakeScreen({ onNext }) {
       saveUserData("name", name);
       addMessage(name, "user");
 
-      const nextText =
-        copy.ack.replace("{name}", name) + " To start, what's your age?";
+      const nextText = copy.ack.replace("{name}", name) + " To start, what's your age?";
       addMessage(nextText, "mia", 1000);
       setStep("age");
     } else if (step === "age") {
       saveUserData("age", age);
       addMessage(`${age}`, "user");
 
-      const nextText =
-        copy.age.replace("{age}", age) + " Now, what's your current weight?";
+      const nextText = copy.age.replace("{age}", age) + " Now, what's your current weight?";
       addMessage(nextText, "mia", 1000);
       setStep("weight");
     } else if (step === "weight") {
@@ -1198,18 +1154,15 @@ function PersonalIntakeScreen({ onNext }) {
         return (
           <div className="w-full animate-slide-up py-10">
             <input
-              ref={nameInputRef}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Type your name..."
               className="w-full text-center text-3xl font-bold bg-transparent border-b-2 border-app-borderIdle focus:border-app-primary outline-none py-3 text-app-textPrimary placeholder:text-app-textSecondary/30"
-              // ✅ removed autoFocus
               onKeyDown={(e) => e.key === "Enter" && handleNext()}
             />
           </div>
         );
-
       case "age":
         return (
           <WheelPicker
@@ -1219,7 +1172,6 @@ function PersonalIntakeScreen({ onNext }) {
             unit="years old"
           />
         );
-
       case "weight":
         return (
           <WheelPicker
@@ -1229,7 +1181,6 @@ function PersonalIntakeScreen({ onNext }) {
             unit="lbs"
           />
         );
-
       case "height":
         return (
           <WheelPicker
@@ -1239,56 +1190,56 @@ function PersonalIntakeScreen({ onNext }) {
             formatLabel={(val) => `${Math.floor(val / 12)}'${val % 12}"`}
           />
         );
-
       default:
         return null;
     }
   };
 
   return (
-  <div className="flex flex-col w-full min-h-[100dvh] h-[100dvh] md:min-h-0 md:h-full bg-app-background relative overflow-hidden">
-    {/* Chat History Area */}
-    <div
-      ref={chatScrollRef}
-      className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col"
-    >
-      {history.map((msg, index) => (
-        <ChatBubble
-          key={index}
-          text={msg.text}
-          isTyping={false}
-          isUser={msg.sender === "user"}
-        />
-      ))}
-
-      {isTyping && <ChatBubble isTyping={true} isUser={false} />}
-    </div>
-
-    {/* Input Area */}
-    <div
-      className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 z-20"
-      style={{
-        paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)",
-      }}
-    >
-      <div className="mb-6">{renderInput()}</div>
-
-      <button
-        onClick={handleNext}
-        disabled={isTyping || (step === "name" && name.length < 2)}
-        className={`w-full h-14 font-bold text-lg rounded-full shadow-xl transition-all duration-300 relative z-30
-          ${
-            isTyping || (step === "name" && name.length < 2)
-              ? "bg-app-borderIdle text-app-textSecondary cursor-not-allowed opacity-50 shadow-none"
-              : "bg-app-primary text-white shadow-app-primary/30 active:scale-95 animate-breathe"
-          }
-        `}
+    <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
+      {/* 1. Flex-1 allows this top area to shrink when the bottom grows.
+         2. min-h-0 is crucial to allow flex items to shrink below their content size.
+      */}
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col"
       >
-        {step === "height" ? "Continue" : "Next"}
-      </button>
+        {history.map((msg, index) => (
+          <ChatBubble
+            key={index}
+            text={msg.text}
+            isTyping={false}
+            isUser={msg.sender === "user"}
+          />
+        ))}
+        {isTyping && <ChatBubble isTyping={true} isUser={false} />}
+        <div className="h-4" />
+      </div>
+
+      {/* FIX: Added `shrink-0` to ensure this section is never cut off.
+         We keep z-20 so it sits on top of any scrolling content.
+      */}
+      <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20 shrink-0">
+        <div className="mb-6">
+          {renderInput()}
+        </div>
+
+        <button
+          onClick={handleNext}
+          disabled={isTyping || (step === "name" && name.length < 2)}
+          className={`w-full h-14 font-bold text-lg rounded-full shadow-xl transition-all duration-300
+            ${
+              isTyping || (step === "name" && name.length < 2)
+                ? "bg-app-borderIdle text-app-textSecondary cursor-not-allowed opacity-50 shadow-none"
+                : "bg-app-primary text-white shadow-app-primary/30 active:scale-95 animate-breathe"
+            }
+          `}
+        >
+          {step === "height" ? "Continue" : "Next"}
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
 }
 
 // ==========================================
