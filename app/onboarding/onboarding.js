@@ -1023,21 +1023,31 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
   }, []);
 
   return (
-    <div className="relative h-[220px] w-full max-w-[320px] mx-auto overflow-hidden mt-2">
+    <div
+      className="
+        relative w-full max-w-[320px] mx-auto overflow-hidden mt-2
+        h-[180px] sm:h-[220px]
+      "
+    >
+      {/* center highlight */}
       <div className="absolute top-1/2 left-0 w-full h-[54px] -translate-y-1/2 border-t-2 border-b-2 border-app-primary/10 bg-app-primary/5 pointer-events-none z-10" />
 
-      <div className="absolute top-0 left-0 w-full h-[80px] bg-gradient-to-b from-white via-white/90 to-transparent z-20 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-[80px] bg-gradient-to-t from-white via-white/90 to-transparent z-20 pointer-events-none" />
+      {/* fades (shorter on tiny screens) */}
+      <div className="absolute top-0 left-0 w-full h-[60px] sm:h-[80px] bg-gradient-to-b from-white via-white/90 to-transparent z-20 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-[60px] sm:h-[80px] bg-gradient-to-t from-white via-white/90 to-transparent z-20 pointer-events-none" />
 
       <div
         ref={scrollerRef}
         onScroll={handleScroll}
-        className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar py-[83px]"
+        className="
+          h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar
+          py-[60px] sm:py-[83px]
+        "
       >
         {range.map((num) => (
           <div
             key={num}
-            className={`h-[54px] flex items-center justify-center snap-center transition-all duration-200 
+            className={`h-[54px] flex items-center justify-center snap-center transition-all duration-200
               ${
                 num === value
                   ? "scale-110 font-bold text-app-primary text-2xl"
@@ -1059,10 +1069,16 @@ const WheelPicker = ({ range, value, onChange, unit, formatLabel }) => {
 
 function PersonalIntakeScreen({ onNext }) {
   const { userDetails, saveUserData } = useUserData();
+
   const [step, setStep] = useState("name");
   const [isTyping, setIsTyping] = useState(false);
   const [history, setHistory] = useState([]);
-  const chatBottomRef = useRef(null);
+
+  // ✅ Scroll ONLY the chat container (never window)
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // ✅ Manual desktop-only focus (no mobile viewport jump)
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
@@ -1073,19 +1089,56 @@ function PersonalIntakeScreen({ onNext }) {
   const copy =
     MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+  // ✅ Autoscroll the CHAT container itself
+  const scrollChatToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+
+    requestAnimationFrame(() => {
+      try {
+        el.scrollTo({ top: el.scrollHeight, behavior });
+      } catch {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
   };
 
-  const addMessage = (text, sender, delay = 0) => {
+  // Keep chat pinned to bottom when messages / typing change
+  useEffect(() => {
+    const behavior: ScrollBehavior = history.length <= 1 ? "auto" : "smooth";
+    scrollChatToBottom(behavior);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history.length, isTyping]);
+
+  // ✅ Focus name input on desktop only, without scrolling viewport
+  useEffect(() => {
+    if (step !== "name") return;
+    if (isTyping) return;
+
+    const input = nameInputRef.current;
+    if (!input) return;
+
+    if (typeof window !== "undefined") {
+      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+      if (!isDesktop) return;
+    }
+
+    requestAnimationFrame(() => {
+      try {
+        input.focus({ preventScroll: true } as any);
+      } catch {
+        input.focus();
+      }
+    });
+  }, [step, isTyping]);
+
+  const addMessage = (text: string, sender: "mia" | "user", delay = 0) => {
     if (sender === "mia") setIsTyping(true);
 
     setTimeout(() => {
       if (sender === "mia") setIsTyping(false);
       setHistory((prev) => [...prev, { text, sender }]);
-      scrollToBottom();
+      // ✅ No scrollIntoView — autoscroll happens via effect above
     }, delay);
   };
 
@@ -1140,7 +1193,7 @@ function PersonalIntakeScreen({ onNext }) {
   const renderInput = () => {
     if (isTyping)
       return (
-        <div className="h-[220px] flex items-center justify-center text-app-textSecondary/50 text-sm animate-pulse">
+        <div className="h-[180px] sm:h-[220px] flex items-center justify-center text-app-textSecondary/50 text-sm animate-pulse">
           Mia is thinking...
         </div>
       );
@@ -1148,18 +1201,19 @@ function PersonalIntakeScreen({ onNext }) {
     switch (step) {
       case "name":
         return (
-          <div className="w-full animate-slide-up py-10">
+          <div className="w-full animate-slide-up py-8 sm:py-10">
             <input
+              ref={nameInputRef}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Type your name..."
               className="w-full text-center text-3xl font-bold bg-transparent border-b-2 border-app-borderIdle focus:border-app-primary outline-none py-3 text-app-textPrimary placeholder:text-app-textSecondary/30"
-              autoFocus
               onKeyDown={(e) => e.key === "Enter" && handleNext()}
             />
           </div>
         );
+
       case "age":
         return (
           <WheelPicker
@@ -1169,6 +1223,7 @@ function PersonalIntakeScreen({ onNext }) {
             unit="years old"
           />
         );
+
       case "weight":
         return (
           <WheelPicker
@@ -1178,6 +1233,7 @@ function PersonalIntakeScreen({ onNext }) {
             unit="lbs"
           />
         );
+
       case "height":
         return (
           <WheelPicker
@@ -1187,6 +1243,7 @@ function PersonalIntakeScreen({ onNext }) {
             formatLabel={(val) => `${Math.floor(val / 12)}'${val % 12}"`}
           />
         );
+
       default:
         return null;
     }
@@ -1194,8 +1251,11 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      {/* Chat History Area (fix: min-h-0) */}
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
+      {/* Chat History Area */}
+      <div
+        ref={chatScrollRef}
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col"
+      >
         {history.map((msg, index) => (
           <ChatBubble
             key={index}
@@ -1206,18 +1266,19 @@ function PersonalIntakeScreen({ onNext }) {
         ))}
 
         {isTyping && <ChatBubble isTyping={true} isUser={false} />}
-
-        <div ref={chatBottomRef} className="h-4" />
       </div>
 
       {/* Input Area */}
-      <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20">
-        <div className="mb-6">{renderInput()}</div>
+      <div
+        className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-5 sm:p-6 z-20"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
+      >
+        <div className="mb-4 sm:mb-6">{renderInput()}</div>
 
         <button
           onClick={handleNext}
           disabled={isTyping || (step === "name" && name.length < 2)}
-          className={`w-full h-14 font-bold text-lg rounded-full shadow-xl transition-all duration-300
+          className={`w-full h-14 font-bold text-lg rounded-full shadow-xl transition-all duration-300 relative z-30
             ${
               isTyping || (step === "name" && name.length < 2)
                 ? "bg-app-borderIdle text-app-textSecondary cursor-not-allowed opacity-50 shadow-none"
@@ -2236,55 +2297,67 @@ function PlanRevealScreen({ onNext }) {
 
       {/* ---------------- PHASE 3: TIMELINE ---------------- */}
       {phase === "showingTimeline" && (
-        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
+        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative overflow-hidden">
+          {/* ✅ Scrollable content area */}
           <div
-            className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-6 z-10"
             style={{
               paddingTop: "calc(env(safe-area-inset-top) + 24px)",
+              paddingBottom:
+                "calc(7.5rem + env(safe-area-inset-bottom) + 16px)",
+            }}
+          >
+            <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
+              <span className="text-white/90">
+                {userDetails?.name || "Your"} path to
+              </span>
+              <br />
+              <span className="text-[#E65473]">{goalTitle}</span> is ready.
+            </h1>
+
+            <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
+              {formatRichText(timelineCopy.subtitle)}
+            </p>
+
+            <HolographicTimeline />
+
+            <div className="mt-4 space-y-3">
+              <h3 className="text-[16px] font-semibold text-white mb-1">
+                Your Personal Insights
+              </h3>
+              {timelineCopy.insights.map((insight, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700"
+                  style={{ animationDelay: `${idx * 150}ms` }}
+                >
+                  <div className="mt-0.5 text-[#E65473] shrink-0">
+                    <Sparkles size={18} />
+                  </div>
+                  <p className="text-[13px] leading-snug text-white/90">
+                    {formatRichText(insight)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="h-6" />
+          </div>
+
+          {/* ✅ Sticky footer CTA (always visible on small screens) */}
+          <div
+            className="shrink-0 z-20 px-6 pt-4"
+            style={{
               paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
             }}
           >
-            <div>
-              <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">
-                  {userDetails?.name || "Your"} path to
-                </span>
-                <br />
-                <span className="text-[#E65473]">{goalTitle}</span> is ready.
-              </h1>
-              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
-                {formatRichText(timelineCopy.subtitle)}
-              </p>
-              <HolographicTimeline />
-              <div className="mt-4 space-y-3">
-                <h3 className="text-[16px] font-semibold text-white mb-1">
-                  Your Personal Insights
-                </h3>
-                {timelineCopy.insights.map((insight, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700"
-                    style={{ animationDelay: `${idx * 150}ms` }}
-                  >
-                    <div className="mt-0.5 text-[#E65473] shrink-0">
-                      <Sparkles size={18} />
-                    </div>
-                    <p className="text-[13px] leading-snug text-white/90">
-                      {formatRichText(insight)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <button
-                onClick={onNext}
-                className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
-              >
-                {timelineCopy.cta}
-              </button>
-            </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black via-black/80 to-transparent" />
+            <button
+              onClick={onNext}
+              className={`relative w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
+            >
+              {timelineCopy.cta}
+            </button>
           </div>
         </div>
       )}
