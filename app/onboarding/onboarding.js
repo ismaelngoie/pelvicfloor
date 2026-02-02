@@ -2555,8 +2555,15 @@ const CheckoutForm = ({ onClose }) => {
       </button>
 
       <div className="mb-6">
-        <h3 className="text-xl font-bold text-white mb-1">Secure Checkout</h3>
-        <p className="text-sm text-white/50">Total due: $24.99 / month</p>
+        <h3
+          className="text-lg font-extrabold text-white mb-1 leading-tight"
+          style={{ fontFamily: "var(--font-lora)" }}
+        >
+          Join 10,243+ women fixing their Diastasis Recti
+        </h3>
+        <p className="text-sm text-white/50 font-medium">
+          Total due: $24.99 / month
+        </p>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -2581,11 +2588,12 @@ const CheckoutForm = ({ onClose }) => {
         id="submit"
         className="w-full mt-6 h-14 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
       >
-        {isLoading ? <Loader2 className="animate-spin" /> : "Pay $24.99"}
+        {isLoading ? <Loader2 className="animate-spin" /> : "Start My Strengthening"}
       </button>
 
-      <p className="text-center text-white/30 text-xs mt-4">
-        100% Secure Payment via Stripe
+      <p className="text-center text-white/30 text-[11px] font-semibold mt-3">
+        <Lock size={12} />
+        100% secure payment.
       </p>
     </form>
   );
