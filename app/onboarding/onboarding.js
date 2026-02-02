@@ -1289,6 +1289,7 @@ function PersonalIntakeScreen({ onNext }) {
     </div>
   </div>
 );
+}
 
 // ==========================================
 // SCREEN 5: PLAN REVEAL SCREEN
