@@ -27,6 +27,8 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  MapPin,
+  Star as StarIcon
 } from "lucide-react";
 
 import { loadStripe } from "@stripe/stripe-js";
@@ -223,6 +225,10 @@ function WelcomeScreen({ onNext }) {
   if (!showContent && userDetails?.isPremium) return null;
 
   return (
+    // Bulletproof pattern:
+    // - root owns layout (h-full, overflow-hidden)
+    // - middle scrolls (flex-1 min-h-0 overflow-y-auto)
+    // - bottom CTA is sticky (shrink-0)
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
       <ButterflyBackground />
 
@@ -284,6 +290,7 @@ function WelcomeScreen({ onNext }) {
             </div>
           </div>
 
+          {/* little spacer so the bottom never feels cramped when scrolling */}
           <div className="h-8" />
         </div>
       </div>
@@ -1531,1046 +1538,163 @@ const HolographicTimeline = () => {
   );
 };
 
-function PlanRevealScreen({ onNext }) {
-  const { userDetails, saveUserData } = useUserData();
-  const [phase, setPhase] = useState("askingHealthInfo");
-
-  const isDark = phase === "personalizing" || phase === "showingTimeline";
-
-  // Safari/bottom bar congruency ONLY on dark phases
-  usePlanRevealChrome(isDark, "#000000");
-
-  // Phase 1 State
-  const [selectedConditions, setSelectedConditions] = useState([]);
-  const [noneSelected, setNoneSelected] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState(null);
-  const [helperText, setHelperText] = useState("");
-  const [activityHelperText, setActivityHelperText] = useState("");
-
-  // Phase 2 State
-  const [personalizingStatus, setPersonalizingStatus] = useState("");
-  const [progressPercent, setProgressPercent] = useState(0);
-  const [showChecklist, setShowChecklist] = useState(false);
-
-  const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
-  const healthCopy = getHealthCopy(goalTitle);
-  const personalizingCopy = getPersonalizingCopy(goalTitle, userDetails?.name);
-  const timelineCopy = getTimelineCopy(goalTitle);
-
-  // --- Phase 1 logic ---
-  const updateHelperText = (hasCondition) => {
-    setHelperText(getHelperCopy(hasCondition, goalTitle));
-  };
-
-  const toggleCondition = (id) => {
-    setNoneSelected(false);
-    setSelectedConditions((prev) => {
-      const newSet = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
-      updateHelperText(newSet.length > 0);
-      return newSet;
-    });
-  };
-
-  const toggleNone = () => {
-    const newVal = !noneSelected;
-    setNoneSelected(newVal);
-    if (newVal) setSelectedConditions([]);
-    updateHelperText(newVal);
-  };
-
-  const selectActivity = (act) => {
-    setSelectedActivity(act);
-    setActivityHelperText("✓ Perfect, I'll match your pace & recovery.");
-  };
-
-  const canContinue = (selectedConditions.length > 0 || noneSelected) && selectedActivity;
-
-  const handlePhase1Continue = () => {
-    saveUserData("healthConditions", selectedConditions);
-    saveUserData("activityLevel", selectedActivity);
-    setPhase("personalizing");
-  };
-
-  // --- Phase 2 logic ---
-  useEffect(() => {
-    if (phase !== "personalizing") return;
-
-    let startTime = Date.now();
-    setPersonalizingStatus(personalizingCopy.connecting);
-
-    const progressInterval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const p = Math.min(99, Math.floor((elapsed / PersonalizingConstants.totalDuration) * 100));
-      setProgressPercent(p);
-    }, 50);
-
-    const t1 = setTimeout(() => {
-      setPersonalizingStatus(personalizingCopy.calibrating);
-    }, PersonalizingConstants.totalDuration * PersonalizingConstants.phase1Scale);
-
-    const t2 = setTimeout(() => {
-      setPersonalizingStatus("");
-      setShowChecklist(true);
-    }, PersonalizingConstants.totalDuration * (PersonalizingConstants.phase1Scale + PersonalizingConstants.phase2Scale));
-
-    return () => {
-      clearInterval(progressInterval);
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [phase, personalizingCopy.connecting, personalizingCopy.calibrating]);
-
-  const onChecklistComplete = () => {
-    setProgressPercent(100);
-    setPersonalizingStatus("Your plan is locked in—let’s go!");
-    setTimeout(() => setPhase("showingTimeline"), 1200);
-  };
-
-  // --- Phase 3 logic ---
-  const calculateBMI = () => {
-    if (!userDetails?.weight || !userDetails?.height) return "22.5";
-    const h = userDetails.height * 0.0254;
-    const w = userDetails.weight * 0.453592;
-    return (w / (h * h)).toFixed(1);
-  };
-
-  const date = new Date();
-  date.setDate(date.getDate() + 7);
-  const dateString = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-
-  const formatRichText = (text) => {
-    if (!text) return null;
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
-        let content = part.slice(2, -2);
-        if (content === "{date}") content = dateString;
-        if (content === "{bmi}") content = calculateBMI();
-        if (content === "{activity}")
-          content = selectedActivity
-            ? ACTIVITIES.find((a) => a.id === selectedActivity)?.title.toLowerCase()
-            : "active";
-        if (content === "{age}") content = userDetails?.age || "30";
-        if (content === "{condition}") content = selectedConditions.length > 0 ? "unique needs" : "body";
-        return (
-          <span key={i} className="text-white font-extrabold">
-            {content}
-          </span>
-        );
-      }
-      return (
-        <span key={i} className="text-white/80">
-          {part}
-        </span>
-      );
-    });
-  };
-
-  // Root:
-  // - ALWAYS full-height (no min-h-screen phantom scroll)
-  // - allow dark phases to visually cover top/bottom padding bands inside RootLayout on mobile (like Paywall)
-  return (
-    <div
-      className={`
-        relative w-full flex flex-col transition-colors duration-700
-        ${isDark ? "bg-black" : THEME_REVEAL.bg}
-        ${isDark ? "h-[calc(100%+env(safe-area-inset-top)+env(safe-area-inset-bottom))] -mt-[env(safe-area-inset-top)] -mb-[env(safe-area-inset-bottom)]" : "h-full"}
-        overflow-hidden
-      `}
-    >
-      {/* Bottom scrim ONLY for dark phases */}
-      {isDark && (
-        <div className="fixed md:absolute bottom-0 left-0 w-full pointer-events-none z-20">
-          <div className="w-full h-[calc(env(safe-area-inset-bottom)+20px)] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
-        </div>
-      )}
-
-      {/* ---------------- PHASE 1: HEALTH INFO ---------------- */}
-      {phase === "askingHealthInfo" && (
-        <div className="w-full h-full flex flex-col overflow-hidden">
-          {/* Scrollable middle */}
-          <div
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-5"
-            style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
-          >
-            <div className="mb-2 shrink-0 text-center">
-              <h1 className={`text-[26px] font-extrabold text-center ${THEME_REVEAL.text} mb-1 leading-tight`}>
-                {healthCopy.headline}
-              </h1>
-              <p className="text-center text-[rgb(26,26,38)]/60 text-sm">
-                {healthCopy.subtitle}
-              </p>
-            </div>
-
-            <div className="flex flex-col justify-center min-h-0">
-              {/* Conditions */}
-              <div>
-                <div className="grid grid-cols-2 gap-3 mb-2">
-                  {CONDITIONS.map((item) => {
-                    const isSelected = selectedConditions.includes(item.id);
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => toggleCondition(item.id)}
-                        className={`relative flex flex-col items-center justify-center p-2 rounded-[24px] border-[2px] h-[100px] transition-all duration-300 active:scale-95 outline-none
-                          ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
-                        `}
-                      >
-                        <div className={`mb-2 transition-all duration-300 ${isSelected ? THEME_REVEAL.iconSelected : THEME_REVEAL.iconUnselected}`}>
-                          {item.icon}
-                        </div>
-                        <span className={`text-[13px] font-bold text-center leading-tight px-1 transition-colors duration-300 ${isSelected ? THEME_REVEAL.textSelected : THEME_REVEAL.textUnselected}`}>
-                          {item.title}
-                        </span>
-                        <div className="absolute top-3 right-3">
-                          {isSelected ? (
-                            <CheckCircle2 size={20} className="fill-[#E65473] text-white" />
-                          ) : (
-                            <Circle size={20} className="text-gray-200" strokeWidth={1.5} />
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mb-2 ${helperText ? "opacity-100" : "opacity-0"}`}>
-                  {helperText}
-                </div>
-
-                <button
-                  onClick={toggleNone}
-                  className={`w-full py-3.5 rounded-full border-[1.5px] font-semibold text-[15px] transition-all duration-300 active:scale-95 outline-none
-                    ${
-                      noneSelected
-                        ? "bg-white border-[2.5px] border-[#E65473] text-[#E65473] shadow-sm"
-                        : "bg-white border-gray-200 text-slate-400"
-                    }
-                  `}
-                >
-                  ✓ None of the Above
-                </button>
-              </div>
-
-              {/* Activity */}
-              <div className="mt-3">
-                <h3 className={`text-[15px] font-bold text-center ${THEME_REVEAL.text} mb-2`}>
-                  Your typical activity level
-                </h3>
-                <div className="flex flex-col gap-2.5">
-                  {ACTIVITIES.map((act) => {
-                    const isSelected = selectedActivity === act.id;
-                    return (
-                      <button
-                        key={act.id}
-                        onClick={() => selectActivity(act.id)}
-                        className={`w-full py-3.5 px-5 rounded-[22px] border-[2px] text-left flex items-center justify-between transition-all duration-300 active:scale-95 outline-none
-                          ${isSelected ? THEME_REVEAL.selected : THEME_REVEAL.unselected}
-                        `}
-                      >
-                        <span className={`font-bold text-[15px] ${isSelected ? THEME_REVEAL.textSelected : THEME_REVEAL.textUnselected}`}>
-                          {act.title}{" "}
-                          <span className="text-xs opacity-70 font-normal ml-1">
-                            {act.sub}
-                          </span>
-                        </span>
-                        {isSelected ? (
-                          <CheckCircle2 size={22} className="fill-[#E65473] text-white" />
-                        ) : (
-                          <Circle size={22} className="text-gray-200" strokeWidth={1.5} />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className={`text-center text-xs font-bold ${THEME_REVEAL.helper} transition-opacity duration-300 h-4 mt-2 ${activityHelperText ? "opacity-100" : "opacity-0"}`}>
-                  {activityHelperText}
-                </div>
-              </div>
-            </div>
-
-            <div className="h-6" />
-          </div>
-
-          {/* Sticky footer */}
-          <div className="shrink-0 px-5 pb-6">
-            <button
-              onClick={handlePhase1Continue}
-              disabled={!canContinue}
-              className={`w-full h-14 rounded-full font-bold text-lg text-white transition-all duration-300 active:scale-95 shadow-xl
-                ${
-                  canContinue
-                    ? `bg-gradient-to-b ${THEME_REVEAL.brandGradient} shadow-[#E65473]/30`
-                    : "bg-slate-300 cursor-not-allowed shadow-none"
-                }
-              `}
-            >
-              {healthCopy.cta}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ---------------- PHASE 2: PERSONALIZING ---------------- */}
-      {phase === "personalizing" && (
-        <div
-          className="flex flex-col items-center justify-center h-full px-8 relative animate-in fade-in duration-1000"
-          style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
-        >
-          <div className={`transition-all duration-500 ${showChecklist ? "scale-75 -translate-y-8 opacity-0" : "scale-100 opacity-100"}`}>
-            <AICoreView />
-          </div>
-
-          {!showChecklist && (
-            <div className="mt-12 text-center h-20 px-4">
-              <h2 className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${THEME_REVEAL.brandGradient} drop-shadow-sm mb-2 animate-pulse leading-tight`}>
-                <TypewriterText key={personalizingStatus} text={personalizingStatus} />
-              </h2>
-            </div>
-          )}
-
-          {showChecklist && (
-            <div className="w-full max-w-sm flex flex-col animate-in slide-in-from-bottom-8 duration-700">
-              <h2 className="text-2xl font-bold text-white text-center mb-2 leading-tight">
-                {personalizingCopy.title}
-              </h2>
-              <p className="text-center text-gray-400 text-sm mb-6">
-                {personalizingCopy.subtitle}
-              </p>
-              <div className="space-y-3">
-                {personalizingCopy.checklist.map((item, idx) => (
-                  <ChecklistItem
-                    key={idx}
-                    text={item}
-                    delay={idx * 800}
-                    onComplete={idx === personalizingCopy.checklist.length - 1 ? onChecklistComplete : undefined}
-                  />
-                ))}
-              </div>
-              <div className="mt-6 text-center text-[#E65473] font-medium text-sm animate-pulse">
-                {progressPercent === 100
-                  ? "Ready!"
-                  : "Fine-tuning for: " +
-                    (personalizingCopy.checklist[Math.min(3, Math.floor(progressPercent / 25))] || "Results")}
-              </div>
-            </div>
-          )}
-
-          <div className="absolute bottom-8 left-0 w-full px-8" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
-            <div className="flex justify-between items-end mb-2">
-              <span className="text-white/60 font-medium text-sm">Progress</span>
-              <span className="text-white font-mono text-xl font-bold">{progressPercent}%</span>
-            </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#E65473] transition-all duration-100 ease-linear" style={{ width: `${progressPercent}%` }} />
-            </div>
-            <p className="text-center text-[#E65473] text-xs mt-2 font-medium min-h-[16px]">
-              {progressPercent < 30
-                ? "Syncing your goals..."
-                : progressPercent < 100
-                ? "Preparing exercises..."
-                : "Your plan is locked in—let’s go!"}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ---------------- PHASE 3: TIMELINE ---------------- */}
-      {phase === "showingTimeline" && (
-        <div className="flex flex-col h-full animate-in fade-in duration-1000 bg-black relative">
-          <div className="flex-1 flex flex-col justify-between px-6 z-10 min-h-0" style={{ paddingTop: "calc(env(safe-area-inset-top) + 24px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
-            <div>
-              <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                <span className="text-white/90">{userDetails?.name || "Your"} path to</span>
-                <br />
-                <span className="text-[#E65473]">{goalTitle}</span> is ready.
-              </h1>
-              <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
-                {formatRichText(timelineCopy.subtitle)}
-              </p>
-              <HolographicTimeline />
-              <div className="mt-4 space-y-3">
-                <h3 className="text-[16px] font-semibold text-white mb-1">
-                  Your Personal Insights
-                </h3>
-                {timelineCopy.insights.map((insight, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-700"
-                    style={{ animationDelay: `${idx * 150}ms` }}
-                  >
-                    <div className="mt-0.5 text-[#E65473] shrink-0">
-                      <Sparkles size={18} />
-                    </div>
-                    <p className="text-[13px] leading-snug text-white/90">
-                      {formatRichText(insight)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <button
-                onClick={onNext}
-                className={`w-full h-14 rounded-full bg-gradient-to-r ${THEME_REVEAL.brandGradient} text-white font-bold text-lg shadow-[0_0_25px_rgba(230,84,115,0.5)] active:scale-95 transition-all`}
-              >
-                {timelineCopy.cta}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ==========================================
-// SCREEN 6: PAYWALL SCREEN
+// DESKTOP-ONLY COMPONENTS (Million Dollar Ideas)
 // ==========================================
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-const REVIEW_IMAGES = ["/review9.png", "/review1.png", "/review5.png", "/review4.png", "/review2.png"];
+const DesktopButterflyBackground = () => {
+  const [butterflies, setButterflies] = useState([]);
 
-function usePaywallChrome(color = "#0A0A10") {
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // Desktop should not mutate global chrome; keep it scoped to mobile.
-    if (window.matchMedia("(min-width: 768px)").matches) return;
-
-    let meta = document.querySelector('meta[name="theme-color"]');
-    let created = false;
-
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.setAttribute("name", "theme-color");
-      document.head.appendChild(meta);
-      created = true;
-    }
-
-    const prevTheme = meta.getAttribute("content");
-    meta.setAttribute("content", color);
-
-    const html = document.documentElement;
-    const body = document.body;
-
-    const prevHtmlBg = html.style.backgroundColor;
-    const prevBodyBg = body.style.backgroundColor;
-
-    html.style.backgroundColor = color;
-    body.style.backgroundColor = color;
-
-    return () => {
-      if (created) meta.remove();
-      else if (prevTheme) meta.setAttribute("content", prevTheme);
-
-      html.style.backgroundColor = prevHtmlBg;
-      body.style.backgroundColor = prevBodyBg;
-    };
-  }, [color]);
-}
-
-const getButtonText = (goalTitle) => {
-  const g = (goalTitle || "").toLowerCase();
-  if (g.includes("pregnancy")) return "Start My Pregnancy Plan";
-  if (g.includes("postpartum")) return "Start My Postpartum Plan";
-  if (g.includes("leak")) return "Start My Leak-Free Plan";
-  if (g.includes("intimacy") || g.includes("sex")) return "Start My Intimacy Plan";
-  if (g.includes("pain")) return "Start My Relief Plan";
-  if (g.includes("core") || g.includes("strength")) return "Start My Core Plan";
-  return "Start My Personalized Plan";
-};
-
-const getReviewsForGoal = (goalTitle) => {
-  const goal = (goalTitle || "").toLowerCase();
-
-  const pack = (names, texts) =>
-    names.map((name, i) => ({
-      name,
-      text: texts[i],
-      image: REVIEW_IMAGES[i % REVIEW_IMAGES.length],
-    }));
-
-  if (goal.includes("leaks") || goal.includes("bladder")) {
-    return pack(
-      ["Emily D.", "Dana A.", "Hannah L.", "Priya S.", "Zoe M."],
-      ["Week 1 I laughed and stayed dry", "Pads live in a drawer now", "I jogged today and stayed dry", "Bathroom maps deleted I feel free", "My bladder finally listens to me"]
-    );
-  }
-  if (goal.includes("pain") || goal.includes("discomfort")) {
-    return pack(
-      ["Laura P.", "Ana R.", "Katie B.", "Mia K.", "Jen C."],
-      ["Meetings passed without that deep ache", "I enjoyed intimacy without flinching", "Gentle moves gave real relief", "I woke up calm not burning", "I lifted my toddler without bracing"]
-    );
-  }
-  if (goal.includes("postpartum") || goal.includes("recover")) {
-    return pack(
-      ["Sarah W.", "Michelle T.", "Chloe N.", "Olivia G.", "Jess P."],
-      ["Week 2 stronger steadier with baby", "My core feels connected again", "From leaks to laughter with my baby", "Recovery finally makes sense", "Five minutes I actually keep"]
-    );
-  }
-  if (goal.includes("pregnancy") || goal.includes("prepare")) {
-    return pack(
-      ["Kara D.", "Ivy S.", "Bella R.", "Nora P.", "June K."],
-      ["Breath is calm belly supported", "Hips opened and sleep returned", "Week 2 my core feels ready", "Movements finally feel safe", "I feel ready for our baby"]
-    );
-  }
-  if (goal.includes("intimacy") || goal.includes("sexual")) {
-    return pack(
-      ["Maya S.", "Dani R.", "Lina H.", "Brooke E.", "Kim W."],
-      ["More sensation and less worry", "Bedroom confidence is back", "Stronger connection with my partner", "I actually look forward to intimacy", "Orgasms came without fear"]
-    );
-  }
-  if (goal.includes("strength") || goal.includes("fitness")) {
-    return pack(
-      ["Sam P.", "Helena R.", "Jules M.", "Tess K.", "Ana L."],
-      ["Runs feel springy and sure", "Deadlifts steady no pinch", "Balance finally clicked in yoga", "Core fired my pace improved", "Recovery better workouts stick"]
-    );
-  }
-  if (goal.includes("stability") || goal.includes("posture")) {
-    return pack(
-      ["Camille D.", "Erin S.", "Mina J.", "Paige R.", "Ruth N."],
-      ["Shoulders dropped I grew taller", "Neck stayed easy all day", "Stairs felt steady and safe", "Desk hours no longer punish", "Week 1 standing feels organized"]
-    );
-  }
-
-  return pack(
-    ["Olivia G.", "Emily D.", "Sarah W.", "Emily J.", "Dana A."],
-    ["This finally felt made for me", "Small wins in days I smiled", "Five minutes gave real change", "Pain eased and I breathed", "Confidence returned I feel in control"]
-  );
-};
-
-const FEATURES = [
-  { icon: <Brain size={28} className="text-white" />, text: "AI coach that adapts daily" },
-  { icon: <Timer size={28} className="text-white" />, text: "5-minute personalized routines" },
-  { icon: <Play size={28} className="text-white" fill="white" />, text: "300+ physio-approved videos" },
-  { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" },
-];
-
-const CheckoutForm = ({ onClose }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const router = useRouter();
-  const { saveUserData } = useUserData();
-
-  const [message, setMessage] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState("");
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setIsLoading(true);
-
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: "https://pelvi.health/dashboard?plan=monthly",
-        receipt_email: email,
-      },
-      redirect: "if_required",
+    // Generate butterflies only for the sides
+    const count = 12;
+    const items = Array.from({ length: count }).map((_, i) => {
+      const duration = 20 + Math.random() * 15;
+      const isLeft = Math.random() > 0.5;
+      return {
+        id: i,
+        // Position mainly on far left (0-20%) or far right (80-100%)
+        left: isLeft ? Math.random() * 20 : 80 + Math.random() * 20,
+        top: Math.random() * 100,
+        size: 30 + Math.random() * 40,
+        duration,
+        delay: -(Math.random() * duration),
+        rotation: (Math.random() - 0.5) * 40,
+      };
     });
-
-    if (error) {
-      setMessage(error.message);
-      setIsLoading(false);
-    } else if (paymentIntent && paymentIntent.status === "succeeded") {
-      saveUserData("isPremium", true);
-      saveUserData("joinDate", new Date().toISOString());
-      router.push("https://pelvi.health/dashboard?plan=monthly");
-    } else {
-      setMessage("An unexpected error occurred.");
-      setIsLoading(false);
-    }
-  };
-
-  const paymentElementOptions = {
-    layout: "tabs",
-    fields: { billingDetails: { phone: "auto" } },
-  };
-
-  return (
-    <form
-      onClick={(e) => e.stopPropagation()}
-      onSubmit={handleSubmit}
-      className="w-full max-w-md bg-[#1A1A26] p-6 rounded-3xl border border-white/10 shadow-2xl animate-slide-up relative my-auto mx-4"
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute top-4 right-4 p-2 bg-white/5 rounded-full hover:bg-white/20 transition-colors z-10"
-      >
-        <X size={20} className="text-white" />
-      </button>
-
-      <div className="mb-6">
-        <h3 className="text-xl font-bold text-white mb-1">Secure Checkout</h3>
-        <p className="text-sm text-white/50">Total due: $24.99 / month</p>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <div className="text-white">
-          <LinkAuthenticationElement
-            id="link-authentication-element"
-            onChange={(e) => setEmail(e.value.email)}
-          />
-        </div>
-        <PaymentElement id="payment-element" options={paymentElementOptions} />
-      </div>
-
-      {message && (
-        <div className="text-red-400 text-sm mt-4 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-          {message}
-        </div>
-      )}
-
-      <button
-        disabled={isLoading || !stripe || !elements}
-        id="submit"
-        className="w-full mt-6 h-14 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-      >
-        {isLoading ? <Loader2 className="animate-spin" /> : "Pay $24.99"}
-      </button>
-
-      <p className="text-center text-white/30 text-xs mt-4">
-        100% Secure Payment via Stripe
-      </p>
-    </form>
-  );
-};
-
-const RestoreModal = ({ onClose }) => {
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const { saveUserData } = useUserData();
-
-  const handleRestoreSubmit = async (e) => {
-    e.preventDefault();
-    if (!email.includes("@")) {
-      alert("Please enter a valid email address.");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/restore-purchase", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await res.json();
-
-      if (data.isPremium) {
-        saveUserData("isPremium", true);
-        saveUserData("joinDate", new Date().toISOString());
-        if (data.customerName) saveUserData("name", data.customerName);
-        router.push("https://pelvi.health/dashboard");
-      } else {
-        alert("We found your email, but no active subscription was detected.");
-        setIsLoading(false);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Unable to verify purchase. Please check your internet connection.");
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div
-      className="fixed md:absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm bg-[#1A1A26] border border-white/10 rounded-3xl p-6 shadow-2xl animate-scale-up"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-white">Restore Purchase</h3>
-          <button
-            onClick={onClose}
-            className="p-2 bg-white/5 rounded-full hover:bg-white/10"
-          >
-            <X size={18} className="text-white" />
-          </button>
-        </div>
-
-        <p className="text-white/60 text-sm mb-6">
-          Enter the email address you used to purchase your subscription. We'll find your account.
-        </p>
-
-        <form onSubmit={handleRestoreSubmit} className="flex flex-col gap-4">
-          <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
-            <input
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:border-[#E65473] transition-colors"
-              autoFocus
-            />
-          </div>
-
-          <button
-            disabled={isLoading}
-            className="w-full h-12 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            {isLoading ? <Loader2 className="animate-spin" /> : "Find My Plan"}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-function PaywallScreen() {
-  const router = useRouter();
-  const { userDetails, saveUserData } = useUserData();
-
-  usePaywallChrome("#0A0A10");
-
-  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
-  const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
-  const [userCount, setUserCount] = useState(9800);
-  const [showContent, setShowContent] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const [dateString, setDateString] = useState("");
-
-  const [clientSecret, setClientSecret] = useState("");
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [isFaqOpen, setIsFaqOpen] = useState(false);
-  const [isButtonLoading, setIsButtonLoading] = useState(false);
-
-  const goalTitle = userDetails?.selectedTarget?.title || "Build Core Strength";
-  const userName = userDetails?.name || "Ready";
-  const reviews = useMemo(() => getReviewsForGoal(goalTitle), [goalTitle]);
-  const buttonText = getButtonText(goalTitle);
-
-  useEffect(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    setDateString(date.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
-    setShowContent(true);
+    setButterflies(items);
   }, []);
 
-  useEffect(() => {
-    const featureTimer = setInterval(() => setActiveFeatureIndex((p) => (p + 1) % FEATURES.length), 4000);
-    const reviewTimer = setInterval(() => setCurrentReviewIndex((p) => (p + 1) % reviews.length), 5000);
-    return () => {
-      clearInterval(featureTimer);
-      clearInterval(reviewTimer);
-    };
-  }, [reviews]);
-
-  useEffect(() => {
-    if (!showContent) return;
-    let start = 9800;
-    const timer = setInterval(() => {
-      start += 5;
-      if (start >= 10200) {
-        setUserCount(10200);
-        clearInterval(timer);
-      } else setUserCount(start);
-    }, 20);
-    return () => clearInterval(timer);
-  }, [showContent]);
-
-  const handleStartPlan = async () => {
-    setIsButtonLoading(true);
-
-    if (!clientSecret) {
-      try {
-        const res = await fetch("/api/create-payment-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(`Server Error: ${res.status} - ${errText}`);
-        }
-
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-
-        setClientSecret(data.clientSecret);
-      } catch (err) {
-        console.error("Stripe Error:", err);
-        alert(`Could not initialize payment: ${err.message}. Please check your internet or try again later.`);
-        setIsButtonLoading(false);
-        return;
-      }
-    }
-
-    setIsButtonLoading(false);
-    setShowCheckoutModal(true);
-  };
-
-  const stripeAppearance = {
-    theme: "night",
-    variables: {
-      colorPrimary: "#E65473",
-      colorBackground: "#1A1A26",
-      colorText: "#ffffff",
-      colorDanger: "#df1b41",
-      fontFamily: "Inter, system-ui, sans-serif",
-      spacingUnit: "4px",
-      borderRadius: "12px",
-    },
-  };
-
-  const getCtaSubtext = () => {
-    if (!dateString) return "";
-    return `Feel real progress by ${dateString}. If not, one tap full $24.99 refund.`;
-  };
+  const brandPinkFilter = "brightness(0) saturate(100%) invert(48%) sepia(91%) saturate(343%) hue-rotate(304deg) brightness(91%) contrast(96%)";
 
   return (
-    <div
-      className={`
-        relative w-full bg-[#0A0A10] overflow-hidden flex flex-col
-        h-[calc(100dvh+env(safe-area-inset-top))]
-        -mt-[env(safe-area-inset-top)]
-        md:h-full md:mt-0
-      `}
-    >
-      <div className="fixed md:absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 inset-x-0 h-[env(safe-area-inset-top)] bg-[#0A0A10]" />
-
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          onLoadedData={() => setVideoLoaded(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-            videoLoaded ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <source src="/paywall_video.mp4" type="video/mp4" />
-        </video>
-
-        <div className="absolute inset-0 bg-black/30" />
-
-        <div className="absolute top-0 inset-x-0 h-[calc(env(safe-area-inset-top)+64px)] bg-gradient-to-b from-[#0A0A10]/85 to-transparent" />
-
-        <div className="absolute bottom-0 inset-x-0 h-[calc(env(safe-area-inset-bottom)+2px)] bg-gradient-to-t from-[#0A0A10]/95 via-[#0A0A10]/75 to-transparent" />
-      </div>
-
-      <div
-        className={`
-          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6
-          pt-[calc(env(safe-area-inset-top)+3rem)]
-          pb-[calc(9rem+env(safe-area-inset-bottom))]
-          transition-all duration-700
-          ${showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
-        `}
-      >
-        <h1 className="text-[34px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
-          <span className="text-white">{userName === "Ready" ? "Ready to" : `${userName}, ready to`}</span>
-          <br />
-          <span className="capitalize text-[#E65473]">
-            {goalTitle.replace("Stop ", "").replace("Build ", "")}
-          </span>
-          ?
-          <span className="block text-[28px] text-white mt-1">100% Money-Back Guarantee.</span>
-        </h1>
-
-        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl">
-          <div className="pt-5 pb-2">
-            <h3 className="text-[17px] font-bold text-white text-center drop-shadow-md">
-              Your Personalized Plan Includes:
-            </h3>
-          </div>
-
-          <div className="relative w-full h-[140px] flex items-center justify-center">
-            {FEATURES.map((feature, index) => {
-              const isActive = index === activeFeatureIndex;
-              return (
-                <div
-                  key={index}
-                  className={`absolute w-full flex flex-col items-center gap-3 transition-all duration-500 ease-out px-4 text-center ${
-                    isActive ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"
-                  }`}
-                >
-                  <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#E65473] to-[#C23A5B] flex items-center justify-center shadow-lg shadow-rose-500/30">
-                    {feature.icon}
-                  </div>
-                  <span className="text-[17px] font-semibold text-white leading-tight drop-shadow-md">
-                    {feature.text}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="w-full px-6 pb-6 flex gap-1.5 h-1.5">
-            {FEATURES.map((_, i) => (
-              <div key={i} className="h-full flex-1 bg-white/20 rounded-full overflow-hidden">
-                <div
-                  className={`h-full bg-white rounded-full transition-all ease-linear ${
-                    i === activeFeatureIndex
-                      ? "duration-[4000ms] w-full"
-                      : i < activeFeatureIndex
-                      ? "w-full"
-                      : "w-0"
-                  }`}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="w-full bg-black/20 backdrop-blur-md border border-white/10 rounded-[24px] p-5 flex flex-col items-center gap-3 mb-6 shadow-xl">
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-[22px] font-bold text-white drop-shadow-sm">4.9</span>
-            <div className="flex text-yellow-400 gap-1 drop-shadow-sm">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={18} fill="currentColor" />
-              ))}
-            </div>
-            <span className="text-[11px] font-medium text-white/80 uppercase tracking-wide">
-              App Store Rating
-            </span>
-          </div>
-
-          <div className="w-full min-h-[70px] flex items-center justify-center relative">
-            {reviews.map((review, idx) => (
-              <div
-                key={idx}
-                className={`absolute w-full flex flex-col items-center transition-all duration-500 ${
-                  idx === currentReviewIndex
-                    ? "opacity-100 translate-x-0"
-                    : "opacity-0 translate-x-4 pointer-events-none"
-                }`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <img
-                    src={review.image}
-                    className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-sm"
-                    alt={review.name}
-                  />
-                  <p className="text-[15px] italic text-white text-center font-medium drop-shadow-md">
-                    "{review.text}"
-                  </p>
-                  <p className="text-[12px] font-bold text-white/90 drop-shadow-md">{review.name}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <p className="text-[13px] text-white/70 text-center mt-2 font-medium">
-            Join <span className="font-bold text-white">{userCount.toLocaleString()}+ women</span> feeling strong.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-4 mb-8">
-          <div
-            onClick={() => setIsFaqOpen(!isFaqOpen)}
-            className="w-full bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm cursor-pointer active:scale-[0.98] transition-transform"
-          >
-            <div className="flex items-center justify-center gap-2 text-white/90">
-              <span className="text-[14px] font-semibold">How do I get my money back?</span>
-              {isFaqOpen ? (
-                <ChevronUp size={14} className="text-white/60" />
-              ) : (
-                <ChevronDown size={14} className="text-white/60" />
-              )}
-            </div>
-
-            <div
-              className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                isFaqOpen ? "max-h-20 opacity-100 mt-2" : "max-h-0 opacity-0"
-              }`}
-            >
-              <p className="text-[13px] text-white/60 text-center leading-relaxed">
-                Tap “Refund” in Settings → “Billing” → Done. No questions asked.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex justify-center items-center gap-3 text-[11px] font-medium text-white/50">
-            <button
-              onClick={() => setShowRestoreModal(true)}
-              className="underline decoration-white/30 hover:text-white transition-colors"
-            >
-              Restore Purchase
-            </button>
-            <span>•</span>
-            <span className="cursor-default">Physio-Designed</span>
-            <span>•</span>
-            <span className="cursor-default">Doctor Approved</span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        className={`
-          fixed md:absolute bottom-0 left-0 w-full z-30 px-6 pt-6
-          pb-[calc(env(safe-area-inset-bottom)+2rem)]
-          bg-gradient-to-t from-[#0A0A10]/90 via-[#0A0A10]/30 to-transparent
-          transition-all duration-700 delay-200
-          ${showContent ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"}
-        `}
-      >
-        <button
-          onClick={handleStartPlan}
-          disabled={isButtonLoading}
-          className="w-full h-[58px] rounded-full shadow-[0_0_25px_rgba(225,29,72,0.5)] flex items-center justify-center gap-2 animate-breathe active:scale-95 transition-transform relative overflow-hidden group"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-[#FF3B61] to-[#D959E8] transition-all group-hover:scale-105" />
-          <div className="relative flex items-center gap-2 z-10">
-            {isButtonLoading && <Loader2 className="animate-spin text-white" size={24} />}
-            <span className="text-[18px] font-bold text-white">{buttonText}</span>
-          </div>
-        </button>
-
-        <p className="text-center text-white/90 text-[12px] font-medium mt-3 leading-snug px-4 drop-shadow-md">
-          {getCtaSubtext()}
-        </p>
-      </div>
-
-      {/* Stripe overlay (contain on desktop phone preview) */}
-      {showCheckoutModal && clientSecret && (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+      <style jsx>{`
+        @keyframes desktopFloat {
+          0% { transform: translateY(100px) translateX(0px) rotate(0deg); opacity: 0; }
+          20% { opacity: 0.6; }
+          80% { opacity: 0.6; }
+          100% { transform: translateY(-100vh) translateX(50px) rotate(10deg); opacity: 0; }
+        }
+      `}</style>
+      {butterflies.map((b) => (
         <div
-          className="fixed md:absolute inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
-          onClick={() => setShowCheckoutModal(false)}
+          key={b.id}
+          className="absolute opacity-50"
+          style={{
+            left: `${b.left}%`,
+            top: `${b.top}%`,
+            width: `${b.size}px`,
+            height: `${b.size}px`,
+            animation: `desktopFloat ${b.duration}s linear infinite`,
+            animationDelay: `${b.delay}s`,
+            filter: brandPinkFilter,
+            transform: `rotate(${b.rotation}deg)`,
+          }}
         >
-          <div className="min-h-full flex items-center justify-center p-4">
-            <Elements options={{ clientSecret, appearance: stripeAppearance }} stripe={stripePromise}>
-              <CheckoutForm onClose={() => setShowCheckoutModal(false)} />
-            </Elements>
-          </div>
+          <img src="/butterfly_template.png" alt="" className="w-full h-full object-contain" />
         </div>
-      )}
-
-      {showRestoreModal && <RestoreModal onClose={() => setShowRestoreModal(false)} />}
+      ))}
     </div>
   );
-}
+};
 
-const Star = ({ size, fill }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill={fill}
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
+const SOCIAL_PROOF_EVENTS = [
+  "Sarah from Ohio completed Day 1",
+  "Maria closed her gap by 1 finger",
+  "Emily joined the Postpartum plan",
+  "Jessica reported zero leaks today",
+  "142 women are working out right now",
+  "Dr. K recommended this to a patient",
+  "Anna achieved a 14-day streak",
+];
+
+const LiveCommunitySidebar = () => {
+  const [visibleEvent, setVisibleEvent] = useState(SOCIAL_PROOF_EVENTS[0]);
+  const [show, setShow] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShow(false);
+      setTimeout(() => {
+        setVisibleEvent(SOCIAL_PROOF_EVENTS[Math.floor(Math.random() * SOCIAL_PROOF_EVENTS.length)]);
+        setShow(true);
+      }, 500); // Wait for fade out
+    }, 5000); // Change every 5s
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="hidden md:flex flex-col justify-end items-end w-64 fixed left-10 bottom-10 gap-4 z-0 pointer-events-none">
+      <div className={`transition-all duration-500 transform ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-white/50 flex items-center gap-3">
+          <div className="relative">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse absolute -top-1 -right-1 border-2 border-white"></div>
+            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+              <Activity size={20} />
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Live Activity</p>
+            <p className="text-sm font-semibold text-slate-800">{visibleEvent}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AuthoritySidebar = () => {
+  return (
+    <div className="hidden md:flex flex-col justify-center w-64 fixed right-10 top-1/2 -translate-y-1/2 gap-6 z-0">
+      
+      {/* Badge 1 */}
+      <div className="bg-white/60 backdrop-blur-md p-5 rounded-3xl shadow-sm border border-white/50 flex flex-col items-center text-center">
+        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mb-3">
+          <Shield size={24} />
+        </div>
+        <h4 className="font-bold text-slate-800 text-sm">Physio Approved</h4>
+        <p className="text-xs text-slate-500 mt-1">Clinically designed routines for safety.</p>
+      </div>
+
+      {/* Quote */}
+      <div className="bg-white/60 backdrop-blur-md p-5 rounded-3xl shadow-sm border border-white/50 relative">
+        <div className="absolute -top-3 -left-2 text-4xl text-rose-300 font-serif leading-none">“</div>
+        <p className="text-sm font-medium text-slate-700 italic relative z-10 leading-relaxed">
+          The most effective non-surgical method for pelvic strengthening I've seen.
+        </p>
+        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
+           <div className="w-8 h-8 bg-gray-200 rounded-full overflow-hidden">
+             <img src="/coachMiaAvatar.png" className="w-full h-full object-cover" alt="Dr"/>
+           </div>
+           <div>
+             <p className="text-xs font-bold text-slate-900">Dr. A. Thompson</p>
+             <p className="text-[10px] text-slate-500">Pelvic Health Specialist</p>
+           </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="bg-white/60 backdrop-blur-md p-4 rounded-3xl shadow-sm border border-white/50 flex items-center justify-between">
+         <div className="text-center">
+            <p className="text-lg font-bold text-slate-900">10k+</p>
+            <p className="text-[10px] text-slate-500">Women</p>
+         </div>
+         <div className="h-8 w-px bg-slate-200"></div>
+         <div className="text-center">
+            <p className="text-lg font-bold text-slate-900">4.9</p>
+            <p className="text-[10px] text-slate-500">Rating</p>
+         </div>
+         <div className="h-8 w-px bg-slate-200"></div>
+         <div className="text-center">
+            <p className="text-lg font-bold text-slate-900">100%</p>
+            <p className="text-[10px] text-slate-500">Safe</p>
+         </div>
+      </div>
+
+    </div>
+  );
+};
 
 // ==========================================
 // MAIN EXPORT: ONBOARDING FLOW MANAGER
@@ -2600,12 +1724,21 @@ export default function Onboarding() {
 
   return (
     // WRAPPER: Handles the "Desktop Card" vs "Mobile Full" logic
-    <div className="w-full h-full flex items-center justify-center bg-gray-50 md:py-10">
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-rose-50 via-white to-blue-50 md:py-10 relative overflow-hidden">
+      
+      {/* Desktop Background Elements (Hidden on Mobile) */}
+      <div className="hidden md:block absolute inset-0 z-0">
+         <DesktopButterflyBackground />
+         <LiveCommunitySidebar />
+         <AuthoritySidebar />
+      </div>
+
       <div
         className="
         w-full h-full 
-        md:w-full md:max-w-2xl md:h-[850px] md:max-h-[90vh]
-        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden relative
+        md:w-[900px] md:h-[850px] md:max-h-[90vh]
+        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden relative z-10
+        transition-all duration-500 ease-in-out
       "
       >
         <Screen />
