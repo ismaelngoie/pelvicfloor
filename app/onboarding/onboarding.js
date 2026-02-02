@@ -27,6 +27,8 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Globe,
+  MessageCircle
 } from "lucide-react";
 
 import { loadStripe } from "@stripe/stripe-js";
@@ -37,6 +39,85 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+
+// ==========================================
+// DESKTOP SPECIFIC COMPONENTS
+// ==========================================
+
+// --- 1. SOCIAL PROOF WIDGET (Million Dollar Idea) ---
+const DesktopSocialProof = () => {
+  const [activeMsg, setActiveMsg] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+
+  const messages = [
+    { icon: <Globe size={16} className="text-emerald-500" />, text: "142 women are strengthening right now." },
+    { icon: <CheckCircle2 size={16} className="text-rose-500" />, text: "Sarah from Ohio just completed Day 1." },
+    { icon: <Shield size={16} className="text-blue-500" />, text: "Maria closed her gap by 1 finger width." },
+    { icon: <Zap size={16} className="text-orange-500" />, text: "Emily is on a 14-day streak!" },
+    { icon: <Heart size={16} className="text-pink-500" />, text: "Anonymous user reported zero leaks today." },
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsVisible(false); // Fade out
+      setTimeout(() => {
+        setActiveMsg((prev) => (prev + 1) % messages.length);
+        setIsVisible(true); // Fade in new
+      }, 500); // Wait for fade out
+    }, 6000); // Change every 6 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="hidden md:flex fixed left-8 bottom-8 z-0 items-center gap-3 animate-fade-in">
+      <div 
+        className={`
+          flex items-center gap-3 px-5 py-3 rounded-full bg-white/80 backdrop-blur-md shadow-lg border border-white/40
+          transition-all duration-500 transform
+          ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}
+        `}
+      >
+        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+        <div className="flex items-center gap-2">
+          {messages[activeMsg].icon}
+          <span className="text-sm font-semibold text-slate-700">{messages[activeMsg].text}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- 2. DESKTOP ATMOSPHERE (Butterflies & Glows) ---
+const DesktopBackgroundDecor = () => {
+  return (
+    <div className="hidden md:block absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Soft Gradient Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-rose-200/30 rounded-full blur-[120px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-100/30 rounded-full blur-[120px]" />
+
+      {/* Large Blurry Butterflies (Depth of Field) */}
+      <img 
+        src="/butterfly_template.png" 
+        className="absolute top-[20%] left-[5%] w-32 opacity-60 blur-[2px] animate-float"
+        style={{ animationDuration: '15s' }}
+        alt=""
+      />
+      <img 
+        src="/butterfly_template.png" 
+        className="absolute bottom-[30%] right-[8%] w-40 opacity-50 blur-[3px] animate-float"
+        style={{ animationDuration: '20s', animationDelay: '2s', transform: 'scaleX(-1)' }}
+        alt=""
+      />
+      <img 
+        src="/butterfly_template.png" 
+        className="absolute top-[15%] right-[20%] w-20 opacity-40 blur-[1px] animate-float"
+        style={{ animationDuration: '12s', animationDelay: '5s' }}
+        alt=""
+      />
+    </div>
+  );
+};
 
 // ==========================================
 // SCREEN 1: WELCOME SCREEN
@@ -223,6 +304,10 @@ function WelcomeScreen({ onNext }) {
   if (!showContent && userDetails?.isPremium) return null;
 
   return (
+    // Bulletproof pattern:
+    // - root owns layout (h-full, overflow-hidden)
+    // - middle scrolls (flex-1 min-h-0 overflow-y-auto)
+    // - bottom CTA is sticky (shrink-0)
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
       <ButterflyBackground />
 
@@ -284,6 +369,7 @@ function WelcomeScreen({ onNext }) {
             </div>
           </div>
 
+          {/* little spacer so the bottom never feels cramped when scrolling */}
           <div className="h-8" />
         </div>
       </div>
@@ -2600,12 +2686,19 @@ export default function Onboarding() {
 
   return (
     // WRAPPER: Handles the "Desktop Card" vs "Mobile Full" logic
-    <div className="w-full h-full flex items-center justify-center bg-gray-50 md:py-10">
+    <div className="w-full h-full md:flex md:items-center md:justify-center md:bg-gradient-to-br md:from-rose-50 md:to-slate-100 md:py-10 relative overflow-hidden">
+      
+      {/* Desktop Background Decorations (Hidden on Mobile) */}
+      <DesktopBackgroundDecor />
+      
+      {/* Social Proof (Hidden on Mobile) */}
+      <DesktopSocialProof />
+
       <div
         className="
         w-full h-full 
-        md:w-full md:max-w-2xl md:h-[850px] md:max-h-[90vh]
-        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden relative
+        md:w-full md:max-w-[500px] md:h-[850px] md:max-h-[90vh]
+        bg-white md:rounded-[30px] md:shadow-2xl md:backdrop-blur-xl md:border md:border-white/40 md:overflow-hidden relative z-10
       "
       >
         <Screen />
