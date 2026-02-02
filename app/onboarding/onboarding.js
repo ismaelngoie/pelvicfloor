@@ -46,12 +46,14 @@ const DesktopButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
   useEffect(() => {
+    // Generate butterflies only for the sides
     const count = 12;
     const items = Array.from({ length: count }).map((_, i) => {
       const duration = 20 + Math.random() * 15;
       const isLeft = Math.random() > 0.5;
       return {
         id: i,
+        // Position mainly on far left (0-20%) or far right (80-100%)
         left: isLeft ? Math.random() * 20 : 80 + Math.random() * 20,
         top: Math.random() * 100,
         size: 30 + Math.random() * 40,
@@ -136,8 +138,8 @@ const LiveCommunitySidebar = () => {
           ]
         );
         setShow(true);
-      }, 500);
-    }, 5000);
+      }, 500); // Wait for fade out
+    }, 5000); // Change every 5s
     return () => clearInterval(interval);
   }, []);
 
@@ -168,37 +170,6 @@ const LiveCommunitySidebar = () => {
     </div>
   );
 };
-
-// ==========================================
-// DESKTOP-ONLY STICKY HEADER WRAPPERS
-// (keeps titles visible on desktop when inner content scrolls)
-// ==========================================
-
-const DesktopStickyHeaderLight = ({ children, padX = "md:-mx-5 md:px-5" }) => (
-  <div
-    className={[
-      "md:sticky md:top-0 md:z-30",
-      "md:bg-white/95 md:backdrop-blur-md",
-      "md:pt-5 md:pb-3",
-      padX,
-    ].join(" ")}
-  >
-    {children}
-  </div>
-);
-
-const DesktopStickyHeaderDark = ({ children, padX = "md:-mx-6 md:px-6" }) => (
-  <div
-    className={[
-      "md:sticky md:top-0 md:z-30",
-      "md:bg-black/92 md:backdrop-blur-md",
-      "md:pt-5 md:pb-3",
-      padX,
-    ].join(" ")}
-  >
-    {children}
-  </div>
-);
 
 // ==========================================
 // SCREEN 1: WELCOME SCREEN
@@ -250,6 +221,7 @@ const reviews = [
   },
 ];
 
+// --- FULL SCREEN BUTTERFLY BACKGROUND ---
 const ButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
@@ -384,10 +356,7 @@ function WelcomeScreen({ onNext }) {
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
       <ButterflyBackground />
 
-      <div
-        data-step-scroll
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain"
-      >
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar">
         <div
           className={`z-10 flex flex-col items-center px-6 pt-16 w-full transition-all duration-1000 ${
             showContent
@@ -564,10 +533,7 @@ function SelectGoalScreen({ onNext }) {
         <div className="absolute bottom-[-10%] left-[-10%] w-[250px] h-[250px] bg-rose-100 rounded-full blur-[80px]" />
       </div>
 
-      <div
-        data-step-scroll
-        className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-contain px-5 pt-8 pb-6 z-10"
-      >
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5 pt-8 pb-6 z-10">
         <div className="mb-4">
           <h1 className="text-[26px] font-extrabold text-center text-app-textPrimary mb-1 leading-tight">
             Let's set your primary goal.
@@ -587,7 +553,7 @@ function SelectGoalScreen({ onNext }) {
                     key={goal.id}
                     onClick={() => handleSelect(goal)}
                     className={`
-                      relative flex flex-col items-center justify-center p-3 rounded-[24px] border-[2px]
+                      relative flex flex-col items-center justify-center p-3 rounded-[24px] border-[2px] 
                       transition-all duration-300 ease-out h-[100px] w-full outline-none active:scale-95
                       ${
                         isSelected
@@ -804,10 +770,7 @@ function HowItHelpsScreen({ onNext }) {
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-app-background">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-app-primary/5 rounded-full blur-3xl -z-10" />
 
-      <div
-        data-step-scroll
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain pt-12 px-4 pb-8"
-      >
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pt-12 px-4 pb-8">
         <div className="z-10 text-center mb-4">
           <h1 className="text-3xl font-bold text-app-textPrimary mb-4 leading-tight animate-slide-up">
             Here's how we'll <br />
@@ -1207,7 +1170,7 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col overscroll-contain">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
         {history.map((msg, index) => (
           <ChatBubble
             key={index}
@@ -1286,6 +1249,7 @@ const usePlanRevealChrome = (enabled, color = "#000000") => {
   useEffect(() => {
     if (!enabled) return;
     if (typeof window === "undefined") return;
+
     if (window.matchMedia("(min-width: 768px)").matches) return;
 
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -1412,13 +1376,14 @@ const getHelperCopy = (selected, goal) => {
   }
 };
 
-const getPersonalizingCopy = (goal) => {
+const getPersonalizingCopy = (goal, name) => {
   const map = {
     "Improve Intimacy": {
       title: `Designing your intimacy plan`,
       subtitle: "Comfort, sensation, confidence—gently built for your body.",
       connecting: "Checking your profile for arousal flow and comfort…",
-      calibrating: "Balancing relax/contract patterns for stronger orgasms…",
+      calibrating:
+        "Balancing relax/contract patterns for stronger orgasms…",
       checklist: [
         "Comfort-first warmups",
         "Relax/contract patterns",
@@ -1962,26 +1927,23 @@ function PlanRevealScreen({ onNext }) {
       {phase === "askingHealthInfo" && (
         <div className="w-full h-full flex flex-col overflow-hidden">
           <div
-            data-step-scroll
             className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-5"
             style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
           >
-            <DesktopStickyHeaderLight padX="md:-mx-5 md:px-5">
-              <div className="shrink-0 text-center">
-                <h1
-                  className={`text-[26px] font-extrabold text-center ${THEME_REVEAL.text} mb-1 leading-tight`}
-                >
-                  {healthCopy.headline}
-                </h1>
-                <p className="text-center text-[rgb(26,26,38)]/60 text-sm">
-                  {healthCopy.subtitle}
-                </p>
-              </div>
-            </DesktopStickyHeaderLight>
+            <div className="mb-2 shrink-0 text-center">
+              <h1
+                className={`text-[26px] font-extrabold text-center ${THEME_REVEAL.text} mb-1 leading-tight`}
+              >
+                {healthCopy.headline}
+              </h1>
+              <p className="text-center text-[rgb(26,26,38)]/60 text-sm">
+                {healthCopy.subtitle}
+              </p>
+            </div>
 
             <div className="flex flex-col justify-center min-h-0">
               <div>
-                <div className="grid grid-cols-2 gap-3 mb-2 mt-2">
+                <div className="grid grid-cols-2 gap-3 mb-2">
                   {CONDITIONS.map((item) => {
                     const isSelected = selectedConditions.includes(item.id);
                     return (
@@ -2232,27 +2194,22 @@ function PlanRevealScreen({ onNext }) {
       {phase === "showingTimeline" && (
         <div className="w-full h-full flex flex-col bg-black relative overflow-hidden animate-in fade-in duration-1000">
           <div
-            data-step-scroll
-            className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-contain px-6 z-10"
+            className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 z-10"
             style={{
               paddingTop: "calc(env(safe-area-inset-top) + 24px)",
               paddingBottom: "24px",
             }}
           >
-            <DesktopStickyHeaderDark padX="md:-mx-6 md:px-6">
-              <div>
-                <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
-                  <span className="text-white/90">
-                    {userDetails?.name || "Your"} path to
-                  </span>
-                  <br />
-                  <span className="text-[#E65473]">{goalTitle}</span> is ready.
-                </h1>
-                <p className="text-center text-white/80 text-[15px] leading-relaxed">
-                  {formatRichText(timelineCopy.subtitle)}
-                </p>
-              </div>
-            </DesktopStickyHeaderDark>
+            <h1 className="text-2xl font-extrabold text-center text-white mb-2 leading-tight">
+              <span className="text-white/90">
+                {userDetails?.name || "Your"} path to
+              </span>
+              <br />
+              <span className="text-[#E65473]">{goalTitle}</span> is ready.
+            </h1>
+            <p className="text-center text-white/80 text-[15px] mb-4 leading-relaxed">
+              {formatRichText(timelineCopy.subtitle)}
+            </p>
 
             <HolographicTimeline />
 
@@ -2465,22 +2422,10 @@ const getReviewsForGoal = (goalTitle) => {
 };
 
 const FEATURES = [
-  {
-    icon: <Brain size={28} className="text-white" />,
-    text: "AI coach that adapts daily",
-  },
-  {
-    icon: <Timer size={28} className="text-white" />,
-    text: "5-minute personalized routines",
-  },
-  {
-    icon: <Play size={28} className="text-white" fill="white" />,
-    text: "300+ physio-approved videos",
-  },
-  {
-    icon: <Activity size={28} className="text-white" />,
-    text: "Trackable progress & streaks",
-  },
+  { icon: <Brain size={28} className="text-white" />, text: "AI coach that adapts daily" },
+  { icon: <Timer size={28} className="text-white" />, text: "5-minute personalized routines" },
+  { icon: <Play size={28} className="text-white" fill="white" />, text: "300+ physio-approved videos" },
+  { icon: <Activity size={28} className="text-white" />, text: "Trackable progress & streaks" },
 ];
 
 const CheckoutForm = ({ onClose }) => {
@@ -2669,7 +2614,9 @@ const RestoreModal = ({ onClose }) => {
 };
 
 function PaywallScreen() {
-  const { userDetails } = useUserData();
+  const router = useRouter();
+  const { userDetails, saveUserData } = useUserData();
+
   usePaywallChrome("#0A0A10");
 
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
@@ -2812,32 +2759,29 @@ function PaywallScreen() {
       </div>
 
       <div
-        data-step-scroll
         className={`
-          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar overscroll-contain px-6
+          z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar px-6
           pt-[calc(env(safe-area-inset-top)+3rem)]
           pb-[calc(9rem+env(safe-area-inset-bottom))]
           transition-all duration-700
           ${showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
         `}
       >
-        <DesktopStickyHeaderDark padX="md:-mx-6 md:px-6">
-          <h1 className="text-[34px] font-extrabold text-white text-center leading-tight drop-shadow-xl">
-            <span className="text-white">
-              {userName === "Ready" ? "Ready to" : `${userName}, ready to`}
-            </span>
-            <br />
-            <span className="capitalize text-[#E65473]">
-              {goalTitle.replace("Stop ", "").replace("Build ", "")}
-            </span>
-            ?
-            <span className="block text-[28px] text-white mt-1">
-              100% Money-Back Guarantee.
-            </span>
-          </h1>
-        </DesktopStickyHeaderDark>
+        <h1 className="text-[34px] font-extrabold text-white text-center mb-8 leading-tight drop-shadow-xl">
+          <span className="text-white">
+            {userName === "Ready" ? "Ready to" : `${userName}, ready to`}
+          </span>
+          <br />
+          <span className="capitalize text-[#E65473]">
+            {goalTitle.replace("Stop ", "").replace("Build ", "")}
+          </span>
+          ?
+          <span className="block text-[28px] text-white mt-1">
+            100% Money-Back Guarantee.
+          </span>
+        </h1>
 
-        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl mt-6">
+        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-[24px] overflow-hidden mb-6 flex flex-col items-center shadow-2xl">
           <div className="pt-5 pb-2">
             <h3 className="text-[17px] font-bold text-white text-center drop-shadow-md">
               Your Personalized Plan Includes:
@@ -3052,63 +2996,6 @@ const Star = ({ size, fill }) => (
 
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState("welcome");
-  const cardRef = useRef(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const mq = window.matchMedia("(min-width: 768px)");
-    let locked = false;
-    let prevHtmlOverflow = "";
-    let prevBodyOverflow = "";
-
-    const lock = () => {
-      if (locked) return;
-      prevHtmlOverflow = document.documentElement.style.overflow || "";
-      prevBodyOverflow = document.body.style.overflow || "";
-      document.documentElement.style.overflow = "hidden";
-      document.body.style.overflow = "hidden";
-      locked = true;
-    };
-
-    const unlock = () => {
-      if (!locked) return;
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-      locked = false;
-    };
-
-    const apply = () => {
-      if (mq.matches) lock();
-      else unlock();
-    };
-
-    apply();
-
-    const onChange = () => apply();
-    if (mq.addEventListener) mq.addEventListener("change", onChange);
-    else mq.addListener(onChange);
-
-    return () => {
-      if (mq.removeEventListener) mq.removeEventListener("change", onChange);
-      else mq.removeListener(onChange);
-      unlock();
-    };
-  }, []);
-
-  // Desktop-only: when step changes, reset inner scroll so headers never start "half scrolled"
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(min-width: 768px)");
-    if (!mq.matches) return;
-
-    requestAnimationFrame(() => {
-      const el = cardRef.current?.querySelector("[data-step-scroll]");
-      if (el && typeof el.scrollTo === "function") {
-        el.scrollTo({ top: 0, behavior: "auto" });
-      }
-    });
-  }, [currentStep]);
 
   const handleNext = (nextStep) => {
     setCurrentStep(nextStep);
@@ -3130,7 +3017,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:fixed md:inset-0 md:h-[100dvh] md:w-[100dvw] md:overflow-hidden md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:px-10 md:pt-16 md:items-start">
+    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:px-10 md:pt-12 md:pb-12 md:overflow-hidden md:items-start">
       <div className="hidden md:block absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/60 rounded-full blur-[120px]" />
         <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-rose-100/70 rounded-full blur-[120px]" />
@@ -3143,12 +3030,11 @@ export default function Onboarding() {
       <LiveCommunitySidebar />
 
       <div
-        ref={cardRef}
         className="
           relative z-10
           w-full h-full
           md:w-[900px] md:max-w-[calc(100vw-80px)]
-          md:h-[850px] md:max-h-[calc(100dvh-180px)]
+          md:h-[850px] md:max-h-[calc(100dvh-160px)]
           bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden
         "
       >
