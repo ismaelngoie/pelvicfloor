@@ -2559,7 +2559,7 @@ const CheckoutForm = ({ onClose }) => {
           className="text-lg font-extrabold text-white mb-1 leading-tight"
           style={{ fontFamily: "var(--font-lora)" }}
         >
-          Join 10,243+ women fixing their Diastasis Recti
+          Join 10,243+ women strengthening their pelvic floor
         </h3>
         <p className="text-sm text-white/50 font-medium">
           Total due: $24.99 / month
