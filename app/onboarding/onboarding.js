@@ -1062,7 +1062,9 @@ function PersonalIntakeScreen({ onNext }) {
   const [step, setStep] = useState("name");
   const [isTyping, setIsTyping] = useState(false);
   const [history, setHistory] = useState([]);
-  const chatBottomRef = useRef(null);
+  
+  // CHANGED: We now ref the container, not the bottom element
+  const scrollContainerRef = useRef(null); 
 
   const [name, setName] = useState("");
   const [age, setAge] = useState(30);
@@ -1070,12 +1072,17 @@ function PersonalIntakeScreen({ onNext }) {
   const [height, setHeight] = useState(65);
 
   const goalTitle = userDetails.selectedTarget?.title || "Build Core Strength";
-  const copy =
-    MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
+  const copy = MIA_COPY[goalTitle] || MIA_COPY["Boost Stability"] || MIA_COPY["default"];
 
+  // CHANGED: Logic to scroll ONLY the container, not the window
   const scrollToBottom = () => {
     setTimeout(() => {
-      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }
     }, 100);
   };
 
@@ -1106,16 +1113,14 @@ function PersonalIntakeScreen({ onNext }) {
       saveUserData("name", name);
       addMessage(name, "user");
 
-      const nextText =
-        copy.ack.replace("{name}", name) + " To start, what's your age?";
+      const nextText = copy.ack.replace("{name}", name) + " To start, what's your age?";
       addMessage(nextText, "mia", 1000);
       setStep("age");
     } else if (step === "age") {
       saveUserData("age", age);
       addMessage(`${age}`, "user");
 
-      const nextText =
-        copy.age.replace("{age}", age) + " Now, what's your current weight?";
+      const nextText = copy.age.replace("{age}", age) + " Now, what's your current weight?";
       addMessage(nextText, "mia", 1000);
       setStep("weight");
     } else if (step === "weight") {
@@ -1155,7 +1160,7 @@ function PersonalIntakeScreen({ onNext }) {
               onChange={(e) => setName(e.target.value)}
               placeholder="Type your name..."
               className="w-full text-center text-3xl font-bold bg-transparent border-b-2 border-app-borderIdle focus:border-app-primary outline-none py-3 text-app-textPrimary placeholder:text-app-textSecondary/30"
-              autoFocus
+              // CHANGED: Removed autoFocus to prevent browser jump
               onKeyDown={(e) => e.key === "Enter" && handleNext()}
             />
           </div>
@@ -1194,8 +1199,11 @@ function PersonalIntakeScreen({ onNext }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-app-background relative overflow-hidden">
-      {/* Chat History Area (fix: min-h-0) */}
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col">
+      {/* CHANGED: Added ref={scrollContainerRef} here */}
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pt-8 pb-4 flex flex-col"
+      >
         {history.map((msg, index) => (
           <ChatBubble
             key={index}
@@ -1207,10 +1215,10 @@ function PersonalIntakeScreen({ onNext }) {
 
         {isTyping && <ChatBubble isTyping={true} isUser={false} />}
 
-        <div ref={chatBottomRef} className="h-4" />
+        {/* CHANGED: Removed ref from this bottom div */}
+        <div className="h-4" />
       </div>
 
-      {/* Input Area */}
       <div className="w-full bg-white rounded-t-[35px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] p-6 pb-10 z-20">
         <div className="mb-6">{renderInput()}</div>
 
@@ -3077,7 +3085,7 @@ export default function Onboarding() {
     // - Desktop wrapper does NOT scroll (card never moves)
     // - Scroll happens only INSIDE screens (inside card)
     // - Mobile stays unchanged
-    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:h-[100dvh] md:px-10 md:pt-10 md:pb-10 md:items-start md:overflow-hidden">
+    <div className="relative w-full h-full flex items-center justify-center bg-gray-50 md:bg-gradient-to-b md:from-pink-50/50 md:to-white md:min-h-[100dvh] md:h-[100dvh] md:px-10 md:pt-10 md:pb-10 md:items-center md:overflow-hidden">
       {/* DESKTOP BACKGROUND (keeps mobile identical) */}
       <div className="hidden md:block absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/60 rounded-full blur-[120px]" />
