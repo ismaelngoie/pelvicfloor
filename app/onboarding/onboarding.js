@@ -86,7 +86,7 @@ const reviews = [
 ];
 
 // --- FULL SCREEN BUTTERFLY BACKGROUND ---
-// IMPORTANT: use ABSOLUTE (not fixed) so desktop "phone preview" doesn't spill over the whole page.
+// Changed to absolute so it stays inside the desktop card container
 const ButterflyBackground = () => {
   const [butterflies, setButterflies] = useState([]);
 
@@ -223,10 +223,6 @@ function WelcomeScreen({ onNext }) {
   if (!showContent && userDetails?.isPremium) return null;
 
   return (
-    // Bulletproof pattern:
-    // - root owns layout (h-full, overflow-hidden)
-    // - middle scrolls (flex-1 min-h-0 overflow-y-auto)
-    // - bottom CTA is sticky (shrink-0)
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-b from-pink-50/50 to-white">
       <ButterflyBackground />
 
@@ -288,7 +284,6 @@ function WelcomeScreen({ onNext }) {
             </div>
           </div>
 
-          {/* little spacer so the bottom never feels cramped when scrolling */}
           <div className="h-8" />
         </div>
       </div>
@@ -2578,120 +2573,42 @@ const Star = ({ size, fill }) => (
 );
 
 // ==========================================
-// DESKTOP SHELL (diastafix-style)
-// ==========================================
-
-function DesktopMarketingPanel() {
-  return (
-    <div className="hidden md:flex flex-1 flex-col justify-center pr-10">
-      <div className="max-w-xl">
-        <div className="flex items-center gap-3 mb-6">
-          <img src="/logo.png" alt="Pelvi Health" className="w-14 h-14 object-contain" />
-          <div>
-            <div className="text-[14px] font-semibold text-app-textSecondary tracking-wide uppercase">
-              Pelvi Health
-            </div>
-            <div className="text-[20px] font-extrabold text-app-textPrimary leading-tight">
-              Pelvic Floor Strengthening
-            </div>
-          </div>
-        </div>
-
-        <h1 className="text-[46px] font-extrabold leading-[1.05] text-app-textPrimary">
-          A <span className="text-gradient">5-minute</span> daily plan
-          <br />
-          to stop leaks & feel strong again.
-        </h1>
-
-        <p className="mt-5 text-[18px] leading-relaxed text-app-textSecondary max-w-lg">
-          Personalized routines, physio-approved videos, and an AI coach that adapts every day.
-        </p>
-
-        <div className="mt-8 grid grid-cols-2 gap-4 max-w-lg">
-          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
-            <div className="text-[13px] font-semibold text-app-textSecondary">Daily routine</div>
-            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">5 minutes</div>
-          </div>
-          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
-            <div className="text-[13px] font-semibold text-app-textSecondary">Videos</div>
-            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">300+</div>
-          </div>
-          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
-            <div className="text-[13px] font-semibold text-app-textSecondary">Rating</div>
-            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">4.9 ★</div>
-          </div>
-          <div className="rounded-2xl bg-white border border-app-borderIdle p-4 shadow-sm">
-            <div className="text-[13px] font-semibold text-app-textSecondary">Guarantee</div>
-            <div className="mt-1 text-[18px] font-extrabold text-app-textPrimary">Money-back</div>
-          </div>
-        </div>
-
-        <div className="mt-10 flex items-center gap-3 text-app-textSecondary">
-          <div className="w-2.5 h-2.5 rounded-full bg-app-primary" />
-          <span className="text-[14px]">
-            Use the phone preview on the right to complete onboarding.
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
 // MAIN EXPORT: ONBOARDING FLOW MANAGER
 // ==========================================
 
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState("welcome");
 
-  // Desktop-only UX fix:
-  // - Welcome screen already *is* marketing-heavy inside the onboarding UI.
-  // - So on desktop, hide the left marketing panel ONLY for that step to avoid "repeating" copy.
-  const showDesktopMarketing = currentStep !== "welcome";
+  const handleNext = (nextStep) => {
+    setCurrentStep(nextStep);
+  };
 
   const Screen = () => {
-    if (currentStep === "welcome") return <WelcomeScreen onNext={() => setCurrentStep("select_goal")} />;
-    if (currentStep === "select_goal") return <SelectGoalScreen onNext={() => setCurrentStep("how_it_helps")} />;
-    if (currentStep === "how_it_helps") return <HowItHelpsScreen onNext={() => setCurrentStep("intake")} />;
-    if (currentStep === "intake") return <PersonalIntakeScreen onNext={() => setCurrentStep("plan_reveal")} />;
-    if (currentStep === "plan_reveal") return <PlanRevealScreen onNext={() => setCurrentStep("paywall")} />;
-    return <PaywallScreen />;
+    if (currentStep === "welcome")
+      return <WelcomeScreen onNext={() => handleNext("select_goal")} />;
+    if (currentStep === "select_goal")
+      return <SelectGoalScreen onNext={() => handleNext("how_it_helps")} />;
+    if (currentStep === "how_it_helps")
+      return <HowItHelpsScreen onNext={() => handleNext("intake")} />;
+    if (currentStep === "intake")
+      return <PersonalIntakeScreen onNext={() => handleNext("plan_reveal")} />;
+    if (currentStep === "plan_reveal")
+      return <PlanRevealScreen onNext={() => handleNext("paywall")} />;
+    if (currentStep === "paywall") return <PaywallScreen />;
+    return null;
   };
 
   return (
-    <div className="relative w-full h-full min-h-0 md:min-h-[100dvh] md:h-[100dvh]">
-      {/* Desktop background glow */}
-      <div className="hidden md:block absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute -top-24 -left-24 w-[520px] h-[520px] bg-rose-200/40 rounded-full blur-[90px]" />
-        <div className="absolute -bottom-24 -right-24 w-[520px] h-[520px] bg-pink-200/30 rounded-full blur-[90px]" />
-      </div>
-
+    // WRAPPER: Handles the "Desktop Card" vs "Mobile Full" logic
+    <div className="w-full h-full flex items-center justify-center bg-gray-50 md:py-10">
       <div
-        className={`
-          w-full h-full min-h-0
-          md:flex md:items-stretch md:px-10 md:py-10
-          ${showDesktopMarketing ? "md:gap-10" : "md:justify-center"}
-        `}
+        className="
+        w-full h-full 
+        md:w-full md:max-w-2xl md:h-[850px] md:max-h-[90vh]
+        bg-white md:rounded-[30px] md:shadow-2xl md:border md:border-white/50 md:overflow-hidden relative
+      "
       >
-        {/* Left marketing panel (desktop only, hidden on welcome) */}
-        {showDesktopMarketing && <DesktopMarketingPanel />}
-
-        {/* Desktop app surface (fills right side; mobile unchanged) */}
-        <div className="w-full h-full min-h-0 md:flex md:flex-1 md:items-stretch md:justify-center">
-          <div
-            className="
-              w-full h-full
-              overflow-visible md:overflow-hidden
-              md:flex-1 md:w-full md:h-full
-              md:rounded-[32px] md:border md:border-white/60 md:shadow-2xl
-              md:bg-[#FAF9FA] relative
-            "
-          >
-            <div className="w-full h-full flex flex-col min-h-0">
-              <Screen />
-            </div>
-          </div>
-        </div>
+        <Screen />
       </div>
     </div>
   );
