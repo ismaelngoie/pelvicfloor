@@ -129,10 +129,10 @@ export default function CoraPrivacyPolicy() {
           <p>
             Questions? Reach us at{" "}
             <a
-              href="mailto:support@pelvi.health"
+              href="mailto:contact@pelvi.health"
               className="text-rose-600 underline underline-offset-2"
             >
-              support@pelvi.health
+              contact@pelvi.health
             </a>
           </p>
 
