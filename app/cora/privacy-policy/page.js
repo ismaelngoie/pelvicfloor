@@ -39,52 +39,30 @@ export default function CoraPrivacyPolicy() {
             We do not have servers. We do not have user accounts. We do not track you.
           </p>
           <p>
-            All of your health data — blood pressure readings, heart rate measurements, blood sugar
-            levels, weight entries, food logs, hydration records, cycle tracking data, medication
+            All of your health data — weight entries, food logs, hydration records, cycle tracking data, medication
             logs, and profile information — is stored exclusively on your device. When you delete the
             app, all of your data is permanently gone.
           </p>
 
           {/* 2 */}
-          <h2>2. Camera Usage</h2>
-          <p>
-            Cora uses your camera and flashlight to measure heart rate. Your fingertip is illuminated
-            by the flash, and the camera detects blood flow variations to calculate your pulse. No
-            photos or video are captured, saved, or transmitted. The camera feed is processed in
-            real-time on your device and immediately discarded.
-          </p>
-
-          {/* 3 */}
           <h2>3. Apple Health</h2>
           <p>
-            If you choose to connect Apple Health, Cora can read and write health data (blood
-            pressure, heart rate, blood glucose, weight, steps, active energy) with your permission.
+            If you choose to connect Apple Health, Cora can read and write fitness data (weight, steps, active energy) with your permission.
             This stays between your device and Apple. We never see it.
           </p>
 
-          {/* 4 */}
-          <h2>4. AI Health Coach &amp; Food Scanner</h2>
+          {/* 3 */}
+          <h2>4. AI Coach &amp; Food Scanner</h2>
           <p>
-            Cora includes an AI coach and a food photo scanner powered by Google Gemini through
-            Firebase AI. This is the only external service Cora uses.
+            Cora includes an AI coach and a food photo scanner.
           </p>
           <p>
             When you ask the AI coach a question or snap a food photo, your message (along with
-            basic health context like recent readings) is sent to Google&apos;s Gemini API to
-            generate a response. The response is returned to your device. That&apos;s it.
+            basic nutrition context like recent readings) The response is returned to your device. That&apos;s it.
           </p>
           <p>
             We do not store these conversations on any server. Your chat history lives on your phone
-            only. Google&apos;s handling of AI requests is governed by{" "}
-            <a
-              href="https://policies.google.com/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-rose-600 underline underline-offset-2"
-            >
-              Google&apos;s Privacy Policy
-            </a>
-            .
+            only. 
           </p>
 
           {/* 5 */}
@@ -110,18 +88,11 @@ export default function CoraPrivacyPolicy() {
             end to delete because we never had it.
           </p>
 
-          {/* 8 */}
-          <h2>8. Children&apos;s Privacy</h2>
-          <p>
-            Cora is not directed at children under 13. Since we collect no data from anyone, we
-            certainly collect no data from children.
-          </p>
-
           {/* 9 */}
           <h2>9. Changes to This Policy</h2>
           <p>
             If anything changes, we&apos;ll update this page. But our philosophy won&apos;t change:
-            your health data is yours and yours alone.
+            your data is yours and yours alone.
           </p>
 
           {/* 10 */}
@@ -139,7 +110,7 @@ export default function CoraPrivacyPolicy() {
           {/* Footer */}
           <div className="!mt-16 rounded-xl border border-gray-200 bg-gray-50 px-6 py-5 text-center">
             <p className="!text-sm !text-gray-500 !mb-0">
-              Cora is a health tracking and education tool, not a medical device. Always consult your
+              Cora is a tracking and education tool, not a medical device. Always consult your
               healthcare provider for medical advice and treatment decisions.
             </p>
           </div>
