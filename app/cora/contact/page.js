@@ -2,8 +2,8 @@
 // Cora — Contact / Support Page
 
 export const metadata = {
-  title: "Contact & Support | Cora Health",
-  description: "Get help with Cora: Heart Rate & BP Tracker. Reach our support team.",
+  title: "Contact & Support | Cora",
+  description: "Get help with Cora: AI Calorie & Food Log. Reach our support team.",
   robots: { index: true, follow: true },
 };
 
@@ -32,7 +32,7 @@ export default function CoraContact() {
             Contact &amp; Support
           </h1>
           <p className="mt-3 text-lg text-gray-500">
-            Cora: Heart Rate &amp; BP Tracker
+            Cora: AI Calorie &amp; Food Log
           </p>
         </div>
 
@@ -92,23 +92,23 @@ export default function CoraContact() {
 
           <details className="group rounded-xl border border-gray-200 bg-white">
             <summary className="flex cursor-pointer items-center justify-between px-6 py-4 text-base font-medium text-gray-900">
-              How does the heart rate camera work?
+              How does the AI food scanner work?
               <svg className="h-5 w-5 shrink-0 text-gray-400 transition group-open:rotate-180" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
             </summary>
             <p className="px-6 pb-4 text-gray-500">
-              Place your fingertip over the rear camera. The flash illuminates your finger and the
-              camera detects blood flow changes to measure your pulse. No photos are taken or stored.
+              Take a photo of any meal and Cora&apos;s AI instantly estimates calories, protein,
+              carbs, and fat. The photo is processed through Google Gemini and is never stored on any
+              server.
             </p>
           </details>
 
           <details className="group rounded-xl border border-gray-200 bg-white">
             <summary className="flex cursor-pointer items-center justify-between px-6 py-4 text-base font-medium text-gray-900">
-              Can I export my health data?
+              Can I export my data?
               <svg className="h-5 w-5 shrink-0 text-gray-400 transition group-open:rotate-180" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
             </summary>
             <p className="px-6 pb-4 text-gray-500">
-              Yes. Cora generates professional PDF reports you can share directly with your doctor or
-              save to your files.
+              Yes. Cora generates PDF reports you can share or save to your files.
             </p>
           </details>
 
@@ -127,8 +127,8 @@ export default function CoraContact() {
         {/* Footer */}
         <div className="mt-14 rounded-xl border border-gray-200 bg-gray-50 px-6 py-5 text-center">
           <p className="text-sm text-gray-500">
-            Cora is a health tracking and education tool, not a medical device. Always consult your
-            healthcare provider for medical advice and treatment decisions.
+            Cora is a wellness tracking tool, not a medical device. Always consult your healthcare
+            provider for medical advice and treatment decisions.
           </p>
         </div>
       </div>
