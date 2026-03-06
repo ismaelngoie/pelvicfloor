@@ -1,5 +1,5 @@
 // app/cora/privacy-policy/page.js
-// Cora — Privacy Policy (zero data collection)
+// Cora — Privacy Policy (comprehensive, Apple Review compliant)
 
 export const metadata = {
   title: "Privacy Policy | Cora",
@@ -20,7 +20,7 @@ export default function CoraPrivacyPolicy() {
             Cora: AI Calorie &amp; Food Log
           </p>
           <p className="mt-1 text-sm text-gray-400">
-            Last updated: February 25, 2026
+            Effective Date: March 6, 2026 · Pelvi Health, LLC
           </p>
         </div>
 
@@ -28,109 +28,160 @@ export default function CoraPrivacyPolicy() {
         <div className="prose prose-gray prose-lg max-w-none [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:text-gray-900 [&_p]:text-gray-600 [&_p]:leading-relaxed [&_li]:text-gray-600 [&_ul]:pl-5 [&_ul]:list-disc">
 
           <p className="rounded-xl bg-emerald-50 px-5 py-4 !text-emerald-800 font-medium border border-emerald-100">
-            <strong>The short version:</strong> We don&apos;t collect your data. We don&apos;t have
-            a database. We don&apos;t have servers. Everything stays on your phone.
+            <strong>Summary:</strong> Your health data is stored on your device and your iCloud account.
+            We do not have servers or databases. The only external services Cora uses are Google Gemini AI
+            (for food photo analysis, with your consent) and Open Food Facts (for barcode lookups).
           </p>
 
           {/* 1 */}
-          <h2>1. We Collect Nothing</h2>
+          <h2>1. Data We Collect</h2>
           <p>
-            Cora does not collect, store, or transmit any personal data. We do not have a database.
-            We do not have servers. We do not have user accounts. We do not track you.
+            Cora collects only the data you provide directly within the app to enable its health tracking features:
           </p>
+          <ul>
+            <li><strong>Profile Information:</strong> Name, age, gender, height, and profile photo (optional). Used to personalize your experience.</li>
+            <li><strong>Nutrition Data:</strong> Food entries (name, calories, protein, carbs, fat), meal photos, meal times, and portion sizes.</li>
+            <li><strong>Hydration Data:</strong> Water intake amounts, container types, and timestamps.</li>
+            <li><strong>Weight Data:</strong> Weight entries with dates and units (kg/lbs).</li>
+            <li><strong>Medication Data:</strong> Medication names, dosages, frequencies, schedule times, and adherence logs.</li>
+            <li><strong>Cycle Data:</strong> Period start/end dates, flow levels, symptoms, mood, and energy levels.</li>
+            <li><strong>Chat Messages:</strong> Conversations with Cora AI coach (stored on-device only).</li>
+            <li><strong>Food Photos:</strong> Photos taken or selected for AI nutrition analysis.</li>
+          </ul>
           <p>
-            All of your data — food logs, calorie entries, water intake, cycle tracking, weight
-            entries, medication schedules, and profile information — is stored exclusively on your
-            device. When you delete the app, all of your data is permanently gone.
+            Cora does <strong>not</strong> collect your email address, phone number, precise location,
+            contacts, browsing history, or any data beyond what you explicitly enter.
           </p>
 
           {/* 2 */}
-          <h2>2. Camera Usage</h2>
+          <h2>2. How Data Is Stored</h2>
           <p>
-            Cora uses your camera solely for the AI food scanner. When you take a photo of a meal,
-            the image is sent to Google&apos;s Gemini API to estimate nutritional content and
-            returned to your device. No photos are saved to any server. The image is processed and
-            immediately discarded.
+            All your health data is stored locally on your device using Apple&apos;s SwiftData framework.
+            If you have iCloud enabled for Cora, your data syncs across your Apple devices via Apple&apos;s
+            CloudKit using your personal iCloud account. This is governed by{" "}
+            <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer" className="text-rose-600 underline underline-offset-2">
+              Apple&apos;s Privacy Policy
+            </a>. Pelvi Health does not have access to your iCloud data.
+          </p>
+          <p>
+            Cora does not operate its own servers or cloud databases. We do not store any of your
+            health data on Pelvi Health servers.
           </p>
 
           {/* 3 */}
-          <h2>3. Apple Health</h2>
+          <h2>3. AI Food Scanner &amp; Third-Party Data Sharing</h2>
+          <p className="rounded-xl bg-amber-50 px-5 py-4 !text-amber-900 font-medium border border-amber-100">
+            <strong>Important:</strong> Cora asks for your explicit consent before sending any data
+            to the AI service. You can use the app without the AI scanner.
+          </p>
           <p>
-            If you choose to connect Apple Health, Cora can read and write health data (weight,
-            steps, active energy) with your permission. This stays between your device and Apple. We
-            never see it.
+            When you use the <strong>AI food scanner</strong>, Cora sends only the food photo you
+            capture or select to <strong>Google Gemini AI</strong> (via Firebase Vertex AI) to identify
+            foods and estimate nutritional values.
+          </p>
+          <ul>
+            <li><strong>What is sent:</strong> Only the food photo. No personal information (name, age, health data, location) is included.</li>
+            <li><strong>Who receives it:</strong> Google Gemini AI via Firebase Vertex AI.</li>
+            <li><strong>How it&apos;s protected:</strong> Photos are transmitted over an encrypted (TLS) connection. Per Google&apos;s data processing terms, API inputs are not used to train Google&apos;s models.</li>
+            <li><strong>Your control:</strong> You are asked for explicit consent before your first AI scan. You can revoke consent at any time in Settings. You can always log food manually or via barcode without AI.</li>
+          </ul>
+          <p>
+            Google&apos;s privacy policy:{" "}
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-rose-600 underline underline-offset-2">
+              policies.google.com/privacy
+            </a>
+          </p>
+          <p>
+            Firebase data processing terms:{" "}
+            <a href="https://firebase.google.com/terms/data-processing-terms" target="_blank" rel="noopener noreferrer" className="text-rose-600 underline underline-offset-2">
+              firebase.google.com/terms/data-processing-terms
+            </a>
           </p>
 
           {/* 4 */}
-          <h2>4. AI Nutrition Assistant &amp; Food Scanner</h2>
+          <h2>4. Barcode &amp; Food Search</h2>
           <p>
-            Cora includes an AI nutrition assistant and a food photo scanner powered by Google Gemini
-            through Firebase AI. This is the only external service Cora uses.
+            When you scan a barcode or search for a food product, the barcode number or search query
+            is sent to <strong>Open Food Facts</strong>, a free and open-source food database. No
+            personal information, device identifiers, or health data is sent.
           </p>
           <p>
-            When you ask the AI assistant a question or snap a food photo, your message is sent to
-            Google&apos;s Gemini API to generate a response. The response is returned to your device.
-            That&apos;s it.
-          </p>
-          <p>
-            We do not store these conversations on any server. Your chat history lives on your phone
-            only. Google&apos;s handling of AI requests is governed by{" "}
-            <a
-              href="https://policies.google.com/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-rose-600 underline underline-offset-2"
-            >
-              Google&apos;s Privacy Policy
+            Open Food Facts privacy policy:{" "}
+            <a href="https://world.openfoodfacts.org/privacy" target="_blank" rel="noopener noreferrer" className="text-rose-600 underline underline-offset-2">
+              world.openfoodfacts.org/privacy
             </a>
-            .
           </p>
 
           {/* 5 */}
-          <h2>5. No Ads. No Tracking. No Analytics.</h2>
+          <h2>5. Analytics</h2>
           <p>
-            Cora contains zero advertisements. We do not use any analytics SDKs, tracking pixels, or
-            third-party data collection tools. We do not know who you are, how often you open the
-            app, or what features you use. We have no way of knowing.
+            Cora uses <strong>Clarity by Microsoft</strong> to collect anonymous usage analytics
+            (screen views, session duration, interaction patterns). This is used solely to understand
+            how users navigate the app and improve the experience. No personal health data, food logs,
+            photos, or identifiable information is shared with Clarity.
+          </p>
+          <p>
+            Clarity privacy policy:{" "}
+            <a href="https://clarity.microsoft.com/terms" target="_blank" rel="noopener noreferrer" className="text-rose-600 underline underline-offset-2">
+              clarity.microsoft.com/terms
+            </a>
           </p>
 
           {/* 6 */}
-          <h2>6. No Subscriptions</h2>
+          <h2>6. Apple HealthKit</h2>
           <p>
-            Cora is 100% free. No in-app purchases, no subscriptions, no premium tiers, no paywalls.
-            Every feature is available to every user at no cost.
+            If you enable HealthKit integration, Cora may read active energy (calories burned) and
+            weight data from Apple Health, and may write weight data back. This requires your explicit
+            permission. HealthKit integration is off by default. Cora never shares HealthKit data with
+            third parties, advertising platforms, or data brokers, in compliance with Apple&apos;s
+            HealthKit guidelines.
           </p>
 
           {/* 7 */}
-          <h2>7. Deleting Your Data</h2>
+          <h2>7. No Ads &amp; No Tracking</h2>
           <p>
-            Since everything is stored on your device, you have full control. Use the &ldquo;Delete
-            All Data&rdquo; option in Settings, or simply uninstall the app. There is nothing on our
-            end to delete because we never had it.
+            Cora contains zero advertisements. We do not use advertising SDKs, tracking pixels,
+            social media SDKs, or data brokers. We do not sell your data to anyone.
           </p>
 
           {/* 8 */}
-          <h2>8. Children&apos;s Privacy</h2>
+          <h2>8. Deleting Your Data</h2>
           <p>
-            Cora is not directed at children under 13. Since we collect no data from anyone, we
-            certainly collect no data from children.
+            Since everything is stored on your device and your iCloud account, you have full control.
+            Use the &ldquo;Delete All Data&rdquo; option in Settings, or uninstall the app. To remove
+            iCloud-synced data, go to Settings &gt; [Your Name] &gt; iCloud &gt; Manage Storage &gt; Cora.
           </p>
 
           {/* 9 */}
-          <h2>9. Changes to This Policy</h2>
+          <h2>9. Children&apos;s Privacy</h2>
           <p>
-            If anything changes, we&apos;ll update this page. But our philosophy won&apos;t change:
-            your data is yours and yours alone.
+            Cora is not directed at children under 13. We do not knowingly collect personal information
+            from children.
           </p>
 
           {/* 10 */}
-          <h2>10. Contact</h2>
+          <h2>10. Your Rights</h2>
+          <p>You may:</p>
+          <ul>
+            <li>Access all data stored by the app (on-device at any time)</li>
+            <li>Delete all your data (Settings &gt; Delete All Data)</li>
+            <li>Export your data (PDF export feature in the app)</li>
+            <li>Opt out of AI food analysis (revoke consent in Settings or log manually)</li>
+            <li>Disable iCloud sync (iOS Settings &gt; iCloud)</li>
+          </ul>
+
+          {/* 11 */}
+          <h2>11. Changes to This Policy</h2>
+          <p>
+            If anything changes, we&apos;ll update this page. Material changes will be communicated
+            through an in-app notice.
+          </p>
+
+          {/* 12 */}
+          <h2>12. Contact</h2>
           <p>
             Questions? Reach us at{" "}
-            <a
-              href="mailto:contact@pelvi.health"
-              className="text-rose-600 underline underline-offset-2"
-            >
+            <a href="mailto:contact@pelvi.health" className="text-rose-600 underline underline-offset-2">
               contact@pelvi.health
             </a>
           </p>
@@ -138,8 +189,9 @@ export default function CoraPrivacyPolicy() {
           {/* Footer */}
           <div className="!mt-16 rounded-xl border border-gray-200 bg-gray-50 px-6 py-5 text-center">
             <p className="!text-sm !text-gray-500 !mb-0">
-              Cora is a wellness tracking tool, not a medical device. Always consult your healthcare
-              provider for medical advice and treatment decisions.
+              Cora is a wellness tracking tool, not a medical device. Nutrition estimates are generated
+              by AI and referenced against USDA FoodData Central. Always consult your healthcare provider
+              for medical advice and treatment decisions.
             </p>
           </div>
         </div>
