@@ -1,0 +1,270 @@
+// =============================================================================
+// Pelvi Health - Firestore security rules
+// =============================================================================
+//
+// HOW TO PUBLISH THESE RULES (about two minutes, no command line needed)
+//
+//   1. Open https://console.firebase.google.com and pick the project
+//      "pelvic-floor-exercise-908ed".
+//   2. In the left sidebar choose Build, then Firestore Database.
+//   3. Click the "Rules" tab at the top of the page.
+//   4. Select everything in the editor and delete it.
+//   5. Paste this entire file in its place, including these comments.
+//   6. Click "Publish". It takes effect in under a minute.
+//
+//   Prefer the command line? From this repo:
+//
+//       npm install -g firebase-tools
+//       firebase login
+//       firebase deploy --only firestore:rules --project pelvic-floor-exercise-908ed
+//
+//   (That needs a firebase.json pointing at this file. The console route above
+//   is the one to use if you have never set that up.)
+//
+// -----------------------------------------------------------------------------
+// WHAT THESE RULES DO, IN PLAIN ENGLISH
+//
+//   * ismael@ngoie.com, signed in with Google and with a verified email, can
+//     read and write every member record and everything inside it. That is what
+//     makes /admin work.
+//   * Every other person can only ever touch her own record. She cannot list
+//     the members collection, cannot read anyone else's profile, and cannot read
+//     anyone else's chat, check-ins or completions.
+//   * Nobody can edit the exercise catalog or the programs from a phone or a
+//     browser. Those are published from the Firebase console only.
+//   * Nobody can write her own subscription fields, so a member cannot hand
+//     herself a paid account by editing her own record from the browser
+//     console. Who is actually paying is asked of Stripe directly, live, when
+//     she opens the member app. Nothing about a subscription is stored here
+//     except the note the owner can write by hand in /admin.
+//
+// -----------------------------------------------------------------------------
+// BEFORE YOU PUBLISH: READ THIS ONCE
+//
+//   The iPhone app is live on the App Store and it CANNOT be changed. It signs
+//   in silently and anonymously, then writes to users/{RevenueCat id}. That id
+//   is NOT the same as the Firebase sign-in id, so "the document id matches the
+//   signed-in user" is not enough on its own. The app stamps its Firebase id
+//   into a field called authUID on every profile write, and the ownsRecord()
+//   check below accepts that. This is what keeps the shipped app working.
+//
+//   If you ever see sync stop working on the phone after publishing, check the
+//   Firestore "Rules" tab -> "Monitor rules" for denied writes before changing
+//   anything else. The most likely cause is a member record written before the
+//   app started stamping authUID.
+//
+//   These rules also assume the admin account signs in with Google, which
+//   always gives a verified email. A password account with an unverified email
+//   is refused on purpose.
+// =============================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Who is asking -------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // The caller's email in lower case, or an empty string when there is none.
+    // Anonymous phone users have no email, so this is "" for them and every
+    // comparison below simply fails instead of erroring.
+    function callerEmail() {
+      return signedIn() && request.auth.token.get('email', null) is string
+        ? request.auth.token.email.lower()
+        : '';
+    }
+
+    function emailIsVerified() {
+      return signedIn() && request.auth.token.get('email_verified', false) == true;
+    }
+
+    // The one account allowed to run the dashboard. Keep this in step with
+    // ADMIN_EMAIL in lib/firebase.js. Changing it in one place only is how an
+    // admin dashboard quietly stops matching its own rules.
+    function isAdmin() {
+      return emailIsVerified() && callerEmail() == 'ismael@ngoie.com';
+    }
+
+    // --- Who owns a member record -------------------------------------------
+
+    // A record belongs to the caller when any one of these is true:
+    //   * the document id is her Firebase id (web members created by this site)
+    //   * the record's authUID is her Firebase id (the iPhone app writes this)
+    //   * the record's webUID is her Firebase id (set when the web adopts an
+    //     existing iPhone record)
+    //   * the record's email matches her verified email (the join key the web
+    //     app uses to find her iPhone record in the first place)
+    //
+    // The email comparison lower cases BOTH sides. callerEmail() is already
+    // lower case, but the address stored on the record is whatever she typed
+    // into the iPhone app's email screen, which does not lower case it.
+    // Comparing "Jane@Gmail.com" to "jane@gmail.com" denied her her own record:
+    // the web app then found nothing, built her a second one, and her streak,
+    // her history and her 90 day clock all started again from scratch.
+    function ownsRecord(userId) {
+      return signedIn() && (
+        request.auth.uid == userId
+        || resource.data.get('authUID', '') == request.auth.uid
+        || resource.data.get('webUID', '') == request.auth.uid
+        || (emailIsVerified() && resource.data.get('email', '').lower() == callerEmail())
+        || (emailIsVerified() && resource.data.get('emailLower', '') == callerEmail())
+      );
+    }
+
+    // --- What a member may never write to her own record ---------------------
+    //
+    // `entitlementOverride` is the word the owner chooses in /admin. It is the
+    // only one of these fields anything writes today, and it is written by the
+    // admin account, signed in, from the dashboard.
+    //
+    // `entitlement` is an OLDER object. A Stripe webhook used to write it after
+    // every payment. That webhook has been retired: whether a member is
+    // subscribed is now asked of Stripe directly, live, at the moment she opens
+    // the member app, so nothing keeps this field current and nothing writes it
+    // any more. Records created while the webhook ran still carry one, which is
+    // exactly why it stays on this list. A field nobody maintains is still a
+    // field somebody could forge.
+    //
+    // Between them these fields answer "has she paid", so a member who can
+    // write them can hand herself the product for nothing, from the browser
+    // console, in one line:
+    //
+    //     updateDoc(doc(db, 'users', myUid), { entitlement: { active: true } })
+    //
+    // Note what these rules do and do not cover. They constrain BROWSERS. Code
+    // running server side on Cloudflare authenticates with a service account,
+    // and Firestore does not apply security rules to a service account at all,
+    // so nothing here is in its way.
+    //
+    // The four older names are on the list for the same reason as `entitlement`.
+    // They are not decoration: each of `subscriptionStatus`, `isPremium`,
+    // `premium` and `currentPeriodEnd` has at some point been read by this
+    // website as proof of payment. Whether any of them is read on the day you
+    // are looking at this, a member who could write one is one deploy away from
+    // having let herself in for nothing. Neither the iPhone app nor this website
+    // has ever written one of them from a browser, so naming them here costs
+    // nothing and closes the door.
+    function entitlementFields() {
+      return [
+        'entitlement', 'entitlementOverride', 'entitlementUpdatedAt', 'entitlementUpdatedBy',
+        'isPremium', 'premium', 'subscriptionStatus', 'currentPeriodEnd'
+      ];
+    }
+
+    function touchesEntitlement() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(entitlementFields());
+    }
+
+    function createsEntitlement() {
+      return request.resource.data.keys().hasAny(entitlementFields());
+    }
+
+    // Same question, asked about a document that does not exist yet.
+    function ownsIncomingRecord(userId) {
+      return signedIn() && (
+        request.auth.uid == userId
+        || request.resource.data.get('authUID', '') == request.auth.uid
+        || request.resource.data.get('webUID', '') == request.auth.uid
+      );
+    }
+
+    // Used by the subcollection rules, which have no parent document of their
+    // own to inspect. Written as two helpers so the parent record is fetched
+    // once, not once per test.
+    function parentBelongsToCaller(parent, userId) {
+      return request.auth.uid == userId
+        || parent.get('authUID', '') == request.auth.uid
+        || parent.get('webUID', '') == request.auth.uid
+        || (emailIsVerified() && parent.get('email', '').lower() == callerEmail())
+        || (emailIsVerified() && parent.get('emailLower', '') == callerEmail());
+    }
+
+    function ownsParentRecord(userId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(userId))
+        && parentBelongsToCaller(
+             get(/databases/$(database)/documents/users/$(userId)).data, userId
+           );
+    }
+
+    // --- Member records ------------------------------------------------------
+
+    match /users/{userId} {
+
+      // The admin reads everyone. A member reads only her own record.
+      //
+      // "list" is what the web app's email lookup uses:
+      //     users where email in [<her own verified email>, <as she typed it>]
+      // Firestore checks this rule against every document the query returns, so
+      // a query for somebody else's email comes back empty rather than leaking.
+      allow get, list: if isAdmin() || ownsRecord(userId);
+
+      allow create: if isAdmin() || (ownsIncomingRecord(userId) && !createsEntitlement());
+      allow update: if isAdmin() || (ownsRecord(userId) && !touchesEntitlement());
+
+      // Nothing deletes a member record. If one ever has to go, delete it from
+      // the Firebase console so there is a human in the loop.
+      allow delete: if false;
+
+      // --- Everything that hangs off a member record -------------------------
+      //
+      // completions, events, checkins, chat, adminCommands.
+      //
+      // The admin can read all of it and write to it. That is how the dashboard
+      // replies as Coach Mia (a chat document with source "admin") and how it
+      // pushes a program change (an adminCommands document the phone applies).
+      // A member can only ever reach her own.
+      match /{subcollection}/{docId} {
+        allow read, write: if isAdmin() || ownsParentRecord(userId);
+      }
+    }
+
+    // --- Published content ---------------------------------------------------
+    //
+    // content/catalog_v1 and content/programs_v1 hold newer copies of the
+    // exercise catalog and the 90-day programs. The app checks them at launch
+    // and falls back to the copies bundled inside it, so these must stay
+    // readable by everyone. They are exercise lists, not personal data.
+    match /content/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- Collections the LIVE iPhone app depends on ---------------------------
+    //
+    // DO NOT DELETE THESE TWO BLOCKS.
+    //
+    // 3.0.0 was approved and is on the App Store, but an approved update does
+    // not reach every phone at once: 2.7.5 stays in the wild for weeks, and both
+    // versions read and write here. The catch-all at the bottom of this file
+    // denies anything that is not named, so removing a block below stops the
+    // shipped app working for whoever has not updated yet. Both were carried
+    // over from the rules published on 2026-08-07 for exactly that reason.
+
+    // The older Library reads its category lists from here.
+    match /workout_categories/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // The refund form posts here. Write-only on purpose: a member may file one,
+    // and nobody except the admin may read what anyone else wrote.
+    match /refund_feedback/{document} {
+      allow create: if signedIn();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // --- Everything else -----------------------------------------------------
+    //
+    // Anything not named above is closed. New collections have to be allowed
+    // here on purpose, which is the point.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,119 @@
+/* Motion for the onboarding funnel.
+ *
+ * Kept out of tailwind.config.js on purpose: these keyframes exist for seven
+ * screens and nothing else, and the config is shared with the rest of the app.
+ *
+ * Every animation below is switched off wholesale at the bottom of this file
+ * under prefers-reduced-motion. Nothing here carries meaning on its own, so
+ * turning it all off costs a member nothing but the theatre. */
+
+/* Entrance: fade and rise. `backwards` matters. Without it every element with a
+ * staggered animation-delay paints at full opacity for one frame, then snaps to
+ * its start position, which reads as a flicker on slower phones. */
+@keyframes funnelRise {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.funnel-rise {
+  animation: funnelRise 0.62s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes funnelPop {
+  0%   { opacity: 0; transform: scale(0.72); }
+  70%  { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.funnel-pop {
+  animation: funnelPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+}
+
+@keyframes funnelFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.funnel-fade {
+  animation: funnelFade 0.4s ease-out backwards;
+}
+
+/* The CTA breathes so the eye returns to it. 1.0 to 1.04, never more: a button
+ * that visibly pumps looks like a scam, and this one is asking for trust. */
+@keyframes funnelBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.035); }
+}
+.funnel-breathe {
+  animation: funnelBreathe 2.5s ease-in-out infinite;
+}
+
+/* Butterflies drift bottom to top and leave. */
+@keyframes funnelDrift {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  10%  { opacity: var(--funnel-butterfly-opacity, 0.5); }
+  90%  { opacity: var(--funnel-butterfly-opacity, 0.5); }
+  100% { opacity: 0; transform: translate3d(var(--funnel-drift-x, 20px), -110vh, 0) rotate(24deg); }
+}
+.funnel-butterfly {
+  animation: funnelDrift var(--funnel-drift-duration, 12s) linear infinite;
+  will-change: transform, opacity;
+}
+
+/* The three counter-rotating rings of the plan-building core. */
+@keyframes funnelSpin { to { transform: rotate(360deg); } }
+.funnel-ring-a { animation: funnelSpin 8s linear infinite; }
+.funnel-ring-b { animation: funnelSpin 12s linear infinite reverse; }
+.funnel-ring-c { animation: funnelSpin 15s linear infinite; }
+
+@keyframes funnelOrb {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(1.12); opacity: 1; }
+}
+.funnel-orb { animation: funnelOrb 2.5s ease-in-out infinite; }
+
+/* Dashed spokes and the plan curve draw themselves in. */
+@keyframes funnelDraw { to { stroke-dashoffset: 0; } }
+.funnel-draw {
+  animation: funnelDraw var(--funnel-draw-duration, 0.9s) ease-out both;
+}
+
+/* Sparkle particles on the plan reveal. */
+@keyframes funnelSparkle {
+  0%   { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.7); }
+  35%  { opacity: var(--funnel-sparkle-opacity, 0.55); }
+  100% { opacity: 0; transform: translate3d(var(--funnel-sparkle-x, 10px), -60px, 0) scale(1.05); }
+}
+.funnel-sparkle {
+  animation: funnelSparkle var(--funnel-sparkle-duration, 6s) linear infinite;
+  will-change: transform, opacity;
+}
+
+/* The wheel picker. Momentum scrolling on iOS plus snap, with the native
+ * scrollbar hidden because the pink centre band is the affordance. */
+.funnel-wheel {
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.funnel-wheel::-webkit-scrollbar { display: none; }
+.funnel-wheel-item { scroll-snap-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-rise,
+  .funnel-pop,
+  .funnel-fade,
+  .funnel-breathe,
+  .funnel-butterfly,
+  .funnel-ring-a,
+  .funnel-ring-b,
+  .funnel-ring-c,
+  .funnel-orb,
+  .funnel-draw,
+  .funnel-sparkle {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+  .funnel-wheel { scroll-behavior: auto; }
+}

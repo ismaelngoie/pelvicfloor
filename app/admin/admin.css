@@ -1,0 +1,358 @@
+/* =========================================================================
+   /admin - the owner's dashboard.
+
+   The rest of pelvi.health is a light, soft, rose product for members. This
+   screen is the opposite by design: a dark instrument panel for one person.
+   It runs on its own variables so nothing here can leak into the member app,
+   and so the light theme is one attribute swap on the root element.
+
+   The chart colours are not hand-picked. Each one was run through the
+   colour validator for its own surface:
+
+     dark  series  #F0356A #9B5CF0 #17A79E #C98500   on #1B1420
+     light series  #D63A63 #7C4DD6 #0F9D93 #B57200   on #FFFFFF
+     dark  steps   #E3D2FF -> #7B42EE                on #1B1420
+     light steps   #BFA0F8 -> #5B32B4                on #FFFFFF
+
+   All four sets clear the lightness band, the chroma floor, colour-blind
+   separation and contrast against their own surface. If you change one,
+   re-run the validator rather than trusting your eyes.
+   ========================================================================= */
+
+.pv-admin {
+  /* Canvas */
+  --pv-canvas: #0b0810;
+  --pv-canvas-2: #140d1b;
+  --pv-surface: rgba(255, 255, 255, 0.045);
+  --pv-surface-2: rgba(255, 255, 255, 0.075);
+  --pv-surface-solid: #1b1420;
+  --pv-border: rgba(255, 255, 255, 0.09);
+  --pv-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Ink */
+  --pv-ink: #f7f4f9;
+  --pv-ink-2: #b9b1c4;
+  --pv-ink-3: #857d92;
+
+  /* Accents */
+  --pv-rose: #ff4d7e;
+  --pv-violet: #a877f5;
+  --pv-accent-ink: #ffffff;
+
+  /* Chart marks */
+  --pv-series-1: #f0356a;
+  --pv-series-2: #9b5cf0;
+  --pv-series-3: #17a79e;
+  --pv-series-4: #c98500;
+  --pv-step-1: #e3d2ff;
+  --pv-step-2: #c9aefb;
+  --pv-step-3: #af8af7;
+  --pv-step-4: #9566f2;
+  --pv-step-5: #7b42ee;
+
+  /* Chart chrome */
+  --pv-grid: rgba(255, 255, 255, 0.07);
+  --pv-axis: rgba(255, 255, 255, 0.16);
+  --pv-track: rgba(255, 255, 255, 0.07);
+
+  /* Status */
+  --pv-good: #0ca30c;
+  --pv-warn: #fab219;
+  --pv-crit: #e06060;
+
+  --pv-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+  --pv-glow: 0 0 0 1px rgba(255, 77, 126, 0.35), 0 8px 30px rgba(255, 77, 126, 0.22);
+
+  color-scheme: dark;
+  color: var(--pv-ink);
+  background: var(--pv-canvas);
+  font-feature-settings: "cv02", "cv03";
+}
+
+.pv-admin[data-admin-theme="light"] {
+  --pv-canvas: #f4f2f6;
+  --pv-canvas-2: #ffffff;
+  --pv-surface: #ffffff;
+  --pv-surface-2: #f7f5f9;
+  --pv-surface-solid: #ffffff;
+  --pv-border: rgba(22, 16, 28, 0.11);
+  --pv-border-strong: rgba(22, 16, 28, 0.2);
+
+  --pv-ink: #16101c;
+  --pv-ink-2: #514a5c;
+  --pv-ink-3: #776f84;
+
+  --pv-rose: #d63a63;
+  --pv-violet: #7c4dd6;
+  --pv-accent-ink: #ffffff;
+
+  --pv-series-1: #d63a63;
+  --pv-series-2: #7c4dd6;
+  --pv-series-3: #0f9d93;
+  --pv-series-4: #b57200;
+  --pv-step-1: #bfa0f8;
+  --pv-step-2: #a784f2;
+  --pv-step-3: #8f68ec;
+  --pv-step-4: #7549d8;
+  --pv-step-5: #5b32b4;
+
+  --pv-grid: rgba(22, 16, 28, 0.08);
+  --pv-axis: rgba(22, 16, 28, 0.18);
+  --pv-track: rgba(22, 16, 28, 0.07);
+
+  --pv-good: #006300;
+  --pv-warn: #8a5a00;
+  --pv-crit: #c0392b;
+
+  --pv-shadow: 0 12px 32px rgba(22, 16, 28, 0.1);
+  --pv-glow: 0 0 0 1px rgba(214, 58, 99, 0.3), 0 8px 24px rgba(214, 58, 99, 0.16);
+
+  color-scheme: light;
+}
+
+/* The root shell escapes the member app's centred phone frame and owns the
+   whole viewport, including the notch and the home indicator. */
+.pv-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(1100px 620px at 12% -10%, rgba(255, 77, 126, 0.16), transparent 62%),
+    radial-gradient(900px 560px at 96% 4%, rgba(168, 119, 245, 0.14), transparent 60%),
+    linear-gradient(180deg, var(--pv-canvas-2) 0%, var(--pv-canvas) 44%);
+}
+
+.pv-admin[data-admin-theme="light"] .pv-shell {
+  background:
+    radial-gradient(1100px 620px at 12% -10%, rgba(214, 58, 99, 0.1), transparent 62%),
+    radial-gradient(900px 560px at 96% 4%, rgba(124, 77, 214, 0.09), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, var(--pv-canvas) 42%);
+}
+
+.pv-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+}
+
+.pv-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.pv-scroll::-webkit-scrollbar-thumb {
+  background: var(--pv-border-strong);
+  border-radius: 999px;
+}
+.pv-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pv-safe-x {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+@media (min-width: 900px) {
+  .pv-safe-x {
+    padding-left: max(32px, env(safe-area-inset-left));
+    padding-right: max(32px, env(safe-area-inset-right));
+  }
+}
+
+/* Glass. One class, used everywhere, so every panel matches. */
+.pv-card {
+  position: relative;
+  background: var(--pv-surface);
+  border: 1px solid var(--pv-border);
+  border-radius: 20px;
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+}
+
+.pv-card--flat {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.pv-hairline {
+  border-bottom: 1px solid var(--pv-border);
+}
+
+/* A thin top highlight makes glass read as glass rather than as a grey box. */
+.pv-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: 20px 20px 0 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.28),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.pv-admin[data-admin-theme="light"] .pv-card::before {
+  background: none;
+}
+
+/* Focus that is visible on both themes and never clipped. */
+.pv-admin :focus-visible {
+  outline: 2px solid var(--pv-rose);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Numbers */
+.pv-figure {
+  font-variant-numeric: proportional-nums;
+  letter-spacing: -0.02em;
+}
+
+.pv-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Entrance motion. Purposeful, short, and off entirely under reduced motion. */
+@keyframes pvRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pv-rise {
+  animation: pvRise 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes pvSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pv-sheet-in {
+  animation: pvSheetIn 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pvShimmer {
+  from {
+    background-position: -420px 0;
+  }
+  to {
+    background-position: 420px 0;
+  }
+}
+
+.pv-skeleton {
+  border-radius: 10px;
+  background-color: var(--pv-track);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--pv-surface-2) 45%,
+    transparent 90%
+  );
+  background-size: 420px 100%;
+  background-repeat: no-repeat;
+  animation: pvShimmer 1.5s linear infinite;
+}
+
+/* Chart marks animate from their baseline. */
+.pv-grow-y {
+  transform-origin: bottom;
+  animation: pvGrowY 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes pvGrowY {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.pv-grow-x {
+  transform-origin: left;
+  animation: pvGrowX 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes pvGrowX {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.pv-draw {
+  animation: pvDraw 900ms cubic-bezier(0.33, 1, 0.68, 1) backwards;
+}
+
+@keyframes pvDraw {
+  from {
+    stroke-dashoffset: var(--pv-draw-length, 1000);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pvFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pv-fade {
+  animation: pvFade 500ms ease-out backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv-admin *,
+  .pv-admin *::before,
+  .pv-admin *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .pv-skeleton {
+    background-image: none;
+  }
+}
+
+/* Screen-reader only, for the plain-English chart summaries. */
+.pv-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

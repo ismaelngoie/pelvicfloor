@@ -1,7 +1,7 @@
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import { UserDataProvider } from "@/context/UserDataContext";
+import ServiceWorker from "./ServiceWorker";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,10 +38,13 @@ export const metadata = {
     "pelvic health app",
   ],
 
+  // /logo.png is the 160px hero mark on the welcome screen and nothing else.
+  // It used to be pointed at from here too, which meant every page loaded a
+  // 1024x1024, 615 KB PNG to draw a favicon.
   icons: {
     icon: "/icon.png",
     shortcut: "/icon.png",
-    apple: "/logo.png",
+    apple: "/apple-touch-icon.png",
   },
 
   openGraph: {
@@ -50,12 +53,14 @@ export const metadata = {
       "Improve intimacy, stop bladder leaks and build core strength with our personalized 5-Minute daily home plan.",
     url: "https://pelvi.health",
     siteName: "Pelvi Health",
+    // This file did not exist until now. Every share of pelvi.health, in every
+    // unfurl, on every platform, had no preview image at all.
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Pelvic Floor Coach Preview",
+        alt: "Pelvi Health: Strength and Confidence From Your Core Outward.",
       },
     ],
     locale: "en_US",
@@ -126,8 +131,9 @@ export default function RootLayout({ children }) {
                   pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]
                 "
               >
-                <UserDataProvider>{children}</UserDataProvider>
+                {children}
               </main>
+              <ServiceWorker />
             </div>
           </div>
         </div>

@@ -1,1 +1,10 @@
+# The blog used to live at /insights. Those URLs have external links and
+# rankings, so they keep resolving.
 /insights/* /blog/:splat 301
+
+# /dashboard was the pre-rebuild member screen. It is deleted: it read a single
+# localStorage blob, had no entitlement gate, and its programme ran out after
+# seven days. The member app is /app. Old bookmarks, the old Stripe billing
+# return_url and any ad landing page that still points here go there instead.
+/dashboard /app 301
+/dashboard/* /app 301

@@ -21,7 +21,34 @@ export default async function sitemap() {
       changeFrequency: 'daily',
       priority: 0.9, // Blog Index is Queen
     },
+    // These three were missing. All are real destinations: the legal pages are
+    // linked from the paywall and from the App Store listing, and /contact.html
+    // is linked from the footer of all 55 blog posts. They are static files in
+    // public/, which is why they carry the extension.
+    {
+      url: `${baseUrl}/contact.html`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.4,
+    },
+    {
+      url: `${baseUrl}/terms-of-use.html`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/privacy-policy.html`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
   ];
+
+  // Deliberately absent: /app and /admin (noindex and behind a gate), /welcome
+  // (post-purchase only, and the one page carrying the App Store banner), and
+  // /cora/* (a different product's support pages, which have no business
+  // ranking on this domain). /dashboard is gone; it now 301s to /app.
 
   // 2. Dynamic Blog Posts (Scan Directories)
   let blogPages = [];

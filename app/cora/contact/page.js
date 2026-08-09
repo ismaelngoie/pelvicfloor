@@ -5,6 +5,17 @@ export const metadata = {
   title: "Contact & Support | Cora",
   description: "Get help with Cora: AI Calorie & Food Log. Reach our support team.",
   robots: { index: true, follow: true },
+  alternates: { canonical: "/cora/contact" },
+  // Cora is a different product. Inheriting the Pelvi share card here would put
+  // a pelvic floor image on a calorie app's support page in every link unfurl.
+  openGraph: {
+    title: "Contact & Support | Cora",
+    description: "Get help with Cora: AI Calorie & Food Log.",
+    url: "https://pelvi.health/cora/contact",
+    type: "website",
+    images: [],
+  },
+  twitter: { card: "summary", title: "Contact & Support | Cora", images: [] },
 };
 
 export default function CoraContact() {

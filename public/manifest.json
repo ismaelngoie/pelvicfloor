@@ -1,21 +1,24 @@
 {
-  "name": "Pelvic Floor Coach",
-  "short_name": "Pelvic Coach",
-  "description": "Strength & Confidence From Your Core Outward.",
-  "start_url": "/",
+  "name": "Pelvi Health",
+  "short_name": "Pelvi",
+  "description": "Strength and confidence, from your core outward. Your personal 5-minute daily pelvic floor plan.",
+  "start_url": "/app",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#FAF9FA",
-  "theme_color": "#FAF9FA",
+  "theme_color": "#E65473",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/logo.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "orientation": "portrait"

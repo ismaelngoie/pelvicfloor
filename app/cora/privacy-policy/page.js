@@ -5,6 +5,16 @@ export const metadata = {
   title: "Privacy Policy | Cora",
   description: "Privacy Policy for Cora: AI Calorie & Food Log iOS app.",
   robots: { index: true, follow: true },
+  alternates: { canonical: "/cora/privacy-policy" },
+  // See the note in ../contact/page.js: a different product needs its own card.
+  openGraph: {
+    title: "Privacy Policy | Cora",
+    description: "Privacy Policy for Cora: AI Calorie & Food Log iOS app.",
+    url: "https://pelvi.health/cora/privacy-policy",
+    type: "website",
+    images: [],
+  },
+  twitter: { card: "summary", title: "Privacy Policy | Cora", images: [] },
 };
 
 export default function CoraPrivacyPolicy() {
