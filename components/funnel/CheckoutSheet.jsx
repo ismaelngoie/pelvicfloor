@@ -20,7 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import { LoaderCircle, Lock, MailCheck, ShieldCheck, X } from "lucide-react";
+import { CheckCircle2, LoaderCircle, Lock, ShieldCheck, X } from "lucide-react";
 
 import {
   DEFAULT_PRICE_LABEL,
@@ -30,8 +30,9 @@ import {
   isValidEmail,
   newAttemptKey,
 } from "@/lib/checkout";
+import ProviderButtons from "@/components/auth/ProviderButtons";
 import { markEntitlementActive } from "@/lib/entitlement";
-import { loginErrorMessage, sendLoginLink, stashPaidIntent } from "@/lib/identity";
+import { stashPaidIntent } from "@/lib/identity";
 import { rememberPrice } from "@/lib/postPurchase";
 import {
   trackCardFormShown,
@@ -94,7 +95,7 @@ export default function CheckoutSheet({
   const [emailTouched, setEmailTouched] = useState(false);
   const [error, setError] = useState(null);
   const [intent, setIntent] = useState(null);
-  const [linkState, setLinkState] = useState({ status: "idle", message: null });
+  const [providerMessage, setProviderMessage] = useState(null);
   const [attemptKey, setAttemptKey] = useState(() => newAttemptKey());
 
   // A member cannot dismiss the sheet while her card is being charged. Losing
@@ -127,23 +128,24 @@ export default function CheckoutSheet({
    *
    * This is the ONE place a "restore" used to be offered on the web, in words
    * that mean nothing outside the App Store, behind a link she had to find. The
-   * server has just told us, from Stripe, that this address is paying, so the
-   * only thing left is to prove she owns the inbox: one tap in her email and
-   * she is in, with her plan, her streak and her history attached.
+   * server has just told us, from Stripe, that this address is paying, so there
+   * is nothing to sell and one thing left to do: prove she is her.
    *
-   * The link is what proves it. The address was typed into this browser, so it
-   * cannot open anything on its own, however confident Stripe is that somebody
-   * with that address is paying.
+   * IT USED TO EMAIL HER A LINK HERE, and that was the wrong answer for the
+   * same reason it was wrong everywhere else. The mail leaves from the default
+   * firebaseapp.com sender with no SPF or DKIM aligned to pelvi.health, Gmail
+   * files it as spam, and the send RESOLVES SUCCESSFULLY when it does. So a
+   * member who had just been told "you are already a member" was handed a
+   * promise about her inbox that this code could neither keep nor detect
+   * breaking. Google and Apple answer in the same second she presses them.
+   *
+   * A typed address still proves nothing on its own, however confident Stripe
+   * is that somebody with it is paying. The provider is the proof.
    */
-  const welcomeBack = useCallback(async (address) => {
+  const welcomeBack = useCallback((address) => {
+    setEmailValue(address);
+    setProviderMessage(null);
     setStep("known");
-    setLinkState({ status: "sending", message: null });
-    const sent = await sendLoginLink(address);
-    setLinkState(
-      sent.ok
-        ? { status: "sent", message: null }
-        : { status: "error", message: loginErrorMessage(sent.code) }
-    );
   }, []);
 
   const start = useCallback(
@@ -269,65 +271,52 @@ export default function CheckoutSheet({
             <div className="flex flex-col gap-4">
               <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-center">
                 <span className="grid h-12 w-12 place-items-center rounded-full bg-app-primary/15">
-                  <MailCheck size={22} className="text-app-primary" aria-hidden="true" />
+                  <CheckCircle2 size={22} className="text-app-primary" aria-hidden="true" />
                 </span>
                 <p className="font-system text-[15px] font-semibold text-white">
-                  {linkState.status === "sending"
-                    ? "One moment"
-                    : linkState.status === "sent"
-                      ? "Check your email"
-                      : "We could not send that link"}
+                  Nothing to buy
                 </p>
                 <p className="font-system text-[14px] leading-relaxed text-white/70">
-                  {linkState.status === "sent" ? (
-                    <>
-                      We sent a one tap login link to{" "}
-                      <span className="font-semibold text-white">{emailValue.trim()}</span>. Open it
-                      on this phone and your plan, your streak and your history are all waiting.
-                    </>
-                  ) : linkState.status === "sending" ? (
-                    "Sending your login link."
-                  ) : (
-                    linkState.message
-                  )}
+                  <span className="font-semibold text-white">{emailValue.trim()}</span> already has
+                  a live plan. One tap below and your plan, your streak and your history are all
+                  waiting.
                 </p>
               </div>
 
-              {/* When the link is on its way there is nothing to press: the
-                  next step is in her inbox, so the loud button would be
-                  competing with it. When the send failed there is exactly one
-                  thing to press, and it gets the emphasis. */}
-              {linkState.status === "error" ? (
-                <button
-                  type="button"
-                  onClick={() => welcomeBack(emailValue.trim())}
-                  className="flex h-[52px] w-full items-center justify-center rounded-full bg-paywall-cta font-system text-[16px] font-bold text-white"
+              {/* THE TWO DOORS, ON THE SHEET. This used to say "check your
+                  email" and offer "send it again", which was a promise about an
+                  inbox the send could not verify reaching — see the note on
+                  welcomeBack above. */}
+              <ProviderButtons
+                tone="dark"
+                onError={(next) => setProviderMessage(next)}
+                onSignedIn={() => {
+                  if (typeof window !== "undefined") window.location.assign("/app");
+                }}
+              />
+
+              {providerMessage && (
+                <p
+                  role="alert"
+                  className="rounded-2xl border border-white/10 bg-white/5 p-3 font-system text-[13px] leading-relaxed text-white/75"
                 >
-                  Try again
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => welcomeBack(emailValue.trim())}
-                  disabled={linkState.status === "sending"}
-                  className="flex h-12 w-full items-center justify-center rounded-full border border-white/15 font-system text-[15px] font-semibold text-white/85 disabled:opacity-50"
-                >
-                  Send it again
-                </button>
+                  {providerMessage}
+                </p>
               )}
 
-              <a
-                href="/app"
-                className="flex min-h-[44px] w-full items-center justify-center font-system text-[14px] font-semibold text-white/70 underline underline-offset-4"
-              >
-                Log in another way
-              </a>
+              {/* Firebase is one account per address. Continuing with a
+                  different Google account does not error — it quietly makes a
+                  second, empty account, and all she sees is her plan missing. */}
+              <p className="font-system text-[12.5px] leading-relaxed text-white/50">
+                Use the same email address you paid with. That is what your plan and your history
+                are attached to.
+              </p>
 
               <button
                 type="button"
                 onClick={() => {
                   setStep("email");
-                  setLinkState({ status: "idle", message: null });
+                  setProviderMessage(null);
                 }}
                 className="min-h-[44px] font-system text-[13px] font-medium text-white/55 underline underline-offset-2"
               >

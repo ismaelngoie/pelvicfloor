@@ -621,16 +621,28 @@ export const milestones = (sentencePhrase) =>
 // 8. Email capture
 // ---------------------------------------------------------------------------
 
+// NOTHING ON THIS SCREEN PROMISES AN EMAIL ANY MORE, and that is not a tone
+// change. It used to say "Where should we send it?", "We'll email you a copy of
+// your plan" and "Email My Plan", and NO PART OF THIS PRODUCT SENDS THAT MAIL.
+// There is no mailer in functions/ and there never was; the only mail Pelvi has
+// ever generated is Firebase's own auth mail, which the default firebaseapp.com
+// sender gets filed as spam anyway — which is why the login link has been taken
+// off every sign-in surface. See the header of lib/identity.js.
+//
+// The address is still worth asking for, and every reason is true: it is the
+// customer Stripe is created against, it is what lib/memberStore.js joins her
+// iPhone record on, and it is the account her Google or Apple sign-in has to
+// match. So the screen asks for exactly that and claims nothing else.
 export function emailTitle(name) {
   const who = (name || "").trim();
   return who
-    ? `Your plan is ready, ${who}. Where should we send it?`
-    : "Your plan is ready. Where should we send it?";
+    ? `Your plan is ready, ${who}. Save it to your email.`
+    : "Your plan is ready. Save it to your email.";
 }
 
 export const EMAIL_SUBTITLE =
-  "We'll email you a copy of your plan so you never lose it. No spam. Unsubscribe anytime.";
+  "Your plan is kept against this address, and it is how you sign back in on any device. No spam, ever.";
 
 export const EMAIL_PLACEHOLDER = "Your email address";
-export const EMAIL_CTA = "Email My Plan";
+export const EMAIL_CTA = "Save My Plan";
 export const EMAIL_SKIP = "Continue without saving";

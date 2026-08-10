@@ -175,10 +175,15 @@ export async function onRequestPost(context) {
     // the first one: an address can end up on more than one customer record,
     // and looking at only one of them is how someone pays twice.
     if (owned.some((sub) => SUBSCRIBED_STATUSES.has(sub.status))) {
+      // The CODE is what matters: CheckoutSheet intercepts it and turns the
+      // sheet into the way back in, so this sentence is a fallback for any
+      // caller that only reads the message. It no longer says "Use Restore
+      // Purchase" — that button does not exist on the web — and it no longer
+      // offers to email her anything, because nothing here sends mail.
       return fail(
         409,
         "already_subscribed",
-        "That email already has an active plan. Use Restore Purchase to get back in, or email hello@pelvi.health."
+        "That email already has an active plan. Continue with Google or Apple using the same address, or email hello@pelvi.health."
       );
     }
 

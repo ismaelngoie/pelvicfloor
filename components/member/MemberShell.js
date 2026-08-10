@@ -12,12 +12,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Lightbulb, Loader2, MailCheck, MessageCircle, PlayCircle, ShieldCheck, User,
+  Home, Lightbulb, Loader2, MessageCircle, PlayCircle, ShieldCheck, User,
 } from "lucide-react";
 import { useMember } from "./MemberProvider";
+import ProviderButtons from "@/components/auth/ProviderButtons";
 import { isValidEmail } from "@/lib/checkout";
 import { isEntitled } from "@/lib/entitlement";
-import { linkSignInLikelyOff } from "@/lib/identity";
 import { suppressOpenPlan } from "@/lib/openPlan";
 import { restorePurchase } from "@/lib/memberBilling";
 import { usePrefersReducedMotion } from "./VideoPlayer";
@@ -348,72 +348,62 @@ function Frame({ children }) {
 /**
  * LOG IN. Not "restore", and not "sign up".
  *
- * Two things about this screen are deliberate and were both wrong before.
+ * Three things about this screen are deliberate.
  *
- * 1. THE ADDRESS IS THE DOOR, not a Google account. She joined by paying, and
- *    she paid with an email address. So that address is what she is asked for,
- *    and a one tap link goes to it. No password to invent, no Google account to
- *    own, and the session it produces carries a verified address, which is the
- *    only thing lib/memberStore.js can join her iPhone record on. Google stays,
- *    under it, for the people who prefer it. It is no longer the only door.
+ * 1. GOOGLE AND APPLE ARE THE ONLY DOORS. THERE IS NO EMAIL FIELD.
+ *    This screen used to lead with one, then demoted it to a quiet third
+ *    option, and now it does not offer one at all. The reason is one member's
+ *    report: she typed her address, the screen told her a link was coming, and
+ *    nothing ever arrived. The send SUCCEEDED — the mail went out from the
+ *    default firebaseapp.com sender, with no SPF or DKIM aligned to
+ *    pelvi.health, and Gmail filtered it. The product could not tell. A door
+ *    whose failure this code cannot observe is worse than no door, because she
+ *    stands in front of it waiting. Both providers either work or say so
+ *    immediately, in the same second she presses them. See the header of
+ *    lib/identity.js for what has to be true before an email door comes back.
  *
- * 2. THERE IS NO "I am new here" LINK ANY MORE, AND ONE MUST NOT COME BACK.
+ * 2. THE TWO PROVIDERS ARE EQUAL, and Google is never withdrawn. Neither is the
+ *    fallback; see the header of components/auth/ProviderButtons.jsx. With
+ *    Apple not yet configured in Firebase, a browser that has watched it be
+ *    refused sees Google alone, full width — which is the last way in that
+ *    exists, so nothing on this screen may ever gate it.
+ *
+ * 3. THERE IS NO "I am new here" LINK ANY MORE, AND ONE MUST NOT COME BACK.
  *    It used to sit at the bottom of this screen pointing at "/", which is the
  *    marketing funnel. A member who had paid ninety seconds earlier, and who was
  *    looking at this screen precisely because the product had failed to sign her
  *    in, tapped it and was walked through the entire eight screen funnel to a
  *    paywall for the plan she already owned. Anybody who reaches this screen has
  *    an account. The way out of here is in, not round again.
+ *
+ * THE ONE EMAIL FIELD LEFT, and why it is not a contradiction. If she taps a
+ * link that reached her inbox back when we were still sending them, and opens
+ * it in a browser that does not remember which address it was for, Firebase
+ * will not redeem the code until she names the address. That field is part of
+ * REDEEMING a link, never of sending one, so it exists only in that state and
+ * cannot be reached from anywhere else on this screen.
  */
 function SignInScreen() {
-  const {
-    signIn, signingIn, configured, memberError, linkState, signInWithLink, confirmLinkEmail,
-  } = useMember();
+  const { configured, memberError, linkState, confirmLinkEmail, refreshMember } = useMember();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [providerError, setProviderError] = useState(null);
 
   const confirming = linkState.status === "confirm";
-  const sent = linkState.status === "sent";
   const valid = isValidEmail(email);
-
-  // THE LINK IS THE HEADLINE DOOR ON THIS SCREEN, AND IT CAN BE SHUT.
-  //
-  // "Email link (passwordless sign-in)" is a checkbox in the Firebase console,
-  // not a line in this repo, and while it is off sendSignInLinkToEmail answers
-  // OPERATION_NOT_ALLOWED for everybody. This screen then reads as broken: the
-  // biggest control on it is an email field and a button that cannot ever
-  // work, and Google — which does work — is a grey outline under a divider.
-  //
-  // So when this browser has already watched a send be refused, the two swap
-  // places. Nothing is hidden and nothing is disabled: she can still ask for a
-  // link, in case the switch has been thrown since. What changes is which door
-  // is offered first, which is the difference between a member getting in and a
-  // member emailing support.
-  //
-  // Read after mount, never during render: localStorage does not exist on the
-  // build machine that exports this page.
-  const [linkOff, setLinkOff] = useState(false);
-  useEffect(() => {
-    setLinkOff(linkSignInLikelyOff());
-  }, [linkState.status]);
-  // Confirming an address is not a send, so the field is still the only thing
-  // that can finish it and it keeps the emphasis.
-  const googleFirst = linkOff && !confirming;
 
   const submit = useCallback(
     async (event) => {
       event.preventDefault();
       if (!valid || busy) return;
       setBusy(true);
-      // Two different jobs behind one button. Normally we are SENDING her a
-      // link; when she has just opened one in a browser that does not remember
-      // which address it was for, Firebase needs her to name it before it will
-      // redeem the code, and that is what she is answering instead.
-      if (confirming) await confirmLinkEmail(email.trim());
-      else await signInWithLink(email.trim());
+      // The only job behind this button: she has opened a link in a browser
+      // that does not remember which address it was for, and Firebase needs her
+      // to name it before it will redeem the code. Nothing here sends anything.
+      await confirmLinkEmail(email.trim());
       setBusy(false);
     },
-    [busy, confirming, confirmLinkEmail, email, signInWithLink, valid]
+    [busy, confirmLinkEmail, email, valid]
   );
 
   if (!configured) {
@@ -438,41 +428,12 @@ function SignInScreen() {
     );
   }
 
-  if (sent) {
-    return (
-      <Frame>
-        <span
-          aria-hidden="true"
-          className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-ios-pink/10"
-        >
-          <MailCheck className="h-7 w-7 text-ios-pink" />
-        </span>
-        <h1 className="text-[26px] font-bold leading-[1.1] tracking-[-0.4px] text-app-textPrimary">
-          Check your email.
-        </h1>
-        <p className="mt-3 text-[16px] leading-snug text-app-textSecondary">
-          We sent a login link to{" "}
-          <span className="font-semibold text-app-textPrimary">{linkState.email}</span>. Open it on
-          this phone and you are straight in. It works once and it does not expire for an hour.
-        </p>
-        <button
-          type="button"
-          onClick={() => signInWithLink(linkState.email)}
-          className="mt-8 flex h-12 w-full items-center justify-center rounded-full border border-app-borderIdle bg-white text-[15px] font-semibold text-app-textPrimary"
-        >
-          Send it again
-        </button>
-        <button
-          type="button"
-          onClick={signIn}
-          disabled={signingIn}
-          className="mt-3 h-11 text-[14px] font-semibold text-ios-pink disabled:opacity-60"
-        >
-          {signingIn ? "Opening..." : "Use Google instead"}
-        </button>
-      </Frame>
-    );
-  }
+  // THE "CHECK YOUR EMAIL" SCREEN THAT USED TO LIVE HERE HAS GONE, and it is
+  // the screen this entire change exists to delete. Nothing on this site sends
+  // a login link any more, so there is no state left in which a member is asked
+  // to go and wait somewhere else. If a send is ever offered again, this is
+  // where the confirmation belongs — and it does not go back without the spam
+  // folder line and the resend that were deleted with it. See lib/identity.js.
 
   return (
     <Frame>
@@ -482,67 +443,60 @@ function SignInScreen() {
       <p className="mt-3 text-[16px] leading-snug text-app-textSecondary">
         {confirming
           ? linkState.message
-          : googleFirst
-            ? "Use the same email you joined with and your plan, your streak and your history all come with you."
-            : "Enter the email you joined with. We will send you a link that logs you straight in, and your plan, your streak and your history come with it."}
+          : "One tap and your plan, your streak and your history all come back with you."}
       </p>
 
-      {googleFirst ? (
-        <>
-          <button
-            type="button"
-            onClick={signIn}
-            disabled={signingIn}
-            className="mt-7 flex h-14 w-full items-center justify-center gap-3 rounded-full bg-ios-pink text-[17px] font-bold text-white disabled:opacity-60"
-          >
-            {signingIn ? "Opening..." : "Continue with Google"}
-          </button>
-          <div className="my-7 flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-app-borderIdle" />
-            <span className="text-[12px] font-semibold uppercase tracking-wider text-app-textSecondary">
-              or
-            </span>
-            <span className="h-px flex-1 bg-app-borderIdle" />
-          </div>
-        </>
-      ) : null}
+      <ProviderButtons
+        className="mt-7"
+        onError={(message) => setProviderError(message)}
+        onSignedIn={() => refreshMember()}
+      />
 
-      <form onSubmit={submit} className={`${googleFirst ? "" : "mt-7 "}flex flex-col gap-3 text-left`}>
-        <label htmlFor="member-login-email" className="sr-only">
-          Your email address
-        </label>
-        <input
-          id="member-login-email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          autoCapitalize="none"
-          spellCheck="false"
-          // Everything under this shell is masked from session replay, and the
-          // attribute is repeated on the field itself so it stays masked
-          // whatever a dashboard setting does later.
-          data-clarity-mask="true"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@example.com"
-          className="h-[54px] w-full rounded-[16px] border border-app-borderIdle bg-white px-4 text-center text-[16px] text-app-textPrimary outline-none transition-colors focus:border-ios-pink"
-        />
-        <button
-          type="submit"
-          disabled={!valid || busy || linkState.status === "sending"}
-          className={`flex h-14 w-full items-center justify-center rounded-full text-[17px] font-bold disabled:opacity-60 ${
-            googleFirst
-              ? "border border-app-borderIdle bg-white font-semibold text-app-textPrimary"
-              : "bg-ios-pink text-white"
-          }`}
-        >
-          {busy || linkState.status === "sending"
-            ? "One moment..."
-            : confirming
-              ? "Open my plan"
-              : "Email me a login link"}
-        </button>
-      </form>
+      {providerError && (
+        <p role="alert" className="mt-4 text-[14px] leading-snug text-app-textPrimary">
+          {providerError}
+        </p>
+      )}
+
+      {/* REDEEMING A LINK, NOT SENDING ONE. The only way this field appears is
+          that she has just opened a sign-in link in a browser which does not
+          remember which address it was for, and Firebase refuses to spend the
+          code until she names it — a rule that exists so a link forwarded to
+          somebody else cannot sign THEM in. There is no control anywhere on
+          this screen that opens it, because there is nothing left to send. */}
+      {confirming && (
+        <form onSubmit={submit} className="mt-7 flex flex-col gap-3 text-left">
+          <label
+            htmlFor="member-login-email"
+            className="text-center text-[13px] font-semibold text-app-textSecondary"
+          >
+            Which address was that link sent to?
+          </label>
+          <input
+            id="member-login-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck="false"
+            // Everything under this shell is masked from session replay, and the
+            // attribute is repeated on the field itself so it stays masked
+            // whatever a dashboard setting does later.
+            data-clarity-mask="true"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            className="h-[54px] w-full rounded-[16px] border border-app-borderIdle bg-white px-4 text-center text-[16px] text-app-textPrimary outline-none transition-colors focus:border-ios-pink"
+          />
+          <button
+            type="submit"
+            disabled={!valid || busy}
+            className="flex h-12 w-full items-center justify-center rounded-full border border-app-borderIdle bg-white text-[15px] font-semibold text-app-textPrimary disabled:opacity-60"
+          >
+            {busy ? "One moment..." : "Open my plan"}
+          </button>
+        </form>
+      )}
 
       {linkState.status === "error" && linkState.message && (
         <p role="alert" className="mt-4 text-[14px] leading-snug text-app-textPrimary">
@@ -553,30 +507,13 @@ function SignInScreen() {
         <p role="alert" className="mt-4 text-sm text-app-primary">{memberError}</p>
       )}
 
-      {googleFirst ? null : (
-        <>
-          <div className="my-7 flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-app-borderIdle" />
-            <span className="text-[12px] font-semibold uppercase tracking-wider text-app-textSecondary">
-              or
-            </span>
-            <span className="h-px flex-1 bg-app-borderIdle" />
-          </div>
-
-          <button
-            type="button"
-            onClick={signIn}
-            disabled={signingIn}
-            className="flex h-14 w-full items-center justify-center gap-3 rounded-full border border-app-borderIdle bg-white text-[17px] font-semibold text-app-textPrimary disabled:opacity-60"
-          >
-            {signingIn ? "Opening..." : "Continue with Google"}
-          </button>
-        </>
-      )}
-
+      {/* Not "we will email you". This is the sentence that keeps a member off
+          a second account: Firebase is one account per address, so continuing
+          with a different Google account makes a brand new, empty one and the
+          only symptom she sees is her history apparently gone. */}
       <p className="mt-6 text-[13px] leading-relaxed text-app-textSecondary">
-        We match you by your email address, so it is the same account whichever way you come
-        in and whichever device you pick up.
+        Use the same email address you joined with and it is the same account, whichever
+        button you press and whichever device you pick up.
       </p>
     </Frame>
   );

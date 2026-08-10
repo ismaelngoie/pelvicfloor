@@ -32,14 +32,20 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRight, Check, LoaderCircle, MailCheck, ShieldCheck, Smartphone,
+  ArrowRight, Check, LoaderCircle, ShieldCheck, Smartphone,
 } from "lucide-react";
 
+import ProviderButtons from "@/components/auth/ProviderButtons";
 import AppInstallSheet from "@/components/postpurchase/AppInstallSheet";
 import ProgramIntro from "@/components/postpurchase/ProgramIntro";
 import { canOfferApp } from "@/lib/appPrompt";
 import { isValidEmail } from "@/lib/checkout";
 import { isEntitled, markEntitlementActive, writeEntitlement } from "@/lib/entitlement";
+// No `sendLoginLink`. This page does not offer to email anything, and the
+// payment path no longer falls back to a link either — see the note on
+// signInFromPayment in lib/identity.js. `completeEmailLinkSignIn` and
+// `looksLikeSignInLink` stay: a link that reached a real inbox while we were
+// still sending them must still open her plan when she taps it.
 import {
   clearPaidIntent, completeEmailLinkSignIn, looksLikeSignInLink, loginErrorMessage,
   readPaidIntent, signInFromPayment,
@@ -106,10 +112,18 @@ export default function WelcomeClient() {
   // the sign-in is still in flight, and telling her the payment failed because
   // a token did not mint would be a lie about her money.
   //
-  // idle | working | in | link | needsEmail | failed
+  // idle | working | in | needsEmail | failed
   //
   // Only the states that need something FROM HER ever render anything. The
   // whole point of the zero click path is that she never learns it happened.
+  //
+  // THERE IS NO "link" STATE ANY MORE. It meant "we have emailed you, go and
+  // wait", and it was the single most damaging place in the product to say
+  // that: she had been charged seconds earlier. The mail leaves from the
+  // default firebaseapp.com sender and Gmail bins it, invisibly to us. That
+  // branch now resolves to "failed", which puts Google and Apple in front of
+  // her with the address she paid with named. `needsEmail` survives untouched —
+  // it is REDEEMING a link she already has, not sending one.
   const [session, setSession] = useState("idle");
   const [sessionEmail, setSessionEmail] = useState("");
   const [sessionMessage, setSessionMessage] = useState(null);
@@ -243,11 +257,6 @@ export default function WelcomeClient() {
       if (cancelled) return;
       if (result.ok && result.mode === "instant") {
         setSession("in");
-        return;
-      }
-      if (result.ok && result.mode === "link") {
-        setSession("link");
-        setSessionEmail(result.email || "");
         return;
       }
       setSession("failed");
@@ -415,16 +424,38 @@ export default function WelcomeClient() {
  * The only part of the sign-in she ever sees, and only when the zero click path
  * was not available to her.
  *
- * A dialog rather than a banner, because in these three states the link is the
- * most important thing on the screen: "Open your plan" behind it would take her
- * to a member app she is not signed in to yet.
+ * A dialog rather than a banner, because in both of these states getting her
+ * signed in IS the screen: "Open your plan" behind it would take her to a
+ * member app she is not signed in to yet.
+ *
+ * TWO STATES, AND NEITHER OF THEM ASKS HER TO GO AND LOOK IN HER INBOX.
+ *
+ *   failed      the Worker could not mint her a session — usually because
+ *               FIREBASE_SERVICE_ACCOUNT is not set — or the exchange broke.
+ *               She has PAID. Google and Apple, right here, with the address
+ *               Stripe gave us printed above them so she picks the same one.
+ *   needsEmail  she has opened a sign-in link from her inbox in a browser that
+ *               does not remember which address it was for, and Firebase will
+ *               not spend the code until she names it. This is REDEMPTION, not
+ *               a send, and it must keep working for every link that ever went
+ *               out. See the header of lib/identity.js.
+ *
+ * The third state, "link", is gone. It said "we sent you an email" on the
+ * screen immediately after a woman was charged, and the send resolves
+ * successfully even when Gmail files the mail as spam, which it does. Nothing
+ * on this page promises a message any more.
  */
 function SessionNotice({ session, email, message, onConfirmEmail }) {
   const [address, setAddress] = useState("");
   const [dismissed, setDismissed] = useState(false);
+  const [providerMessage, setProviderMessage] = useState(null);
 
-  const needed = session === "link" || session === "needsEmail" || session === "failed";
+  const needed = session === "needsEmail" || session === "failed";
   if (!needed || dismissed) return null;
+
+  const openTheApp = () => {
+    if (typeof window !== "undefined") window.location.assign("/app");
+  };
 
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,var(--sab))] backdrop-blur-sm sm:items-center sm:pb-4">
@@ -432,39 +463,60 @@ function SessionNotice({ session, email, message, onConfirmEmail }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="session-notice-title"
-        className="w-full max-w-[420px] rounded-[24px] bg-app-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,0.28)]"
+        // THE HEIGHT CAP IS NOT DECORATION. The wrapper pins this dialog to the
+        // BOTTOM of the viewport, so anything that does not fit is cut off the
+        // TOP — where the heading is — and nothing on the page can scroll it
+        // back into view. On a 320x568 phone the failed state is a heading, two
+        // paragraphs, two provider buttons and two links. Capped and
+        // scrollable, the worst case is a short scroll rather than a member who
+        // cannot read what the dialog is asking her.
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-[420px] overflow-y-auto overscroll-contain rounded-[24px] bg-app-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,0.28)]"
       >
         <span
           aria-hidden="true"
           className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-app-primary/12"
         >
-          <MailCheck size={22} className="text-app-primary" />
+          <ShieldCheck size={22} className="text-app-primary" />
         </span>
 
         <h2
           id="session-notice-title"
           className="text-[20px] font-extrabold leading-snug tracking-[-0.2px] text-app-textPrimary"
         >
-          {session === "link"
-            ? "One tap and you are in"
-            : session === "needsEmail"
-              ? "Which email was that?"
-              : "Let us get you signed in"}
+          {session === "needsEmail" ? "Which email was that?" : "One tap and you are in"}
         </h2>
 
         <p className="mt-2 text-[15px] leading-relaxed text-app-textSecondary">
-          {session === "link" ? (
-            <>
-              We sent a login link to{" "}
-              <span className="font-semibold text-app-textPrimary">{email}</span>. Open it on this
-              phone and your plan is right here waiting. No password, nothing to remember.
-            </>
-          ) : session === "needsEmail" ? (
-            "For your security we need the address that link was sent to before we can open it."
-          ) : (
-            message || "We could not finish signing you in."
-          )}
+          {session === "needsEmail"
+            ? "For your security we need the address that link was sent to before we can open it."
+            : message || "We could not finish signing you in."}
         </p>
+
+        {/* THE ADDRESS SHE PAID WITH, NAMED. Firebase is one account per email
+            address: pressing Google with a different account does not error, it
+            quietly makes a second empty account, and the only symptom she sees
+            is the plan she has just bought apparently missing. Printed only
+            when Stripe actually gave us one. */}
+        {session === "failed" && email && (
+          <p className="mt-3 rounded-[14px] bg-app-background px-4 py-3 text-[14px] leading-snug text-app-textSecondary">
+            Use <span className="font-semibold text-app-textPrimary">{email}</span> — the address
+            you paid with — and everything is attached to it straight away.
+          </p>
+        )}
+
+        {session === "failed" && (
+          <div className="mt-4">
+            <ProviderButtons
+              onError={(next) => setProviderMessage(next)}
+              onSignedIn={openTheApp}
+            />
+            {providerMessage && (
+              <p role="alert" className="mt-3 text-[13px] leading-snug text-app-textPrimary">
+                {providerMessage}
+              </p>
+            )}
+          </div>
+        )}
 
         {session === "needsEmail" && (
           <form
@@ -501,47 +553,27 @@ function SessionNotice({ session, email, message, onConfirmEmail }) {
           </form>
         )}
 
-        {/* On the link path there is nothing for her to do on this page: the
-            next step is in her inbox. So the primary button closes this and the
-            other way in is the quiet one. On the failed path it is the other way
-            round, because then the other way in is the only way in. */}
-        {session === "link" && (
-          <button
-            type="button"
-            onClick={() => setDismissed(true)}
-            className="mt-5 flex h-[52px] w-full items-center justify-center rounded-full bg-cta-gradient text-[16px] font-bold text-white"
-          >
-            Got it
-          </button>
-        )}
-
-        {session === "failed" && (
-          <a
-            href="/app"
-            className="mt-5 flex h-[52px] w-full items-center justify-center rounded-full bg-cta-gradient text-[16px] font-bold text-white"
-          >
-            Sign in another way
-          </a>
-        )}
-
-        {session !== "failed" && (
+        {/* A DOOR THAT DOES NOT DEPEND ON REMEMBERING THE ADDRESS. If she
+            cannot recall which inbox that link went to, the providers on /app
+            are the way in, and they are one tap rather than a guess. A plain
+            anchor because /app is a different document and app/Clarity.jsx
+            depends on that. */}
+        {session === "needsEmail" && (
           <a
             href="/app"
             className="mt-3 flex h-11 w-full items-center justify-center text-[14px] font-semibold text-app-primaryInk underline underline-offset-4"
           >
-            Sign in another way
+            Continue with Google or Apple instead
           </a>
         )}
 
-        {session === "failed" && (
-          <button
-            type="button"
-            onClick={() => setDismissed(true)}
-            className="mt-3 flex h-11 w-full items-center justify-center text-[14px] font-medium text-app-textSecondary"
-          >
-            Not now
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="mt-3 flex h-11 w-full items-center justify-center text-[14px] font-medium text-app-textSecondary"
+        >
+          Not now
+        </button>
       </div>
     </div>
   );

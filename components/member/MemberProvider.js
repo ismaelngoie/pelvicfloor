@@ -15,9 +15,14 @@ import {
   signInWithPopup, signInWithRedirect, signOut,
 } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
-import {
-  completeEmailLinkSignIn, looksLikeSignInLink, loginErrorMessage, sendLoginLink,
-} from "@/lib/identity";
+import { captureProviderName, forgetAppleName, peekAppleName } from "@/lib/authProviders";
+// REDEEMING, NOT SENDING. `sendLoginLink` is deliberately not imported here any
+// more: no screen in this product offers to email a login link, because the mail
+// leaves from the default firebaseapp.com sender and Gmail bins it without
+// telling us. Redemption stays exactly as it was, so every link already sitting
+// in a member's inbox still works. The full reasoning, and what has to be true
+// before the send comes back, is at the top of lib/identity.js.
+import { completeEmailLinkSignIn, looksLikeSignInLink, loginErrorMessage } from "@/lib/identity";
 import {
   fetchCompletions, recordDayCompletion, recordWorkoutEvent, resolveMember, updateMember,
 } from "@/lib/memberStore";
@@ -53,10 +58,17 @@ export function MemberProvider({ children }) {
   const [memberError, setMemberError] = useState(null);
   const [signingIn, setSigningIn] = useState(false);
 
-  // The email link half of sign-in. `linkRedeeming` is true while a link from
-  // her inbox is being exchanged for a session, and the gate has to wait on it:
+  // REDEEMING A LINK THAT IS ALREADY IN HER INBOX. `linkRedeeming` is true
+  // while one is being exchanged for a session, and the gate has to wait on it:
   // without that, the sign-in screen paints for the second it takes, and the
-  // member who just tapped the link we sent her is looking at a login page.
+  // member who just tapped the link is looking at a login page.
+  //
+  // `linkState` has only two live statuses left, and both are outcomes of a
+  // redemption rather than of a send: "confirm" (the link opened in a browser
+  // that does not remember which address it was for, so Firebase will not spend
+  // the code until she names it) and "error" (spent, expired, or the provider
+  // has since been switched off). The old "sending" and "sent" went with the
+  // screens that offered to email one.
   const [linkRedeeming, setLinkRedeeming] = useState(false);
   const [linkState, setLinkState] = useState({ status: "idle", email: "", message: null });
 
@@ -101,7 +113,17 @@ export function MemberProvider({ children }) {
       return undefined;
     }
     // A redirect sign-in resolves here rather than in the popup handler.
-    getRedirectResult(auth()).catch(() => {});
+    //
+    // THE RESULT IS NOT THROWN AWAY ANY MORE, and that matters for exactly one
+    // reason: Apple. Apple sends the member's display name on the very first
+    // authorisation and never again (see lib/authProviders.js), and on the
+    // redirect path — which is what an in-app browser from an Instagram ad
+    // gets, because it cannot open a popup — this call is the ONLY place that
+    // name is ever visible. A bare .catch() here silently spent the redirect
+    // and dropped it, and she was nameless for the life of the account.
+    getRedirectResult(auth())
+      .then((result) => (result ? captureProviderName(result) : null))
+      .catch(() => {});
     return onAuthStateChanged(auth(), (next) => {
       setUser(next || null);
       setAuthState(next ? "signedIn" : "signedOut");
@@ -145,27 +167,14 @@ export function MemberProvider({ children }) {
   }, [configured]);
 
   /**
-   * Email her a one-tap login link.
+   * Finish a link that arrived in a browser which did not remember the address.
    *
-   * This is what "Restore Purchase" should always have been on the web. There
-   * is no App Store here to ask, and nothing to restore: she has an account, and
-   * this is the door to it. It needs no password and no Google account, and the
-   * session it produces carries a VERIFIED address, which is what
-   * lib/memberStore.js joins her iPhone record on.
+   * The last thing in this provider that still touches the email path, and it
+   * is the half that must never be taken out: it is what makes a link that
+   * reached a real member's inbox still open her plan, months after we stopped
+   * sending them. `signInWithLink`, which used to sit here and SEND one, is
+   * gone with the screens that called it.
    */
-  const signInWithLink = useCallback(async (email) => {
-    setMemberError(null);
-    setLinkState({ status: "sending", email, message: null });
-    const sent = await sendLoginLink(email);
-    setLinkState(
-      sent.ok
-        ? { status: "sent", email, message: null }
-        : { status: "error", email, message: loginErrorMessage(sent.code) }
-    );
-    return sent;
-  }, []);
-
-  /** Finish a link that arrived in a browser which did not remember the address. */
   const confirmLinkEmail = useCallback(async (email) => {
     setLinkRedeeming(true);
     const result = await completeEmailLinkSignIn(email).catch(() => ({ done: false }));
@@ -209,6 +218,11 @@ export function MemberProvider({ children }) {
   const signOutMember = useCallback(async () => {
     if (!configured) return;
     await signOut(auth());
+    // Drop the parked Apple name with the account. It is keyed to a browser and
+    // not to a person, so a name that outlived the session it came from would
+    // be written onto whoever signs in next on this laptop — which for this
+    // product is a real scenario and not a theoretical one.
+    forgetAppleName();
     setMember(null);
     setCompletions([]);
     setEvents([]);
@@ -251,6 +265,42 @@ export function MemberProvider({ children }) {
     },
     [member?.id]
   );
+
+  // THE NAME APPLE ONLY EVER SAYS ONCE, PUT SOMEWHERE PERMANENT.
+  //
+  // lib/authProviders.js catches it the instant the Apple popup closes and
+  // parks it in localStorage, because at that moment there may be no member
+  // record to write it to: she can sign in from the paywall's log in sheet, on
+  // a different document entirely, and only reach /app a page load later.
+  //
+  // This is where it lands. It runs whenever a record is resolved, so it covers
+  // every ordering — the sign-in that happened a second ago on this page, and
+  // the one that happened on the funnel before she ever got here — and it is
+  // deliberately not a race with resolveMember: whichever of the two writes the
+  // name first, the other finds it already there and stops.
+  //
+  // The stash is cleared once her record has a name, from either source. It has
+  // to be: it is keyed to a browser, not to an account, and a name left lying
+  // around would be written onto the next person who signs in on this laptop.
+  useEffect(() => {
+    if (FIXTURES_ON) return;
+    if (!member?.id) return;
+    const stashed = peekAppleName();
+    if (!stashed) return;
+    if ((member.name || "").trim()) {
+      forgetAppleName();
+      return;
+    }
+    updateMember(member.id, { name: stashed })
+      .then(() => {
+        forgetAppleName();
+        setMember((prev) => (prev && !prev.name ? { ...prev, name: stashed } : prev));
+      })
+      .catch(() => {
+        // Leave it in the stash. The next load tries again, and a member
+        // without a first name on one screen is not worth a failed sign-in.
+      });
+  }, [member?.id, member?.name]);
 
   // --- Entitlement ---------------------------------------------------------
   //
@@ -585,7 +635,6 @@ export function MemberProvider({ children }) {
       linkRedeeming,
       linkState,
       signIn,
-      signInWithLink,
       confirmLinkEmail,
       signOut: signOutMember,
       refreshMember,
@@ -632,7 +681,7 @@ export function MemberProvider({ children }) {
     [
       configured, authState, signingIn, user, member, memberError, contentError,
       entitlement, entitlementChecking, linkRedeeming, linkState,
-      signIn, signInWithLink, confirmLinkEmail, signOutMember, refreshMember,
+      signIn, confirmLinkEmail, signOutMember, refreshMember,
       refreshEntitlement, patchMember, goalId,
       program, catalog, days, planLength, todayKey,
       currentDayNumber, currentDayUnlocked, replayDayNumber, sessionDayNumber,

@@ -11,6 +11,7 @@
 // sits above the flock exactly as it does on the phone.
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Shield } from "lucide-react";
 import {
   MEMBER_COUNT_DURATION_MS, MEMBER_COUNT_FROM, MEMBER_COUNT_TO, TESTIMONIALS,
@@ -22,6 +23,28 @@ import SFIcon from "./icons";
 import {
   PrimaryButton, useIsomorphicLayoutEffect, useMounted, useReducedMotion,
 } from "./ui";
+
+// THE LOG IN ENTRY ON THIS SCREEN, AND WHY IT IS NO LONGER A LINK TO /app.
+//
+// This is the landing page for every paid ad click on a phone, so it is also
+// where a returning member arrives when she taps her home screen icon. Her way
+// back in used to be an anchor to /app: a full page load, out of the funnel,
+// into the member gate. That worked, but it cost her a document swap before she
+// had even been asked who she was, and it meant this screen — one of the four
+// places the product asks that question — was the only one with no sign-in on
+// it at all.
+//
+// The sheet is the same one the paywall opens, so there is one log-in surface
+// in the funnel rather than two that can drift apart. It carries Google and
+// Apple side by side, and nothing else — the email link was taken off every
+// sign-in surface in the product; see the header of lib/identity.js.
+//
+// LOADED ON DEMAND, and that is not fussiness. This screen is what an ad click
+// pays for. LoginSheet reaches ProviderButtons and, through it, the Firebase
+// auth SDK; a static import would put all of that in the bundle of a page whose
+// visitors overwhelmingly scroll once and press the big pink button. It renders
+// null until `open` anyway, so nothing is lost by fetching it when she asks.
+const LoginSheet = dynamic(() => import("./LoginSheet"), { ssr: false });
 
 const TICKER_INTERVAL_MS = 3000;
 const TICKER_OUT_MS = 220;
@@ -255,6 +278,7 @@ function Butterflies({ count, tint, zClass }) {
  */
 export default function WelcomeScreen({ onNext, returning = false }) {
   const rise = (i) => ({ animationDelay: `${0.2 + i * 0.12}s` });
+  const [loginOpen, setLoginOpen] = useState(false);
 
   return (
     // No z-index on the flex wrapper on purpose: `position: relative` with
@@ -348,9 +372,8 @@ export default function WelcomeScreen({ onNext, returning = false }) {
               opens pelvi.health from her home screen. Without this line her only
               route to a plan she is already paying for was the eight screen
               funnel that ends at a price.
-              A plain anchor, not next/link: /app is a different document, and
-              app/Clarity.jsx relies on that to keep the recorder out of the
-              member app. */}
+              It opens the sheet rather than navigating to /app: see the note
+              above LoginSheet at the top of this file. */}
           {returning ? (
             <button
               type="button"
@@ -360,12 +383,13 @@ export default function WelcomeScreen({ onNext, returning = false }) {
               Not you? Start a new plan
             </button>
           ) : (
-            <a
-              href="/app"
+            <button
+              type="button"
+              onClick={() => setLoginOpen(true)}
               className="flex h-11 w-full items-center justify-center text-[14px] font-semibold text-app-primaryInk"
             >
               Already have an account? Log in
-            </a>
+            </button>
           )}
 
           {/* THIS SCREEN IS THE LANDING PAGE FOR EVERY PAID CLICK ON A PHONE.
@@ -414,6 +438,11 @@ export default function WelcomeScreen({ onNext, returning = false }) {
           </p>
         </div>
       </div>
+
+      {/* Above everything, including the front flock: the sheet fixes itself to
+          the viewport and carries its own z-index, so it is outside this
+          screen's stacking entirely. */}
+      <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} />
     </div>
   );
 }

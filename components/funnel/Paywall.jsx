@@ -512,7 +512,9 @@ export default function Paywall({
         onSetupError={() => setSetupFailed(true)}
       />
 
-      <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} email={email} />
+      {/* No `email` prop any more. The sheet has nothing to prefill: it offers
+          Google and Apple and nothing else. See its header. */}
+      <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} />
     </section>
   );
 }
