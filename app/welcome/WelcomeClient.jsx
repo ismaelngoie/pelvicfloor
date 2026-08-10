@@ -1,34 +1,56 @@
 "use client";
 
-// "You're in." The first screen after money changes hands.
+// The screen after payment.
 //
-// Three jobs, in this order:
-//   1. Tell her, truthfully, what happened to the payment. A card that needed
-//      3-D Secure comes back here through Stripe's redirect, and the old flow
-//      never noticed: it wrote nothing, so the member was bounced back into
-//      onboarding on her next visit as though she had never paid.
-//   2. Offer the app, on iPhone and iPad only, with a reason she can check
-//      (reminders and the in-the-moment tools genuinely are app only).
-//   3. Never block the web. "Continue on the web" is always here, for everyone,
-//      whatever device she is on and whatever she does with the app card.
+// It has exactly one job now, and it is the job the iPhone app does at this
+// moment: hand her the 90-day guarantee she just bought, with her name and her
+// goal in it, and get out of the way. Everything that used to be here and was
+// selling something has gone. She is a member. There is nothing left to sell
+// her, and a benefit list on this screen is a benefit list aimed at somebody
+// who already said yes.
+//
+// The one thing this file still has to be careful about is the truth of the
+// payment itself. A card that needed 3-D Secure comes back here through
+// Stripe's redirect, and the flow before the rebuild never noticed: it wrote
+// nothing, so the member was bounced back into onboarding on her next visit as
+// though she had never paid. The status machine below is that fix, and it is
+// deliberately conservative about the word "failed".
+//
+// WHAT RENDERS WHAT:
+//   paid        she just paid, here and now  -> the 90-day intro
+//   restored    a lookup found her plan      -> a short welcome back
+//   member      this browser already had a live entitlement, no fresh purchase
+//                                            -> a short welcome back, NOT the
+//                                               intro: someone on day 40 must
+//                                               not be told her 90 days start
+//                                               today
+//   processing  the bank has not answered    -> honest holding screen
+//   failed      definitely not paid          -> try again
+//   confirming  we are asking Stripe         -> a spinner
+//   unknown     no signal at all             -> a door, no claims
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BellRing, Check, LoaderCircle, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight, Check, LoaderCircle, MailCheck, ShieldCheck, Smartphone,
+} from "lucide-react";
 
-import { appStoreURL, isIOSDevice } from "@/lib/appStore";
-import { DEFAULT_PRICE_LABEL } from "@/lib/checkout";
+import AppInstallSheet from "@/components/postpurchase/AppInstallSheet";
+import ProgramIntro from "@/components/postpurchase/ProgramIntro";
+import { canOfferApp } from "@/lib/appPrompt";
+import { isValidEmail } from "@/lib/checkout";
 import { isEntitled, markEntitlementActive, writeEntitlement } from "@/lib/entitlement";
+import {
+  clearPaidIntent, completeEmailLinkSignIn, looksLikeSignInLink, loginErrorMessage,
+  readPaidIntent, signInFromPayment,
+} from "@/lib/identity";
+import { readPlan } from "@/lib/postPurchase";
 import { trackWelcomeStatus } from "@/lib/analytics";
 
 const COPY = {
   confirming: {
     title: "Checking your payment",
     body: "One moment. We are confirming this with your bank.",
-  },
-  paid: {
-    title: "Your plan is ready.",
-    body: "Payment confirmed. Your 90 days start today.",
   },
   processing: {
     title: "Almost there.",
@@ -42,25 +64,117 @@ const COPY = {
     title: "Welcome back.",
     body: "We found your plan and turned it back on for this browser.",
   },
+  member: {
+    title: "Welcome back.",
+    body: "Your plan is open on this browser. Pick up where you left off.",
+  },
   unknown: {
     title: "Your plan is ready.",
-    body: "Pick up where you left off, or put it on your phone first.",
+    body: "Pick up where you left off.",
   },
 };
 
 export default function WelcomeClient() {
   const [status, setStatus] = useState("unknown");
-  const [isIOS, setIsIOS] = useState(false);
+  // Her goal and her first name, or nulls. See lib/postPurchase.js: nulls are a
+  // supported answer and the intro has a real shape for them.
+  const [plan, setPlan] = useState({ goalId: null, name: "", price: null });
+
+  /**
+   * "Have we worked out yet which of these screens this is?"
+   *
+   * Not the same question as `status`, because "unknown" is itself a real
+   * answer, and this is what tells the two apart before the first effect has
+   * run. It exists to kill a flash on the one screen that must not have one.
+   *
+   * The site is a static export: /welcome.html is a single file served to every
+   * arrival, so the build cannot know whether this visit carries ?paid=1. Which
+   * screen this is gets decided on the client from the query string. Without
+   * this flag the browser paints the prerendered light "Your plan is ready"
+   * card first and then swaps it for the black 90-day screen a moment later,
+   * and a light-to-black flip on the screen straight after payment is exactly
+   * the tell that this is a web page and not an app.
+   *
+   * So nothing paints until the answer is in. It costs one frame on every
+   * arrival and it is over before a phone has finished its own navigation
+   * animation.
+   */
+  const [resolved, setResolved] = useState(false);
+
+  // HOW THE SESSION IS GOING, which is a different question from how the
+  // payment went, and it is kept separate on purpose: a card can clear while
+  // the sign-in is still in flight, and telling her the payment failed because
+  // a token did not mint would be a lie about her money.
+  //
+  // idle | working | in | link | needsEmail | failed
+  //
+  // Only the states that need something FROM HER ever render anything. The
+  // whole point of the zero click path is that she never learns it happened.
+  const [session, setSession] = useState("idle");
+  const [sessionEmail, setSessionEmail] = useState("");
+  const [sessionMessage, setSessionMessage] = useState(null);
 
   useEffect(() => {
-    setIsIOS(isIOSDevice());
+    setPlan(readPlan() || { goalId: null, name: "", price: null });
+  }, []);
+
+  // Arriving from the link in her inbox. Finished here rather than on /app so
+  // that one page owns every way a session can begin.
+  useEffect(() => {
+    if (!looksLikeSignInLink()) return undefined;
+    let cancelled = false;
+    // A link from her inbox carries no payment, so which screen this is was
+    // never in doubt. Let it paint while the token is exchanged.
+    setResolved(true);
+    setSession("working");
+
+    completeEmailLinkSignIn().catch(() => ({ done: false })).then((result) => {
+      if (cancelled) return;
+      if (result.done) {
+        setSession("in");
+        setStatus("member");
+        return;
+      }
+      if (result.needsEmail) {
+        setSession("needsEmail");
+        return;
+      }
+      setSession("failed");
+      setSessionMessage(loginErrorMessage(result.code));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** The link opened in a browser that does not remember which address it was for. */
+  const confirmLinkEmail = useCallback(async (address) => {
+    setSession("working");
+    const result = await completeEmailLinkSignIn(address).catch(() => ({ done: false }));
+    if (result.done) {
+      setSession("in");
+      setStatus("member");
+      return;
+    }
+    setSession(result.needsEmail ? "needsEmail" : "failed");
+    setSessionMessage(loginErrorMessage(result.code));
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
+    // A sign-in link carries no payment. The effect above owns that arrival,
+    // including releasing the first paint.
+    if (looksLikeSignInLink()) return undefined;
 
     const params = new URLSearchParams(window.location.search);
-    const clientSecret = params.get("payment_intent_client_secret");
+    const redirectSecret = params.get("payment_intent_client_secret");
+    // Two ways the same secret reaches this page. Stripe's own redirect puts it
+    // in the query string after 3-D Secure; the inline card path confirms in a
+    // sheet that is about to unmount and leaves it in sessionStorage on the way
+    // past. Either way it is the thing that proves this browser paid, and it is
+    // what her account is built from.
+    const clientSecret = redirectSecret || readPaidIntent();
     const redirectStatus = params.get("redirect_status");
     const restored = params.get("restored") === "1";
     const paidFlag = params.get("paid") === "1";
@@ -68,22 +182,100 @@ export default function WelcomeClient() {
     // A payment intent client secret must not sit in the address bar: it ends
     // up in history, in the referrer and in session replay. Read it, then take
     // it out.
-    if (clientSecret || redirectStatus) {
+    if (redirectSecret || redirectStatus) {
       window.history.replaceState({}, "", window.location.pathname);
     }
 
-    if (restored) {
+    // From here down every branch has decided which screen this is, so each one
+    // releases the first paint. See the `resolved` declaration above.
+    setResolved(true);
+
+    if (restored && !clientSecret) {
       setStatus("restored");
       return undefined;
     }
 
-    if (!clientSecret) {
-      if (paidFlag || isEntitled()) setStatus("paid");
+    let cancelled = false;
+
+    /**
+     * SIGN HER IN FROM THE PAYMENT. This is the fix for the loop.
+     *
+     * She has just paid, so we already have her email address: Stripe is
+     * holding it as the customer on this very payment. /api/session-from-payment
+     * verifies the secret below against Stripe with our own key, reads the
+     * address off the customer, and mints her a Firebase session. She is never
+     * asked to pick a Google account, and there is no "I am new here" state for
+     * her to fall back into.
+     *
+     * The address is NEVER taken from this browser. If that ever changes,
+     * anybody could sign in as any member by typing her address.
+     */
+    const openTheDoor = async () => {
+      setSession("working");
+      // Nothing below this line may throw past here. It is fired and not
+      // awaited, so a rejection would leave the page silently mid-sign-in with
+      // no way for her to find out.
+      const result = await signInFromPayment(clientSecret).catch(() => ({
+        ok: false,
+        code: "signin_failed",
+      }));
+      clearPaidIntent();
+
+      // WHOSE PAYMENT THIS WAS, written onto the browser's own note.
+      //
+      // lib/memberEntitlement.js will only honour that note for the member it
+      // names: it compares the address on it against the address on the record
+      // that is signed in, because otherwise anyone who knew a member's email
+      // could sell herself a pass by running the restore sheet against it. A
+      // note with no address on it therefore matches nobody and does nothing.
+      //
+      // The inline card path writes the address at checkout, but the 3-D Secure
+      // path never reaches that line: Stripe redirects the browser away and it
+      // comes back to this page as a fresh document, so the only write was
+      // markEntitlementActive() below, which has no address to give. That left
+      // every member whose bank asked for a code with a dead note, and with it
+      // the thirty minute grace that covers the gap between "card approved" and
+      // Stripe reporting the subscription as active. She landed on the recovery
+      // screen instead. This is the address, proved by the Worker against
+      // Stripe, arriving at the one moment we have it.
+      if (result.email) writeEntitlement({ email: result.email });
+
+      if (cancelled) return;
+      if (result.ok && result.mode === "instant") {
+        setSession("in");
+        return;
+      }
+      if (result.ok && result.mode === "link") {
+        setSession("link");
+        setSessionEmail(result.email || "");
+        return;
+      }
+      setSession("failed");
+      setSessionEmail(result.email || "");
+      setSessionMessage(loginErrorMessage(result.code));
+    };
+
+    // No redirect to interpret. Either she confirmed her card inline, in which
+    // case the checkout sheet has already seen Stripe say yes and paid=1 IS that
+    // answer, or she is simply on this page. Deliberately NOT routed through the
+    // confirmation below: that would put a spinner in front of the one screen
+    // she is meant to see the moment she pays, to re-answer a question that has
+    // already been answered.
+    //
+    // The sign-in still runs, and it is the Worker that checks the payment.
+    if (!redirectSecret) {
+      // paid=1 is the inline-confirmation path and means "this just happened".
+      // A cached entitlement with no such flag means she has been a member for
+      // a while, which is a different screen.
+      if (paidFlag) setStatus("paid");
+      else if (isEntitled()) setStatus("member");
       else setStatus("unknown");
-      return undefined;
+      if (clientSecret) openTheDoor();
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
     setStatus("confirming");
 
     // Never tell someone her payment failed on a guess. Only the statuses that
@@ -109,9 +301,17 @@ export default function WelcomeClient() {
       } else if (FAILED.has(intentStatus)) {
         writeEntitlement({ active: false, pending: false });
         setStatus("failed");
+        // Nothing was paid, so there is no identity to build. This is the one
+        // branch that does not try.
+        return;
       } else {
         setStatus("processing");
       }
+      // Everything else attempts the sign-in, including a status this browser
+      // could not read. It costs one request, and the Worker is what decides:
+      // it refuses any intent Stripe does not report as paid, so being
+      // optimistic here can only ever be slow, never wrong.
+      openTheDoor();
     };
 
     (async () => {
@@ -149,32 +349,236 @@ export default function WelcomeClient() {
     trackWelcomeStatus(status);
   }, [status]);
 
-  const copy = COPY[status] || COPY.unknown;
-  const showInstallCard = isIOS && status !== "failed";
+  // The held frame. This is what welcome.html actually contains, and what a
+  // browser paints for the instant between that file arriving and the effects
+  // above reading the query string. Deliberately empty and deliberately black:
+  // black is where the common case is going, so the overwhelmingly likely next
+  // paint is a continuation rather than a flip. See `resolved` above.
+  if (!resolved) {
+    return (
+      <div className="relative min-h-full w-full bg-black">
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 bg-black" />
+        {/* The frame is empty for one paint, and empty forever for a browser
+            with scripting off, which would otherwise be a black screen and no
+            way out of it. noscript is the right tool precisely because it never
+            renders for anybody else, so this door costs the flash nothing. */}
+        <noscript>
+          <div className="relative mx-auto flex w-full max-w-[520px] flex-col items-center gap-5 px-6 pt-20 text-center">
+            <p className="text-[20px] font-bold text-white">Your plan is ready.</p>
+            <a
+              href="/app"
+              className="flex h-14 w-full items-center justify-center rounded-full bg-cta-gradient text-[17px] font-bold text-white"
+            >
+              Open your plan
+            </a>
+            <p className="text-[13px] text-white/60">
+              Anything at all: <a className="underline" href="mailto:hello@pelvi.health">hello@pelvi.health</a>
+            </p>
+          </div>
+        </noscript>
+      </div>
+    );
+  }
 
   return (
-    // The page picks up the brand blush from tablet width up. On a phone this
-    // screen fills the viewport and a gradient there would be invisible; on
-    // anything wider it is the difference between a designed page and a narrow
-    // column stranded on a flat grey field.
+    <>
+      {status === "paid" ? (
+        // `sessionPending` is the one thing this screen has to know about the
+        // sign-in: "Start Day 1" is pinned, above the fold and the only thing
+        // to press, and /app is a full page load into a gate that asks who she
+        // is. A member who taps it in the second before the token lands is
+        // shown a sign-in screen, having paid thirty seconds earlier. See the
+        // note on the button in ProgramIntro.
+        <ProgramIntro
+          goalId={plan.goalId}
+          name={plan.name}
+          price={plan.price}
+          sessionPending={session === "working"}
+        />
+      ) : (
+        <StatusScreen status={status} />
+      )}
+      {/* Renders nothing at all when the sign-in worked, which is the normal
+          case and the whole point: she paid, she is in, and she never found out
+          there was a question. */}
+      <SessionNotice
+        session={session}
+        email={sessionEmail}
+        message={sessionMessage}
+        onConfirmEmail={confirmLinkEmail}
+      />
+    </>
+  );
+}
+
+/**
+ * The only part of the sign-in she ever sees, and only when the zero click path
+ * was not available to her.
+ *
+ * A dialog rather than a banner, because in these three states the link is the
+ * most important thing on the screen: "Open your plan" behind it would take her
+ * to a member app she is not signed in to yet.
+ */
+function SessionNotice({ session, email, message, onConfirmEmail }) {
+  const [address, setAddress] = useState("");
+  const [dismissed, setDismissed] = useState(false);
+
+  const needed = session === "link" || session === "needsEmail" || session === "failed";
+  if (!needed || dismissed) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,var(--sab))] backdrop-blur-sm sm:items-center sm:pb-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="session-notice-title"
+        className="w-full max-w-[420px] rounded-[24px] bg-app-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,0.28)]"
+      >
+        <span
+          aria-hidden="true"
+          className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-app-primary/12"
+        >
+          <MailCheck size={22} className="text-app-primary" />
+        </span>
+
+        <h2
+          id="session-notice-title"
+          className="text-[20px] font-extrabold leading-snug tracking-[-0.2px] text-app-textPrimary"
+        >
+          {session === "link"
+            ? "One tap and you are in"
+            : session === "needsEmail"
+              ? "Which email was that?"
+              : "Let us get you signed in"}
+        </h2>
+
+        <p className="mt-2 text-[15px] leading-relaxed text-app-textSecondary">
+          {session === "link" ? (
+            <>
+              We sent a login link to{" "}
+              <span className="font-semibold text-app-textPrimary">{email}</span>. Open it on this
+              phone and your plan is right here waiting. No password, nothing to remember.
+            </>
+          ) : session === "needsEmail" ? (
+            "For your security we need the address that link was sent to before we can open it."
+          ) : (
+            message || "We could not finish signing you in."
+          )}
+        </p>
+
+        {session === "needsEmail" && (
+          <form
+            className="mt-4 flex flex-col gap-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!isValidEmail(address)) return;
+              onConfirmEmail(address.trim());
+            }}
+          >
+            <label htmlFor="session-notice-email" className="sr-only">
+              Your email address
+            </label>
+            <input
+              id="session-notice-email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck="false"
+              data-clarity-mask="true"
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+              placeholder="you@example.com"
+              className="h-[52px] w-full rounded-[14px] border border-app-borderIdle bg-app-background px-4 text-[16px] text-app-textPrimary outline-none focus:border-app-primary"
+            />
+            <button
+              type="submit"
+              disabled={!isValidEmail(address)}
+              className="flex h-[52px] w-full items-center justify-center rounded-full bg-cta-gradient text-[16px] font-bold text-white disabled:opacity-60"
+            >
+              Open my plan
+            </button>
+          </form>
+        )}
+
+        {/* On the link path there is nothing for her to do on this page: the
+            next step is in her inbox. So the primary button closes this and the
+            other way in is the quiet one. On the failed path it is the other way
+            round, because then the other way in is the only way in. */}
+        {session === "link" && (
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="mt-5 flex h-[52px] w-full items-center justify-center rounded-full bg-cta-gradient text-[16px] font-bold text-white"
+          >
+            Got it
+          </button>
+        )}
+
+        {session === "failed" && (
+          <a
+            href="/app"
+            className="mt-5 flex h-[52px] w-full items-center justify-center rounded-full bg-cta-gradient text-[16px] font-bold text-white"
+          >
+            Sign in another way
+          </a>
+        )}
+
+        {session !== "failed" && (
+          <a
+            href="/app"
+            className="mt-3 flex h-11 w-full items-center justify-center text-[14px] font-semibold text-app-primaryInk underline underline-offset-4"
+          >
+            Sign in another way
+          </a>
+        )}
+
+        {session === "failed" && (
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="mt-3 flex h-11 w-full items-center justify-center text-[14px] font-medium text-app-textSecondary"
+          >
+            Not now
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Everything that is not "she just paid". Short by design: it says what
+ * happened, gives her the one door she needs, and stops.
+ */
+function StatusScreen({ status }) {
+  const copy = COPY[status] || COPY.unknown;
+  const paidMember = status === "restored" || status === "member";
+
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [offerApp, setOfferApp] = useState(false);
+
+  // After mount, never during render. canOfferApp reads the user agent and
+  // localStorage, and it is a user-agent check rather than a width one, so an
+  // Android phone at 375px never renders an App Store link.
+  useEffect(() => {
+    setOfferApp(paidMember && canOfferApp());
+  }, [paidMember]);
+
+  return (
     <div className="relative min-h-full w-full bg-app-background tab:bg-transparent">
       {/* The gradient is a fixed layer rather than this element's background
           because the root layout caps its column at 1152px for the member
           app's sake, and a page background that stopped dead at 1152 with grey
           either side would read as a seam. position: fixed is measured against
-          the viewport, so it escapes the cap; it sits above the wrapper's own
-          background and below the content, which is why the column below is
-          `relative`. */}
+          the viewport, so it escapes the cap. */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 hidden bg-blush tab:block"
       />
-      {/* The column itself never gets wider than 520px through the header.
-          This is a receipt and a decision, and a longer measure makes both
-          harder to read. What changes above 1024 is that the two cards below
-          sit side by side instead of stacked. */}
-      <div className="relative mx-auto flex w-full max-w-[520px] flex-col gap-6 px-5 pb-[calc(var(--sab)+40px)] pl-[max(1.25rem,var(--sal))] pr-[max(1.25rem,var(--sar))] pt-10 tab:max-w-[600px] tab:pt-16 lg:max-w-[64rem] lg:pt-20">
-        <header className="mx-auto flex w-full max-w-[520px] flex-col items-center text-center">
+
+      <div className="relative mx-auto flex w-full max-w-[520px] flex-col gap-6 px-5 pb-[calc(var(--sab)+40px)] pl-[max(1.25rem,var(--sal))] pr-[max(1.25rem,var(--sar))] pt-12 tab:pt-20">
+        <header className="flex flex-col items-center text-center">
           <span
             aria-hidden="true"
             className={`mb-5 flex h-14 w-14 items-center justify-center rounded-full ${
@@ -194,133 +598,67 @@ export default function WelcomeClient() {
             {copy.title}
           </h1>
           <p className="mt-3 text-[16px] leading-relaxed text-app-textSecondary">{copy.body}</p>
-
-          {status === "paid" && (
-            <p className="mt-3 text-[14px] text-app-textSecondary">
-              {DEFAULT_PRICE_LABEL} a month. Cancel anytime.
-            </p>
-          )}
         </header>
 
-        {status === "failed" && (
+        {status === "failed" ? (
           <Link
             href="/"
-            className="mx-auto flex h-14 w-full max-w-[520px] items-center justify-center rounded-full bg-cta-gradient text-[17px] font-bold text-white shadow-lg transition-transform active:scale-[0.98]"
+            className="flex h-14 w-full items-center justify-center rounded-full bg-cta-gradient text-[17px] font-bold text-white shadow-lg transition-transform active:scale-[0.98]"
           >
             Try again
           </Link>
-        )}
-
-        {/* Two columns from 1024, and only when the install card exists to fill
-            the second one. On a desktop she is almost never on iOS, so that
-            card is absent and this stays the single 520px column it is on a
-            phone rather than a lopsided half-empty grid. */}
-        <div
-          className={`mx-auto flex w-full flex-col gap-6 ${
-            showInstallCard
-              ? "lg:grid lg:max-w-none lg:grid-cols-2 lg:items-start lg:gap-8"
-              : "max-w-[520px]"
-          }`}
-        >
-        {showInstallCard && (
-          <section
-            aria-labelledby="install-card-title"
-            className="w-full rounded-[24px] border border-app-borderIdle bg-app-surface p-6 shadow-[0_6px_18px_rgba(0,0,0,0.06)]"
-          >
-            <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-app-primary/10 px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-app-primary">
-              <BellRing size={13} aria-hidden="true" />
-              App only
-            </span>
-
-            <h2
-              id="install-card-title"
-              className="text-[22px] font-extrabold leading-snug tracking-[-0.3px] text-app-textPrimary"
-            >
-              You&apos;re in. Now get the app.
-            </h2>
-
-            <p className="mt-3 text-[15px] leading-relaxed text-app-textSecondary">
-              Your daily reminders live in the app, and so do the in-the-moment
-              tools: Urge Rescue when you need 60 seconds right now, and Audio
-              Kegels with your eyes closed. Your plan, your day count and your
-              streak all come with you.
-            </p>
-
+        ) : status === "confirming" ? null : (
+          <div className="flex flex-col gap-2.5">
+            {/* A PLAIN <a>, NOT next/link, AND IT HAS TO STAY ONE. This is the
+                only place in the product where somebody crosses from a page
+                Microsoft Clarity records into one it must never record.
+                next/link would make that a client-side route change: same
+                document, same recorder, and the member app's DOM, her name, her
+                email, her check-ins and her Coach Mia transcripts, committed
+                inside a live recording before any guard could run. A plain
+                anchor is a full page load, so /app arrives as a fresh document
+                that the gate in app/Clarity.jsx simply never injects the tag
+                into. The same note is on the button in ProgramIntro; keep both. */}
             <a
-              href={appStoreURL("success")}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-cta-gradient text-[17px] font-bold text-white shadow-[0_6px_16px_rgba(230,84,115,0.35)] transition-transform active:scale-[0.98]"
+              href="/app"
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-cta-gradient text-[17px] font-bold text-white shadow-[0_6px_16px_rgba(230,84,115,0.35)] transition-transform active:scale-[0.98]"
             >
-              Get the Pelvi app
+              Open your plan
               <ArrowRight size={19} aria-hidden="true" />
             </a>
 
-            <p className="mt-3 text-center text-[13px] leading-relaxed text-app-textSecondary">
-              Sign in with the same email you just used and your program opens
-              exactly where you left off.
-            </p>
-          </section>
+            {offerApp ? (
+              <button
+                type="button"
+                onClick={() => setSheetOpen(true)}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-semibold text-app-textSecondary"
+              >
+                <Smartphone size={16} aria-hidden="true" />
+                Download the app on iPhone
+              </button>
+            ) : null}
+          </div>
         )}
 
-        {/* The two blocks that are always here, kept together so they travel
-            into the second column as one unit when the install card takes the
-            first. */}
-        <div className="flex flex-col gap-6">
-        <div className="flex flex-col items-center gap-3">
-          {/* /app, not /dashboard. /dashboard is the screen this rebuild
-              replaced: it reads a localStorage blob nothing writes any more, so
-              a member who had just paid landed on an empty stranger's account,
-              and its billing box opened the Stripe portal for any address typed
-              into it. This is the first link after money changes hands.
-
-              A PLAIN <a>, NOT next/link, AND IT HAS TO STAY ONE.
-              This is the only place in the product where somebody crosses from
-              a page Microsoft Clarity records into one it must never record.
-              next/link would make that a client-side route change: same
-              document, same recorder, and the member app's DOM, her name, her
-              email, her check-ins and her Coach Mia transcripts, committed
-              inside a live recording before any guard could run. A plain anchor
-              is a full page load, so /app arrives as a fresh document that the
-              gate in app/Clarity.jsx simply never injects the tag into. The
-              cost is one navigation that is a hair slower; the alternative is
-              recording special category health data. */}
+        <p className="text-center text-[13px] leading-relaxed text-app-textSecondary">
+          Anything at all:{" "}
           <a
-            href="/app"
-            className={`flex h-14 w-full items-center justify-center gap-2 rounded-full text-[17px] font-bold transition-transform active:scale-[0.98] ${
-              showInstallCard
-                ? "border border-app-borderIdle bg-app-surface text-app-textPrimary"
-                : "bg-cta-gradient text-white shadow-[0_6px_16px_rgba(230,84,115,0.35)]"
-            }`}
+            href="mailto:hello@pelvi.health"
+            className="font-semibold text-app-primaryInk underline underline-offset-2"
           >
-            Continue on the web
-            <ArrowRight size={19} aria-hidden="true" />
+            hello@pelvi.health
           </a>
-          <p className="text-center text-[13px] text-app-textSecondary">
-            Everything works in your browser too. Nothing is locked behind the app.
-          </p>
-        </div>
-
-        <div className="rounded-[20px] border border-app-borderIdle bg-app-surface p-5">
-          <p className="flex items-start gap-2 text-[14px] leading-relaxed text-app-textSecondary">
-            <ShieldCheck size={17} className="mt-[2px] shrink-0 text-app-primary" aria-hidden="true" />
-            <span>
-              Your 90-Day Goal Guarantee is live from today. Cancel in the first
-              7 days for any reason and pay nothing. Questions, refunds or
-              anything at all:{" "}
-              <a
-                href="mailto:hello@pelvi.health"
-                className="font-semibold text-app-primary underline underline-offset-2"
-              >
-                hello@pelvi.health
-              </a>
-              .
-            </span>
-          </p>
-        </div>
-        </div>
-        </div>
+        </p>
       </div>
+
+      <AppInstallSheet
+        open={sheetOpen}
+        surface="success"
+        onClose={() => {
+          setSheetOpen(false);
+          setOfferApp(false);
+        }}
+      />
     </div>
   );
 }

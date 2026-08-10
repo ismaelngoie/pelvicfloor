@@ -240,7 +240,16 @@ export function ExerciseShelf({ title, subtitle, items, onPlay, onToggleSaved, s
   );
 }
 
-/** A bottom sheet. Used for filters, the check-in and the goal change. */
+/**
+ * A bottom sheet on a phone, a centred dialog on a desktop.
+ *
+ * Below 704px nothing here has changed: it rises from the bottom edge, full
+ * width, rounded on top, clear of the home indicator — which is what a sheet is
+ * for, because that is where the thumb is. From `tab` a full-width panel pinned
+ * to the bottom of a 1440px window is a phone sheet that has been stretched to
+ * fit, so it becomes what a desktop application would use: a panel of a
+ * readable width, in the middle of the screen, rounded on all four corners.
+ */
 export function Sheet({ open, onClose, title, children, labelledBy }) {
   useEffect(() => {
     if (!open) return undefined;
@@ -253,7 +262,7 @@ export function Sheet({ open, onClose, title, children, labelledBy }) {
   const headingId = labelledBy || "sheet-title";
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col justify-end">
+    <div className="fixed inset-0 z-40 flex flex-col justify-end tab:items-center tab:justify-center tab:p-6">
       <button
         type="button"
         aria-label="Close"
@@ -264,7 +273,7 @@ export function Sheet({ open, onClose, title, children, labelledBy }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
-        className="relative max-h-[86vh] overflow-y-auto rounded-t-[28px] bg-app-background pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
+        className="relative max-h-[86vh] overflow-y-auto rounded-t-[28px] bg-app-background pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl tab:w-full tab:max-w-[560px] tab:rounded-[24px] tab:pb-5"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-black/[0.06] bg-app-background/95 px-5 py-4 backdrop-blur">
           <h2 id={headingId} className="text-[17px] font-bold text-app-textPrimary">{title}</h2>

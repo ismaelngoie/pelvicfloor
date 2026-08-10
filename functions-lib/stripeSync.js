@@ -277,7 +277,15 @@ export function stringOrNull(value) {
 
 // --- Google service-account auth -------------------------------------------
 
-let cachedToken = null; // { value, expiresAt }
+// What a token is allowed to do. Firestore writes need one scope and the
+// Identity Toolkit (creating an account, minting a session for a member who has
+// just paid) needs another, so the scope is a parameter and the cache is keyed
+// by it. Asking for both at once would hand every Firestore write the power to
+// mint sessions.
+export const DATASTORE_SCOPE = "https://www.googleapis.com/auth/datastore";
+export const IDENTITY_SCOPE = "https://www.googleapis.com/auth/identitytoolkit";
+
+const cachedTokens = new Map(); // scope -> { value, expiresAt }
 
 export function parseServiceAccount(raw) {
   const account = typeof raw === "string" ? JSON.parse(raw) : raw;
@@ -287,13 +295,14 @@ export function parseServiceAccount(raw) {
   return account;
 }
 
-export async function accessToken(account) {
+export async function accessToken(account, scope = DATASTORE_SCOPE) {
   const now = Math.floor(Date.now() / 1000);
+  const cachedToken = cachedTokens.get(scope);
   if (cachedToken && cachedToken.expiresAt - 60 > now) return cachedToken.value;
 
   const claim = {
     iss: account.client_email,
-    scope: "https://www.googleapis.com/auth/datastore",
+    scope,
     aud: "https://oauth2.googleapis.com/token",
     exp: now + 3600,
     iat: now,
@@ -324,14 +333,14 @@ export async function accessToken(account) {
   const body = await res.json();
   if (!body.access_token) throw new Error("Google token exchange returned no token.");
 
-  cachedToken = {
+  cachedTokens.set(scope, {
     value: body.access_token,
     expiresAt: now + (Number(body.expires_in) || 3600),
-  };
-  return cachedToken.value;
+  });
+  return body.access_token;
 }
 
-async function importPrivateKey(pem) {
+export async function importPrivateKey(pem) {
   // Cloudflare's environment editor sometimes stores the JSON with the newlines
   // already escaped, which leaves literal backslash-n inside the PEM.
   const normalized = pem.includes("\\n") ? pem.replace(/\\n/g, "\n") : pem;

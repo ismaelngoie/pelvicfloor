@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  Flame, GraduationCap, Grid2x2, Loader2, Map, Play, RotateCcw,
+  Flame, GraduationCap, Grid2x2, Loader2, Map as MapIcon, Play, RotateCcw,
   Search, SlidersHorizontal, X,
 } from "lucide-react";
 import { useMember } from "./MemberProvider";
@@ -27,7 +27,7 @@ import { goalAccentCSS, pathwayTitle } from "@/lib/goalCopy";
 
 export default function Exercises() {
   const {
-    goalId, program, dayNumber, planLength, savedIds, toggleSaved, history,
+    goalId, dayNumber, planLength, savedIds, toggleSaved, history,
   } = useMember();
   const { openPlayer } = usePlayer();
 
@@ -69,7 +69,15 @@ export default function Exercises() {
 
   // Switching between browsing and results must not leave her in the middle of
   // a list she did not ask for.
+  //
+  // Only when it actually SWITCHES. This used to fire on mount as well, which
+  // meant every arrival on this tab was yanked back to the header — including
+  // the arrival where the shell had just restored where she was reading, so
+  // Exercises was the one tab that never remembered its place.
+  const wasActive = useRef(active);
   useEffect(() => {
+    if (wasActive.current === active) return;
+    wasActive.current = active;
     topRef.current?.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
   }, [active, reduceMotion]);
 
@@ -261,8 +269,10 @@ export default function Exercises() {
             style={{ backgroundImage: goalAccentCSS(goalId) }}
           >
             <span className="flex items-center gap-2 text-[16px] font-bold">
-              <Map className="h-[18px] w-[18px]" aria-hidden="true" />
-              {program?.title || pathwayTitle(goalId)}
+              <MapIcon className="h-[18px] w-[18px]" aria-hidden="true" />
+              {/* LibrarySpotlight.swift prints style.pathwayTitle here too, not
+                  the plan's name inside the JSON. Keep the two in step. */}
+              {pathwayTitle(goalId)}
             </span>
             <span className="mt-1 block text-[12.5px] font-semibold text-white/90">
               {planLength ? `Day ${Math.min(dayNumber, planLength)} of ${planLength}` : "Your 90 day plan"}

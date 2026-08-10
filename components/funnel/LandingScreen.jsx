@@ -108,7 +108,16 @@ function Quote({ quote }) {
   );
 }
 
-export default function LandingScreen({ onStart }) {
+/**
+ * @param {object} props
+ * @param {Function} props.onStart
+ * @param {boolean} [props.returning]  this browser already carries a live paid
+ *   entitlement, so the top-right pair stops offering to sell her the thing she
+ *   is already being charged for. The page below it stays a marketing page,
+ *   because a member may legitimately be reading it; what changes is the one
+ *   control that is always on screen.
+ */
+export default function LandingScreen({ onStart, returning = false }) {
   // "✓ Day 7: any reason   ✓ Day 30: still not sure   ✓ Day 90: didn't hit your
   // goal" is one string on iOS, split on its run of spaces here so the three
   // rungs can be three rows. The words are untouched.
@@ -142,9 +151,31 @@ export default function LandingScreen({ onStart }) {
             />
             <span className="text-[17px] font-bold tracking-[-0.2px]">Pelvi Health</span>
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4 lg:gap-5">
             <GuaranteeBadge className="hidden lg:inline-flex" />
-            <StartButton onStart={onStart} size="sm" />
+            {/* Every real product has this in the top right, and this one had it
+                nowhere. A member who lands on the marketing page, because that
+                is what she bookmarked or what the ad pointed at, had no route to
+                her own plan except through the funnel that sells it to her
+                again. A plain anchor, because /app is a different document. */}
+            {returning ? (
+              <a
+                href="/app"
+                className="inline-flex h-12 shrink-0 items-center justify-center whitespace-nowrap rounded-[28px] bg-gradient-to-b from-ios-pink to-ios-pink/85 px-6 text-[15px] font-bold text-white shadow-[0_8px_24px_rgba(255,45,85,0.30)] transition-transform duration-150 hover:-translate-y-[1px] active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              >
+                Open your plan
+              </a>
+            ) : (
+              <>
+                <a
+                  href="/app"
+                  className="whitespace-nowrap text-[14px] font-semibold text-app-textPrimary hover:text-app-primaryInk"
+                >
+                  Log in
+                </a>
+                <StartButton onStart={onStart} size="sm" />
+              </>
+            )}
           </div>
         </div>
       </header>

@@ -16,6 +16,9 @@ import {
 } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import {
+  completeEmailLinkSignIn, looksLikeSignInLink, loginErrorMessage, sendLoginLink,
+} from "@/lib/identity";
+import {
   fetchCompletions, recordDayCompletion, recordWorkoutEvent, resolveMember, updateMember,
 } from "@/lib/memberStore";
 import {
@@ -49,6 +52,13 @@ export function MemberProvider({ children }) {
   const [member, setMember] = useState(null);
   const [memberError, setMemberError] = useState(null);
   const [signingIn, setSigningIn] = useState(false);
+
+  // The email link half of sign-in. `linkRedeeming` is true while a link from
+  // her inbox is being exchanged for a session, and the gate has to wait on it:
+  // without that, the sign-in screen paints for the second it takes, and the
+  // member who just tapped the link we sent her is looking at a login page.
+  const [linkRedeeming, setLinkRedeeming] = useState(false);
+  const [linkState, setLinkState] = useState({ status: "idle", email: "", message: null });
 
   // Stripe's live answer to "is she paying", and whether we have heard back once
   // for this account yet. See the entitlement section below.
@@ -99,6 +109,76 @@ export function MemberProvider({ children }) {
     });
   }, [configured]);
 
+  // A link from her inbox can land on any page of the member app, so it is
+  // redeemed here rather than on one screen that happens to know about it.
+  //
+  // Kept out of the effect above deliberately: that one owns the auth listener
+  // and must not be re-run, and this one has to be able to report a spent or
+  // expired link to the screen without disturbing it.
+  useEffect(() => {
+    if (!configured || FIXTURES_ON) return undefined;
+    if (!looksLikeSignInLink()) return undefined;
+
+    let cancelled = false;
+    setLinkRedeeming(true);
+    // The .catch is not decoration. `linkRedeeming` holds the gate on a
+    // spinner, so a rejection with nothing to clear it would leave a member
+    // watching "Signing you in" for ever.
+    completeEmailLinkSignIn().catch(() => ({ done: false })).then((result) => {
+      if (cancelled) return;
+      setLinkRedeeming(false);
+      if (result.done) return; // onAuthStateChanged takes it from here.
+      if (result.needsEmail) {
+        setLinkState({
+          status: "confirm",
+          email: "",
+          message: "Confirm the email address we sent that link to and you are in.",
+        });
+        return;
+      }
+      setLinkState({ status: "error", email: "", message: loginErrorMessage(result.code) });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [configured]);
+
+  /**
+   * Email her a one-tap login link.
+   *
+   * This is what "Restore Purchase" should always have been on the web. There
+   * is no App Store here to ask, and nothing to restore: she has an account, and
+   * this is the door to it. It needs no password and no Google account, and the
+   * session it produces carries a VERIFIED address, which is what
+   * lib/memberStore.js joins her iPhone record on.
+   */
+  const signInWithLink = useCallback(async (email) => {
+    setMemberError(null);
+    setLinkState({ status: "sending", email, message: null });
+    const sent = await sendLoginLink(email);
+    setLinkState(
+      sent.ok
+        ? { status: "sent", email, message: null }
+        : { status: "error", email, message: loginErrorMessage(sent.code) }
+    );
+    return sent;
+  }, []);
+
+  /** Finish a link that arrived in a browser which did not remember the address. */
+  const confirmLinkEmail = useCallback(async (email) => {
+    setLinkRedeeming(true);
+    const result = await completeEmailLinkSignIn(email).catch(() => ({ done: false }));
+    setLinkRedeeming(false);
+    if (result.done) return { ok: true };
+    setLinkState({
+      status: result.needsEmail ? "confirm" : "error",
+      email,
+      message: loginErrorMessage(result.code),
+    });
+    return { ok: false };
+  }, []);
+
   const signIn = useCallback(async () => {
     if (!configured) return;
     setSigningIn(true);
@@ -132,6 +212,7 @@ export function MemberProvider({ children }) {
     setMember(null);
     setCompletions([]);
     setEvents([]);
+    setLinkState({ status: "idle", email: "", message: null });
   }, [configured]);
 
   // --- Member record -------------------------------------------------------
@@ -421,7 +502,11 @@ export function MemberProvider({ children }) {
       contentError,
       entitlement,
       entitlementChecking,
+      linkRedeeming,
+      linkState,
       signIn,
+      signInWithLink,
+      confirmLinkEmail,
       signOut: signOutMember,
       refreshMember,
       refreshEntitlement,
@@ -450,7 +535,8 @@ export function MemberProvider({ children }) {
     }),
     [
       configured, authState, signingIn, user, member, memberError, contentError,
-      entitlement, entitlementChecking, signIn, signOutMember, refreshMember,
+      entitlement, entitlementChecking, linkRedeeming, linkState,
+      signIn, signInWithLink, confirmLinkEmail, signOutMember, refreshMember,
       refreshEntitlement, patchMember, goalId,
       program, catalog, days, planLength, dayNumber, dayUnlocked, sessionDay,
       currentDay, todaysVideos,

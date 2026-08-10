@@ -19,7 +19,7 @@ import {
 import { isEmailValid } from "./funnelState";
 import { BackButton, PrimaryButton, useKeyboardInset } from "./ui";
 
-export default function EmailCaptureScreen({ profile, onSubmit, onSkip, onBack }) {
+export default function EmailCaptureScreen({ profile, onSubmit, onSkip, onBack, busy = false }) {
   const inputRef = useRef(null);
   const keyboardInset = useKeyboardInset();
   const [email, setEmail] = useState(profile.email || "");
@@ -32,7 +32,7 @@ export default function EmailCaptureScreen({ profile, onSubmit, onSkip, onBack }
   }, []);
 
   const submit = () => {
-    if (!valid) return;
+    if (!valid || busy) return;
     onSubmit(email.trim());
   };
 
@@ -131,8 +131,12 @@ export default function EmailCaptureScreen({ profile, onSubmit, onSkip, onBack }
         className="shrink-0 space-y-3 px-7 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5"
         style={keyboardInset ? { paddingBottom: keyboardInset + 16 } : undefined}
       >
-        <PrimaryButton onClick={submit} disabled={!valid} variant="rose">
-          {EMAIL_CTA}
+        {/* `busy` is the one round trip in Funnel.js that asks whether this
+            address is already paying us. It is normally a few hundred
+            milliseconds and it gives up after three seconds, but the button has
+            to say something in the meantime rather than look broken. */}
+        <PrimaryButton onClick={submit} disabled={!valid || busy} variant="rose">
+          {busy ? "One moment..." : EMAIL_CTA}
         </PrimaryButton>
         <button
           type="button"

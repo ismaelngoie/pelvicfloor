@@ -21,6 +21,10 @@ export const STEP = {
   health: "health",
   personalizing: "personalizing",
   email: "email",
+  // Not a rung of the funnel: a door out of it. The address she just gave is
+  // already paying us, so there is nothing left to sell her and the rest of the
+  // funnel would be a lie. See RecognisedScreen.js.
+  recognised: "recognised",
   planReveal: "planReveal",
   paywall: "paywall",
 };
@@ -48,6 +52,7 @@ export const BACKWARD = {
   health: STEP.intake,
   personalizing: STEP.health,
   email: STEP.health,
+  recognised: STEP.email,
   planReveal: STEP.health,
   paywall: STEP.planReveal,
 };
@@ -131,6 +136,10 @@ export function resumeStep(saved) {
   // on a lookup two screens later.
   if (step !== STEP.welcome && !profile.goalId) return STEP.goal;
   if (step === STEP.personalizing) return STEP.health;
+  // Not resumed into either, and for a similar reason: arriving on it sends an
+  // email, so a reload there would send a second one. She lands back on the
+  // question that produced it.
+  if (step === STEP.recognised) return STEP.email;
   if ((step === STEP.planReveal || step === STEP.paywall) && !profile.planBuilt) {
     return STEP.health;
   }

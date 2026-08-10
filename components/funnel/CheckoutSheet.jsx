@@ -20,7 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import { LoaderCircle, Lock, ShieldCheck, X } from "lucide-react";
+import { LoaderCircle, Lock, MailCheck, ShieldCheck, X } from "lucide-react";
 
 import {
   DEFAULT_PRICE_LABEL,
@@ -31,6 +31,8 @@ import {
   newAttemptKey,
 } from "@/lib/checkout";
 import { markEntitlementActive } from "@/lib/entitlement";
+import { loginErrorMessage, sendLoginLink, stashPaidIntent } from "@/lib/identity";
+import { rememberPrice } from "@/lib/postPurchase";
 import {
   trackCardFormShown,
   trackCheckoutSetupFailed,
@@ -82,11 +84,17 @@ export default function CheckoutSheet({
   onSetupError,
   successPath = "/welcome?paid=1",
 }) {
+  // email | loading | pay | paying | known
+  //
+  // `known` is the one that is not about taking money. Stripe told us this
+  // address is already paying, so there is nothing to sell: she is a member
+  // standing outside her own account, and the sheet turns into the way back in.
   const [step, setStep] = useState("email");
   const [emailValue, setEmailValue] = useState(email || "");
   const [emailTouched, setEmailTouched] = useState(false);
   const [error, setError] = useState(null);
   const [intent, setIntent] = useState(null);
+  const [linkState, setLinkState] = useState({ status: "idle", message: null });
   const [attemptKey, setAttemptKey] = useState(() => newAttemptKey());
 
   // A member cannot dismiss the sheet while her card is being charged. Losing
@@ -114,6 +122,30 @@ export default function CheckoutSheet({
     setEmailValue((current) => current || email || "");
   }, [open, email]);
 
+  /**
+   * She already has a plan. Stop selling and open the door instead.
+   *
+   * This is the ONE place a "restore" used to be offered on the web, in words
+   * that mean nothing outside the App Store, behind a link she had to find. The
+   * server has just told us, from Stripe, that this address is paying, so the
+   * only thing left is to prove she owns the inbox: one tap in her email and
+   * she is in, with her plan, her streak and her history attached.
+   *
+   * The link is what proves it. The address was typed into this browser, so it
+   * cannot open anything on its own, however confident Stripe is that somebody
+   * with that address is paying.
+   */
+  const welcomeBack = useCallback(async (address) => {
+    setStep("known");
+    setLinkState({ status: "sending", message: null });
+    const sent = await sendLoginLink(address);
+    setLinkState(
+      sent.ok
+        ? { status: "sent", message: null }
+        : { status: "error", message: loginErrorMessage(sent.code) }
+    );
+  }, []);
+
   const start = useCallback(
     async (address) => {
       setError(null);
@@ -128,25 +160,44 @@ export default function CheckoutSheet({
         attemptKey: key,
       });
       if (!result.ok) {
-        setError(result.message);
-        setStep("email");
         // The code, not the message. Codes are stable and countable
         // (already_subscribed, price_unresolved, network_error, http_500);
         // the message is copy and will be reworded.
         trackCheckoutSetupFailed(result.code);
+
+        // Not a failure. A member. The old copy here told her to "use Restore
+        // Purchase", which is App Store language for a button she could not
+        // find, on a screen that had already decided she was a stranger.
+        if (result.code === "already_subscribed") {
+          welcomeBack(address);
+          return;
+        }
+
+        setError(result.message);
+        setStep("email");
         onSetupError?.(result);
-        // A fresh key for the next try, unless the failure was purely a
-        // duplicate: reusing the key there would just replay the same answer.
-        if (result.code !== "already_subscribed") setAttemptKey(newAttemptKey());
+        // A fresh key for the next try.
+        setAttemptKey(newAttemptKey());
         return;
       }
       setIntent(result);
+      // The amount Stripe is actually going to take, kept where the screen
+      // after payment can read it. That screen prints a receipt line, and it
+      // was printing the advertised constant instead, so a member on any other
+      // price or currency was told the wrong number about her own money. Here
+      // rather than on success because the 3-D Secure path leaves this document
+      // and never comes back to it. See lib/postPurchase.js.
+      rememberPrice({
+        amount: result.amount,
+        currency: result.currency,
+        interval: result.interval,
+      });
       setStep("pay");
       // She has an address in and Stripe has answered, so the card form is
       // about to mount. This is the last rung the recorder can see her cross.
       trackCardFormShown();
     },
-    [attemptKey, goalId, memberId, name, uid, onSetupError]
+    [attemptKey, goalId, memberId, name, uid, onSetupError, welcomeBack]
   );
 
   // If the funnel already knows her address, skip straight to the card form.
@@ -187,10 +238,12 @@ export default function CheckoutSheet({
         <header className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
           <div>
             <h2 id="checkout-sheet-title" className="font-system text-[19px] font-bold text-white">
-              Secure checkout
+              {step === "known" ? "You are already a member" : "Secure checkout"}
             </h2>
             <p className="mt-1 font-system text-[13px] text-white/60">
-              {priceLabel} per {period}, billed until you cancel.
+              {step === "known"
+                ? "Nothing to buy. Let us get you back into your plan."
+                : `${priceLabel} per ${period}, billed until you cancel.`}
             </p>
           </div>
           <button
@@ -212,7 +265,78 @@ export default function CheckoutSheet({
             </p>
           )}
 
-          {stripe && step !== "pay" && step !== "paying" && (
+          {step === "known" && (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-center">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-app-primary/15">
+                  <MailCheck size={22} className="text-app-primary" aria-hidden="true" />
+                </span>
+                <p className="font-system text-[15px] font-semibold text-white">
+                  {linkState.status === "sending"
+                    ? "One moment"
+                    : linkState.status === "sent"
+                      ? "Check your email"
+                      : "We could not send that link"}
+                </p>
+                <p className="font-system text-[14px] leading-relaxed text-white/70">
+                  {linkState.status === "sent" ? (
+                    <>
+                      We sent a one tap login link to{" "}
+                      <span className="font-semibold text-white">{emailValue.trim()}</span>. Open it
+                      on this phone and your plan, your streak and your history are all waiting.
+                    </>
+                  ) : linkState.status === "sending" ? (
+                    "Sending your login link."
+                  ) : (
+                    linkState.message
+                  )}
+                </p>
+              </div>
+
+              {/* When the link is on its way there is nothing to press: the
+                  next step is in her inbox, so the loud button would be
+                  competing with it. When the send failed there is exactly one
+                  thing to press, and it gets the emphasis. */}
+              {linkState.status === "error" ? (
+                <button
+                  type="button"
+                  onClick={() => welcomeBack(emailValue.trim())}
+                  className="flex h-[52px] w-full items-center justify-center rounded-full bg-paywall-cta font-system text-[16px] font-bold text-white"
+                >
+                  Try again
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => welcomeBack(emailValue.trim())}
+                  disabled={linkState.status === "sending"}
+                  className="flex h-12 w-full items-center justify-center rounded-full border border-white/15 font-system text-[15px] font-semibold text-white/85 disabled:opacity-50"
+                >
+                  Send it again
+                </button>
+              )}
+
+              <a
+                href="/app"
+                className="flex min-h-[44px] w-full items-center justify-center font-system text-[14px] font-semibold text-white/70 underline underline-offset-4"
+              >
+                Log in another way
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("email");
+                  setLinkState({ status: "idle", message: null });
+                }}
+                className="min-h-[44px] font-system text-[13px] font-medium text-white/55 underline underline-offset-2"
+              >
+                That is not my email address
+              </button>
+            </div>
+          )}
+
+          {stripe && step !== "pay" && step !== "paying" && step !== "known" && (
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -405,6 +529,15 @@ function PaymentStep({
         email,
         pending: status === "processing",
       });
+      // HER ACCOUNT IS THIS PAYMENT. /welcome hands this secret to
+      // /api/session-from-payment, which asks Stripe whose payment it is and
+      // signs her in as that person. It is the whole reason nobody has to pick
+      // a Google account after paying, so do not drop it on the way past.
+      //
+      // The 3-D Secure path does not come through here at all: Stripe redirects
+      // the browser and puts the same secret in the return URL, which /welcome
+      // reads instead.
+      stashPaidIntent(intent?.clientSecret);
       try {
         await onPaid?.({
           email,

@@ -28,7 +28,10 @@ import {
   trackEmailChoice, trackFunnelStep, trackGoalChosen, trackHealthAnswers,
   trackPaywallReached,
 } from "@/lib/analytics";
+import { hasActivePlan } from "@/lib/identity";
+import { isEntitled } from "@/lib/entitlement";
 import FunnelAside from "./FunnelAside";
+import RecognisedScreen from "./RecognisedScreen";
 import LandingScreen from "./LandingScreen";
 import WelcomeScreen from "./WelcomeScreen";
 import SelectGoalScreen from "./SelectGoalScreen";
@@ -115,6 +118,17 @@ export default function Funnel({ onReachPaywall }) {
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(STEP.welcome);
   const [profile, setProfile] = useState(emptyProfile);
+  // True for the one round trip between "she gave us her address" and knowing
+  // whether we are already charging her for this.
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  // "Has this browser already bought the thing this page is selling."
+  //
+  // Read after mount and never during render: this is a static export, so the
+  // HTML for "/" is built once on a machine with no localStorage, and deciding
+  // anything from storage during the first client render is a hydration
+  // mismatch that throws the whole tree away. It starts false, which is the
+  // prerendered state, and flips one frame later for the member who needs it.
+  const [returning, setReturning] = useState(false);
   const screenRef = useRef(null);
   const isFirstScreen = useRef(true);
 
@@ -138,6 +152,14 @@ export default function Funnel({ onReachPaywall }) {
     if (!hydrated) return;
     writeFunnelState(step, profile);
   }, [hydrated, step, profile]);
+
+  // Only ever consulted on the landing step, and only to stop selling. It can
+  // say yes to somebody whose subscription has since been cancelled, which is
+  // why what it swaps in is a door to /app and never an unlock: the gate there
+  // asks Stripe.
+  useEffect(() => {
+    setReturning(isEntitled());
+  }, []);
 
   // --- Clarity: which rung she is standing on -------------------------------
   //
@@ -240,6 +262,34 @@ export default function Funnel({ onReachPaywall }) {
     [chooseGoal, patch, profile.startedAt]
   );
 
+  /**
+   * She gave us her address. Before anything else, ask quietly whether we are
+   * already charging her for this.
+   *
+   * This is the earliest point in the funnel where the question can be asked at
+   * all, and it is the last point where the answer still saves her something: a
+   * plan reveal for a plan she has, a paywall for a price she pays, and a
+   * checkout that would have refused her at the very end with "that email
+   * already has an active plan". If the answer is yes she goes to
+   * RecognisedScreen and the selling stops.
+   *
+   * hasActivePlan never throws and gives up after three seconds, so the worst
+   * case is the funnel she was about to see anyway, three seconds later. The
+   * button says "One moment" while it waits rather than sitting dead.
+   */
+  const submitEmail = useCallback(
+    async (email) => {
+      // "given", never the address. The field itself is masked.
+      trackEmailChoice("given");
+      patch({ email, emailAsked: true });
+      setCheckingEmail(true);
+      const known = await hasActivePlan(email);
+      setCheckingEmail(false);
+      setStep(known ? STEP.recognised : STEP.planReveal);
+    },
+    [patch]
+  );
+
   const reachPaywall = useCallback(() => {
     const finished = { ...profile, reachedPaywallAt: new Date().toISOString() };
     // Written here rather than left to the effect below. Handing over swaps the
@@ -307,18 +357,23 @@ export default function Funnel({ onReachPaywall }) {
         return (
           <EmailCaptureScreen
             profile={profile}
-            onSubmit={(email) => {
-              // "given", never the address. The field itself is masked.
-              trackEmailChoice("given");
-              patch({ email, emailAsked: true });
-              setStep(STEP.planReveal);
-            }}
+            busy={checkingEmail}
+            onSubmit={submitEmail}
             onSkip={() => {
               trackEmailChoice("skipped");
               patch({ emailAsked: true });
               setStep(STEP.planReveal);
             }}
             onBack={goBack}
+          />
+        );
+      case STEP.recognised:
+        return (
+          <RecognisedScreen
+            email={profile.email}
+            onBack={goBack}
+            onNotMe={() => setStep(STEP.email)}
+            onContinueAnyway={() => setStep(STEP.planReveal)}
           />
         );
       case STEP.planReveal:
@@ -328,7 +383,7 @@ export default function Funnel({ onReachPaywall }) {
         );
       case STEP.welcome:
       default:
-        return <WelcomeScreen onNext={() => start()} />;
+        return <WelcomeScreen onNext={() => start()} returning={returning} />;
     }
   };
 
@@ -355,7 +410,7 @@ export default function Funnel({ onReachPaywall }) {
           as it was; from 704px up the marketing page is. */}
       {isWelcome ? (
         <div className="hidden tab:block">
-          <LandingScreen onStart={start} />
+          <LandingScreen onStart={start} returning={returning} />
         </div>
       ) : null}
 

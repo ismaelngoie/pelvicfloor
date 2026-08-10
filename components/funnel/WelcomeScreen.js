@@ -247,7 +247,13 @@ function Butterflies({ count, tint, zClass }) {
   );
 }
 
-export default function WelcomeScreen({ onNext }) {
+/**
+ * @param {object} props
+ * @param {Function} props.onNext
+ * @param {boolean} [props.returning]  this browser already carries a live paid
+ *   entitlement. See the note over the footer buttons.
+ */
+export default function WelcomeScreen({ onNext, returning = false }) {
   const rise = (i) => ({ animationDelay: `${0.2 + i * 0.12}s` });
 
   return (
@@ -312,10 +318,55 @@ export default function WelcomeScreen({ onNext }) {
               </span>
             </span>
           </div>
-          <PrimaryButton onClick={onNext} variant="solid" breathe>
-            {WELCOME_CTA}
-          </PrimaryButton>
-          <MemberCounter />
+          {/* SHE HAS ALREADY BOUGHT THIS, SO DO NOT SELL IT TO HER AGAIN.
+              `returning` is true when this browser is carrying a live paid
+              entitlement, which is what the checkout writes the second a card
+              clears (components/funnel/CheckoutSheet.jsx). Without this swap, a
+              member who pays, closes the tab and types pelvi.health the next
+              morning gets the acquisition pitch: "Start My 5-Min Journey", the
+              member counter, and her own plan hidden in a 14px line underneath.
+              It is the funnel loop the owner reported, one document further
+              out, and it is the first thing she sees. */}
+          {returning ? (
+            <a
+              href="/app"
+              className="funnel-breathe flex h-14 w-full items-center justify-center rounded-[28px] bg-ios-pink px-4 text-center text-[17px] font-bold leading-tight text-white shadow-[0_4px_10px_rgba(0,0,0,0.25)] transition-transform duration-150 active:scale-[0.98] motion-reduce:active:scale-100 sm:text-[18px]"
+            >
+              Open your plan
+            </a>
+          ) : (
+            <PrimaryButton onClick={onNext} variant="solid" breathe>
+              {WELCOME_CTA}
+            </PrimaryButton>
+          )}
+
+          {returning ? null : <MemberCounter />}
+
+          {/* THE OTHER DOOR, and on a phone this screen is the only place it can
+              be. Below 704px the desktop marketing page is display:none, so this
+              is what an ad click gets and what a returning member gets when she
+              opens pelvi.health from her home screen. Without this line her only
+              route to a plan she is already paying for was the eight screen
+              funnel that ends at a price.
+              A plain anchor, not next/link: /app is a different document, and
+              app/Clarity.jsx relies on that to keep the recorder out of the
+              member app. */}
+          {returning ? (
+            <button
+              type="button"
+              onClick={onNext}
+              className="flex h-11 w-full items-center justify-center text-[14px] font-semibold text-app-textSecondary"
+            >
+              Not you? Start a new plan
+            </button>
+          ) : (
+            <a
+              href="/app"
+              className="flex h-11 w-full items-center justify-center text-[14px] font-semibold text-app-primaryInk"
+            >
+              Already have an account? Log in
+            </a>
+          )}
 
           {/* THIS SCREEN IS THE LANDING PAGE FOR EVERY PAID CLICK ON A PHONE.
               The desktop marketing page (LandingScreen.jsx) has carried a

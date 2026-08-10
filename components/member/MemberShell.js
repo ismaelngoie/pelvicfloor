@@ -8,13 +8,16 @@
 // The locked screen is a recovery screen, not a wall: most people who land on
 // it already paid, on a phone or in another browser, and the fix is one tap.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Lightbulb, Loader2, MessageCircle, PlayCircle, ShieldCheck, User,
+  Home, Lightbulb, Loader2, MailCheck, MessageCircle, PlayCircle, ShieldCheck, User,
 } from "lucide-react";
 import { useMember } from "./MemberProvider";
+import { isValidEmail } from "@/lib/checkout";
+import { isEntitled } from "@/lib/entitlement";
+import { linkSignInLikelyOff } from "@/lib/identity";
 import { restorePurchase } from "@/lib/memberBilling";
 import { usePrefersReducedMotion } from "./VideoPlayer";
 
@@ -26,12 +29,117 @@ const TABS = [
   { href: "/app/you", label: "You", Icon: User },
 ];
 
+/**
+ * Where each tab was left, so coming back to it feels like coming back.
+ *
+ * A UITabBarController gives every tab its own navigation stack and its own
+ * scroll offset: she reads half of Insights, checks Today, taps Insights again
+ * and she is on the same paragraph. A router swaps one page component for
+ * another inside ONE scroll container, and Next then scrolls that container to
+ * the top of the new page, so every tab change threw her back to the header.
+ * Twelve lines of memory is the difference between "a website with tabs" and
+ * "the app".
+ *
+ * Module scope, not state: it must survive the component remounting, and it is
+ * deliberately not persisted — a fresh visit starts at the top, as it does on
+ * the phone after a cold launch.
+ */
+const tabScroll = new Map();
+
+// This is a static export, so every one of these files is also rendered on a
+// build machine with no DOM. `useLayoutEffect` warns loudly there and does
+// nothing useful, so the server gets the passive one and the browser gets the
+// one that runs before paint.
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/** Below 704px the marketing frame's <main> scrolls; above it the shell does. */
+function scrollHost() {
+  if (typeof document === "undefined") return null;
+  const shellScroller = document.querySelector(".pv-member-scroll");
+  if (shellScroller && shellScroller.scrollHeight > shellScroller.clientHeight + 1) {
+    return shellScroller;
+  }
+  return document.querySelector("main") || shellScroller;
+}
+
+/** The path whose offset the scroll container is showing right now. */
+let showingPath = null;
+
+/** Bank where this tab is. Cheap enough to call on every scroll event. */
+function rememberScroll() {
+  const host = scrollHost();
+  if (host && showingPath) tabScroll.set(showingPath, host.scrollTop);
+}
+
+function useTabScrollMemory(pathname) {
+  // Record continuously rather than only on the way out: the tab bar is a
+  // <Link>, so by the time an effect sees the new path the old page has already
+  // been unmounted and its offset is gone.
+  //
+  // Written straight out of the handler with no rAF in the way: a backgrounded
+  // browser tab runs no animation frames, so a rAF here would stop recording at
+  // exactly the moment the last offset matters. The tab links call
+  // rememberScroll() on the way out too, which is the one that is provably
+  // exact — a scroll event can still be in flight when the click lands.
+  useEffect(() => {
+    const host = scrollHost();
+    if (!host) return undefined;
+    host.addEventListener("scroll", rememberScroll, { passive: true });
+    return () => host.removeEventListener("scroll", rememberScroll);
+  }, [pathname]);
+
+  // Restore. The tab links pass `scroll={false}`, so the router leaves the
+  // container alone and this is the only thing that moves it — no fighting an
+  // ancestor's scroll-to-top, and no frame where she sees the header of a page
+  // she was halfway down.
+  useIsomorphicLayoutEffect(() => {
+    if (showingPath === pathname) return undefined;
+    showingPath = pathname;
+
+    const host = scrollHost();
+    if (!host) return undefined;
+    const target = tabScroll.get(pathname) ?? 0;
+    host.scrollTop = target;
+    if (host.scrollTop >= target) return undefined;
+
+    // She is coming back to a tab that is still fetching. A shelf of exercises
+    // that has not arrived yet cannot be scrolled past, so the browser clamps
+    // the offset to whatever is on the page right now and the restore silently
+    // becomes "top". Keep re-applying while the page grows, and stop the moment
+    // it fits, she touches the screen, or the fetch has plainly failed.
+    const stop = () => {
+      clearTimeout(timer);
+      observer.disconnect();
+      for (const type of ["wheel", "touchstart", "keydown"]) {
+        host.removeEventListener(type, stop);
+      }
+    };
+    const observer = new ResizeObserver(() => {
+      if (host.scrollTop < target) host.scrollTop = target;
+      if (host.scrollTop >= target) stop();
+    });
+    observer.observe(host.firstElementChild || host);
+    const timer = setTimeout(stop, 2500);
+    for (const type of ["wheel", "touchstart", "keydown"]) {
+      host.addEventListener(type, stop, { passive: true });
+    }
+    return stop;
+  }, [pathname]);
+}
+
 export default function MemberShell({ children }) {
-  const { authState, member, entitlement, entitlementChecking, memberError } = useMember();
+  const {
+    authState, member, entitlement, entitlementChecking, memberError, linkRedeeming,
+  } = useMember();
+  useTabScrollMemory(usePathname());
 
   if (authState === "loading" || (authState === "signedIn" && !member && !memberError)) {
     return <Splash label="Opening your plan" />;
   }
+  // She tapped the link we emailed her and it is being exchanged for a session
+  // right now. Showing a sign-in screen in that second would be asking her to
+  // do the thing she has just done.
+  if (linkRedeeming) return <Splash label="Signing you in" />;
   if (authState === "signedOut") return <SignInScreen />;
   if (memberError) return <RetryScreen message={memberError} />;
   // Wait for Stripe's first answer before calling anybody locked out, or a
@@ -94,6 +202,12 @@ function TabBar() {
             <li key={href} className="flex-1">
               <Link
                 href={href}
+                // The shell owns the scroll position of every tab (see
+                // useTabScrollMemory). Leave this on and the router scrolls the
+                // container to the top of the new page after the restore has
+                // run, and every tab change lands on the header again.
+                scroll={false}
+                onClick={rememberScroll}
                 aria-current={active ? "page" : undefined}
                 className={`flex h-[62px] flex-col items-center justify-center gap-1 ${
                   active ? "text-ios-pink" : "text-app-textSecondary"
@@ -152,6 +266,8 @@ function SideNav() {
             <li key={href}>
               <Link
                 href={href}
+                scroll={false}
+                onClick={rememberScroll}
                 aria-current={active ? "page" : undefined}
                 title={label}
                 className={`flex min-h-[48px] items-center justify-center gap-3 rounded-2xl px-2 lg:justify-start lg:px-3.5 ${
@@ -226,8 +342,76 @@ function Frame({ children }) {
   );
 }
 
+/**
+ * LOG IN. Not "restore", and not "sign up".
+ *
+ * Two things about this screen are deliberate and were both wrong before.
+ *
+ * 1. THE ADDRESS IS THE DOOR, not a Google account. She joined by paying, and
+ *    she paid with an email address. So that address is what she is asked for,
+ *    and a one tap link goes to it. No password to invent, no Google account to
+ *    own, and the session it produces carries a verified address, which is the
+ *    only thing lib/memberStore.js can join her iPhone record on. Google stays,
+ *    under it, for the people who prefer it. It is no longer the only door.
+ *
+ * 2. THERE IS NO "I am new here" LINK ANY MORE, AND ONE MUST NOT COME BACK.
+ *    It used to sit at the bottom of this screen pointing at "/", which is the
+ *    marketing funnel. A member who had paid ninety seconds earlier, and who was
+ *    looking at this screen precisely because the product had failed to sign her
+ *    in, tapped it and was walked through the entire eight screen funnel to a
+ *    paywall for the plan she already owned. Anybody who reaches this screen has
+ *    an account. The way out of here is in, not round again.
+ */
 function SignInScreen() {
-  const { signIn, signingIn, configured, memberError } = useMember();
+  const {
+    signIn, signingIn, configured, memberError, linkState, signInWithLink, confirmLinkEmail,
+  } = useMember();
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const confirming = linkState.status === "confirm";
+  const sent = linkState.status === "sent";
+  const valid = isValidEmail(email);
+
+  // THE LINK IS THE HEADLINE DOOR ON THIS SCREEN, AND IT CAN BE SHUT.
+  //
+  // "Email link (passwordless sign-in)" is a checkbox in the Firebase console,
+  // not a line in this repo, and while it is off sendSignInLinkToEmail answers
+  // OPERATION_NOT_ALLOWED for everybody. This screen then reads as broken: the
+  // biggest control on it is an email field and a button that cannot ever
+  // work, and Google — which does work — is a grey outline under a divider.
+  //
+  // So when this browser has already watched a send be refused, the two swap
+  // places. Nothing is hidden and nothing is disabled: she can still ask for a
+  // link, in case the switch has been thrown since. What changes is which door
+  // is offered first, which is the difference between a member getting in and a
+  // member emailing support.
+  //
+  // Read after mount, never during render: localStorage does not exist on the
+  // build machine that exports this page.
+  const [linkOff, setLinkOff] = useState(false);
+  useEffect(() => {
+    setLinkOff(linkSignInLikelyOff());
+  }, [linkState.status]);
+  // Confirming an address is not a send, so the field is still the only thing
+  // that can finish it and it keeps the emphasis.
+  const googleFirst = linkOff && !confirming;
+
+  const submit = useCallback(
+    async (event) => {
+      event.preventDefault();
+      if (!valid || busy) return;
+      setBusy(true);
+      // Two different jobs behind one button. Normally we are SENDING her a
+      // link; when she has just opened one in a browser that does not remember
+      // which address it was for, Firebase needs her to name it before it will
+      // redeem the code, and that is what she is answering instead.
+      if (confirming) await confirmLinkEmail(email.trim());
+      else await signInWithLink(email.trim());
+      setBusy(false);
+    },
+    [busy, confirming, confirmLinkEmail, email, signInWithLink, valid]
+  );
 
   if (!configured) {
     return (
@@ -249,37 +433,146 @@ function SignInScreen() {
     );
   }
 
+  if (sent) {
+    return (
+      <Frame>
+        <span
+          aria-hidden="true"
+          className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-ios-pink/10"
+        >
+          <MailCheck className="h-7 w-7 text-ios-pink" />
+        </span>
+        <h1 className="text-[26px] font-bold leading-[1.1] tracking-[-0.4px] text-app-textPrimary">
+          Check your email.
+        </h1>
+        <p className="mt-3 text-[16px] leading-snug text-app-textSecondary">
+          We sent a login link to{" "}
+          <span className="font-semibold text-app-textPrimary">{linkState.email}</span>. Open it on
+          this phone and you are straight in. It works once and it does not expire for an hour.
+        </p>
+        <button
+          type="button"
+          onClick={() => signInWithLink(linkState.email)}
+          className="mt-8 flex h-12 w-full items-center justify-center rounded-full border border-app-borderIdle bg-white text-[15px] font-semibold text-app-textPrimary"
+        >
+          Send it again
+        </button>
+        <button
+          type="button"
+          onClick={signIn}
+          disabled={signingIn}
+          className="mt-3 h-11 text-[14px] font-semibold text-ios-pink disabled:opacity-60"
+        >
+          {signingIn ? "Opening..." : "Use Google instead"}
+        </button>
+      </Frame>
+    );
+  }
+
   return (
     <Frame>
       <h1 className="text-[28px] font-bold leading-[1.1] tracking-[-0.4px] text-app-textPrimary">
         Welcome back.
       </h1>
       <p className="mt-3 text-[16px] leading-snug text-app-textSecondary">
-        Sign in with the email you used when you joined, and your plan, your streak and
-        your history come straight across from the app.
+        {confirming
+          ? linkState.message
+          : googleFirst
+            ? "Use the same email you joined with and your plan, your streak and your history all come with you."
+            : "Enter the email you joined with. We will send you a link that logs you straight in, and your plan, your streak and your history come with it."}
       </p>
 
-      <button
-        type="button"
-        onClick={signIn}
-        disabled={signingIn}
-        className="mt-8 flex h-14 w-full items-center justify-center gap-3 rounded-full bg-ios-pink text-[17px] font-bold text-white disabled:opacity-60"
-      >
-        {signingIn ? "Opening..." : "Continue with Google"}
-      </button>
+      {googleFirst ? (
+        <>
+          <button
+            type="button"
+            onClick={signIn}
+            disabled={signingIn}
+            className="mt-7 flex h-14 w-full items-center justify-center gap-3 rounded-full bg-ios-pink text-[17px] font-bold text-white disabled:opacity-60"
+          >
+            {signingIn ? "Opening..." : "Continue with Google"}
+          </button>
+          <div className="my-7 flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-app-borderIdle" />
+            <span className="text-[12px] font-semibold uppercase tracking-wider text-app-textSecondary">
+              or
+            </span>
+            <span className="h-px flex-1 bg-app-borderIdle" />
+          </div>
+        </>
+      ) : null}
 
+      <form onSubmit={submit} className={`${googleFirst ? "" : "mt-7 "}flex flex-col gap-3 text-left`}>
+        <label htmlFor="member-login-email" className="sr-only">
+          Your email address
+        </label>
+        <input
+          id="member-login-email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          autoCapitalize="none"
+          spellCheck="false"
+          // Everything under this shell is masked from session replay, and the
+          // attribute is repeated on the field itself so it stays masked
+          // whatever a dashboard setting does later.
+          data-clarity-mask="true"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@example.com"
+          className="h-[54px] w-full rounded-[16px] border border-app-borderIdle bg-white px-4 text-center text-[16px] text-app-textPrimary outline-none transition-colors focus:border-ios-pink"
+        />
+        <button
+          type="submit"
+          disabled={!valid || busy || linkState.status === "sending"}
+          className={`flex h-14 w-full items-center justify-center rounded-full text-[17px] font-bold disabled:opacity-60 ${
+            googleFirst
+              ? "border border-app-borderIdle bg-white font-semibold text-app-textPrimary"
+              : "bg-ios-pink text-white"
+          }`}
+        >
+          {busy || linkState.status === "sending"
+            ? "One moment..."
+            : confirming
+              ? "Open my plan"
+              : "Email me a login link"}
+        </button>
+      </form>
+
+      {linkState.status === "error" && linkState.message && (
+        <p role="alert" className="mt-4 text-[14px] leading-snug text-app-textPrimary">
+          {linkState.message}
+        </p>
+      )}
       {memberError && (
         <p role="alert" className="mt-4 text-sm text-app-primary">{memberError}</p>
       )}
 
-      <p className="mt-6 text-[13px] leading-relaxed text-app-textSecondary">
-        We match you by your email address. It is the same account, whichever device you
-        pick up.
-      </p>
+      {googleFirst ? null : (
+        <>
+          <div className="my-7 flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-app-borderIdle" />
+            <span className="text-[12px] font-semibold uppercase tracking-wider text-app-textSecondary">
+              or
+            </span>
+            <span className="h-px flex-1 bg-app-borderIdle" />
+          </div>
 
-      <Link href="/" className="mt-8 inline-block text-[14px] font-semibold text-ios-pink">
-        I am new here
-      </Link>
+          <button
+            type="button"
+            onClick={signIn}
+            disabled={signingIn}
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-full border border-app-borderIdle bg-white text-[17px] font-semibold text-app-textPrimary disabled:opacity-60"
+          >
+            {signingIn ? "Opening..." : "Continue with Google"}
+          </button>
+        </>
+      )}
+
+      <p className="mt-6 text-[13px] leading-relaxed text-app-textSecondary">
+        We match you by your email address, so it is the same account whichever way you come
+        in and whichever device you pick up.
+      </p>
     </Frame>
   );
 }
@@ -307,11 +600,38 @@ function RetryScreen({ message }) {
  * Signed in, no live subscription on the record. Almost always this is someone
  * who paid somewhere else, so the first thing offered is the lookup, not a
  * price.
+ *
+ * THE SECOND LOOP, AND IT WAS STILL OPEN. The bug the owner reported was a
+ * link on the sign-in screen that walked a member who had just paid back
+ * through the eight screen funnel to a paywall for the plan she already owned.
+ * That link was removed from SignInScreen and left standing here, on the one
+ * screen a paying member is MORE likely to hit: this is what she sees when the
+ * entitlement check has not caught up (a first web purchase Stripe has not
+ * linked yet), when /api/entitlement cannot be reached at all (offline, a cold
+ * Worker, an expired token), and when her iPhone record could not be joined by
+ * email. In every one of those cases she has paid and "See the plan and join"
+ * was the biggest button under the fold.
+ *
+ * So the funnel is offered ONLY on positive evidence that she is not a member:
+ * Stripe was actually reached, it said no, and nothing on this browser or on
+ * her record says otherwise. `state === "none"` is the only state that means
+ * that. "idle", "checking", "slow" and "error" all mean WE DO NOT KNOW, and the
+ * answer to not knowing is never a price.
  */
 function LockedScreen() {
   const { member, user, refreshMember, refreshEntitlement, signOut } = useMember();
   const [state, setState] = useState("idle"); // idle | checking | none | slow | error
   const email = (member?.email || user?.email || "").trim().toLowerCase();
+
+  // Everything that says "this person has already bought something", whether or
+  // not Stripe can see it this second. Any one of them is enough to keep the
+  // funnel off this screen for good.
+  const hasPaidBefore = Boolean(
+    isEntitled() ||
+      member?.programStartedAt ||
+      member?.entitlement ||
+      (member?.platform || "").toLowerCase() === "ios"
+  );
 
   const restore = useCallback(async () => {
     if (!email) { setState("none"); return; }
@@ -359,13 +679,23 @@ function LockedScreen() {
         <ShieldCheck className="h-7 w-7 text-app-primary" aria-hidden="true" />
       </div>
 
+      {/* Three headings, because three different things have happened and only
+          one of them is "you have no plan". Telling a member whose card cleared
+          an hour ago, or whose phone is on a train with no signal, that we
+          cannot see a plan on her account is a claim we have not earned. */}
       <h1 className="mt-5 text-[24px] font-bold leading-tight text-app-textPrimary">
-        {state === "checking" ? "Looking for your plan" : "We cannot see a live plan on this account."}
+        {state === "checking"
+          ? "Looking for your plan"
+          : state === "error" || state === "slow"
+            ? "We could not check your plan just now."
+            : "We cannot see a live plan on this account."}
       </h1>
       <p className="mt-3 text-[15px] leading-snug text-app-textSecondary">
         {state === "checking"
           ? `One moment. We are checking ${email || "this account"} with our billing system.`
-          : `You are signed in as ${email || "this account"}. If you already joined, tap below and we will find your subscription and open everything up.`}
+          : state === "error"
+            ? `You are signed in as ${email || "this account"}. Nothing has changed about your plan, we simply could not reach our billing system. Try again in a moment.`
+            : `You are signed in as ${email || "this account"}. If you already joined, tap below and we will find your subscription and open everything up.`}
       </p>
 
       <button
@@ -397,12 +727,21 @@ function LockedScreen() {
         </p>
       )}
 
-      <Link
-        href="/"
-        className="mt-6 flex h-12 w-full items-center justify-center rounded-full border border-app-borderIdle bg-white text-[15px] font-semibold text-app-textPrimary"
-      >
-        See the plan and join
-      </Link>
+      {/* THE ONLY WAY BACK INTO THE FUNNEL FROM THE PAID AREA, AND IT IS
+          FENCED. Read the note on this component before widening either half of
+          the condition. `state === "none"` means we reached Stripe and Stripe
+          said no; `hasPaidBefore` is every other signal that she has already
+          bought something. A member who has paid must never be able to reach a
+          paywall from here, and "we do not know yet" is not evidence that she
+          has not paid. */}
+      {state === "none" && !hasPaidBefore ? (
+        <Link
+          href="/"
+          className="mt-6 flex h-12 w-full items-center justify-center rounded-full border border-app-borderIdle bg-white text-[15px] font-semibold text-app-textPrimary"
+        >
+          See the plan and join
+        </Link>
+      ) : null}
 
       <div className="mt-8 space-y-3 text-[13px] text-app-textSecondary">
         <a href="mailto:hello@pelvi.health" className="block font-semibold text-ios-pink">

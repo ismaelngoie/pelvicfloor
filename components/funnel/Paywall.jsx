@@ -70,7 +70,7 @@ import {
 import { DEFAULT_PRICE_LABEL } from "@/lib/checkout";
 import { trackCheckoutOpened, trackRestoreOpened } from "@/lib/analytics";
 import CheckoutSheet from "./CheckoutSheet";
-import RestoreSheet from "./RestoreSheet";
+import LoginSheet from "./LoginSheet";
 import {
   useCountUp,
   usePageChrome,
@@ -176,7 +176,7 @@ export default function Paywall({
 
   const [openFaq, setOpenFaq] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [setupFailed, setSetupFailed] = useState(false);
 
   const buttonLabel = setupFailed ? CONNECTION_FAILED_CTA : ctaLabel(gid);
@@ -399,16 +399,14 @@ export default function Paywall({
           className="pw-rise mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2"
           style={{ animationDelay: "320ms" }}
         >
-          <button
-            type="button"
-            onClick={() => {
-              setRestoreOpen(true);
-              trackRestoreOpened();
-            }}
-            className="min-h-[44px] font-system text-[13px] font-medium text-white/60 underline decoration-white/25 underline-offset-2"
-          >
-            Restore Purchase
-          </button>
+          {/* "Restore Purchase" used to be here, in this row, at 13px, between
+              Terms and Privacy. Two things were wrong with that. The words are
+              App Store words: on the web there is no store to ask and nothing to
+              restore, there is only a member logging in. And a woman who has
+              already paid, and who is looking at a price for the plan she owns,
+              needs that door to be the most findable thing on the screen, not
+              the least. It has moved to the footer, above the button that would
+              charge her a second time. */}
           {/* /terms and /privacy-policy. These used to point at two static
               files that described a different product: the terms named
               vagitight.com and shipped literal [[COMPANY NAME]] placeholders,
@@ -446,6 +444,21 @@ export default function Paywall({
         className="pw-rise relative z-20 shrink-0 bg-gradient-to-t from-[#0A0A10] via-[#0A0A10]/95 to-[#0A0A10]/[0.72] px-[25px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-4"
         style={{ animationDelay: "380ms" }}
       >
+        {/* ABOVE the price, because it is the one thing on this screen a member
+            who has already paid needs, and she should not have to scroll a sales
+            page to find it. A tap opens the log in sheet; nothing about it can
+            let anyone in on its own. */}
+        <button
+          type="button"
+          onClick={() => {
+            setLoginOpen(true);
+            trackRestoreOpened();
+          }}
+          className="mb-3 flex min-h-[44px] w-full items-center justify-center rounded-full border border-white/20 font-system text-[14px] font-semibold text-white/85 transition-colors active:bg-white/10"
+        >
+          Already have an account? Log in
+        </button>
+
         <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center font-system text-[11px] font-medium text-white/65">
           {ladderRungs.map((rung) => (
             <span key={rung} className="whitespace-nowrap">
@@ -496,7 +509,7 @@ export default function Paywall({
         onSetupError={() => setSetupFailed(true)}
       />
 
-      <RestoreSheet open={restoreOpen} onClose={() => setRestoreOpen(false)} email={email} />
+      <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} email={email} />
     </section>
   );
 }
