@@ -68,12 +68,16 @@ export default function ProgressCharts() {
               aria-hidden="true"
             />
             {weeks.map((week) => (
-              <div key={week.key} className="flex h-full flex-1 flex-col justify-end gap-1.5">
+              <div key={week.key} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
                 {/* A week with no sessions gets no bar. A 2 percent stub of the
                     same pink read as "a bit of activity" on the one chart that
-                    is supposed to answer whether this is working. */}
+                    is supposed to answer whether this is working.
+
+                    The cap is for the desktop card: eight bars sharing 1000px
+                    are 125px wide each, which stops reading as a chart and
+                    starts reading as a row of coloured panels. */}
                 <div
-                  className={`w-full rounded-t-md ${
+                  className={`w-full max-w-[68px] rounded-t-md ${
                     week.count === 0
                       ? "bg-app-borderIdle"
                       : week.count >= SESSIONS_PER_WEEK
@@ -117,9 +121,9 @@ export default function ProgressCharts() {
 
           <div className="mt-4 flex h-[92px] items-end gap-1.5">
             {feelings.map((point) => (
-              <div key={point.key} className="flex h-full flex-1 flex-col justify-end">
+              <div key={point.key} className="flex h-full flex-1 flex-col items-center justify-end">
                 <div
-                  className="w-full rounded-t-md bg-app-primary"
+                  className="w-full max-w-[40px] rounded-t-md bg-app-primary"
                   style={{ height: `${(point.value / 5) * 100}%`, opacity: 0.35 + (point.value / 5) * 0.65 }}
                 />
               </div>

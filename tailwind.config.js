@@ -11,8 +11,31 @@ module.exports = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  future: {
+    // Compiles every `hover:` utility inside `@media (hover: hover)`. Without
+    // it a tapped card on a phone keeps its hover skin until something else is
+    // tapped, and on a 1210px iPad in landscape the desktop layout is live
+    // while hover is not, so a hover-only affordance is simply unreachable.
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
+      // Two extra stops on top of the stock scale. Stock stays stock, so
+      // sm/md/lg/xl still mean what everyone already thinks they mean.
+      //
+      // `tab` is the one that earns its keep. An iPad mini in portrait is
+      // 744px, which stock Tailwind files under `sm` — so it would get the
+      // phone layout stretched to 744px, and a Galaxy Z Fold unfolded (883px)
+      // falls in the same hole. 704 sits below both and above every phone in
+      // landscape, so it is where "this is a tablet" is actually true.
+      //
+      // Values are px, not rem, because the stock v3 scale is px and the
+      // breakpoint sort is unit-naive: mixing the two silently reorders them.
+      screens: {
+        xs: '416px',   // large phone
+        tab: '704px',  // tablet mode starts here
+        '3xl': '1920px', // the cap; nothing gets wider or denser past this
+      },
       colors: {
         app: {
           primary: '#E65473',      // appPrimaryAccent

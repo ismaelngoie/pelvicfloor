@@ -23,7 +23,8 @@ import {
 } from "firebase/auth";
 import { ADMIN_EMAIL, auth, isAdminEmail, isFirebaseConfigured } from "@/lib/firebase";
 import { fetchAllMembers } from "@/lib/adminData";
-import { formatDateTime } from "@/lib/adminMetrics";
+import { formatDateTime, normalizeMember } from "@/lib/adminMetrics";
+import { FIXTURES_ON } from "@/lib/devFixtures";
 import Overview, { OverviewSkeleton } from "./Overview";
 import Members, { MembersSkeleton } from "./Members";
 import { Button, Card, ErrorState, Segmented } from "./ui";
@@ -79,6 +80,120 @@ function Gate({ title, description, children, footnote }) {
         ) : null}
       </Card>
     </div>
+  );
+}
+
+/**
+ * The desktop navigation, from 1024px up.
+ *
+ * There are only two sections, which on its own would not justify a sidebar.
+ * What justifies it is everything else it holds: when the numbers were counted,
+ * the control that counts them again, and who is signed in. In the top bar
+ * those sat in a row at the far right of a 1440px screen, a metre away from the
+ * numbers they describe. Here they are one column, read top to bottom.
+ */
+function Sidebar({ tab, onTab, countedAt, dataState, onRefresh, theme, onTheme, email, onSignOut }) {
+  const busy = dataState === "loading" || dataState === "refreshing";
+
+  return (
+    <nav className="pv-sidebar" aria-label="Dashboard sections">
+      <div className="px-3 pb-6 pt-1">
+        <Wordmark />
+      </div>
+
+      <ul className="space-y-1">
+        {[
+          { id: "overview", label: "Overview", hint: "Numbers and charts" },
+          { id: "members", label: "Members", hint: "Everyone, one by one" },
+        ].map((item) => {
+          const selected = item.id === tab;
+          return (
+            <li key={item.id}>
+              <button
+                type="button"
+                onClick={() => onTab(item.id)}
+                aria-current={selected ? "page" : undefined}
+                className="flex w-full flex-col items-start gap-0.5 rounded-xl px-3 py-2.5 text-left transition-colors"
+                style={
+                  selected
+                    ? { background: "var(--pv-surface-2)", color: "var(--pv-ink)" }
+                    : { background: "transparent", color: "var(--pv-ink-2)" }
+                }
+              >
+                <span className="text-[14px] font-semibold">{item.label}</span>
+                <span className="text-[12px]" style={{ color: "var(--pv-ink-3)" }}>
+                  {item.hint}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="mt-auto space-y-3 pt-8">
+        <div
+          className="rounded-xl px-3 py-3"
+          style={{ background: "var(--pv-surface-2)", border: "1px solid var(--pv-border)" }}
+        >
+          <p
+            className="text-[11px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: "var(--pv-ink-3)" }}
+          >
+            Counted
+          </p>
+          <p className="mt-1 text-[12px] leading-snug" style={{ color: "var(--pv-ink-2)" }}>
+            {countedAt ? formatDateTime(countedAt) : "Counting for the first time"}
+          </p>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={busy}
+            className="mt-3 min-h-[36px] w-full rounded-full px-3 text-[13px] font-semibold"
+            style={{
+              background: "var(--pv-surface)",
+              border: "1px solid var(--pv-border)",
+              color: "var(--pv-ink)",
+              opacity: busy ? 0.6 : 1,
+            }}
+          >
+            {dataState === "refreshing" ? "Counting" : "Count again"}
+          </button>
+        </div>
+
+        <div className="px-3">
+          <p className="truncate text-[12px]" style={{ color: "var(--pv-ink-2)" }} title={email}>
+            {email || "Signed in"}
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onTheme}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[14px]"
+              style={{
+                background: "var(--pv-surface-2)",
+                border: "1px solid var(--pv-border)",
+                color: "var(--pv-ink)",
+              }}
+              aria-label={theme === "dark" ? "Switch to the light theme" : "Switch to the dark theme"}
+            >
+              {theme === "dark" ? "☀" : "☾"}
+            </button>
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="min-h-[36px] flex-1 rounded-full px-3 text-[13px] font-semibold"
+              style={{
+                background: "transparent",
+                border: "1px solid var(--pv-border)",
+                color: "var(--pv-ink-2)",
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
   );
 }
 
@@ -140,6 +255,19 @@ export default function AdminDashboard() {
   /* --- Auth ------------------------------------------------------------ */
 
   useEffect(() => {
+    // Local QA only, and dead code in a production bundle. The NODE_ENV test is
+    // repeated here rather than left to FIXTURES_ON because only a literal at
+    // this exact spot lets webpack delete the block, and with it the dynamic
+    // import below. See lib/devFixtures.js.
+    if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
+      let mounted = true;
+      import("@/lib/devFixtureData").then((f) => {
+        if (!mounted) return;
+        setUser(f.fixtureUser);
+        setAuthState("signedIn");
+      });
+      return () => { mounted = false; };
+    }
     if (!configured) return undefined;
 
     let unsubscribe = () => {};
@@ -212,7 +340,13 @@ export default function AdminDashboard() {
     setDataState((current) => (current === "ready" ? "refreshing" : "loading"));
     setDataError("");
     try {
-      const next = await fetchAllMembers();
+      let next;
+      if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
+        const f = await import("@/lib/devFixtureData");
+        next = f.fixtureMembers().map((row) => normalizeMember(row));
+      } else {
+        next = await fetchAllMembers();
+      }
       setMembers(next);
       setCountedAt(new Date());
       setDataState("ready");
@@ -281,8 +415,21 @@ export default function AdminDashboard() {
   } else {
     body = (
       <>
+        <Sidebar
+          tab={tab}
+          onTab={setTab}
+          countedAt={countedAt}
+          dataState={dataState}
+          onRefresh={load}
+          theme={theme}
+          onTheme={toggleTheme}
+          email={user?.email}
+          onSignOut={endSession}
+        />
+
+        <div className="pv-shell-main">
         <header
-          className="pv-safe-x sticky top-0 z-30 shrink-0 pb-3 pt-[max(12px,env(safe-area-inset-top))]"
+          className="pv-safe-x sticky top-0 z-30 shrink-0 pb-3 pt-[max(12px,env(safe-area-inset-top))] lg:hidden"
           style={{
             borderBottom: "1px solid var(--pv-border)",
             background: "var(--pv-canvas)",
@@ -316,7 +463,7 @@ export default function AdminDashboard() {
                   opacity: dataState === "refreshing" ? 0.6 : 1,
                 }}
               >
-                {dataState === "refreshing" ? "Counting" : "Refresh"}
+                {dataState === "refreshing" ? "Counting" : "Count again"}
               </button>
               <button
                 type="button"
@@ -352,7 +499,10 @@ export default function AdminDashboard() {
         </header>
 
         <div className="pv-scroll">
-          <main className="pv-safe-x mx-auto w-full max-w-[1400px] py-6">
+          {/* 1600px, not 1400: with 264px of it now spent on the sidebar, the
+              old cap left the charts narrower on a 1920 screen than they were
+              before the sidebar existed. */}
+          <main className="pv-safe-x mx-auto w-full max-w-[1600px] py-6 lg:pt-8">
             {dataState === "error" ? (
               <Card className="p-4">
                 <ErrorState title="The member list did not load" description={dataError} onRetry={load} />
@@ -374,12 +524,19 @@ export default function AdminDashboard() {
             )}
           </main>
         </div>
+        </div>
       </>
     );
   }
 
   return (
-    <div className="pv-admin" data-admin-theme={theme}>
+    // data-clarity-mask: the same second layer the member app carries, and for
+    // a stronger reason. This screen lists every member by name, email, goal
+    // and billing state at once. Microsoft Clarity is never injected on /admin
+    // (see app/Clarity.jsx), so this only matters if a client-side navigation
+    // ever reaches here from a recorded page, which nothing in the product does
+    // today. It costs nothing and it fails safe.
+    <div className="pv-admin" data-admin-theme={theme} data-clarity-mask="true">
       <div className="pv-shell">
         {authState === "signedIn" && isAdmin ? body : <div className="pv-scroll">{body}</div>}
       </div>

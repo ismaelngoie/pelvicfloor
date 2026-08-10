@@ -53,7 +53,7 @@ export default function Today() {
   const startSession = useCallback(() => openSession(null), [openSession]);
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-8 pt-4">
+    <div className="mx-auto w-full max-w-2xl px-4 pb-8 pt-4 lg:max-w-5xl lg:px-8 lg:pt-6">
       <header className="flex items-start justify-between gap-3 px-1">
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-[14px] font-medium text-app-textSecondary">
@@ -74,6 +74,14 @@ export default function Today() {
         </Card>
       )}
 
+      {/* Two columns from 1024, and one below it.
+          The order is the iOS Dashboard's order top to bottom on a phone, and
+          the split keeps it: the two cards she came here to act on stay first
+          and stay wide, and the two she came here to read move alongside rather
+          than a screen and a half further down. `items-start` so a short right
+          column does not stretch its cards to match the left. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
+        <div>
       {/* 90-Day Journey */}
       <JourneyCard
         goalId={goalId}
@@ -99,10 +107,13 @@ export default function Today() {
         onStart={startSession}
         onPlayFrom={openSession}
       />
+        </div>
 
-      <StreakCard streak={streak} />
-
-      <CheckInCard dateKey={dateKey()} />
+        <div>
+          <StreakCard streak={streak} />
+          <CheckInCard dateKey={dateKey()} />
+        </div>
+      </div>
     </div>
   );
 }

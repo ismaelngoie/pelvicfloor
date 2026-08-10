@@ -316,6 +316,41 @@ export default function WelcomeScreen({ onNext }) {
             {WELCOME_CTA}
           </PrimaryButton>
           <MemberCounter />
+
+          {/* THIS SCREEN IS THE LANDING PAGE FOR EVERY PAID CLICK ON A PHONE.
+              The desktop marketing page (LandingScreen.jsx) has carried a
+              footer with these two links all along; below 704px that page is
+              display:none and this is what an ad click actually gets, and it
+              had no route to a policy at all. Google Ads and Meta both check
+              the destination URL for a reachable privacy policy, and the next
+              screen but three asks her about pelvic pain and bladder leaks, so
+              this is also the last honest moment to offer it before the
+              questions start.
+
+              New tab, so tapping Privacy out of curiosity does not throw away
+              the funnel she is standing in. `space-y-4` on the parent already
+              spaces it; the row itself is one line at 12px, which is the size
+              the skip reassurance on the email screen uses and which
+              app-textSecondary clears AA at. */}
+          <p className="flex items-center justify-center gap-3 text-[12px] text-app-textSecondary">
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2"
+            >
+              Privacy
+            </a>
+            <span aria-hidden="true">&middot;</span>
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2"
+            >
+              Terms
+            </a>
+          </p>
         </div>
       </div>
     </div>

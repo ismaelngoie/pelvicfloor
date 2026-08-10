@@ -137,7 +137,7 @@ export default function Members({ members, onPatched }) {
       ) : (
         <>
           {/* Phone: stacked cards ---------------------------------------- */}
-          <ul className="space-y-2 lg:hidden">
+          <ul className="space-y-2 tab:hidden">
             {rows.map((member, i) => (
               <li key={member.id}>
                 {/* Only spans inside: a button may not contain block elements,
@@ -206,23 +206,35 @@ export default function Members({ members, onPatched }) {
             ))}
           </ul>
 
-          {/* Desktop: a real table --------------------------------------- */}
-          <Card className="hidden overflow-hidden lg:block">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[13px]">
+          {/* Tablet and up: a real table --------------------------------
+              From 704px, not 1024: an iPad in portrait has room for seven
+              columns, and the stacked cards there were a column of address
+              labels. It scrolls sideways between 704 and about 1000, which is
+              why the name column is frozen and the header is sticky.
+
+              The card is flat and solid rather than glass, because the sticky
+              header and the frozen column need an opaque background to sit on
+              and a translucent one would let the rows slide through them. */}
+          <Card
+            flat
+            className="hidden overflow-hidden tab:block"
+            style={{ background: "var(--pv-surface-solid)" }}
+          >
+            <div className="pv-table-scroll">
+              <table className="w-full min-w-[820px] text-left text-[13px]">
                 <caption className="pv-sr">
                   Members, sortable. Use the buttons in each column heading to sort.
                 </caption>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--pv-border)" }}>
-                    {SORT_COLUMNS.map((column) => (
+                    {SORT_COLUMNS.map((column, columnIndex) => (
                       <th
                         key={column.id}
                         scope="col"
                         aria-sort={sortLabel(column)}
-                        className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] ${
+                        className={`pv-th px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] ${
                           column.numeric ? "text-right" : ""
-                        }`}
+                        } ${columnIndex === 0 ? "pv-th-frozen pv-cell-frozen" : ""}`}
                         style={{ color: "var(--pv-ink-3)" }}
                       >
                         <button
@@ -254,7 +266,7 @@ export default function Members({ members, onPatched }) {
                         animationDelay: `${Math.min(i * 10, 200)}ms`,
                       }}
                     >
-                      <td className="px-4 py-3">
+                      <td className="pv-cell-frozen px-4 py-3">
                         <button
                           type="button"
                           onClick={(e) => {

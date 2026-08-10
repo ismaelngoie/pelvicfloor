@@ -5,6 +5,18 @@
 :root {
   --foreground-rgb: 26, 26, 38;
   --background-rgb: 250, 249, 250;
+
+  /* The four safe-area insets, named once so no surface has to remember the
+     fallback. env() needs its two-argument form or the whole calc() it sits in
+     is discarded by any engine that does not know the keyword, and all four
+     stay 0px until the viewport meta carries viewport-fit=cover, which
+     app/layout.js now does. Left and right matter as much as bottom: a phone
+     or an iPad held sideways has real insets there, and full-bleed text runs
+     under the rounded corner without them. */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
 }
 
 html, body {

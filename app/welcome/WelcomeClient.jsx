@@ -19,6 +19,7 @@ import { ArrowRight, BellRing, Check, LoaderCircle, ShieldCheck } from "lucide-r
 import { appStoreURL, isIOSDevice } from "@/lib/appStore";
 import { DEFAULT_PRICE_LABEL } from "@/lib/checkout";
 import { isEntitled, markEntitlementActive, writeEntitlement } from "@/lib/entitlement";
+import { trackWelcomeStatus } from "@/lib/analytics";
 
 const COPY = {
   confirming: {
@@ -137,13 +138,43 @@ export default function WelcomeClient() {
     };
   }, []);
 
+  // How this page resolved, as a segmentable dimension. Note which arrivals
+  // this can actually see: a card that went through 3-D Secure comes back here
+  // with payment_intent_client_secret in the query string, and isTrackedPath
+  // refuses to load Clarity on that document at all, because a pageview URL is
+  // captured before the effect above can strip the secret out. So this covers
+  // the inline confirmations and the restores, and the 3-D Secure sessions are
+  // recorded up to the paywall and no further. That is the intended trade.
+  useEffect(() => {
+    trackWelcomeStatus(status);
+  }, [status]);
+
   const copy = COPY[status] || COPY.unknown;
   const showInstallCard = isIOS && status !== "failed";
 
   return (
-    <div className="min-h-full w-full bg-app-background">
-      <div className="mx-auto flex w-full max-w-[520px] flex-col gap-6 px-5 pb-[calc(env(safe-area-inset-bottom)+40px)] pt-10">
-        <header className="flex flex-col items-center text-center">
+    // The page picks up the brand blush from tablet width up. On a phone this
+    // screen fills the viewport and a gradient there would be invisible; on
+    // anything wider it is the difference between a designed page and a narrow
+    // column stranded on a flat grey field.
+    <div className="relative min-h-full w-full bg-app-background tab:bg-transparent">
+      {/* The gradient is a fixed layer rather than this element's background
+          because the root layout caps its column at 1152px for the member
+          app's sake, and a page background that stopped dead at 1152 with grey
+          either side would read as a seam. position: fixed is measured against
+          the viewport, so it escapes the cap; it sits above the wrapper's own
+          background and below the content, which is why the column below is
+          `relative`. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 hidden bg-blush tab:block"
+      />
+      {/* The column itself never gets wider than 520px through the header.
+          This is a receipt and a decision, and a longer measure makes both
+          harder to read. What changes above 1024 is that the two cards below
+          sit side by side instead of stacked. */}
+      <div className="relative mx-auto flex w-full max-w-[520px] flex-col gap-6 px-5 pb-[calc(var(--sab)+40px)] pl-[max(1.25rem,var(--sal))] pr-[max(1.25rem,var(--sar))] pt-10 tab:max-w-[600px] tab:pt-16 lg:max-w-[64rem] lg:pt-20">
+        <header className="mx-auto flex w-full max-w-[520px] flex-col items-center text-center">
           <span
             aria-hidden="true"
             className={`mb-5 flex h-14 w-14 items-center justify-center rounded-full ${
@@ -174,12 +205,23 @@ export default function WelcomeClient() {
         {status === "failed" && (
           <Link
             href="/"
-            className="flex h-14 w-full items-center justify-center rounded-full bg-cta-gradient text-[17px] font-bold text-white shadow-lg transition-transform active:scale-[0.98]"
+            className="mx-auto flex h-14 w-full max-w-[520px] items-center justify-center rounded-full bg-cta-gradient text-[17px] font-bold text-white shadow-lg transition-transform active:scale-[0.98]"
           >
             Try again
           </Link>
         )}
 
+        {/* Two columns from 1024, and only when the install card exists to fill
+            the second one. On a desktop she is almost never on iOS, so that
+            card is absent and this stays the single 520px column it is on a
+            phone rather than a lopsided half-empty grid. */}
+        <div
+          className={`mx-auto flex w-full flex-col gap-6 ${
+            showInstallCard
+              ? "lg:grid lg:max-w-none lg:grid-cols-2 lg:items-start lg:gap-8"
+              : "max-w-[520px]"
+          }`}
+        >
         {showInstallCard && (
           <section
             aria-labelledby="install-card-title"
@@ -221,13 +263,29 @@ export default function WelcomeClient() {
           </section>
         )}
 
+        {/* The two blocks that are always here, kept together so they travel
+            into the second column as one unit when the install card takes the
+            first. */}
+        <div className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3">
           {/* /app, not /dashboard. /dashboard is the screen this rebuild
               replaced: it reads a localStorage blob nothing writes any more, so
               a member who had just paid landed on an empty stranger's account,
               and its billing box opened the Stripe portal for any address typed
-              into it. This is the first link after money changes hands. */}
-          <Link
+              into it. This is the first link after money changes hands.
+
+              A PLAIN <a>, NOT next/link, AND IT HAS TO STAY ONE.
+              This is the only place in the product where somebody crosses from
+              a page Microsoft Clarity records into one it must never record.
+              next/link would make that a client-side route change: same
+              document, same recorder, and the member app's DOM, her name, her
+              email, her check-ins and her Coach Mia transcripts, committed
+              inside a live recording before any guard could run. A plain anchor
+              is a full page load, so /app arrives as a fresh document that the
+              gate in app/Clarity.jsx simply never injects the tag into. The
+              cost is one navigation that is a hair slower; the alternative is
+              recording special category health data. */}
+          <a
             href="/app"
             className={`flex h-14 w-full items-center justify-center gap-2 rounded-full text-[17px] font-bold transition-transform active:scale-[0.98] ${
               showInstallCard
@@ -237,7 +295,7 @@ export default function WelcomeClient() {
           >
             Continue on the web
             <ArrowRight size={19} aria-hidden="true" />
-          </Link>
+          </a>
           <p className="text-center text-[13px] text-app-textSecondary">
             Everything works in your browser too. Nothing is locked behind the app.
           </p>
@@ -259,6 +317,8 @@ export default function WelcomeClient() {
               .
             </span>
           </p>
+        </div>
+        </div>
         </div>
       </div>
     </div>

@@ -20,8 +20,20 @@ export const metadata = {
 
 export default function CoraContact() {
   return (
-    <div className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl px-6 py-16 sm:py-24">
+    // min-h-full, not min-h-screen. This page renders inside the root layout's
+    // scroll container, so 100vh is not the height of anything here: on iOS it
+    // resolves against the large viewport and leaves a strip of blank under the
+    // toolbars, and 100% of the container is what was actually meant.
+    <div className="relative min-h-full">
+      {/* White, painted as a fixed layer. The root layout caps its column at
+          1152px, so a plain background here stopped at 1152 with the page
+          colour either side, which reads as a seam on any wide screen. */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 bg-white" />
+      {/* max-w-2xl is right for a page of prose and stays right at 1920. What
+          the wide viewports get is side padding that tracks the safe-area
+          insets, so a phone or an iPad held sideways does not run the first
+          character of every line under the rounded corner. */}
+      <div className="relative mx-auto max-w-2xl px-6 pl-[max(1.5rem,var(--sal))] pr-[max(1.5rem,var(--sar))] py-16 sm:py-24">
         {/* Header */}
         <div className="mb-14 text-center">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50">

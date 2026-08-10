@@ -207,8 +207,16 @@ export default function CoachMia() {
 
       {/* Prompts */}
       {!loading && (
-        <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 border-t border-black/[0.06] bg-app-background/95 backdrop-blur">
-          <ul className="flex gap-2 overflow-x-auto px-4 py-2.5 no-scrollbar">
+        // The offset is the height of the phone tab bar, so the composer sits
+        // on top of it rather than behind it. From `tab` the tab bar is gone
+        // and the rail is beside us, so the offset has to go with it or the
+        // composer floats 76px off the bottom of the window.
+        <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 border-t border-black/[0.06] bg-app-background/95 backdrop-blur tab:bottom-0">
+          {/* Capped to the transcript's own measure. A composer stretched to
+              1300px puts the send button a long way from the last thing she
+              read, and the prompt chips end up on a different axis to the
+              conversation they belong to. */}
+          <ul className="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-2.5 no-scrollbar">
             {prompts.map((prompt) => (
               <li key={prompt}>
                 <button
@@ -226,7 +234,7 @@ export default function CoachMia() {
 
           {/* Composer */}
           <form
-            className="px-4 pb-3"
+            className="mx-auto max-w-2xl px-4 pb-3"
             onSubmit={(e) => { e.preventDefault(); send(); }}
           >
             <div className="flex items-end gap-2">

@@ -19,8 +19,12 @@ export const metadata = {
 
 export default function CoraPrivacyPolicy() {
   return (
-    <div className="min-h-screen bg-white">
-      <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
+    // See the note in ../contact/page.js: min-h-full because this renders
+    // inside the layout's scroll container, and safe-area side padding because
+    // landscape insets are not zero.
+    <div className="relative min-h-full">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 bg-white" />
+      <div className="relative mx-auto max-w-3xl px-6 pl-[max(1.5rem,var(--sal))] pr-[max(1.5rem,var(--sar))] py-16 sm:py-24">
         {/* Header */}
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">

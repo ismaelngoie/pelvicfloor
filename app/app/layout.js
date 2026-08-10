@@ -1,3 +1,4 @@
+import "./app.css";
 import MemberFrame from "@/components/member/MemberFrame";
 
 // The member app is behind a gate and has nothing a search engine should hold.

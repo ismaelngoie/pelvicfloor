@@ -1,0 +1,9 @@
+{
+  "ratingValue": 4.6,
+  "ratingCount": 41,
+  "bestRating": 5,
+  "worstRating": 1,
+  "fetchedAt": "2026-08-10",
+  "source": "https://itunes.apple.com/lookup?id=6642654729&country=us",
+  "note": "Collected by Apple from App Store users. Refresh with `node scripts/refresh-app-store-rating.mjs` before every deploy that changes the homepage."
+}

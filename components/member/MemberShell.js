@@ -42,25 +42,50 @@ export default function MemberShell({ children }) {
   if (!entitlement.active) return <LockedScreen />;
 
   return (
-    <div className="flex min-h-full flex-col bg-app-background">
+    <div
+      className="pv-member-shell flex min-h-full flex-col bg-app-background tab:fixed tab:inset-0 tab:flex-row tab:overflow-hidden"
+      // Belt to the braces in app/Clarity.jsx. Microsoft Clarity is never
+      // injected on /app, so on any normal load there is no recorder here to
+      // mask anything from. This attribute is what covers the one case the
+      // route gate cannot: a client-side navigation from a recorded page into
+      // this one commits this DOM before any effect can react. Everything under
+      // this element is a member's name, email, symptom check-ins and Coach Mia
+      // transcripts, which is special category health data under GDPR Article 9.
+      // Removing this line is only safe if you have also proved no soft
+      // navigation can reach /app, which is what the plain <a> on /welcome is
+      // for. Keep both.
+      data-clarity-mask="true"
+    >
+      <SideNav />
+
       {/* A flex column, not a plain block: Coach Mia's composer has to be able
           to sit at the bottom of a short conversation. Every tab root inside
           therefore needs `w-full`, because auto side margins on a flex item
-          opt it out of stretching and it sizes to its own max-width instead. */}
-      <div className="flex flex-1 flex-col pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
+          opt it out of stretching and it sizes to its own max-width instead.
+
+          From `tab` this is also the scroll container: the shell owns the
+          viewport by then, so the <main> in app/layout.js has nothing left in
+          it to scroll. */}
+      <div className="pv-member-scroll flex flex-1 flex-col pb-[calc(4.75rem+env(safe-area-inset-bottom))] tab:min-h-0 tab:min-w-0 tab:overflow-y-auto tab:overscroll-contain tab:pb-0">
         {children}
       </div>
+
       <TabBar />
     </div>
   );
 }
 
+/**
+ * The phone navigation. Five destinations under the thumb, which is the right
+ * answer on a phone and stays exactly as it was; it simply stops existing once
+ * the rail takes over at 704px.
+ */
 function TabBar() {
   const pathname = usePathname();
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.08] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.08] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg tab:hidden"
     >
       <ul className="mx-auto flex max-w-2xl">
         {TABS.map(({ href, label, Icon }) => {
@@ -85,6 +110,93 @@ function TabBar() {
           );
         })}
       </ul>
+    </nav>
+  );
+}
+
+/**
+ * The tablet and desktop navigation.
+ *
+ * Two widths, one component. From 704px it is a 76px icon rail, because an iPad
+ * mini in portrait has 744px in total and a labelled 240px sidebar would eat a
+ * third of it. From 1024px the labels arrive and it becomes a real sidebar with
+ * the plan's progress under them.
+ *
+ * The labels are present in the markup at both widths and hidden with
+ * `sr-only` on the rail, so the accessible name of every link is the same word
+ * a sighted member reads one breakpoint up.
+ */
+function SideNav() {
+  const pathname = usePathname();
+  const { member, dayNumber, planLength } = useMember();
+  const firstName = (member?.name || "").trim().split(/\s+/)[0];
+
+  return (
+    <nav
+      aria-label="Main"
+      className="hidden shrink-0 flex-col border-r border-black/[0.07] bg-white tab:flex tab:w-[76px] lg:w-[248px]"
+    >
+      <div className="flex h-[64px] shrink-0 items-center justify-center lg:justify-start lg:px-5">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-cta-gradient text-[16px] font-black text-white">
+          P
+        </span>
+        <span className="ml-2.5 hidden text-[17px] font-bold tracking-tight text-app-textPrimary lg:block">
+          Pelvi
+        </span>
+      </div>
+
+      <ul className="flex flex-1 flex-col gap-1 px-2 pt-2 lg:px-3">
+        {TABS.map(({ href, label, Icon }) => {
+          const active = href === "/app" ? pathname === "/app" : pathname.startsWith(href);
+          return (
+            <li key={href}>
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                title={label}
+                className={`flex min-h-[48px] items-center justify-center gap-3 rounded-2xl px-2 lg:justify-start lg:px-3.5 ${
+                  active
+                    ? "bg-ios-pink/[0.1] text-ios-pink"
+                    : "text-app-textSecondary hover:bg-black/[0.04]"
+                }`}
+              >
+                <Icon
+                  className="h-[22px] w-[22px] shrink-0"
+                  strokeWidth={active ? 2.4 : 1.8}
+                  aria-hidden="true"
+                />
+                <span className="sr-only text-[14.5px] font-semibold lg:not-sr-only">{label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      {planLength ? (
+        <div className="hidden shrink-0 px-3 pb-5 lg:block">
+          <div className="rounded-2xl bg-app-background p-3.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-app-textSecondary">
+              {firstName ? `${firstName}'s plan` : "Your plan"}
+            </p>
+            <p className="mt-1 text-[14px] font-bold text-app-textPrimary">
+              Day {Math.min(dayNumber, planLength)} of {planLength}
+            </p>
+            <div
+              className="mt-2 h-1.5 overflow-hidden rounded-full bg-app-borderIdle"
+              role="progressbar"
+              aria-valuenow={Math.min(dayNumber, planLength)}
+              aria-valuemin={0}
+              aria-valuemax={planLength}
+              aria-label="Progress through your plan"
+            >
+              <span
+                className="block h-full rounded-full bg-ios-pink"
+                style={{ width: `${(Math.min(dayNumber, planLength) / planLength) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </nav>
   );
 }

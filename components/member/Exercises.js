@@ -99,7 +99,7 @@ export default function Exercises() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4">
+    <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4 tab:max-w-none tab:px-6 lg:px-8 lg:pt-6 2xl:max-w-[1600px]">
       <span ref={topRef} aria-hidden="true" />
 
       <header className="px-1">
@@ -116,8 +116,21 @@ export default function Exercises() {
         )}
       </header>
 
+      {/* From 1024 the facets get a rail of their own and the results get the
+          rest. Below that this whole block is a plain column and the facets
+          stay in the bottom sheet, which is the right place for them under a
+          thumb. */}
+      <div className="xl:flex xl:items-start xl:gap-8">
+        <FilterRail
+          index={index}
+          filters={filters}
+          setFilters={setFilters}
+          savedCount={savedIds.length}
+        />
+
+        <div className="min-w-0 flex-1">
       {/* Search */}
-      <div className="mt-4">
+      <div className="mt-4 lg:mt-0">
         <label className="relative block">
           <span className="sr-only">
             {index ? `Search ${index.totalCount} exercises` : "Search exercises"}
@@ -168,9 +181,13 @@ export default function Exercises() {
         )}
       </div>
 
-      {/* Quick filters */}
+      {/* Quick filters. The whole row belongs to every width below the rail: at
+          xl every one of these is already visible and checkable in the rail,
+          and a second copy of the same controls above the grid is how a filter
+          UI starts disagreeing with itself. This breakpoint and the rail's have
+          to stay in step, or a laptop gets neither. */}
       {index && (
-        <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar xl:hidden">
           <button
             type="button"
             onClick={() => setShowFilters(true)}
@@ -211,6 +228,8 @@ export default function Exercises() {
           )}
         </div>
       )}
+
+      <AppliedChips index={index} filters={filters} setFilters={setFilters} />
 
       {!index && (
         <div className="grid place-items-center py-20">
@@ -334,6 +353,8 @@ export default function Exercises() {
           ))}
         </div>
       )}
+        </div>
+      </div>
 
       <FilterSheet
         open={showFilters}
@@ -351,8 +372,9 @@ export default function Exercises() {
 // --- Sections --------------------------------------------------------------
 
 // A wide-open filter can match all 533. Draw a page at a time so the list stays
-// responsive on a phone.
-const PAGE_SIZE = 40;
+// responsive on a phone. 48 divides cleanly by every column count the grid
+// uses (2, 3, 4 and 6), so a page never ends on a ragged half-row.
+const PAGE_SIZE = 48;
 
 function Results({ results, onPlay, onToggleSaved, savedSet, watchedSet, onClear }) {
   const [shown, setShown] = useState(PAGE_SIZE);
@@ -381,12 +403,22 @@ function Results({ results, onPlay, onToggleSaved, savedSet, watchedSet, onClear
       <p className="px-1 text-[13px] font-semibold text-app-textSecondary" role="status">
         {results.length} {results.length === 1 ? "exercise" : "exercises"}
       </p>
-      <ul className="mt-3 divide-y divide-black/[0.06]">
+      {/* A list under the thumb, a grid on anything wider. The card itself
+          switches shape at the same breakpoint, so this is one set of nodes and
+          not two lists with a `hidden` on each.
+
+          The counts are picked so a card stays roughly 220-260px wide at every
+          width, not so the columns keep multiplying. That is why xl holds at
+          three: the filter rail arrives at xl and takes 264px with it, so the
+          grid gets no wider than it was at lg. Chasing the viewport instead
+          would put four 168px cards there, and a still frame that small tells
+          you nothing about which movement it is. */}
+      <ul className="mt-3 divide-y divide-black/[0.06] tab:grid tab:grid-cols-2 tab:gap-x-5 tab:gap-y-6 tab:divide-y-0 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5">
         {results.slice(0, shown).map((item) => (
-          <li key={item.id} className="py-2.5">
+          <li key={item.id} className="pv-defer-paint py-2.5 tab:py-0">
             <ExerciseCard
               item={item}
-              layout="row"
+              layout="responsive"
               onPlay={onPlay}
               onToggleSaved={onToggleSaved}
               saved={savedSet.has(item.id)}
@@ -400,7 +432,7 @@ function Results({ results, onPlay, onToggleSaved, savedSet, watchedSet, onClear
         <button
           type="button"
           onClick={() => setShown((n) => n + PAGE_SIZE)}
-          className="mt-4 flex h-12 w-full items-center justify-center rounded-full border border-app-borderIdle bg-white text-[15px] font-semibold text-app-textPrimary"
+          className="mt-6 flex h-12 w-full items-center justify-center rounded-full border border-app-borderIdle bg-white text-[15px] font-semibold text-app-textPrimary tab:mx-auto tab:w-auto tab:px-8"
         >
           Show {Math.min(PAGE_SIZE, results.length - shown)} more
         </button>
@@ -419,7 +451,10 @@ function FeaturedCard({ shelf, onPlay, reduceMotion }) {
         className="relative block w-full overflow-hidden rounded-3xl text-left shadow-[0_6px_12px_rgba(0,0,0,0.25)] ring-1 ring-inset ring-white/20"
         aria-label={`Play the featured workout, ${shelf.title} with ${shelf.coach}, ${shelf.items.length} exercises`}
       >
-        <ExerciseThumb item={first} className="aspect-[1/0.56] w-full" eager />
+        {/* The ratio is right on a phone and absurd on a laptop: at 900px wide
+            it is a 500px tall slab that pushes every shelf below the fold.
+            Capping the height lets it stay a banner instead of a billboard. */}
+        <ExerciseThumb item={first} className="aspect-[1/0.56] w-full tab:max-h-[300px]" eager />
         <span className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/25 to-black/90" />
 
         <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-bold text-white">
@@ -544,6 +579,144 @@ function BrowseByCategory({
         ))}
       </ul>
     </section>
+  );
+}
+
+/**
+ * The facets, as a rail, from 1024px up.
+ *
+ * Same FacetGroup component the bottom sheet uses, so the two can never drift
+ * apart and say different things about what is selected. It sticks while the
+ * grid scrolls, and scrolls internally when the facet list is taller than the
+ * viewport, which it is on a laptop with every group open.
+ */
+function FilterRail({ index, filters, setFilters, savedCount }) {
+  if (!index) return null;
+
+  return (
+    <aside
+      aria-label="Filters"
+      // 1280, not 1024. The member app already spends 248px on its own
+      // navigation, and adding a 264px rail at 1024 left 430px for the grid:
+      // three columns of 140px, every title clipped mid-word. A rail that
+      // starves the thing it is filtering is worse than a button.
+      className="hidden xl:sticky xl:top-0 xl:block xl:max-h-[calc(100svh-2rem)] xl:w-[264px] xl:shrink-0 xl:self-start xl:overflow-y-auto xl:pb-8 xl:pt-1"
+    >
+      {/* No count and no "clear all" here on purpose. Both already sit directly
+          above the grid, where somebody looking at results is looking, and two
+          of each on one screen is how a filter UI starts contradicting itself. */}
+      <h2 className="pb-4 text-[15px] font-bold text-app-textPrimary">Filters</h2>
+
+      <div className="space-y-6">
+        <FacetGroup
+          legend="Saved"
+          options={[{ id: "saved", label: "Only what I saved", count: savedCount }]}
+          isOn={() => filters.savedOnly}
+          onToggle={() => setFilters((f) => ({ ...f, savedOnly: !f.savedOnly }))}
+        />
+        <FacetGroup
+          legend="Focus"
+          options={index.tagFacets}
+          isOn={(id) => filters.tags.includes(id)}
+          onToggle={(id) => setFilters((f) => toggleFilter(f, "tags", id))}
+        />
+        <FacetGroup
+          legend="Effort"
+          options={index.styleFacets}
+          isOn={(id) => filters.styles.includes(id)}
+          onToggle={(id) => setFilters((f) => toggleFilter(f, "styles", id))}
+        />
+        <FacetGroup
+          legend="Length"
+          options={index.lengthFacets}
+          isOn={(id) => filters.lengths.includes(id)}
+          onToggle={(id) => setFilters((f) => toggleFilter(f, "lengths", id))}
+        />
+        <FacetGroup
+          legend="Coach"
+          options={index.coachFacets}
+          isOn={(id) => filters.coaches.includes(id)}
+          onToggle={(id) => setFilters((f) => toggleFilter(f, "coaches", id))}
+        />
+      </div>
+    </aside>
+  );
+}
+
+/**
+ * Everything currently narrowing the results, above the grid, each one
+ * removable on its own.
+ *
+ * Baymard's finding is that people look for a filter where they applied it, so
+ * this does NOT replace the rail's checked state: both are on screen at once,
+ * showing the same selection. Chips alone is the half-implementation that
+ * measurably confuses people.
+ *
+ * It only exists from xl, because below that there is no rail to disagree with
+ * and the quick-filter row already carries the same job under her thumb.
+ */
+function AppliedChips({ index, filters, setFilters }) {
+  const applied = useMemo(() => {
+    if (!index) return [];
+    const label = (facets, id) => facets.find((f) => f.id === id)?.label || id;
+    const out = [];
+    if (filters.query.trim()) {
+      out.push({
+        key: "query",
+        text: `"${filters.query.trim()}"`,
+        clear: (f) => ({ ...f, query: "" }),
+      });
+    }
+    if (filters.savedOnly) {
+      out.push({ key: "saved", text: "Saved", clear: (f) => ({ ...f, savedOnly: false }) });
+    }
+    const groups = [
+      ["tags", index.tagFacets],
+      ["styles", index.styleFacets],
+      ["lengths", index.lengthFacets],
+      ["coaches", index.coachFacets],
+    ];
+    for (const [key, facets] of groups) {
+      for (const id of filters[key]) {
+        out.push({
+          key: `${key}-${id}`,
+          text: label(facets, id),
+          clear: (f) => toggleFilter(f, key, id),
+        });
+      }
+    }
+    return out;
+  }, [index, filters]);
+
+  if (applied.length === 0) return null;
+
+  return (
+    <div className="hidden xl:mt-4 xl:block">
+      <ul className="flex flex-wrap items-center gap-2">
+        {applied.map((chip) => (
+          <li key={chip.key}>
+            <button
+              type="button"
+              onClick={() => setFilters(chip.clear)}
+              aria-label={`Remove the ${chip.text} filter`}
+              className="flex h-9 items-center gap-1.5 rounded-full border border-ios-pink bg-ios-pink/[0.08] pl-3.5 pr-2.5 text-[13px] font-semibold text-app-textPrimary"
+            >
+              {chip.text}
+              <X className="h-3.5 w-3.5 text-ios-pink" aria-hidden="true" />
+            </button>
+          </li>
+        ))}
+        <li>
+          <button
+            type="button"
+            onClick={() => setFilters(EMPTY_FILTERS)}
+            className="h-9 px-2 text-[13px] font-semibold text-ios-pink"
+          >
+            Clear all
+          </button>
+        </li>
+      </ul>
+    </div>
   );
 }
 

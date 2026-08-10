@@ -179,13 +179,18 @@ export function TimeSeriesChart({
   emptyTitle = "Nothing to plot yet",
   emptyDescription,
   delay = 0,
+  className = "",
 }) {
   const [wrapRef, width] = useElementWidth(560);
   const reduced = useReducedMotion();
   const [active, setActive] = useState(null);
   const gradientId = `pv-area-${useId().replace(/:/g, "")}`;
 
-  const plotHeight = width < 520 ? 168 : 210;
+  // Three steps, keyed off the chart's own measured width rather than the
+  // viewport, because the sidebar and the column span both change how much room
+  // it actually has. A chart 1100px wide and 210px tall is a stripe: the marks
+  // are too far apart to compare and the trend flattens out of existence.
+  const plotHeight = width < 520 ? 168 : width < 860 ? 210 : 268;
   const height = plotHeight + PAD.top + PAD.bottom;
   const count = buckets.length;
 
@@ -259,6 +264,7 @@ export function TimeSeriesChart({
         tableHead={["Period", "Value"]}
         tableRows={[]}
         delay={delay}
+        className={className}
       >
         <EmptyState title={emptyTitle} description={emptyDescription} />
       </ChartCard>
@@ -323,6 +329,7 @@ export function TimeSeriesChart({
       tableHead={["Period", "Value"]}
       tableRows={tableRows}
       delay={delay}
+      className={className}
     >
       <div ref={wrapRef} className="relative w-full">
         <svg
@@ -677,9 +684,9 @@ export function BarListChart({
 }
 
 /** Shown in place of a chart when the data behind it genuinely does not exist. */
-export function UnavailableChart({ title, subtitle, reason, delay = 0 }) {
+export function UnavailableChart({ title, subtitle, reason, delay = 0, className = "" }) {
   return (
-    <Card className="pv-rise p-5" style={{ animationDelay: `${delay}ms` }}>
+    <Card className={`pv-rise p-5 ${className}`} style={{ animationDelay: `${delay}ms` }}>
       <h3 className="text-[15px] font-semibold" style={{ color: "var(--pv-ink)" }}>
         {title}
       </h3>

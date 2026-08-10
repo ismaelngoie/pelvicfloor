@@ -1,0 +1,140 @@
+# robots.txt for pelvi.health
+#
+# ---------------------------------------------------------------------------
+# TRAINING BOTS AND RETRIEVAL BOTS ARE DIFFERENT BOTS. DO NOT BLANKET BLOCK.
+# ---------------------------------------------------------------------------
+# Every major vendor ships at least two crawlers and they do opposite jobs:
+#
+#   TRAINING            RETRIEVAL / CITATION
+#   GPTBot              OAI-SearchBot, ChatGPT-User
+#   ClaudeBot           Claude-SearchBot, Claude-User
+#   (none separate)     PerplexityBot, Perplexity-User
+#   Google-Extended     governs Gemini and AI Overviews grounding
+#   Applebot-Extended   governs Apple Intelligence
+#
+# Blocking a TRAINING bot withholds content from a future model.
+# Blocking a RETRIEVAL bot means an assistant answering a question about pelvic
+# floor apps today cannot open this site, cannot quote it, and cannot link it.
+#
+# The retrieval bots are therefore allowed on purpose and should stay allowed.
+# A publisher with brand mass can block everything and still get named from
+# memory. A subscription app nobody has heard of cannot: blocking costs the
+# citation and protects nothing worth protecting, because every page a crawler
+# can reach here is marketing. If you are tightening this file, tighten the
+# training group and leave the retrieval group alone.
+#
+# ---------------------------------------------------------------------------
+# HOW GROUPS WORK, because the obvious edit to this file is the wrong one.
+# ---------------------------------------------------------------------------
+# A crawler obeys exactly ONE group: the most specific one matching its user
+# agent. It does NOT inherit anything from `User-agent: *`. So a named group
+# that says only `Allow: /` invites that crawler into /admin and the member
+# app. Every group below therefore repeats the full private-path list, and a
+# group may carry several `User-agent:` lines so the list is written once per
+# policy rather than once per bot. Add a new bot to an existing group by adding
+# a `User-agent:` line to it. Do not start a new group with a bare `Allow: /`.
+#
+# ---------------------------------------------------------------------------
+# THIS FILE IS CURRENTLY DECORATIVE AT THE EDGE. READ BEFORE DEBUGGING.
+# ---------------------------------------------------------------------------
+# Two Cloudflare settings sit in front of it, and both are dashboard toggles
+# rather than anything in this repo. See SEO-CLOUDFLARE-NOTE.md.
+#   1. "Managed robots.txt" PREPENDS Cloudflare's own `User-agent: *` group
+#      above this one. The site's own group becomes the second `*` group in the
+#      file. Google merges same agent groups, but many parsers honour only the
+#      first match, and that first group is a bare `Allow: /` with none of the
+#      private paths below. Cloudflare's block also declares ai-train=no, which
+#      contradicts the Content-Signal at the foot of this file.
+#   2. The managed AI bot rule returns 403 to the retrieval bots above before
+#      robots.txt is ever read, so allowing them here changes nothing until it
+#      is switched off.
+# Because of 1, the private paths are ALSO enforced by X-Robots-Tag response
+# headers in public/_headers, which nothing can prepend itself in front of.
+# That file is the belt; this one is the braces.
+#
+# There is deliberately no llms.txt. See SEO-CLOUDFLARE-NOTE.md for why.
+
+# --- Retrieval and citation. The bots that decide whether an assistant can
+# --- open this site and quote it in an answer. Allowed everywhere public.
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /api/
+Disallow: /app$
+Disallow: /app.txt$
+Disallow: /app/
+Disallow: /admin$
+Disallow: /admin.txt$
+Disallow: /admin/
+Disallow: /welcome$
+Disallow: /welcome.txt$
+Disallow: /*?plan=
+
+# --- Training. Kept as its own group, with identical rules, purely so this
+# --- decision can be reversed without touching the retrieval group above.
+# --- Allowed today: being present in the model is the only shelf space a brand
+# --- this size gets for free. Flipping these two to `Disallow: /` is a real
+# --- business choice, not a typo fix, and the Content-Signal line at the foot
+# --- of this file has to change with it.
+User-agent: GPTBot
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /app$
+Disallow: /app.txt$
+Disallow: /app/
+Disallow: /admin$
+Disallow: /admin.txt$
+Disallow: /admin/
+Disallow: /welcome$
+Disallow: /welcome.txt$
+Disallow: /*?plan=
+
+# --- Bulk scrapers with no retrieval surface. There is no citation to win from
+# --- these, so there is nothing to trade for the bandwidth.
+User-agent: CCBot
+User-agent: Bytespider
+User-agent: meta-externalagent
+User-agent: Amazonbot
+Disallow: /
+
+# --- Everyone else, Googlebot and Bingbot included. This is the site's own
+# --- authoritative group and the only `User-agent: *` this repo ships.
+User-agent: *
+Allow: /
+Disallow: /api/
+# Two entries per private route, and both are needed. `Disallow: /app/` alone
+# misses /app itself, because the static export serves the Today tab with no
+# trailing slash. A bare `Disallow: /app` is a PREFIX and would also swallow
+# /apple-touch-icon.png. `$` anchors the exact path.
+Disallow: /app$
+Disallow: /app/
+Disallow: /admin$
+Disallow: /admin/
+Disallow: /welcome$
+# Next writes a React Server Component payload beside every exported route, so
+# /admin.html has a sibling /admin.txt serving the same screen as text/plain
+# with a 200. It is a separate URL from the .html, so the `$` anchored rules
+# above do not reach it, and the noindex META TAG on the page cannot cover it
+# either because a meta tag is only read inside HTML. Verified live: GET
+# https://pelvi.health/admin.txt returned 200 text/plain.
+Disallow: /app.txt$
+Disallow: /admin.txt$
+Disallow: /welcome.txt$
+# Query string that carries the selected plan through the funnel. Nothing to
+# index, and it splits the funnel page into as many URLs as there are plans.
+Disallow: /*?plan=
+
+# Citation is welcome and training is a separate question, and the two are
+# separable. search=yes and use=reference permit an assistant to fetch and
+# quote; ai-train=yes matches the GPTBot and ClaudeBot decision above and must
+# be changed together with it.
+Content-Signal: search=yes,ai-input=yes,ai-train=yes,use=reference
+
+Sitemap: https://pelvi.health/sitemap.xml

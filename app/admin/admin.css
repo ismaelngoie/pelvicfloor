@@ -132,6 +132,50 @@
     linear-gradient(180deg, #ffffff 0%, var(--pv-canvas) 42%);
 }
 
+/* From 1024px the shell turns on its side. A fixed sidebar carries the
+   navigation, the counted-at state and the account; the column beside it is
+   the only thing that scrolls. Below 1024 nothing here applies and the layout
+   is the stacked header over a scroll area that phones already get. */
+@media (min-width: 1024px) {
+  .pv-shell {
+    flex-direction: row;
+  }
+}
+
+.pv-shell-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.pv-sidebar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .pv-sidebar {
+    display: flex;
+    width: 240px;
+    flex-shrink: 0;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--pv-border);
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-right: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .pv-sidebar {
+    width: 264px;
+  }
+}
+
 .pv-scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -219,6 +263,69 @@
 
 .pv-tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   The members table.
+
+   Two things have to stay put while the table is scrolled: the header row and
+   the member's name. Both are `position: sticky`, so both need an opaque
+   background — glass would let the rows show straight through them — and both
+   need to be layered deliberately. The order below is the whole trick:
+
+     header (3) > the name cell in the header (4) > name column (2) > body (0)
+
+   The corner cell has to beat the header AND the frozen column, because it is
+   in both. Get that wrong and the corner disappears under one of them at the
+   moment it matters. The shadow on the frozen edge is what makes the column
+   read as a layer sitting over the table rather than a seam in it.
+   --------------------------------------------------------------------------- */
+
+.pv-table-scroll {
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  /* A ceiling is what gives the sticky header something to stick inside.
+     Without it the wrapper grows to the table's full height, never scrolls
+     vertically, and `top: 0` has no effect at all. */
+  max-height: min(70svh, 760px);
+}
+
+.pv-th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--pv-surface-solid);
+}
+
+.pv-cell-frozen {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--pv-surface-solid);
+  /* Two layers, and the hairline is the one that does the work. A soft dark
+     shadow is invisible against a dark canvas, which left the columns sliding
+     under this one looking like text that had been cut off rather than text
+     that had gone behind something. */
+  box-shadow: 1px 0 0 0 var(--pv-border-strong), 6px 0 10px -5px rgba(0, 0, 0, 0.7);
+}
+
+/* Declared after .pv-cell-frozen on purpose: the corner cell carries both
+   classes, and with equal specificity the last one wins. */
+.pv-th-frozen {
+  z-index: 4;
+}
+
+.pv-admin[data-admin-theme="light"] .pv-cell-frozen {
+  box-shadow: 1px 0 0 0 var(--pv-border), 6px 0 10px -5px rgba(22, 16, 28, 0.16);
+}
+
+/* Once every column fits there is nothing to scroll past, so the frozen edge
+   is a shadow drawn down the middle of a table for no reason. */
+@media (min-width: 1440px) {
+  .pv-cell-frozen {
+    box-shadow: none;
+  }
 }
 
 /* Entrance motion. Purposeful, short, and off entirely under reduced motion. */

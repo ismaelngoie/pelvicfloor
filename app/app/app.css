@@ -1,0 +1,56 @@
+/* =========================================================================
+   The member app's frame.
+
+   Below 704px nothing in this file changes a pixel. That is deliberate, and it
+   is the whole safety story: 98% of traffic is a phone, the phone layout is the
+   one that converts, and it goes on scrolling inside the marketing frame in
+   app/layout.js exactly as it did before any of this existed.
+
+   From 704px the shell steps out of that frame, which it has to: app/layout.js
+   wraps every page in a centred `md:max-w-6xl` card with a shadow and a border.
+   That is right for a landing page and wrong for a five-tab application, and a
+   member on a laptop was getting a 1152px card with a phone-shaped column of
+   content adrift in the middle of it.
+
+   The escape itself is `tab:fixed tab:inset-0` on the shell, written in
+   Tailwind rather than here so the breakpoint sort decides who wins instead of
+   the order the stylesheets happen to load in. It is the same trick /admin
+   already uses, and it works for the same reason: nothing between the shell and
+   <body> sets a transform, a filter or a containing block, so `fixed` resolves
+   against the viewport. If that ever stops being true both screens break
+   together, and this comment is where to start looking.
+
+   What is left in this file is the two things Tailwind cannot say cleanly: the
+   env() safe-area insets the shell inherits once it is out of the frame, and
+   content-visibility.
+   ========================================================================= */
+
+@media (min-width: 704px) {
+  /* Landscape on a notched phone and every iPad put real insets on the sides.
+     Without these the nav rail and the content run under the rounded corners. */
+  .pv-member-shell {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .pv-member-scroll {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* The exercise grid can be sixty cards deep on a wide screen, and every card
+   mounts a <video> to draw its poster frame. Skipping layout and paint for the
+   ones below the fold costs two lines, and unlike windowing it keeps every card
+   in the DOM, so Cmd-F and in-page anchors still find them.
+
+   Inside the media query, not outside it, because the placeholder height has to
+   be roughly right or the scrollbar jumps as cards come into view. 200px is a
+   grid tile. The same element on a phone is a 78px list row, and telling the
+   browser to reserve 200px for it would trade a small paint saving for layout
+   shift on the one device that matters. */
+@media (min-width: 704px) {
+  .pv-defer-paint {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 200px;
+  }
+}

@@ -21,9 +21,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Funnel, { FunnelFrame } from "@/components/funnel/Funnel";
+import FunnelAside from "@/components/funnel/FunnelAside";
 import {
   STEP, isProfileComplete, readFunnelState, writeFunnelStep,
 } from "@/components/funnel/funnelState";
+import { trackPaywallReached } from "@/lib/analytics";
 
 // The paywall is eight taps away, and it is the only thing on this route that
 // pulls in Stripe. Importing it statically cost every landing view the Stripe
@@ -48,6 +50,10 @@ export default function HomeClient() {
     const saved = readFunnelState();
     if (saved?.step === STEP.paywall && isProfileComplete(saved.profile)) {
       setPaywallProfile(saved.profile);
+      // She is on the money screen, however she got here, so the session is
+      // worth keeping. trackPaywallReached is guarded to fire once per
+      // document, so this cannot double count against the funnel's own call.
+      trackPaywallReached(saved.profile);
     }
   }, []);
 
@@ -73,14 +79,21 @@ export default function HomeClient() {
     setPaywallProfile(null);
   }, []);
 
-  // The paywall goes in the same phone card the funnel uses. It was rendered
-  // bare, so on a desktop the last tap of a 400px column threw her into a
-  // full-bleed page with a 1,400px wide gradient button. The paywall's own
-  // backdrop already says this was the intent: it is `fixed inset-0 md:absolute`,
-  // and `md:absolute` is only meaningful inside a positioned card.
+  // The paywall goes in the same frame the funnel uses. It was rendered bare,
+  // so on a desktop the last tap of a 400px column threw her into a full-bleed
+  // page with a 1,400px wide gradient button. The paywall's own backdrop
+  // already says this was the intent: it is `fixed inset-0 tab:absolute`, and
+  // the absolute half is only meaningful inside a positioned card.
   if (paywallProfile) {
     return (
-      <FunnelFrame>
+      // tone="dark" because the paywall is #0A0A10 edge to edge, and a black
+      // card on a pink page reads as a rendering fault. The pane beside it
+      // carries quotes and nothing else: everything else it could say, the
+      // paywall is already saying two inches to the right.
+      <FunnelFrame
+        tone="dark"
+        aside={<FunnelAside variant="proof" profile={paywallProfile} tone="dark" />}
+      >
         <div ref={paywallRef} tabIndex={-1} className="h-full w-full">
           <PaywallScreen profile={paywallProfile} onBack={handleLeavePaywall} />
         </div>

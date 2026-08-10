@@ -38,7 +38,7 @@ export default function EmailCaptureScreen({ profile, onSubmit, onSkip, onBack }
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white font-system">
-      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] md:pt-4">
+      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
         <div className="flex h-11 items-center">
           <BackButton onClick={onBack} />
         </div>
@@ -82,6 +82,12 @@ export default function EmailCaptureScreen({ profile, onSubmit, onSkip, onBack }
               ref={inputRef}
               type="email"
               inputMode="email"
+              // Never recorded. Clarity masks input values by default; the
+              // attribute pins it, so that a later change to the project's
+              // masking mode cannot start capturing addresses from the one
+              // screen whose whole job is to collect one. Analytics learns
+              // "given" or "skipped" and nothing else. See lib/analytics.js.
+              data-clarity-mask="true"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onFocus={() => setFocused(true)}
@@ -122,7 +128,7 @@ export default function EmailCaptureScreen({ profile, onSubmit, onSkip, onBack }
       </div>
 
       <div
-        className="shrink-0 space-y-3 px-7 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 md:pb-5"
+        className="shrink-0 space-y-3 px-7 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5"
         style={keyboardInset ? { paddingBottom: keyboardInset + 16 } : undefined}
       >
         <PrimaryButton onClick={submit} disabled={!valid} variant="rose">

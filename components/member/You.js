@@ -5,8 +5,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  CalendarDays, ChevronRight, CreditCard, LogOut, Mail, RefreshCw, Ruler,
-  Scale, ShieldCheck, Smartphone, User as UserIcon,
+  CalendarDays, ChevronRight, CreditCard, FileText, LogOut, Mail, RefreshCw,
+  Ruler, Scale, ShieldCheck, Smartphone, User as UserIcon,
 } from "lucide-react";
 import { useMember } from "./MemberProvider";
 import { Card, PrimaryButton, Sheet } from "./ui";
@@ -35,7 +35,7 @@ export default function You() {
   const minutes = Math.round(history.totalSeconds / 60);
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4">
+    <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4 lg:max-w-5xl lg:px-8 lg:pt-6">
       <header className="px-1">
         <h1 className="text-[30px] font-bold leading-tight tracking-[-0.4px] text-app-textPrimary">
           You
@@ -48,6 +48,11 @@ export default function You() {
         </p>
       </header>
 
+      {/* Two columns from 1024, in the same reading order as the phone: who she
+          is on the left, what she can do about her subscription on the right.
+          `items-start` so a short column does not stretch its last card. */}
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+        <div>
       {/* Progress summary */}
       <Card className="mt-5">
         <h2 className="text-[17px] font-bold text-app-textPrimary">My progress</h2>
@@ -110,7 +115,9 @@ export default function You() {
           ) : null}
         </ul>
       </Card>
+        </div>
 
+        <div>
       {/* Guarantee */}
       <Card className="mt-5">
         <div className="flex items-start gap-3">
@@ -163,12 +170,23 @@ export default function You() {
             value={CLAIM_EMAIL}
             href={`mailto:${CLAIM_EMAIL}`}
           />
+          {/* Both of these used to be one row pointing at a static file that
+              described a different product and told her, in writing, that we
+              do not collect health data. She is looking at her own leak and
+              pain check-ins on the next tab. */}
           <Row
             icon={ShieldCheck}
             tint="bg-blue-500/12 text-blue-500"
             label="Privacy policy"
-            value="Read our policy"
-            href="/privacy-policy.html"
+            value="What we collect, and how to delete it"
+            href="/privacy-policy"
+          />
+          <Row
+            icon={FileText}
+            tint="bg-app-textSecondary/15 text-app-textSecondary"
+            label="Terms"
+            value="Your subscription and your guarantees"
+            href="/terms"
           />
         </ul>
       </Card>
@@ -181,6 +199,8 @@ export default function You() {
         <LogOut className="h-4 w-4" aria-hidden="true" />
         Sign out
       </button>
+        </div>
+      </div>
 
       <GoalSheet
         open={showGoals}

@@ -27,6 +27,47 @@
 /*.mp4
   Cache-Control: public, max-age=2592000
 
+# Keep the private surfaces out of every index, by a mechanism that does not
+# depend on robots.txt.
+#
+# Two reasons this is not left to robots.txt alone.
+#
+# First, robots.txt at this domain is not currently ours. Cloudflare's "Managed
+# robots.txt" prepends its own `User-agent: *` group ahead of the site's, so the
+# site's group is the second one in the file and a parser that honours only the
+# first match never reads our Disallow lines. A response header has no
+# equivalent failure: there is nothing to prepend it in front of.
+#
+# Second, robots.txt only ever asks a crawler not to FETCH a URL. It cannot
+# remove one from an index, and a disallowed URL that something else links to
+# can still be listed. `noindex` is the directive that actually keeps it out.
+#
+# The .txt entries are the load-bearing part. Next writes a React Server
+# Component payload beside every exported route, so /admin.html has a sibling
+# /admin.txt that serves the same screen as text/plain with a 200. The noindex
+# meta tag in the HTML does not cover it, because a meta tag is only read inside
+# HTML. Verified live before this rule existed: /admin.txt, /app.txt and
+# /welcome.txt all returned 200 with no robots directive of any kind.
+#
+# Deliberately NOT a blanket /*.txt rule, and never widen these to /blog/*.
+# That glob would also catch /robots.txt, and one careless edit of it would
+# noindex the articles, which are the entire SEO moat. `/app/*` is safe because
+# the trailing slash stops it matching /apple-touch-icon.png.
+/app
+  X-Robots-Tag: noindex, nofollow
+/app.txt
+  X-Robots-Tag: noindex, nofollow
+/app/*
+  X-Robots-Tag: noindex, nofollow
+/admin
+  X-Robots-Tag: noindex, nofollow, nocache
+/admin.txt
+  X-Robots-Tag: noindex, nofollow, nocache
+/welcome
+  X-Robots-Tag: noindex, nofollow
+/welcome.txt
+  X-Robots-Tag: noindex, nofollow
+
 # Nothing under the member app or the owner dashboard should sit in a shared
 # cache, and neither should the funnel HTML, which has to reflect a redeploy at
 # once.

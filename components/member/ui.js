@@ -96,24 +96,48 @@ export function ExerciseThumb({ item, className = "", eager = false }) {
   );
 }
 
-/** One exercise, as a tappable card. Used by every shelf and every result list. */
+/**
+ * One exercise, as a tappable card.
+ *
+ * Three layouts, and the third is the interesting one:
+ *
+ *   tile        a fixed-width card in a horizontally scrolling shelf
+ *   row         a thumbnail with the title beside it, in a list
+ *   responsive  a row on a phone and a tile from 704px up
+ *
+ * `responsive` exists because the search results want to be a list under the
+ * thumb and a grid on a laptop, and a prop cannot change at a breakpoint. Doing
+ * it with two lists and a `tab:hidden` on each would double the DOM for
+ * something CSS can decide on its own, so the row is the base and every tile
+ * rule is a `tab:` override on the same nodes.
+ */
 export function ExerciseCard({
   item, onPlay, onToggleSaved, saved, watched, layout = "tile",
 }) {
-  const isRow = layout === "row";
+  const isRow = layout === "row" || layout === "responsive";
+  const fluid = layout === "responsive";
+
+  const shell = isRow
+    ? `flex items-center gap-3 ${fluid ? "tab:block" : ""}`
+    : "w-[164px] shrink-0 tab:w-[196px] xl:w-[220px]";
+  const trigger = isRow
+    ? `flex flex-1 items-center gap-3 text-left ${fluid ? "tab:block tab:w-full" : ""}`
+    : "block w-full text-left";
+  const thumbHolder = isRow ? `w-[104px] shrink-0 ${fluid ? "tab:w-full" : ""}` : "";
+  const thumbShape = isRow
+    ? `aspect-video rounded-xl ${fluid ? "tab:w-full tab:rounded-[14px]" : ""}`
+    : "aspect-video w-full rounded-[14px]";
+
   return (
-    <div className={`relative ${isRow ? "flex items-center gap-3" : "w-[164px] shrink-0"}`}>
+    <div className={`relative ${shell}`}>
       <button
         type="button"
         onClick={() => onPlay(item)}
         aria-label={`Play ${itemDescription(item)}`}
-        className={isRow ? "flex flex-1 items-center gap-3 text-left" : "block w-full text-left"}
+        className={trigger}
       >
-        <span className={`relative block ${isRow ? "w-[104px] shrink-0" : ""}`}>
-          <ExerciseThumb
-            item={item}
-            className={isRow ? "aspect-video rounded-xl" : "aspect-video w-full rounded-[14px]"}
-          />
+        <span className={`relative block ${thumbHolder}`}>
+          <ExerciseThumb item={item} className={thumbShape} />
           <span className="pointer-events-none absolute inset-0 grid place-items-center">
             <span className="grid h-9 w-9 place-items-center rounded-full bg-black/45 backdrop-blur-[2px]">
               <Play className="h-4 w-4 translate-x-[1px] fill-white text-white" aria-hidden="true" />
@@ -131,8 +155,20 @@ export function ExerciseCard({
             </span>
           )}
         </span>
-        <span className={`block ${isRow ? "min-w-0 flex-1 pr-1" : "pt-2 pr-9"}`}>
-          <span className={`block font-semibold leading-snug text-app-textPrimary ${isRow ? "text-[14px]" : "line-clamp-2 text-[13px]"}`}>
+        <span
+          className={`block ${
+            isRow
+              ? `min-w-0 flex-1 pr-1 ${fluid ? "tab:pt-2 tab:pr-9" : ""}`
+              : "pt-2 pr-9"
+          }`}
+        >
+          <span
+            className={`block font-semibold leading-snug text-app-textPrimary ${
+              isRow
+                ? `text-[14px] ${fluid ? "tab:line-clamp-2 tab:text-[13.5px]" : ""}`
+                : "line-clamp-2 text-[13px]"
+            }`}
+          >
             {item.title}
           </span>
           <span className="mt-0.5 block truncate text-[11px] text-app-textSecondary">
@@ -150,7 +186,9 @@ export function ExerciseCard({
           aria-pressed={saved}
           aria-label={saved ? `Remove ${item.title} from saved` : `Save ${item.title}`}
           className={`grid h-11 w-11 place-items-center rounded-full ${
-            isRow ? "shrink-0" : "absolute bottom-0 right-0"
+            isRow
+              ? `shrink-0 ${fluid ? "tab:absolute tab:bottom-0 tab:right-0" : ""}`
+              : "absolute bottom-0 right-0"
           }`}
         >
           <Heart

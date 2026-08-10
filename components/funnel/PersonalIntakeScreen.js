@@ -18,6 +18,7 @@ import {
   inchesToCm, kgToLbs, lbsToKg,
 } from "./funnelState";
 import WheelPicker, { buildRange } from "./WheelPicker";
+import { trackIntakeStep } from "@/lib/analytics";
 import {
   PrimaryButton, ScreenHeader, Typewriter, useKeyboardInset, useReducedMotion,
 } from "./ui";
@@ -105,6 +106,11 @@ function NameField({ value, onChange, onSubmit }) {
         <input
           ref={inputRef}
           type="text"
+          // Clarity masks input values by default, and this says so out loud so
+          // that flipping the project to a looser masking mode in the Clarity
+          // dashboard cannot quietly start recording first names. What analytics
+          // gets from this screen is which question she was on, never her answer.
+          data-clarity-mask="true"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setFocused(true)}
@@ -156,6 +162,19 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
   );
   const [greeting, setGreeting] = useState(!reduced);
   const [name, setName] = useState(profile.name || "");
+
+  // --- Clarity: the four questions are four rungs, not one --------------------
+  //
+  // The funnel's step id for this whole screen is "intake", and Funnel.js
+  // deliberately records nothing for it, because "she left somewhere in the
+  // intake" is not an answer anybody can act on. Recorded per sub-step, the
+  // wheel pickers are separable from the name field and from each other, which
+  // is how "they leave on the height picker" becomes a number instead of a
+  // hunch. Nothing she typed or scrolled to is sent, only which question she
+  // was looking at.
+  useEffect(() => {
+    trackIntakeStep(subStep);
+  }, [subStep]);
 
   // One typing indicator, on the very first question only. After that Mia is
   // already "in the room" and a second pause just costs 800ms.
@@ -243,7 +262,7 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-app-background">
-      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] md:pt-4">
+      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
         <ScreenHeader onBack={goBack} railStep={3} railFraction={(index + 1) / 4} />
       </div>
 
@@ -334,7 +353,7 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
       </div>
 
       <div
-        className="shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 md:pb-5"
+        className="shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5"
         style={keyboardInset ? { paddingBottom: keyboardInset + 16 } : undefined}
       >
         <PrimaryButton onClick={goForward} disabled={!canAdvance}>

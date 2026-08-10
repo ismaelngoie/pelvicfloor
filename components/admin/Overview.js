@@ -38,10 +38,15 @@ import { Card, EmptyState, SectionHeader, Segmented, TileSkeleton, ChartSkeleton
    Tiles
    ------------------------------------------------------------------------- */
 
-function Tile({ label, value, explanation, footnote, hero = false, delay = 0, unavailableReason }) {
+function Tile({ label, value, explanation, footnote, hero = false, delay = 0, unavailableReason, className = "" }) {
   return (
     <Card
-      className={`pv-rise flex flex-col p-5 ${hero ? "sm:col-span-2" : ""}`}
+      // `hero` is a bigger figure and nothing else. It used to span two columns
+      // as well, which made the four-tile row add up to five cells: a clean 2x2
+      // at tablet width became two rows and a hole, and the four-across row at
+      // desktop became three items. The size of the number carries the emphasis
+      // on its own.
+      className={`pv-rise flex flex-col p-5 ${className}`}
       style={{ animationDelay: `${delay}ms` }}
     >
       <p
@@ -68,8 +73,13 @@ function Tile({ label, value, explanation, footnote, hero = false, delay = 0, un
         {explanation}
       </p>
 
+      {/* Deliberately NOT pushed to the bottom with mt-auto. Tiles in a row
+          stretch to the tallest one, and pinning the footnote to the floor put
+          the slack in the middle of the short tiles, where it read as a hole.
+          Left in place, the same slack falls under the last line and reads as
+          padding. */}
       {footnote ? (
-        <p className="mt-auto pt-3 text-[12px] leading-relaxed" style={{ color: "var(--pv-ink-3)" }}>
+        <p className="pt-3 text-[12px] leading-relaxed" style={{ color: "var(--pv-ink-3)" }}>
           {footnote}
         </p>
       ) : null}
@@ -80,12 +90,19 @@ function Tile({ label, value, explanation, footnote, hero = false, delay = 0, un
 export function OverviewSkeleton() {
   return (
     <div className="space-y-8">
+      {/* Same two rows the real thing uses, so the page does not jump when the
+          numbers land. */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 7 }).map((_, i) => (
+        {Array.from({ length: 4 }).map((_, i) => (
           <TileSkeleton key={i} />
         ))}
       </div>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <TileSkeleton key={i} />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {Array.from({ length: 4 }).map((_, i) => (
           <ChartSkeleton key={i} />
         ))}
@@ -150,9 +167,16 @@ export default function Overview({ members, now }) {
         <SectionHeader
           eyebrow="Right now"
           title="The numbers"
-          description="Counted from every member record, at the moment this page was loaded. Press Refresh at the top to count again."
+          description="Counted from every member record, at the moment this page was loaded. Press Count again for a fresh set."
         />
 
+        {/* Row one: the four numbers worth having above the fold. Everything
+            with a paragraph of caveats attached is in the row below, because
+            mixing a one-line tile and a six-line tile in the same row stretches
+            the short one into a mostly-empty box. */}
+        {/* Four across only from 1280. At 1024 the sidebar has already taken
+            240px, and splitting what is left four ways gave tiles 176px wide
+            whose explanation ran three words to a line. */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Tile
             hero
@@ -183,12 +207,41 @@ export default function Overview({ members, now }) {
             footnote={`That is ${formatPercent(stats.activeThisWeek, stats.total, "not enough members to work out a share")} of all members.`}
           />
 
-          {/* Both subscription tiles hide the figure entirely when there is
-              nothing visible, rather than showing a zero. A 52px "0" reads as a
-              fact however carefully the small print underneath is worded, and
-              on a business that is taking money it would be the wrong fact. */}
           <Tile
             delay={120}
+            label="Average day reached"
+            value={formatOneDecimal(stats.averageDay)}
+            unavailableReason={stats.averageDay === null ? "Nobody has started yet" : null}
+            explanation={`How far through the ${PROGRAM_LENGTH_DAYS} days the average member has got.`}
+            footnote={
+              stats.averageDay === null
+                ? "No member record has a program day on it yet."
+                : `Worked out from the ${formatCount(stats.dayCount)} members who have a day recorded.`
+            }
+          />
+        </div>
+
+        {/* Row two: the three that need explaining. The two subscription tiles
+            hide the figure entirely when there is nothing visible, rather than
+            showing a zero. A 52px "0" reads as a fact however carefully the
+            small print underneath is worded, and on a business that is taking
+            money it would be the wrong fact. */}
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <Tile
+            delay={160}
+            label={`Finished all ${PROGRAM_LENGTH_DAYS} days`}
+            value={formatCount(stats.finished)}
+            unavailableReason={stats.finished === null ? "Nobody has started yet" : null}
+            explanation={`Members who reached day ${PROGRAM_LENGTH_DAYS}, the end of the program.`}
+            footnote={
+              stats.finished === null
+                ? "No member record has a program day on it yet."
+                : `That is ${formatPercent(stats.finished, stats.dayCount, "not enough members to work out a share")} of the members who have started.`
+            }
+          />
+
+          <Tile
+            delay={200}
             label="Paying members it can see"
             value={formatCount(stats.paying)}
             unavailableReason={stats.paying > 0 ? null : "Not known here"}
@@ -205,7 +258,7 @@ export default function Overview({ members, now }) {
           />
 
           <Tile
-            delay={160}
+            delay={240}
             label="Monthly revenue it can see"
             value={formatMoney(stats.monthlyRevenue)}
             unavailableReason={stats.monthlyRevenue === null ? "Not known here" : null}
@@ -220,32 +273,6 @@ export default function Overview({ members, now }) {
               stats.monthlyRevenue !== null
                 ? `Counted from what this dashboard can see, which is iPhone purchases and the people you marked by hand. Web subscriptions, cancellations, refunds and failed payments are all missing, it cannot tell whether an iPhone subscription is still live, and Apple keeps a share of the iPhone ones before the money reaches you. ${blindSpotNote}`
                 : null
-            }
-          />
-
-          <Tile
-            delay={200}
-            label="Average day reached"
-            value={formatOneDecimal(stats.averageDay)}
-            unavailableReason={stats.averageDay === null ? "Nobody has started yet" : null}
-            explanation={`How far through the ${PROGRAM_LENGTH_DAYS} days the average member has got.`}
-            footnote={
-              stats.averageDay === null
-                ? "No member record has a program day on it yet."
-                : `Worked out from the ${formatCount(stats.dayCount)} members who have a day recorded.`
-            }
-          />
-
-          <Tile
-            delay={240}
-            label={`Finished all ${PROGRAM_LENGTH_DAYS} days`}
-            value={formatCount(stats.finished)}
-            unavailableReason={stats.finished === null ? "Nobody has started yet" : null}
-            explanation={`Members who reached day ${PROGRAM_LENGTH_DAYS}, the end of the program.`}
-            footnote={
-              stats.finished === null
-                ? "No member record has a program day on it yet."
-                : `That is ${formatPercent(stats.finished, stats.dayCount, "not enough members to work out a share")} of the members who have started.`
             }
           />
         </div>
@@ -267,9 +294,14 @@ export default function Overview({ members, now }) {
           }
         />
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {/* One column on a phone, two from 1024, and a 12-column grid from
+            1280 so the trend a person actually reads gets more room than the
+            breakdown sitting next to it. Below xl no child carries a span, so
+            they fall back to one cell each in the two-column grid. */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-12">
           <TimeSeriesChart
             delay={0}
+            className="xl:col-span-7"
             title="Signups over time"
             subtitle={`How many people joined in each period, across ${range.longLabel}.`}
             buckets={buckets}
@@ -283,6 +315,7 @@ export default function Overview({ members, now }) {
 
           <TimeSeriesChart
             delay={60}
+            className="xl:col-span-5"
             title="Active members over time"
             subtitle={`Each member counts once, in the period she last opened Pelvi, across ${range.longLabel}.`}
             buckets={buckets}
@@ -302,6 +335,7 @@ export default function Overview({ members, now }) {
           {stats.monthlyRevenue !== null ? (
             <TimeSeriesChart
               delay={120}
+              className="xl:col-span-7"
               title="Revenue this dashboard can see, over time"
               subtitle={`What it can see at the end of each period, across ${range.longLabel}. The real line is higher.`}
               buckets={buckets}
@@ -318,6 +352,7 @@ export default function Overview({ members, now }) {
           ) : (
             <UnavailableChart
               delay={120}
+              className="xl:col-span-7"
               title="Revenue this dashboard can see, over time"
               subtitle="Monthly revenue, period by period."
               reason={noSubscriptionReason}
@@ -326,6 +361,7 @@ export default function Overview({ members, now }) {
 
           <BarListChart
             delay={180}
+            className="xl:col-span-5"
             title={`Where members are in their ${PROGRAM_LENGTH_DAYS} days`}
             subtitle="Every member sorted into the stretch of the program she has reached."
             rows={stages.stages.map((s) => ({ id: s.id, label: `${s.label}  ·  ${s.note}`, value: s.value }))}
@@ -341,7 +377,7 @@ export default function Overview({ members, now }) {
 
           <BarListChart
             delay={240}
-            className="xl:col-span-2"
+            className="lg:col-span-2 xl:col-span-12"
             title="Goal breakdown"
             subtitle="Which goal members chose when they signed up, most popular first."
             rows={goals}

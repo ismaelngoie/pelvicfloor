@@ -31,6 +31,12 @@ import {
   newAttemptKey,
 } from "@/lib/checkout";
 import { markEntitlementActive } from "@/lib/entitlement";
+import {
+  trackCardFormShown,
+  trackCheckoutSetupFailed,
+  trackPaymentFailed,
+  trackPurchaseCompleted,
+} from "@/lib/analytics";
 import { useDialogBehaviour } from "./paywallHooks";
 
 // Loaded on first open, never on paywall paint. stripe.js is ~200 KB and the
@@ -124,6 +130,10 @@ export default function CheckoutSheet({
       if (!result.ok) {
         setError(result.message);
         setStep("email");
+        // The code, not the message. Codes are stable and countable
+        // (already_subscribed, price_unresolved, network_error, http_500);
+        // the message is copy and will be reworded.
+        trackCheckoutSetupFailed(result.code);
         onSetupError?.(result);
         // A fresh key for the next try, unless the failure was purely a
         // duplicate: reusing the key there would just replay the same answer.
@@ -132,6 +142,9 @@ export default function CheckoutSheet({
       }
       setIntent(result);
       setStep("pay");
+      // She has an address in and Stripe has answered, so the card form is
+      // about to mount. This is the last rung the recorder can see her cross.
+      trackCardFormShown();
     },
     [attemptKey, goalId, memberId, name, uid, onSetupError]
   );
@@ -219,6 +232,11 @@ export default function CheckoutSheet({
                 <input
                   id="checkout-email"
                   data-autofocus
+                  // Masked in session replay. Clarity masks input values by
+                  // default and this pins it, so the project's masking mode
+                  // cannot be loosened in the dashboard and start capturing the
+                  // address of everyone who reaches checkout.
+                  data-clarity-mask="true"
                   type="email"
                   inputMode="email"
                   autoComplete="email"
@@ -356,6 +374,14 @@ function PaymentStep({
     });
 
     if (error) {
+      // Two codes, because they answer two different questions. error.code is
+      // what went wrong at Stripe (card_declined, incomplete_number,
+      // payment_intent_authentication_failure). error.decline_code is the
+      // issuing bank's reason (insufficient_funds, do_not_honor, lost_card),
+      // and it is the one that says whether the price or the card is the
+      // problem. Nothing about the card itself is available here or anywhere
+      // else on this origin.
+      trackPaymentFailed(error);
       setMessage(
         error.message ||
           "That payment did not go through. Please check the card details and try again."
@@ -368,6 +394,9 @@ function PaymentStep({
     const status = paymentIntent?.status;
 
     if (status === "succeeded" || status === "processing") {
+      // Fired before the redirect to /welcome, because router.push unmounts
+      // this component and anything queued in an effect would never run.
+      trackPurchaseCompleted(status);
       markEntitlementActive({
         source: "stripe",
         priceId: intent?.priceId || null,
@@ -415,6 +444,37 @@ function PaymentStep({
         </button>
       </div>
 
+      {/* THE CARD FIELDS ARE NOT RECORDABLE, AND THAT IS DELIBERATE.
+          Do not "fix" this, and do not go looking for a Clarity setting that
+          turns it on. There isn't one, and there could not be one.
+
+          <PaymentElement /> renders an iframe served from js.stripe.com. That
+          is a different origin from pelvi.health, so the browser's same-origin
+          policy means this page cannot read its DOM, cannot see its keystrokes
+          and cannot screenshot its pixels. Microsoft Clarity is ordinary
+          JavaScript running on this origin, so the card number, the expiry and
+          the CVC are invisible to it in the same way they are invisible to
+          every other line of code in this repo. What session replay shows is an
+          empty rectangle where the card form is, and taps landing on it.
+
+          Two reasons that is the right outcome and not a gap:
+
+            PCI-DSS. Card data never touching this origin is precisely what
+            keeps this site on SAQ A, the shortest self-assessment there is.
+            Any arrangement in which the number does reach our JavaScript, and
+            therefore our analytics vendor, moves us to SAQ A-EP and drags
+            Microsoft into our cardholder data environment as a service
+            provider. That is a different company and a different audit.
+
+            Stripe's terms. Stripe Elements exist to keep the number inside
+            Stripe's frame. Instrumenting around that, by rebuilding the fields
+            as our own inputs so they can be watched, breaks the Services
+            Agreement and is grounds for losing the account we take money with.
+
+          What we DO capture about payments, and it is enough to run the
+          business on, is in lib/analytics.js: the stage she reached, whether
+          Stripe declined, the decline code the bank gave, and whether it
+          completed. */}
       <PaymentElement
         id="payment-element"
         options={paymentElementOptions}

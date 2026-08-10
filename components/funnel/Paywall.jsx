@@ -68,6 +68,7 @@ import {
   showcaseItems,
 } from "@/lib/paywallCopy";
 import { DEFAULT_PRICE_LABEL } from "@/lib/checkout";
+import { trackCheckoutOpened, trackRestoreOpened } from "@/lib/analytics";
 import CheckoutSheet from "./CheckoutSheet";
 import RestoreSheet from "./RestoreSheet";
 import {
@@ -384,13 +385,24 @@ export default function Paywall({
         >
           <button
             type="button"
-            onClick={() => setRestoreOpen(true)}
+            onClick={() => {
+              setRestoreOpen(true);
+              trackRestoreOpened();
+            }}
             className="min-h-[44px] font-system text-[13px] font-medium text-white/60 underline decoration-white/25 underline-offset-2"
           >
             Restore Purchase
           </button>
+          {/* /terms and /privacy-policy. These used to point at two static
+              files that described a different product: the terms named
+              vagitight.com and shipped literal [[COMPANY NAME]] placeholders,
+              and the policy denied collecting health data. This is the screen
+              that takes the card, so these two links are the ones a member and
+              an ad reviewer actually open. /terms is now generated from the
+              same guarantee copy this paywall renders, so the promise on this
+              screen and the promise on that page cannot drift apart. */}
           <a
-            href="/terms-of-use.html"
+            href="/terms"
             target="_blank"
             rel="noopener noreferrer"
             className="flex min-h-[44px] items-center font-system text-[13px] font-medium text-white/60 underline decoration-white/25 underline-offset-2"
@@ -398,7 +410,7 @@ export default function Paywall({
             Terms of Use
           </a>
           <a
-            href="/privacy-policy.html"
+            href="/privacy-policy"
             target="_blank"
             rel="noopener noreferrer"
             className="flex min-h-[44px] items-center font-system text-[13px] font-medium text-white/60 underline decoration-white/25 underline-offset-2"
@@ -431,6 +443,10 @@ export default function Paywall({
           onClick={() => {
             setSetupFailed(false);
             setCheckoutOpen(true);
+            // Not once-guarded. Opening the sheet, backing out and opening it
+            // again is a real and meaningful behaviour, and a second event is
+            // how it stays visible.
+            trackCheckoutOpened();
           }}
           className="pw-breathe mt-[10px] flex h-14 w-full items-center justify-center rounded-full bg-paywall-cta font-system text-[18px] font-bold text-white shadow-[0_0_15px_rgba(230,84,115,0.6)] transition-transform active:scale-[0.98]"
         >
@@ -517,8 +533,13 @@ function Backdrop({ reduced }) {
     setPlay(!saveData);
   }, [reduced]);
 
+  // tab:absolute, not md:absolute. This backdrop has to stop being viewport
+  // sized at exactly the width where the paywall stops being the whole screen
+  // and becomes a card, and the card now starts at 704 so an iPad mini in
+  // portrait gets a tablet layout. Left at md, every width from 704 to 767
+  // painted this video across the entire page behind a 544px card.
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 md:absolute" aria-hidden="true">
+    <div className="pointer-events-none fixed inset-0 z-0 tab:absolute" aria-hidden="true">
       <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,#3A1723_0%,#150A11_55%,#0A0A10_100%)]" />
 
       {play && (

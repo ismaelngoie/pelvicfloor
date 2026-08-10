@@ -13,6 +13,19 @@
 // from five months ago.
 const nextConfig = {
   reactStrictMode: true,
+  // For the DEV SERVER only. A `next build` and a `next dev` sharing one .next
+  // folder delete each other's chunks; it surfaces as "Cannot find module
+  // './733.js'" and a dev server stuck on 500 that restarting does not fix.
+  // `npm run dev:qa` sets NEXT_DIST_DIR so a dev server can keep running while
+  // somebody builds.
+  //
+  // It does NOT make two builds safe. `next build` with output:'export' still
+  // writes .next/export and .next/server/pages by hardcoded path whatever
+  // distDir says, so a second concurrent build fails on a missing 500.html.
+  // Builds have to take turns.
+  //
+  // Unset, which is how CI and Cloudflare Pages run, this is the Next default.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   output: 'export', // required for Cloudflare Pages
   images: {
     unoptimized: true,

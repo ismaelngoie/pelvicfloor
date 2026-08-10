@@ -83,7 +83,7 @@ export default function HealthInfoScreen({ profile, onPatch, onNext, onBack }) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-app-background">
-      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] md:pt-4">
+      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
         <ScreenHeader onBack={onBack} railStep={4} railFraction={ready ? 1 : 0.5} />
       </div>
 
@@ -162,7 +162,7 @@ export default function HealthInfoScreen({ profile, onPatch, onNext, onBack }) {
         <ScrollMoreHint visible={hasMore} />
       </div>
 
-      <div className="shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 md:pb-5">
+      <div className="shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5">
         <PrimaryButton onClick={onNext} disabled={!ready}>
           {block.cta}
         </PrimaryButton>

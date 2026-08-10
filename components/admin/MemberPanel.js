@@ -564,7 +564,7 @@ export default function MemberPanel({ member, onClose, onPatched }) {
       />
 
       <div
-        className="pv-sheet-in relative flex h-full w-full flex-col md:max-w-[560px]"
+        className="pv-sheet-in relative flex h-full w-full flex-col md:max-w-[560px] xl:max-w-[680px]"
         style={{
           background: "var(--pv-canvas)",
           borderLeft: "1px solid var(--pv-border)",

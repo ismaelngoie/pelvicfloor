@@ -377,7 +377,11 @@ export default function VideoPlayer({
       role="dialog"
       aria-modal="true"
       aria-label={`${title}. Exercise ${index + 1} of ${videos.length}.`}
-      className="fixed inset-0 z-50 flex flex-col bg-black text-white outline-none"
+      // From 1024 the player is two panes: the stage and its transport on the
+      // left, the session's clips as a list on the right. A single column at
+      // that width means a 1900px-wide scrubber under a video that is mostly
+      // black bars, and the next exercise nowhere in sight.
+      className="fixed inset-0 z-50 flex flex-col bg-black text-white outline-none lg:flex-row"
       onMouseMove={wakeChrome}
       onTouchStart={wakeChrome}
     >
@@ -405,6 +409,7 @@ export default function VideoPlayer({
         />
       ) : (
         <>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Stage */}
           <div className="relative flex-1 min-h-0" onClick={() => (chromeVisible ? togglePlay() : wakeChrome())}>
             <video
@@ -505,6 +510,11 @@ export default function VideoPlayer({
               chromeVisible ? "opacity-100" : "opacity-0 pointer-events-none"
             }`}
           >
+            {/* Everything below is capped and centred. A scrubber the full
+                width of a 27 inch monitor is not more precise, it is just a
+                longer trip for the mouse, and the transport ends up nowhere
+                near the video it controls. */}
+            <div className="mx-auto w-full max-w-[1100px]">
             {/* Scrubber */}
             <div className="px-4 pt-2">
               <input
@@ -602,9 +612,9 @@ export default function VideoPlayer({
               </p>
             </div>
 
-            {/* Filmstrip */}
+            {/* Filmstrip. Replaced by the rail from lg, never both. */}
             {videos.length > 1 && (
-              <div className="border-t border-white/10 px-4 pb-1 pt-3">
+              <div className="border-t border-white/10 px-4 pb-1 pt-3 lg:hidden">
                 <p className="pb-2 text-[11px] font-semibold uppercase tracking-wider text-white/50">
                   In this session
                 </p>
@@ -639,7 +649,60 @@ export default function VideoPlayer({
                 </ul>
               </div>
             )}
+            </div>
           </div>
+          </div>
+
+          {/* The session, as a list, from lg. Same targets as the filmstrip and
+              the same aria, laid out down the side where there is room for the
+              whole title instead of two clamped lines. */}
+          {videos.length > 1 && (
+            <aside
+              aria-label="In this session"
+              className="hidden shrink-0 border-l border-white/10 bg-black lg:flex lg:w-[320px] lg:flex-col xl:w-[360px]"
+            >
+              <p className="shrink-0 border-b border-white/10 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white/50">
+                In this session · {watchedCount} of {videos.length} done
+              </p>
+              <ul className="min-h-0 flex-1 overflow-y-auto p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+                {upcoming.map(({ video, i }) => {
+                  const done = watchRef.current.get(i)?.logged;
+                  const isCurrent = i === index;
+                  return (
+                    <li key={video.id}>
+                      <button
+                        type="button"
+                        onClick={() => goTo(i)}
+                        aria-current={isCurrent ? "true" : undefined}
+                        aria-label={`Exercise ${i + 1}, ${video.title}${done ? ", done" : ""}`}
+                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${
+                          isCurrent ? "bg-ios-pink/20 ring-1 ring-inset ring-ios-pink" : "hover:bg-white/10"
+                        }`}
+                      >
+                        <span
+                          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
+                            done ? "bg-app-positive text-white" : "bg-white/10 text-white/70"
+                          }`}
+                        >
+                          {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" /> : i + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13.5px] font-medium text-white/90">
+                            {video.title}
+                          </span>
+                          {video.durationSeconds > 0 && (
+                            <span className="block text-[11px] tabular-nums text-white/45">
+                              {durationLabel(video.durationSeconds)}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </aside>
+          )}
         </>
       )}
     </div>

@@ -25,6 +25,7 @@ import {
 import { entitlementState } from "@/lib/memberEntitlement";
 import { fetchEntitlement } from "@/lib/memberBilling";
 import { fetchRecentEvents, savedIdsOf, setSavedIds, summarizeEvents } from "@/lib/memberData";
+import { FIXTURES_ON } from "@/lib/devFixtures";
 
 const MemberContext = createContext(null);
 
@@ -66,6 +67,25 @@ export function MemberProvider({ children }) {
   // --- Auth ----------------------------------------------------------------
 
   useEffect(() => {
+    // Local QA only, and dead code in a production bundle. The NODE_ENV test is
+    // repeated here rather than left to FIXTURES_ON because only a literal at
+    // this exact spot lets webpack delete the block, and with it the dynamic
+    // import below. See lib/devFixtures.js.
+    if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
+      // Not named `live`: that is already the Stripe answer in state, and
+      // shadowing it here would read as this effect setting it.
+      let mounted = true;
+      import("@/lib/devFixtureData").then((f) => {
+        if (!mounted) return;
+        setUser(f.fixtureUser);
+        setMember(f.fixtureMember);
+        setAuthState("signedIn");
+        setLive({ active: true, renewsAt: null });
+        setEntitlementChecked(true);
+        setCompletions(f.fixtureCompletions());
+      });
+      return () => { mounted = false; };
+    }
     if (!configured) {
       setAuthState("signedOut");
       return undefined;
@@ -131,6 +151,7 @@ export function MemberProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (FIXTURES_ON) return;
     if (authState !== "signedIn" || !user) return;
     loadMember(user);
   }, [authState, user, loadMember]);
@@ -144,7 +165,7 @@ export function MemberProvider({ children }) {
   const patchMember = useCallback(
     async (patch) => {
       if (!member?.id) return;
-      await updateMember(member.id, patch);
+      if (!FIXTURES_ON) await updateMember(member.id, patch);
       setMember((prev) => (prev ? { ...prev, ...patch } : prev));
     },
     [member?.id]
@@ -189,6 +210,7 @@ export function MemberProvider({ children }) {
   );
 
   useEffect(() => {
+    if (FIXTURES_ON) return;
     if (authState !== "signedIn" || !user) {
       // Signing out has to drop the answer with the account. Leaving it behind
       // would hand the next person to sign in on this laptop the last member's
@@ -257,6 +279,11 @@ export function MemberProvider({ children }) {
 
   const reloadHistory = useCallback(async () => {
     if (!member?.id) return;
+    if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
+      const f = await import("@/lib/devFixtureData");
+      setEvents(f.fixtureEvents(catalog));
+      return;
+    }
     try {
       const [nextCompletions, nextEvents] = await Promise.all([
         fetchCompletions(member.id),
@@ -267,7 +294,7 @@ export function MemberProvider({ children }) {
     } catch {
       // History is additive. A failed read leaves what she already sees.
     }
-  }, [member?.id]);
+  }, [member?.id, catalog]);
 
   useEffect(() => {
     if (!member?.id || !entitlement.active) return;
@@ -312,6 +339,7 @@ export function MemberProvider({ children }) {
         ? current.filter((id) => id !== videoId)
         : [videoId, ...current];
       setMember((prev) => (prev ? { ...prev, savedExerciseIDs: next } : prev));
+      if (FIXTURES_ON) return;
       try {
         await setSavedIds(member.id, next);
       } catch {
@@ -333,6 +361,7 @@ export function MemberProvider({ children }) {
   // with a 12 day run behind her had a bestStreak of 2 written over the top of
   // it the first time she opened the web app.
   useEffect(() => {
+    if (FIXTURES_ON) return;
     if (!member?.id || !completions.length) return;
     const best = Math.max(Number(member.bestStreak) || 0, streak.best);
     if (streak.current === member.streak && best === member.bestStreak) return;

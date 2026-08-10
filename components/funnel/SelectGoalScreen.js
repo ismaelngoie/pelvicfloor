@@ -80,7 +80,7 @@ export default function SelectGoalScreen({ goalId, onSelect, onNext, onBack }) {
         }}
       />
 
-      <div className="relative z-10 shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] md:pt-4">
+      <div className="relative z-10 shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
         <ScreenHeader onBack={onBack} railStep={1} railFraction={goalId ? 1 : 0.14} />
         <h1 className="mt-8 text-center text-[26px] font-bold leading-[1.04] tracking-[-0.4px] text-app-textPrimary sm:text-[30px]">
           {GOAL_HEADLINE}
@@ -110,7 +110,7 @@ export default function SelectGoalScreen({ goalId, onSelect, onNext, onBack }) {
         <ScrollMoreHint visible={hasMore} />
       </div>
 
-      <div className="relative z-10 shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 md:pb-5">
+      <div className="relative z-10 shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5">
         <PrimaryButton onClick={onNext} disabled={!goalId}>
           {GOAL_CTA}
         </PrimaryButton>

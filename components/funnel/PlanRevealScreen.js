@@ -199,7 +199,7 @@ export default function PlanRevealScreen({ profile, onReachPaywall, onBack }) {
     <div className="relative flex h-full min-h-0 w-full flex-col bg-black font-system">
       <Sparkles />
 
-      <div className="relative z-10 shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] md:pt-4">
+      <div className="relative z-10 shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
         <div className="flex h-11 items-center">
           <BackButton onClick={onBack} tone="dark" />
         </div>
@@ -276,7 +276,7 @@ export default function PlanRevealScreen({ profile, onReachPaywall, onBack }) {
         </ul>
       </div>
 
-      <div className="relative z-10 shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 md:pb-5">
+      <div className="relative z-10 shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5">
         <PrimaryButton onClick={onReachPaywall} variant="reveal" breathe={!reduced}>
           {block.cta}
         </PrimaryButton>

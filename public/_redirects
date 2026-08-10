@@ -1,3 +1,12 @@
+# The blog index moved from public/blog/index.html (the old Astro page) to the
+# app router, which exports blog.html and answers at /blog with no trailing
+# slash. Deleting the old file is what stops the two from both returning 200
+# with different titles and different self-referencing canonicals; this line is
+# what makes the slashed form's behaviour ours rather than a Pages default we
+# would be guessing at. The 53 legacy posts that linked to /blog/ now link to
+# /blog directly, so this catches external links and bookmarks only.
+/blog/ /blog 301
+
 # The blog used to live at /insights. Those URLs have external links and
 # rankings, so they keep resolving.
 /insights/* /blog/:splat 301
@@ -8,3 +17,19 @@
 # return_url and any ad landing page that still points here go there instead.
 /dashboard /app 301
 /dashboard/* /app 301
+
+# The terms moved from public/terms-of-use.html to the app router, which exports
+# terms.html and answers at /terms. The old file is deleted, so without these
+# two lines every existing link to it 404s, and those links are not ours to fix:
+# the App Store listing, the old paywall, 53 legacy blog footers and anything a
+# member bookmarked. Both spellings are listed because Cloudflare Pages only
+# folds ".html" onto the extensionless form when the .html file still exists in
+# the output, and it does not any more.
+#
+# /privacy-policy needs no line here. The app router exports privacy-policy.html
+# at the same path the old file occupied, so Pages keeps serving /privacy-policy
+# and keeps 308ing /privacy-policy.html onto it, exactly as it did before. The
+# URL Apple has on file still resolves; what changed is which product's policy
+# is behind it.
+/terms-of-use /terms 301
+/terms-of-use.html /terms 301

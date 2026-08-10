@@ -109,7 +109,7 @@ export default function HowPelviHelpsScreen({ goalId, onNext, onBack }) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-app-background">
-      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] md:pt-4">
+      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
         <ScreenHeader onBack={onBack} railStep={2} railFraction={1} />
         <h1 className="mt-8 text-center text-[26px] font-bold leading-[1.04] tracking-[-0.4px] text-app-textPrimary sm:text-[30px]">
           Here&apos;s how we&apos;ll <span className="font-extrabold">{phrase}</span>
@@ -205,7 +205,7 @@ export default function HowPelviHelpsScreen({ goalId, onNext, onBack }) {
         )}
       </div>
 
-      <div className="shrink-0 px-8 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 md:pb-5">
+      <div className="shrink-0 px-8 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5">
         <PrimaryButton onClick={onNext}>{HOW_IT_HELPS_CTA}</PrimaryButton>
       </div>
     </div>

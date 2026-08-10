@@ -3,11 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Us - Pelvic Floor</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Contact Pelvi Health</title>
+    <meta name="description" content="Questions about your Pelvi Health plan, your subscription or the 90-day goal guarantee? Email contact@pelvi.health and a person will read it.">
+    <link rel="canonical" href="https://pelvi.health/contact.html">
+    <meta name="robots" content="index,follow">
+    <link rel="icon" href="/icon.png" type="image/png">
+    <meta name="theme-color" content="#000000">
+    <meta property="og:title" content="Contact Pelvi Health">
+    <meta property="og:description" content="Questions about your plan, your subscription or the 90-day goal guarantee? Email contact@pelvi.health.">
+    <meta property="og:url" content="https://pelvi.health/contact.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Pelvi Health">
+    <meta property="og:image" content="https://pelvi.health/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://pelvi.health/og-image.png">
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"ContactPage","@id":"https://pelvi.health/contact.html#webpage","url":"https://pelvi.health/contact.html","name":"Contact Pelvi Health","description":"How to reach Pelvi Health support.","isPartOf":{"@id":"https://pelvi.health/#website"},"publisher":{"@id":"https://pelvi.health/#organization"},"inLanguage":"en-US"}</script>
+    <!--
+      The Tailwind CDN and the Google Fonts stylesheet are gone: both were
+      render blocking, and the first of them shipped a CSS compiler to a phone
+      in order to lay out one heading, one line of text and a button.
+
+      This is the last hand-written page left in public/. The two it used to
+      sit beside, privacy-policy.html and terms-of-use.html, are deleted. They
+      described a different product at a domain we do not own, and they are
+      replaced by app router pages at /privacy-policy and /terms.
+    -->
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #000000; color: #E5E7EB; }
+        *, ::before, ::after { box-sizing: border-box; }
+        body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #000000; color: #E5E7EB; margin: 0; }
+        img { display: block; max-width: 100%; height: auto; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .flex-grow { flex-grow: 1; }
+        .items-center { align-items: center; }
+        .inline-block { display: inline-block; }
+        .min-h-screen { min-height: 100vh; }
+        .container { width: 100%; margin-inline: auto; }
+        @media (min-width: 640px) { .container { max-width: 640px; } }
+        @media (min-width: 768px) { .container { max-width: 768px; } }
+        @media (min-width: 1024px) { .container { max-width: 1024px; } }
+        @media (min-width: 1280px) { .container { max-width: 1280px; } }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .p-4 { padding: 1rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .px-8 { padding-left: 2rem; padding-right: 2rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+        .py-16 { padding-top: 4rem; padding-bottom: 4rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .space-x-3 > * + * { margin-left: 0.75rem; }
+        .h-8 { height: 2rem; }
+        .w-8 { width: 2rem; }
+        .font-bold { font-weight: 700; }
+        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+        .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+        @media (min-width: 768px) { .md\:text-5xl { font-size: 3rem; line-height: 1; } }
+        .text-center { text-align: center; }
+        .text-white { color: #fff; }
+        .text-gray-400 { color: #9CA3AF; }
+        .text-gray-500 { color: #6B7280; }
+        .bg-pink-500 { background-color: #EC4899; }
+        .rounded-full { border-radius: 9999px; }
+        .transition { transition: background-color 0.15s ease, color 0.15s ease; }
+        .hover\:bg-pink-600:hover { background-color: #DB2777; }
+        h1 { margin: 0; }
+        p { margin: 0; }
+        a { color: inherit; text-decoration: none; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -22,7 +88,14 @@
     <main class="flex-grow container mx-auto px-4 py-16 text-center">
         <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Get in Touch</h1>
         <p class="text-gray-400 text-lg mb-8">Have a question or feedback? We'd love to hear from you.</p>
-        <a href="mailto:support@pelvi.health" class="inline-block bg-pink-500 text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-pink-600 transition">
+        <!--
+          The href said support@ while the button said contact@, so every
+          person who tapped "Email Us: contact@pelvi.health" addressed a
+          different mailbox than the one they were shown. contact@ is what the
+          privacy policy and this button both advertise, so that is the one
+          that wins. Confirm both inboxes are monitored.
+        -->
+        <a href="mailto:contact@pelvi.health" class="inline-block bg-pink-500 text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-pink-600 transition">
             Email Us: contact@pelvi.health
         </a>
     </main>

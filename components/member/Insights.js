@@ -120,7 +120,7 @@ export default function Insights() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4">
+    <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4 lg:max-w-5xl lg:px-8 lg:pt-6">
       <header className="px-1">
         <h1 className="text-[30px] font-bold leading-tight tracking-[-0.4px] text-app-textPrimary">
           Insights
@@ -132,7 +132,9 @@ export default function Insights() {
 
       <ProgressCharts />
 
-      <label className="relative mt-8 block">
+      {/* The search box is a control, not prose: past about 40rem a full-width
+          pill just puts the clear button a long way from the caret. */}
+      <label className="relative mt-8 block lg:max-w-xl">
         <span className="sr-only">Search the articles</span>
         <Search
           className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-app-textSecondary"
@@ -172,7 +174,7 @@ export default function Insights() {
           <p role="status" className="px-1 text-[13px] font-semibold text-app-textSecondary">
             {searchResults.length} {searchResults.length === 1 ? "article" : "articles"}
           </p>
-          <ul className="mt-3 space-y-3">
+          <ul className="mt-3 grid gap-3 tab:grid-cols-2 xl:grid-cols-3">
             {searchResults.map((article) => (
               <li key={article.id}>
                 <ArticleRow article={article} onOpen={() => setOpen(article)} />
@@ -206,7 +208,7 @@ export default function Insights() {
           {savedArticles.length > 0 && (
             <section aria-labelledby="saved-for-later">
               <SectionHeader id="saved-for-later" title="Saved for later" />
-              <ul className="mt-3 space-y-3">
+              <ul className="mt-3 grid gap-3 tab:grid-cols-2 xl:grid-cols-3">
                 {savedArticles.map((article) => (
                   <li key={article.id}>
                     <ArticleRow article={article} onOpen={() => setOpen(article)} />

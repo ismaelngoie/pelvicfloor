@@ -135,7 +135,7 @@ export default function PersonalizingScreen({ profile, onDone, onBack }) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-black font-system">
-      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] md:pt-4">
+      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
         <div className="flex h-11 items-center">
           <BackButton onClick={onBack} tone="dark" />
         </div>
@@ -184,7 +184,7 @@ export default function PersonalizingScreen({ profile, onDone, onBack }) {
         ) : null}
       </div>
 
-      <div className="shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),18px)] pt-3 md:pb-6">
+      <div className="shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),18px)] pt-3 tab:pb-6">
         <div className="flex items-end justify-between">
           <span className="text-[15px] font-medium text-white/85 sm:text-[16px]">Progress</span>
           <span className="font-mono text-[22px] font-bold text-white sm:text-[24px]">{percent}%</span>

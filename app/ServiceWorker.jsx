@@ -17,6 +17,14 @@ import { useEffect } from "react";
 
 export default function ServiceWorker() {
   useEffect(() => {
+    // Never in development. sw.js is cache-first on /_next/static/* and that is
+    // safe in production precisely because those filenames carry a content
+    // hash. `next dev` does not hash them: a chunk keeps the same URL while its
+    // bytes change on every edit, so the worker keeps handing back the copy it
+    // cached and the browser runs code you deleted ten minutes ago. It looks
+    // exactly like a change that did not work rather than a stale cache, and
+    // the only way out is unregistering the worker by hand.
+    if (process.env.NODE_ENV !== "production") return undefined;
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return undefined;
     // Service workers need a secure context. localhost counts; a preview served
     // over plain http on a LAN address does not, and would throw.
