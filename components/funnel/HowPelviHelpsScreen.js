@@ -98,7 +98,6 @@ export default function HowPelviHelpsScreen({ goalId, onNext, onBack }) {
   const rx = (box.w - tileW) / 2 - 0.25 * rem;
   const ry = Math.min((box.h - tileH) / 2 - 0.25 * rem, rx * 1.35);
   const measured = box.w > 0 && box.h > 0;
-  const asRing = measured && rx >= MIN_RING_R * rem && ry >= MIN_RING_R * rem;
 
   const cx = box.w / 2;
   const cy = box.h / 2;
@@ -106,6 +105,41 @@ export default function HowPelviHelpsScreen({ goalId, onNext, onBack }) {
     const angle = ((-90 + i * 60) * Math.PI) / 180;
     return { x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
   });
+
+  // Does the ring these numbers describe actually hold six tiles without them
+  // sitting on top of each other?
+  //
+  // MIN_RING_R alone never answered that. It is a floor on the radius, but
+  // whether two tiles collide depends on the radius AND the tile size AND the
+  // aspect of the box, so a ring can clear the floor and still overlap. On a
+  // 320x568 screen it did: rx came out at 92 against a 104 wide tile and the
+  // six promises overlapped by 14px each, drawing a card edge straight through
+  // "Sneeze without worry" and "Fewer sudden urges" on the third screen of the
+  // funnel.
+  //
+  // This asks the real question instead, using the very same `points`, `tileW`
+  // and `tileH` that are about to be rendered, so the test and the layout
+  // cannot drift apart. Neighbours sit 60 degrees apart and a box overlaps its
+  // neighbour only when it overlaps on BOTH axes; non-adjacent tiles are always
+  // further apart than adjacent ones, so i against i+1 covers every pair.
+  //
+  // The 1px slack is deliberate. At 375x812 the horizontal gap lands within
+  // half a pixel of the tile width, which is a hairline kiss nobody can see,
+  // and a strict test would throw away the constellation on the commonest phone
+  // on the site to avoid a defect that is not there. Measured after this
+  // change: 320x568 falls back to the grid, and 360x800, 375x812, 390x844 and
+  // 412x915 all keep the ring with zero overlap.
+  //
+  // Falling back is not a degradation. It is the same six tiles at the same
+  // size in two columns, which is what the header of this file always said
+  // should happen when the ring will not fit.
+  const tilesCollide = points.some((p, i) => {
+    const q = points[(i + 1) % points.length];
+    return Math.abs(p.x - q.x) < tileW - 1 && Math.abs(p.y - q.y) < tileH - 1;
+  });
+
+  const asRing =
+    measured && rx >= MIN_RING_R * rem && ry >= MIN_RING_R * rem && !tilesCollide;
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-app-background">

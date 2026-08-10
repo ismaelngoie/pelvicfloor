@@ -213,10 +213,14 @@ export function ExerciseShelf({ title, subtitle, items, onPlay, onToggleSaved, s
         subtitle={subtitle}
         action={
           onSeeAll && (
+            // 41x20 at 320px, which is under the 24px floor WCAG 2.5.8 sets.
+            // `-my-2` keeps the shelf header where it is: the outer height goes
+            // 20px to 28px rather than 20px to 44px, and the rest of the hit
+            // area hangs 8px into the 12px gap above the cards.
             <button
               type="button"
               onClick={onSeeAll}
-              className="shrink-0 text-[13px] font-semibold text-ios-pink"
+              className="-my-2 inline-flex min-h-[44px] shrink-0 items-center text-[13px] font-semibold text-ios-pink"
             >
               See all
             </button>

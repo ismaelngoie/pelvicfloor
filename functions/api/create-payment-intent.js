@@ -1,4 +1,7 @@
 import Stripe from "stripe";
+import {
+  BILLING_INTERVAL, BILLING_INTERVAL_COUNT, PRICE_AMOUNT_CENTS, PRICE_CURRENCY,
+} from "../../lib/pricing.js";
 
 // POST /api/create-payment-intent
 //
@@ -35,12 +38,37 @@ import Stripe from "stripe";
 
 const STRIPE_API_VERSION = "2023-10-16";
 
-// The subscription product, and what a month of it costs. Both are checked
-// against Stripe before anybody is charged — see resolvePriceId().
+// The subscription product. Checked against Stripe before anybody is charged —
+// see resolvePriceId().
 const PRODUCT_ID = "prod_Ts2n6VY8K08rao";
 const PRODUCT_NAME = "Pelvi Health Premium";
-const MONTHLY_AMOUNT = 2499; // cents
-const CURRENCY = "usd";
+
+// WHAT WE INTEND TO SELL, and it is imported rather than typed here.
+//
+// The amount, the currency and the LENGTH OF THE SUBSCRIPTION all come from
+// lib/pricing.js, which is the file the paywall, the terms page and the
+// structured data read too. A 365 day plan is coming, and a price interval
+// typed into this Worker as well would mean a duration change that looks
+// complete on every screen and then quietly fails at the one place that takes
+// money: this endpoint would keep hunting for a monthly price, find none, and
+// answer price_unresolved to every buyer.
+//
+// lib/pricing.js is plain ESM with no browser API in it, which is what makes it
+// safe to pull into an edge Worker. Keep it that way.
+const EXPECTED_AMOUNT = PRICE_AMOUNT_CENTS; // cents
+const CURRENCY = PRICE_CURRENCY.toLowerCase(); // Stripe stores currencies lower case
+const EXPECTED_INTERVAL = BILLING_INTERVAL;
+const EXPECTED_INTERVAL_COUNT = BILLING_INTERVAL_COUNT;
+
+/**
+ * "every month", "every year", "every 3 months". Only ever used in an error
+ * message, and phrased this way because it stays correct for every value Stripe
+ * allows: "month" + "ly" reads, "day" + "ly" does not.
+ */
+const PERIOD_WORD =
+  EXPECTED_INTERVAL_COUNT === 1
+    ? `every ${EXPECTED_INTERVAL}`
+    : `every ${EXPECTED_INTERVAL_COUNT} ${EXPECTED_INTERVAL}s`;
 
 const DEFAULT_ORIGIN_HOSTS = ["pelvi.health", "www.pelvi.health"];
 
@@ -124,8 +152,9 @@ export async function onRequestPost(context) {
     return fail(
       503,
       "price_unavailable",
-      `Checkout is not available right now. No active $${(MONTHLY_AMOUNT / 100).toFixed(2)} ` +
-        `${CURRENCY.toUpperCase()} monthly price could be found on "${PRODUCT_NAME}" (${PRODUCT_ID}). ` +
+      `Checkout is not available right now. No active $${(EXPECTED_AMOUNT / 100).toFixed(2)} ` +
+        `${CURRENCY.toUpperCase()} price billed ${PERIOD_WORD} could be found on ` +
+        `"${PRODUCT_NAME}" (${PRODUCT_ID}). ` +
         "Please email hello@pelvi.health and we will set you up by hand."
     );
   }
@@ -250,8 +279,14 @@ let cachedPriceId = null;
  * and $14.99, that still have subscribers on them. "The monthly one" is not a
  * unique description here — picking the wrong one would silently charge a new
  * member a fifth of the price, or charge a member on an old plan a new one.
- * Only an active, recurring, monthly, USD price at exactly 2499 cents will do,
- * and if there is not exactly one of those we sell nothing and say so.
+ * Only an active, recurring price whose interval, interval_count, currency and
+ * unit_amount are all exactly what lib/pricing.js declares will do, and if
+ * there is not exactly one of those we sell nothing and say so.
+ *
+ * That is also the safety net under a change of subscription length. Move
+ * lib/pricing.js to a year without creating the matching price in Stripe and
+ * this endpoint refuses to sell anything at all, with price_unresolved in the
+ * log. Loud and immediate beats charging somebody a month for a year's plan.
  *
  * STRIPE_PRICE_ID still wins, unresolved, so a price can be swapped from the
  * Cloudflare dashboard without a deploy.
@@ -270,15 +305,16 @@ async function resolvePriceId(stripe, env) {
     (price) =>
       price.active === true &&
       price.type === "recurring" &&
-      price.recurring?.interval === "month" &&
-      (price.recurring?.interval_count ?? 1) === 1 &&
+      price.recurring?.interval === EXPECTED_INTERVAL &&
+      (price.recurring?.interval_count ?? 1) === EXPECTED_INTERVAL_COUNT &&
       price.currency === CURRENCY &&
-      price.unit_amount === MONTHLY_AMOUNT
+      price.unit_amount === EXPECTED_AMOUNT
   );
 
   if (matches.length === 0) {
     const error = new Error(
-      `No active ${MONTHLY_AMOUNT} ${CURRENCY} monthly price on ${PRODUCT_NAME} (${PRODUCT_ID}).`
+      `No active ${EXPECTED_AMOUNT} ${CURRENCY} price billed ${PERIOD_WORD} on ` +
+        `${PRODUCT_NAME} (${PRODUCT_ID}).`
     );
     error.code = "price_unresolved";
     throw error;
@@ -368,7 +404,7 @@ function respond(subscription, customer, priceId) {
     priceId: price?.id || priceId,
     amount: typeof price?.unit_amount === "number" ? price.unit_amount : null,
     currency: price?.currency || "usd",
-    interval: price?.recurring?.interval || "month",
+    interval: price?.recurring?.interval || EXPECTED_INTERVAL,
     currentPeriodEnd: subscription.current_period_end
       ? new Date(subscription.current_period_end * 1000).toISOString()
       : null,

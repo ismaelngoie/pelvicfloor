@@ -416,14 +416,19 @@ export default function LandingScreen({ onStart, returning = false }) {
           {/* No year. It would be baked in at build time, so it is wrong the
               moment January arrives and it tears on hydration when it is. */}
           <p>© Pelvi Health, LLC</p>
-          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <a className="hover:text-app-textPrimary" href="/blog">Blog</a>
+          {/* 21px rows, in a nav that wraps on a narrow tablet. 44px boxes and
+              no gap-y, for the same reason as the blog footer: a negative
+              vertical margin on a wrapping row overlaps the hit areas of two
+              lines, and a 44px box already leaves 23px of clear space between
+              one line of text and the next. */}
+          <nav className="flex flex-wrap items-center gap-x-6">
+            <a className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary" href="/blog">Blog</a>
             {/* /privacy-policy and /terms, not the old .html files. Both are
                 app router pages now. The files these used to point at
                 described a different product at a domain we do not own. */}
-            <a className="hover:text-app-textPrimary" href="/privacy-policy">Privacy</a>
-            <a className="hover:text-app-textPrimary" href="/terms">Terms</a>
-            <a className="hover:text-app-textPrimary" href="mailto:hello@pelvi.health">
+            <a className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary" href="/privacy-policy">Privacy</a>
+            <a className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary" href="/terms">Terms</a>
+            <a className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary" href="mailto:hello@pelvi.health">
               hello@pelvi.health
             </a>
           </nav>

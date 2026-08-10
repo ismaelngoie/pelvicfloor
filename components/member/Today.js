@@ -740,11 +740,20 @@ function DailyRoutineCard({
           takes over the whole screen and the player's own list is right there.
           A browser tab is not a full-screen cover, so the same information gets
           a disclosure here rather than a second navigation. */}
+      {/* 19px tall at 320px, which is under the 24px floor WCAG 2.5.8 sets, on
+          the only control that tells a member what today's session contains.
+
+          `mt-1.5 -mb-1.5 min-h-[44px]`, not `-my-1.5 mt-3`: `mt` and `my` both
+          set margin-top and Tailwind emits `mt` last, so the negative half of a
+          `-my` would have been silently dropped. Written as two explicit sides
+          it cannot be read wrong. Net effect: the row goes from 31px of card
+          height to 44px, and the 6px the button hangs below sits inside the 8px
+          gap above the move list. */}
       <button
         type="button"
         onClick={() => setShowMoves((v) => !v)}
         aria-expanded={showMoves}
-        className="mt-3 flex w-full items-center justify-between gap-2 text-[12.5px] font-semibold text-app-textSecondary"
+        className="mt-1.5 -mb-1.5 flex min-h-[44px] w-full items-center justify-between gap-2 text-[12.5px] font-semibold text-app-textSecondary"
       >
         <span>
           {videos.length} {videos.length === 1 ? "move" : "moves"}

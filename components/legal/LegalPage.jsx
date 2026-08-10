@@ -94,9 +94,14 @@ export default function LegalPage({ title, subtitle, updated, children }) {
     <div className="relative min-h-full bg-app-background">
       <div className="relative mx-auto max-w-[46rem] px-6 pl-[max(1.5rem,var(--sal))] pr-[max(1.5rem,var(--sar))] pt-14 pb-16 sm:pt-20">
         <header>
+          {/* The only way back out of this page, and it was a 17px tall box at
+              320px: under the 24px floor WCAG 2.5.8 sets, never mind the 44px a
+              thumb wants. `-my-3` hands the added height straight back, so the
+              wordmark sits exactly where it did and the h1 below it does not
+              move. */}
           <Link
             href="/"
-            className="text-[14px] font-medium text-app-textSecondary hover:text-app-textPrimary"
+            className="-my-3 inline-flex min-h-[44px] items-center text-[14px] font-medium text-app-textSecondary hover:text-app-textPrimary"
           >
             Pelvi Health
           </Link>
@@ -112,20 +117,26 @@ export default function LegalPage({ title, subtitle, updated, children }) {
         <div className={BODY}>{children}</div>
 
         <footer className="mt-16 border-t border-app-borderIdle pt-8 text-[14px] text-app-textSecondary">
-          <nav className="flex flex-wrap gap-x-6 gap-y-2">
-            <Link href="/" className="hover:text-app-textPrimary">
+          {/* Five 21px rows became five 44px rows. No negative margin here and
+              none in the blog footer either: this nav wraps, and a negative
+              vertical margin on a wrapping row makes the hit areas of two lines
+              overlap, which is a worse bug than the one being fixed. The gap-y
+              goes instead, because a 44px box already puts 23px of clear space
+              between one line of text and the next. */}
+          <nav className="flex flex-wrap gap-x-6">
+            <Link href="/" className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary">
               Home
             </Link>
-            <Link href="/privacy-policy" className="hover:text-app-textPrimary">
+            <Link href="/privacy-policy" className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="hover:text-app-textPrimary">
+            <Link href="/terms" className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary">
               Terms
             </Link>
-            <a href="/blog" className="hover:text-app-textPrimary">
+            <a href="/blog" className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary">
               Blog
             </a>
-            <a href="mailto:hello@pelvi.health" className="hover:text-app-textPrimary">
+            <a href="mailto:hello@pelvi.health" className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary">
               hello@pelvi.health
             </a>
           </nav>

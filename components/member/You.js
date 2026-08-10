@@ -17,7 +17,30 @@ import {
   CLAIM_EMAIL, COVERAGE_TITLE, LADDER_LINE, coverageBody, day90String,
 } from "@/lib/guaranteeCopy";
 
-const APP_STORE_URL = "https://apps.apple.com/us/app/pelvic-floor-core-coach/id6642654729";
+// "Get the app" used to be an unconditional link to this URL, and it was the
+// one place on the whole site that broke the rule the rest of it is built on.
+// Two things were wrong with it, and either one is enough on its own:
+//
+//   1. IT WAS SHOWN TO ANDROID. lib/appPrompt.js states the rule out loud:
+//      "Android and desktop must never be shown an App Store link they cannot
+//      use." Every other install surface obeys it through isIOSDevice(). This
+//      row did not, so a paying Android member tapping the only row in Support
+//      that sounds like it is for her landed on apps.apple.com.
+//
+//   2. IT PROMISED SOMETHING THE APP CANNOT DO, on iPhone too. See the comment
+//      on APP_HANDOFF_READY in lib/appStore.js: the shipped app cannot unlock
+//      from a web purchase, so a member who paid $24.99 here and installs it
+//      today is shown the app's own paywall asking for $24.99 again. That is
+//      why every other install offer on the site is switched off, and the value
+//      line under this row, "Your plan, offline, on your phone", was false on
+//      both halves.
+//
+// So the row is gated on the same switch as everything else. Flip
+// APP_HANDOFF_READY when the app can unlock from a web purchase and this comes
+// back on iOS by itself; nothing else here needs to change. appStoreURL()
+// rather than a hardcoded string, so the install carries the same campaign
+// token as every other link and the attribution does not split.
+import { APP_HANDOFF_READY, appStoreURL, isIOSDevice } from "@/lib/appStore";
 
 export default function You() {
   const {
@@ -28,6 +51,16 @@ export default function You() {
   const [showGoals, setShowGoals] = useState(false);
   const [showName, setShowName] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+
+  // Read after mount, never during render. This is a static export: the HTML
+  // for /app is built on a machine with no `navigator`, so deciding anything
+  // from the user agent during the first client render is a hydration mismatch.
+  // It starts false, which is the prerendered state and also the correct answer
+  // for everybody today, and can only ever flip on for an iPhone or iPad.
+  const [offerTheApp, setOfferTheApp] = useState(false);
+  useEffect(() => {
+    setOfferTheApp(APP_HANDOFF_READY && isIOSDevice());
+  }, []);
 
   const email = (member?.email || user?.email || "").trim();
   const goal = goalById(goalId);
@@ -156,13 +189,15 @@ export default function You() {
           Support
         </h2>
         <ul className="mt-1 divide-y divide-black/[0.06]">
-          <Row
-            icon={Smartphone}
-            tint="bg-black/8 text-app-textPrimary"
-            label="Get the app"
-            value="Your plan, offline, on your phone"
-            href={APP_STORE_URL}
-          />
+          {offerTheApp ? (
+            <Row
+              icon={Smartphone}
+              tint="bg-black/8 text-app-textPrimary"
+              label="Get the app"
+              value="Your plan, on your phone"
+              href={appStoreURL("member")}
+            />
+          ) : null}
           <Row
             icon={Mail}
             tint="bg-app-primary/12 text-app-primary"
@@ -191,6 +226,21 @@ export default function You() {
         </ul>
       </Card>
 
+      {/* THE ESCAPE HATCH, AND IT IS LOAD BEARING NOW. Do not remove it, and do
+          not move it anywhere more prominent than the bottom of this tab.
+
+          pelvi.health sends any signed-in browser straight here without
+          painting the marketing page (lib/openPlan.js). That is right for the
+          member it is about, and it is a locked room for the one person it is
+          not: someone using a partner's or a friend's laptop, signed in as
+          them. This button is her whole way out. Firebase's signOut deletes the
+          session out of localStorage, which is the exact key that redirect
+          reads, so the next visit to pelvi.health is the marketing page again
+          with nothing to explain and no flag to clear.
+
+          It also has to stay a sign-out and not a "start again": the screen
+          behind it is the login screen, which is the right destination for
+          somebody swapping accounts. */}
       <button
         type="button"
         onClick={signOut}

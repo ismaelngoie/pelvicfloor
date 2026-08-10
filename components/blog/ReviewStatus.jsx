@@ -3,9 +3,9 @@
 // ────────────────────────────────────────────────────────────────────────────
 // NOTE TO THE OWNER. READ THIS BEFORE CHANGING ANYTHING IN THIS FILE.
 //
-// All 53 posts in public/blog carry a "Medically reviewed by Dr. X" byline.
-// Between them they name NINE different clinicians, and all 53 links point at
-// href="#":
+// All 53 posts in public/blog USED TO carry a "Medically reviewed by Dr. X"
+// byline. Between them they named NINE different clinicians, and all 53 links
+// pointed at href="#":
 //
 //   32  Dr. Evelyn Reed, DPT, WCS          2  Dr. Marcus Thorne, PT, DPT
 //    6  Dr. Eleanor Vance, PT, DPT, WCS    2  Dr. Isabella Rossi, PT, DPT, PRPC
@@ -38,8 +38,13 @@
 //      per-article review date and the MedicalWebPage `reviewedBy` block all
 //      switch on together from that one constant, here and in
 //      app/blog/[slug]/page.js.
-//   4. Separately, go and strip the unverifiable byline out of the 53 legacy
-//      posts in public/blog. They are static HTML; it is a find and replace.
+//   4. DONE, at the pre-launch gate. The unverifiable byline was stripped out
+//      of all 53 legacy posts in public/blog. "Last updated: <date>" stayed,
+//      because that part was true; the reviewer clause and its href="#" link
+//      are gone, and none of those files ever carried a `reviewedBy` in their
+//      JSON-LD, so there was nothing to clean up there. The whole site now
+//      makes one claim about clinical review, and that claim is none.
+//      Put the byline back only together with step 3.
 //
 // Note also that the credential string on the legacy posts is out of date
 // regardless of who wrote it: APTA Pelvic Health retired "WCS" in favour of

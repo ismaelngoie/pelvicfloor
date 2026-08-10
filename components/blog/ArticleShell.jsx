@@ -56,18 +56,26 @@ export function resolveRelated(slug) {
   );
 }
 
+// The two crumbs were 16px tall boxes at 320px: under the 24px floor WCAG 2.5.8
+// sets, and a long way under the 44px a thumb wants. `min-h-[44px]` with
+// `-my-3` gives the full 44px of hit area while the line of text sits exactly
+// where it always did, because the negative margin cancels the added height in
+// the row. The two crumbs are horizontal siblings, so a taller box cannot
+// shadow anything above or below them.
+const CRUMB = "inline-flex min-h-[44px] items-center -my-3 hover:text-app-textPrimary";
+
 function Breadcrumb({ title }) {
   return (
     <nav aria-label="Breadcrumb" className="text-[13px] text-app-textSecondary">
       <ol className="flex flex-wrap items-center gap-x-1.5">
         <li>
-          <Link href="/" className="hover:text-app-textPrimary">
+          <Link href="/" className={CRUMB}>
             Home
           </Link>
         </li>
         <li aria-hidden="true">/</li>
         <li>
-          <Link href="/blog" className="hover:text-app-textPrimary">
+          <Link href="/blog" className={CRUMB}>
             Articles
           </Link>
         </li>

@@ -383,12 +383,22 @@ export default function WelcomeScreen({ onNext, returning = false }) {
               spaces it; the row itself is one line at 12px, which is the size
               the skip reassurance on the email screen uses and which
               app-textSecondary clears AA at. */}
+          {/* 42x18 and 35x18 boxes at 320px, which is under the 24px floor WCAG
+              2.5.8 sets. `min-h-[44px]` with `-my-2` gives a full 44px of thumb
+              while costing this bar only 10px of height, and the 10px comes out
+              of the scroll area above rather than out of the button below: the
+              bar is `shrink-0` and anchored, so the CTA does not move.
+
+              -my-2 and not -my-3. The gap to "Log in" above is 16px, so an 8px
+              overhang still leaves 8px of clearance; a 12px one would put this
+              hit area against the login link's, and the login link is the more
+              important of the two. */}
           <p className="flex items-center justify-center gap-3 text-[12px] text-app-textSecondary">
             <a
               href="/privacy-policy"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-2"
+              className="-my-2 inline-flex min-h-[44px] items-center px-1 underline underline-offset-2"
             >
               Privacy
             </a>
@@ -397,7 +407,7 @@ export default function WelcomeScreen({ onNext, returning = false }) {
               href="/terms"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-2"
+              className="-my-2 inline-flex min-h-[44px] items-center px-1 underline underline-offset-2"
             >
               Terms
             </a>

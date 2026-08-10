@@ -67,7 +67,7 @@ import {
   reviewsForGoal,
   showcaseItems,
 } from "@/lib/paywallCopy";
-import { DEFAULT_PRICE_LABEL } from "@/lib/checkout";
+import { DEFAULT_PRICE_LABEL, DEFAULT_PRICE_PERIOD } from "@/lib/checkout";
 import { trackCheckoutOpened, trackRestoreOpened } from "@/lib/analytics";
 import CheckoutSheet from "./CheckoutSheet";
 import LoginSheet from "./LoginSheet";
@@ -483,7 +483,10 @@ export default function Paywall({
         </button>
 
         <p className="mt-2 text-center font-system text-[12px] font-semibold text-white/75">
-          {priceLabel} per month. Cancel anytime.
+          {/* The period is not typed here. lib/pricing.js owns it, and a 365
+              day plan has to be able to change this sentence and the terms page
+              and the Offer a crawler reads in one edit. */}
+          {priceLabel} per {DEFAULT_PRICE_PERIOD}. Cancel anytime.
         </p>
 
         {/* WEB CHANGE: remorse, not outcome. See the note at the top of the file. */}

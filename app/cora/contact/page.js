@@ -63,7 +63,7 @@ export default function CoraContact() {
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8 text-center">
           <h2 className="text-xl font-semibold text-gray-900">Email Us</h2>
           <p className="mt-2 text-gray-500">
-            Bug reports, feature requests, questions — we read everything.
+            Bug reports, feature requests, questions. We read everything.
           </p>
           <a
             href="mailto:support@pelvi.health"
@@ -142,7 +142,7 @@ export default function CoraContact() {
             </summary>
             <p className="px-6 pb-4 text-gray-500">
               Go to Settings inside the app and tap &ldquo;Delete All Data.&rdquo; Or just uninstall
-              the app — since nothing is stored on our end, it&apos;s all gone.
+              the app. Nothing is stored on our end, so it&apos;s all gone.
             </p>
           </details>
         </div>

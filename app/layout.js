@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import Clarity from "./Clarity";
 import ServiceWorker from "./ServiceWorker";
+import { OPEN_PLAN_SCRIPT } from "@/lib/openPlanScript";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -101,6 +102,20 @@ export default function RootLayout({ children }) {
       <body
         className={`${inter.className} fixed inset-0 h-full overflow-hidden bg-[#FAF9FA]`}
       >
+        {/* --- A MEMBER GOES STRAIGHT TO HER PLAN ---
+            First thing in the body, before the analytics tags and before any
+            markup, because it has to decide whether this document is even the
+            right one BEFORE the browser paints. A plain inline <script>, not
+            next/script: every strategy next/script has runs after hydration,
+            and by then the marketing page has already been on screen.
+
+            It only ever acts on "/" and "/welcome", it only acts when this
+            browser is holding a Firebase session, and it does nothing at all
+            for a visitor who has never been here. The full reasoning, the two
+            escape hatches and the reason it does not trust the entitlement
+            cache are in lib/openPlan.js. Read that before editing this. */}
+        <script dangerouslySetInnerHTML={{ __html: OPEN_PLAN_SCRIPT }} />
+
         {/* --- GOOGLE ADS & ANALYTICS --- */}
         <Script
           strategy="afterInteractive"

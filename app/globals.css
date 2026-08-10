@@ -32,6 +32,24 @@ body {
   background: rgb(var(--background-rgb));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* A word longer than the column is the single most common reason this site
+     scrolls sideways on a phone, and the words in question are not typos: they
+     are URLs in the privacy policy, support addresses, Stripe ids and video
+     slugs. `overflow-wrap` is inherited, so declaring it once here covers every
+     surface without a per-component patch.
+
+     `break-word`, deliberately, not `anywhere`. Both break a word that cannot
+     fit, and neither touches a word that can. The difference is min-content
+     width: `anywhere` lets a flex or grid child measure itself at one character
+     wide, which quietly rewrites the width of cards and buttons all over the
+     app. `break-word` leaves intrinsic sizing exactly as it is today and only
+     changes what happens when a line would otherwise overflow.
+
+     This does NOT replace the layout fixes. It is the floor under them, so the
+     next long link somebody pastes into an article cannot put the whole page
+     on rails. */
+  overflow-wrap: break-word;
 }
 
 /* Hide scrollbar */

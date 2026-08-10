@@ -207,9 +207,66 @@ export default function Funnel({ onReachPaywall }) {
     setProfile((prev) => ({ ...prev, ...partial }));
   }, []);
 
-  const goBack = useCallback(() => {
+  const stepBack = useCallback(() => {
     setStep((current) => BACKWARD[current] || STEP.welcome);
   }, []);
+
+  /**
+   * The chevron in the top left.
+   *
+   * It goes through history rather than straight to the previous step, so that
+   * it and Android's Back consume the same entry. Tapping the chevron four
+   * times used to leave the parked entry behind, and the first press of Back on
+   * the landing screen would then do nothing at all before the second one left
+   * the site: a control that ignores you once is worse than one that works.
+   * Routed this way there is one action, and both ways of asking for it perform
+   * it exactly once.
+   */
+  const goBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.state?.pelviFunnelStep) {
+      window.history.back(); // -> popstate -> stepBack()
+      return;
+    }
+    stepBack();
+  }, [stepBack]);
+
+  // --- Android's Back button ------------------------------------------------
+  //
+  // Every screen in here is client state at the same URL, so until this existed
+  // the browser had nothing to go back TO: four screens in, one press of Back
+  // or one edge swipe, and she was off the site and back on the ad she came
+  // from. On iOS that costs an occasional edge swipe. On Android, Back is THE
+  // navigation gesture, it is the control under her thumb, and Android is where
+  // the ads point.
+  //
+  // HOW IT WORKS. Whenever she is past the landing screen there is exactly one
+  // spare history entry parked in front of her. Back consumes it, popstate
+  // fires, and this walks her one screen up the funnel through the same
+  // BACKWARD map the on-screen chevron uses, so the two can never disagree.
+  // The effect then re-runs for the new step and parks a fresh entry. On the
+  // landing screen nothing is parked and Back leaves the site exactly as it
+  // always did: trapping someone on the first screen is a different bug.
+  //
+  // pushState is called with no URL, so the address bar stays on "/". This adds
+  // no crawlable URLs and nothing for the canonical to argue with.
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return undefined;
+    if (step === STEP.welcome) return undefined;
+
+    if (!window.history.state?.pelviFunnelStep) {
+      try {
+        window.history.pushState({ pelviFunnelStep: true }, "");
+      } catch {
+        // Some in-app browsers rate-limit pushState. Losing the trap is
+        // survivable; throwing here would take the whole funnel down with it.
+        return undefined;
+      }
+    }
+
+    const onPopState = () => stepBack();
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [hydrated, step, stepBack]);
 
   const advance = useCallback(
     (from) => {

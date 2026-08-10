@@ -29,6 +29,7 @@ import { day90String, milestoneCardPromise } from "@/lib/guaranteeCopy";
 import { goalAccent, goalAccentCSS } from "@/lib/goalCopy";
 import { GOALS, loadProgram, totalDays } from "@/lib/program";
 import { formatAmount } from "@/lib/checkout";
+import { DEFAULT_PRICE_PERIOD } from "@/lib/pricing";
 import AppInstallSheet from "./AppInstallSheet";
 
 const BRAND_GRADIENT = "linear-gradient(160deg, #F68AA2 0%, #E65473 55%, #C33A5C 100%)";
@@ -128,7 +129,7 @@ export default function ProgramIntro({ goalId, name, sessionPending = false, pri
   const priceLine = useMemo(
     () =>
       price
-        ? `${formatAmount(price.amount, price.currency)} a ${price.interval || "month"}. Cancel anytime.`
+        ? `${formatAmount(price.amount, price.currency)} a ${price.interval || DEFAULT_PRICE_PERIOD}. Cancel anytime.`
         : "",
     [price]
   );

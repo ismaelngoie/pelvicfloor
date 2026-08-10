@@ -74,10 +74,46 @@ export default function HomeClient() {
     paywallRef.current?.focus({ preventScroll: true });
   }, [paywallProfile]);
 
-  const handleLeavePaywall = useCallback(() => {
+  const leavePaywall = useCallback(() => {
     writeFunnelStep(STEP.planReveal);
     setPaywallProfile(null);
   }, []);
+
+  // The arrow in the paywall's top left, routed through history for the same
+  // reason the funnel's chevron is: so that it and Android's Back are one
+  // action that happens once, rather than two that can leave a spare entry
+  // behind and make the next press of Back do nothing.
+  const handleLeavePaywall = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.state?.pelviFunnelStep) {
+      window.history.back(); // -> popstate -> leavePaywall()
+      return;
+    }
+    leavePaywall();
+  }, [leavePaywall]);
+
+  // Android's Back, on the one screen the funnel does not own.
+  //
+  // Funnel.js parks a spare history entry for every step it renders, but the
+  // moment the paywall takes over the funnel unmounts and takes its listener
+  // with it. Without the same trap here, Back on the money screen is the one
+  // press that still throws her off the site, after she has answered eight
+  // questions. It sends her back to her plan, which is exactly where the
+  // on-screen arrow in the top left already goes.
+  useEffect(() => {
+    if (!paywallProfile || typeof window === "undefined") return undefined;
+
+    if (!window.history.state?.pelviFunnelStep) {
+      try {
+        window.history.pushState({ pelviFunnelStep: true }, "");
+      } catch {
+        return undefined;
+      }
+    }
+
+    const onPopState = () => leavePaywall();
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [paywallProfile, leavePaywall]);
 
   // The paywall goes in the same frame the funnel uses. It was rendered bare,
   // so on a desktop the last tap of a 400px column threw her into a full-bleed

@@ -18,6 +18,7 @@ import { useMember } from "./MemberProvider";
 import { isValidEmail } from "@/lib/checkout";
 import { isEntitled } from "@/lib/entitlement";
 import { linkSignInLikelyOff } from "@/lib/identity";
+import { suppressOpenPlan } from "@/lib/openPlan";
 import { restorePurchase } from "@/lib/memberBilling";
 import { usePrefersReducedMotion } from "./VideoPlayer";
 
@@ -419,9 +420,11 @@ function SignInScreen() {
         <h1 className="text-[26px] font-bold leading-tight text-app-textPrimary">
           Your plan is not ready on this address yet.
         </h1>
+        {/* Not "open the app on your phone". Google web-app ads land ANDROID
+            users in here, and there is no app on their phone to open. */}
         <p className="mt-3 text-[15px] text-app-textSecondary">
-          Sign in is switched off on this deployment. Open the app on your phone, or
-          email us at hello@pelvi.health and we will sort it out.
+          Sign in is switched off on this deployment. Email us at hello@pelvi.health
+          and we will open your plan by hand.
         </p>
         <a
           href="mailto:hello@pelvi.health"
@@ -737,6 +740,17 @@ function LockedScreen() {
       {state === "none" && !hasPaidBefore ? (
         <Link
           href="/"
+          // AND TURN OFF THE THING THAT WOULD SEND HER STRAIGHT BACK.
+          //
+          // pelvi.health now redirects any signed-in browser to /app before it
+          // paints (lib/openPlan.js), and she is signed in: that is how she got
+          // to this screen. Without this call the only link on the site that
+          // leads to a price would land on "/", bounce, and put her back here,
+          // for ever. It is set on exactly the condition this link is: Stripe
+          // was reached and said she has no plan, and nothing else about this
+          // browser or her record says she has ever paid. Her next payment
+          // clears it again, from lib/entitlement.js.
+          onClick={suppressOpenPlan}
           className="mt-6 flex h-12 w-full items-center justify-center rounded-full border border-app-borderIdle bg-white text-[15px] font-semibold text-app-textPrimary"
         >
           See the plan and join

@@ -32,7 +32,14 @@ body {
 }
 .article-content h2 {
     font-family: 'Inter', sans-serif;
-    font-size: 2.25rem; /* 36px */
+    /* Was a flat 2.25rem. On a 320px phone the reading column is 288px, and a
+       single 15-character word set at 36px measures 317px: wider than the
+       column it has to live in. That is what put
+       /blog/understanding-urge-vs-stress-incontinence on rails at 320px, on the
+       word "Communication". The clamp reaches 2.25rem at 554px and is identical
+       to the old value at every width above that, so nothing on a tablet or a
+       desktop moves. */
+    font-size: clamp(1.5rem, 6.5vw, 2.25rem); /* 24px -> 36px */
     font-weight: 700;
     color: #F9FAFB;
     margin-top: 3rem;
@@ -97,6 +104,33 @@ body {
     grid-template-columns: 1fr;
     gap: 4rem;
 }
+
+/* A grid item's automatic minimum size is its MIN-CONTENT size, so a `1fr`
+   column silently refuses to go narrower than the longest word inside it and
+   pushes the difference out of the page. `overflow-wrap` alone does not fix
+   that: break-word wraps the word but does not change the min-content number
+   the grid is reading. These two lines together do:
+
+     min-width: 0        the column is allowed to be as narrow as the viewport
+     overflow-wrap       the long word then wraps instead of sticking out
+
+   Without the first line the page scrolls sideways; without the second the
+   word runs under body's overflow-x:hidden and the reader loses the end of it.
+   Neither is optional and neither is a substitute for the other. */
+.article-layout > * {
+    min-width: 0;
+}
+.article-content,
+.article-content h1,
+.article-content h2,
+.article-content h3,
+.article-content h4,
+.article-content p,
+.article-content li,
+.article-content a,
+.article-content blockquote {
+    overflow-wrap: break-word;
+}
 @media (min-width: 1024px) {
     .article-layout {
         grid-template-columns: 1fr 280px;
@@ -106,6 +140,22 @@ body {
     position: sticky;
     top: 6rem; /* 96px */
     height: calc(100vh - 8rem);
+}
+
+/* The breadcrumb links were 17px tall boxes on a 320px phone, which is under
+   the 24px floor WCAG 2.5.8 sets. The negative block margin gives the added
+   height straight back, so the crumb row is the same height it has always been
+   and the headline below it does not move. The crumbs are horizontal siblings,
+   so a taller box cannot shadow another control, and there is 96px of header
+   padding above and 32px below for the overhang to live in.
+
+   Written here rather than in 53 static HTML files, which is the whole reason
+   this stylesheet exists. */
+.breadcrumb a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -13px;
 }
 
 /* --- Article Page: Special Components --- */
@@ -158,3 +208,16 @@ body {
     scroll-margin-top: 96px; /* Anchor offset for fixed header */
 }
 
+/* A floor under the reveal animation above.
+ *
+ * `.scroll-animation` is opacity:0 until JavaScript adds `.animate`, so a
+ * browser with no scripting, a blocked bundle or an observer that never fires
+ * shows a headline and then nothing at all. That is exactly what used to
+ * happen on every phone: the observer was created with `threshold: .1`, and
+ * ten percent of the 9,000px article body is taller than a phone viewport, so
+ * it could never fire. The threshold is fixed in the articles themselves; this
+ * is here so that class of failure can never cost the whole article again.
+ */
+@media (scripting: none) {
+    .scroll-animation { opacity: 1; transform: none; }
+}

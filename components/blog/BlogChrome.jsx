@@ -18,7 +18,13 @@ export function BlogHeader() {
   return (
     <header className="border-b border-app-borderIdle bg-app-surface/70">
       <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-5 py-3.5">
-        <Link href="/" className="flex items-center gap-2.5">
+        {/* Both of these were 21 to 28px tall boxes at 320px. `min-h-[44px]`
+            with `-my-2` buys the full 44px of thumb without moving the bar:
+            the negative margin gives back the height the padding added, so the
+            header is the same size it has always been. They are the only two
+            controls in this row, side by side, so no taller box can shadow
+            another control. */}
+        <Link href="/" className="-my-2 flex min-h-[44px] items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/icon.png"
@@ -33,7 +39,7 @@ export function BlogHeader() {
         </Link>
         <Link
           href="/blog"
-          className="text-[14px] font-semibold text-app-primaryInk"
+          className="-my-2 flex min-h-[44px] items-center text-[14px] font-semibold text-app-primaryInk"
         >
           All articles
         </Link>
@@ -56,23 +62,30 @@ export function BlogFooter() {
           bleeding, or if a symptom is new and you do not know why, see a doctor
           or a pelvic health physiotherapist.
         </p>
-        <nav className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
-          <Link href="/blog" className="text-app-textPrimary/80">
+        {/* Five links that were 21px tall boxes, wrapping to two rows on a
+            320px phone. Each is now a 44px row. The `gap-y` is gone rather than
+            kept: with 44px boxes the padding is already 23px of clear space
+            between one line of text and the next, and keeping the old 8px gap
+            on top of that would only pad the footer for no gain. Boxes that
+            touch are fine; boxes that overlap are not, which is why this row
+            does NOT use the negative margin the header above does. */}
+        <nav className="mt-4 flex flex-wrap gap-x-5 text-[14px]">
+          <Link href="/blog" className="inline-flex min-h-[44px] items-center text-app-textPrimary/80">
             Articles
           </Link>
-          <Link href="/" className="text-app-textPrimary/80">
+          <Link href="/" className="inline-flex min-h-[44px] items-center text-app-textPrimary/80">
             Build my plan
           </Link>
-          <a href="/contact.html" className="text-app-textPrimary/80">
+          <a href="/contact.html" className="inline-flex min-h-[44px] items-center text-app-textPrimary/80">
             Contact
           </a>
           {/* Link, not <a>: both are app router pages now. The 53 legacy posts
               in public/blog still use plain anchors and have been repointed at
               the same two URLs. */}
-          <Link href="/privacy-policy" className="text-app-textPrimary/80">
+          <Link href="/privacy-policy" className="inline-flex min-h-[44px] items-center text-app-textPrimary/80">
             Privacy
           </Link>
-          <Link href="/terms" className="text-app-textPrimary/80">
+          <Link href="/terms" className="inline-flex min-h-[44px] items-center text-app-textPrimary/80">
             Terms
           </Link>
         </nav>
