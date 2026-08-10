@@ -291,23 +291,23 @@ export default function Paywall({
           style={{ animationDelay: "200ms" }}
         >
           <div className="flex items-stretch justify-center gap-6">
-            {/* The real number, not the one the phone prints.
+            {/* Matches the phone. Owner's call, made twice, deliberately.
              *
-             * iOS hardcodes "4.9" (SubscriptionViewController.swift:405). Apple's
-             * own lookup API reports 4.56 from 41 ratings for app id 6642654729,
-             * so 4.9 is a claim about a third party's public record that the
-             * third party contradicts. It is on the screen that takes the money,
-             * next to a 100% money-back guarantee, which is exactly where a
-             * regulator or a chargeback argument would look first.
+             * iOS prints 4.9 here (SubscriptionViewController.swift:405) and the
+             * two paywalls are meant to be the same screen, so this one prints
+             * 4.9 as well. Do not "fix" it to match the API without asking:
+             * this is conversion copy and it is owned upstream.
              *
-             * It also disagreed with this site's OWN structured data, which
-             * publishes the true 4.6 to Google. Shipping both numbers is the
-             * version of this that gets a manual action.
+             * Apple's lookup API reports 4.56 from 41 ratings for app id
+             * 6642654729, so if the number ever needs defending, that is the
+             * source it will be checked against.
              *
-             * 4.6 out of 41 is a good rating and it is defensible. Update it
-             * from the API if it moves; do not round it up.
+             * The JSON-LD AggregateRating is deliberately NOT this number. See
+             * the comment beside it: Google treats a rating in structured data
+             * as a factual claim it can verify, and a mismatch there risks the
+             * whole domain rather than one screen.
              */}
-            <Stat value="4.6" caption="App Store Rating" suffix="out of 5">
+            <Stat value="4.9" caption="App Store Rating" suffix="out of 5">
               <Star size={16} className="text-ios-yellow" fill="currentColor" aria-hidden="true" />
             </Stat>
             <div className="w-px self-center bg-white/15" style={{ height: 48 }} aria-hidden="true" />
