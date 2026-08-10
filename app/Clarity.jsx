@@ -14,7 +14,12 @@
 //   1. The tag is injected from JavaScript, after a deny-by-default check of
 //      the path AND the query string. Nothing is added to the document on a
 //      private route, so there is nothing to disable. A route that nobody has
-//      added to the allowlist in lib/analytics.js is private.
+//      added to the allowlist in public/clarity-gate.js is private.
+//
+//      This component is one of two callers of that gate. The other is
+//      public/clarity-static.js, which the 53 hand-written articles and
+//      public/contact.html load with a single <script> line, because the app
+//      router never runs on them. Same rules, same file, no second allowlist.
 //
 //   2. Crossing from public to private is a full page load, not a client-side
 //      route change. There is exactly one such crossing in the product, the

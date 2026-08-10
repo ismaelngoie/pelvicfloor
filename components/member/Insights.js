@@ -50,7 +50,8 @@ const GOAL_CATEGORIES = {
 
 export default function Insights() {
   const {
-    goalId, goal, member, patchMember, catalog, dayNumber, currentDay, completions,
+    goalId, goal, member, patchMember, catalog, currentDayNumber, headlineDay,
+    currentDay, completions,
   } = useMember();
   const reduceMotion = usePrefersReducedMotion();
 
@@ -85,10 +86,13 @@ export default function Insights() {
   /** What the generator is told about her. Ported from InsightSignals.current(). */
   const signals = useMemo(() => ({
     goalTitle: goal?.title || "a stronger pelvic floor",
-    programDay: Math.max(1, dayNumber || 1),
-    weekTheme: currentDay?.theme || null,
+    // InsightPersonalizer sends `max(1, engine.currentDayNumber)`, so the
+    // article she is offered is picked for the day she is on, not the one the
+    // Today ring happens to be replaying.
+    programDay: Math.max(1, currentDayNumber || 1),
+    weekTheme: headlineDay?.theme || currentDay?.theme || null,
     hasStartedProgram: Boolean(completions?.length) || Boolean(member?.programStartedAt),
-  }), [goal?.title, dayNumber, currentDay?.theme, completions?.length, member?.programStartedAt]);
+  }), [goal?.title, currentDayNumber, headlineDay?.theme, currentDay?.theme, completions?.length, member?.programStartedAt]);
 
   const toggleSavedArticle = useCallback(
     async (id) => {

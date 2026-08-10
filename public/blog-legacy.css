@@ -1,0 +1,1071 @@
+/* The 53 legacy articles and /contact, wearing the current design.
+ * ---------------------------------------------------------------------------
+ *
+ * WHY THIS FILE EXISTS AT ALL, rather than a Tailwind build.
+ *
+ * tailwind.config.js scans ./app, ./components, ./lib and ./pages. It does not
+ * scan ./public, and it must not: those 53 files are minified Astro output
+ * carrying a thousand utility classes from the old dark theme, and pulling them
+ * into the content globs would compile that whole dead theme into the live
+ * bundle. So the utility classes still sitting in the legacy markup compile to
+ * nothing and are inert. This stylesheet is what actually dresses those pages,
+ * and it styles them by structure rather than by class, so the markup could
+ * keep its old class attributes untouched and the article bodies could stay
+ * byte for byte identical.
+ *
+ * Every value below is lifted from tailwind.config.js and the components in
+ * components/blog/, so a legacy post and a new post are the same page. If you
+ * change a token there, change it here. There is no build step that will catch
+ * the drift for you.
+ *
+ * Source of each block:
+ *   :root            tailwind.config.js  theme.extend.colors.app + borderRadius
+ *   .pv-site-header  components/blog/BlogChrome.jsx  BlogHeader
+ *   .pv-site-footer  components/blog/BlogChrome.jsx  BlogFooter
+ *   .article-content components/blog/prose.jsx  H2 H3 P UL OL LI Strong Xref
+ *   .pv-takeaways    components/blog/prose.jsx  KeyTakeaways
+ *   .pv-cta          components/blog/prose.jsx  AppCTA
+ *   .pv-faq          components/blog/prose.jsx  FAQ
+ *   .pv-related      components/blog/ArticleShell.jsx  Related
+ *   .pv-byline       components/blog/ReviewStatus.jsx  Byline
+ */
+
+/* --------------------------------------------------------------------------
+ * FONT
+ *
+ * Self hosted, one file, latin subset, from the same Inter that next/font
+ * compiles into the app router pages. It used to be two preconnects and a
+ * render blocking stylesheet at fonts.googleapis.com, which put a third party
+ * on the critical path of every organic landing, plus a second family (Lora)
+ * that only ever styled headings.
+ *
+ * The filename is versioned because public/_headers marks it immutable for a
+ * year. Replacing the typeface means bumping to -v2, not overwriting -v1.
+ *
+ * The fallback face carries Next's own metric overrides for Arial, so the swap
+ * from fallback to Inter does not move the text. Without it every article
+ * reflows once, late, which is a Cumulative Layout Shift on the pages ads land
+ * on. Values copied from the "Inter Fallback" face in the built CSS.
+ * -------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-v1.woff2") format("woff2");
+  unicode-range: u+00??, u+0131, u+0152-0153, u+02bb-02bc, u+02c6, u+02da,
+    u+02dc, u+0304, u+0308, u+0329, u+2000-206f, u+20ac, u+2122, u+2191,
+    u+2193, u+2212, u+2215, u+feff, u+fffd;
+}
+
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial");
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+  size-adjust: 107.12%;
+}
+
+:root {
+  --pv-primary: #e65473;
+  --pv-primary-ink: #c0374f;
+  --pv-rose-deep: #c33a5c;
+  --pv-bg: #faf9fa;
+  --pv-surface: #ffffff;
+  --pv-ink: #1a1a26;
+  --pv-ink-2: #737380;
+  --pv-border: #ebebf0;
+  --pv-positive-ink: #137a48;
+
+  --pv-radius-card: 18px;
+  --pv-radius-pill: 28px;
+
+  /* 42rem is the reading measure ArticleShell uses; 48rem is the wider bar the
+     header and footer sit in. Both are capped, both are padded, and the
+     padding is inside the cap so 320px never overflows. */
+  --pv-measure: 42rem;
+  --pv-bar: 48rem;
+  --pv-gutter: 20px;
+
+  --pv-font: "Inter", "Inter Fallback", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+ * RESET
+ * -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body.pv-doc {
+  margin: 0;
+  background: var(--pv-bg);
+  color: var(--pv-ink);
+  font-family: var(--pv-font);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* The single most common cause of sideways scroll on these pages is a word
+     that cannot fit: a long slug in a cross link, a hyphen free medical term.
+     Inherited, so it covers the article bodies without touching them. This is
+     the floor under the layout, not a substitute for it: nothing here sets
+     overflow-x hidden, because that hides a real overflow bug instead of
+     fixing it and the brief was to verify there is none. */
+  overflow-wrap: break-word;
+}
+
+/* The old dark theme's leftovers. These class names are still in the markup
+   because the article bodies were not touched, and they compile to nothing now
+   that Tailwind does not scan public/. Neutralised explicitly so that a future
+   stylesheet which does define them cannot repaint an article black. */
+body.pv-doc .serif {
+  font-family: var(--pv-font);
+}
+
+body.pv-doc .scroll-animation,
+body.pv-doc .glass-card {
+  opacity: 1;
+  transform: none;
+  animation: none;
+  background: none;
+  backdrop-filter: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* --------------------------------------------------------------------------
+ * SKIP LINK
+ * Visible only on focus. These are long documents and the header is two links.
+ * -------------------------------------------------------------------------- */
+.pv-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 50;
+}
+
+.pv-skip:focus {
+  left: 8px;
+  top: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--pv-surface);
+  color: var(--pv-primary-ink);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgb(26 26 38 / 18%);
+}
+
+/* --------------------------------------------------------------------------
+ * SITE HEADER  (BlogChrome.jsx BlogHeader)
+ *
+ * Not sticky and not fixed. The old one was `fixed` with `pt-24` on <main> to
+ * compensate, which spent 96px of a 812px phone on a bar that was always
+ * there. It also meant a mistimed tap during a scroll hit the header.
+ * -------------------------------------------------------------------------- */
+.pv-site-header {
+  border-bottom: 1px solid var(--pv-border);
+  background: var(--pv-surface);
+}
+
+.pv-site-header__inner {
+  max-width: var(--pv-bar);
+  margin: 0 auto;
+  padding: 14px var(--pv-gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* min-height 44px with a negative block margin: the full thumb target without
+   making the bar taller, exactly as BlogHeader does it. These two are
+   horizontal siblings, so neither taller box can shadow another control. */
+.pv-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-block: -8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pv-brand img {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+
+.pv-brand span {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--pv-ink);
+}
+
+.pv-site-header__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pv-primary-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+ * PAGE FRAME
+ * -------------------------------------------------------------------------- */
+.pv-main {
+  display: block;
+}
+
+.pv-main > .container,
+.pv-wrap {
+  width: 100%;
+  max-width: var(--pv-measure);
+  margin: 0 auto;
+  padding: 24px var(--pv-gutter) 16px;
+}
+
+/* --------------------------------------------------------------------------
+ * BREADCRUMB  (ArticleShell.jsx Breadcrumb)
+ * -------------------------------------------------------------------------- */
+.pv-breadcrumb {
+  font-size: 13px;
+  color: var(--pv-ink-2);
+}
+
+.pv-breadcrumb ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 6px;
+}
+
+.pv-breadcrumb a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pv-breadcrumb a:hover {
+  color: var(--pv-ink);
+}
+
+/* The last crumb is the article title. One line, clipped, so a 90 character
+   headline cannot push the row sideways on a 320px screen. */
+.pv-breadcrumb li:last-child {
+  color: rgb(26 26 38 / 70%);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+ * ARTICLE HEAD
+ * -------------------------------------------------------------------------- */
+.pv-article-head {
+  margin: 0 0 8px;
+}
+
+.pv-kicker {
+  display: block;
+  margin-top: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pv-primary-ink);
+}
+
+.pv-title {
+  margin: 8px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--pv-ink);
+}
+
+/* THE MEDICALLY REVIEWED BYLINE.
+ *
+ * The words, the names and the credentials in the markup are the owner's and
+ * are not this stylesheet's business. A pre-launch pass deleted them, the
+ * owner restored them twice, and the note at the top of
+ * components/blog/ReviewStatus.jsx records why. All that happens here is that
+ * the line stops being 14px grey-on-black and becomes the same byline the new
+ * articles wear. Restyle it freely. Do not touch its text. */
+.pv-byline {
+  margin: 20px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pv-ink-2);
+}
+
+/* The clinician's name is wrapped in <a href="#">, which is how the old export
+   left it: there is no reviewer page behind any of the nine names. Painting it
+   pink and underlined would advertise a destination that does not exist and
+   invite a tap that scrolls to the top of the article.
+
+   So it is styled as the author name in components/blog/ReviewStatus.jsx
+   Byline is: slightly stronger ink than the line around it, no underline. The
+   markup, the words, the names and the credentials are untouched. Giving these
+   a real href is the owner's call, not a stylesheet's. */
+.pv-byline a {
+  color: rgb(26 26 38 / 80%);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* --------------------------------------------------------------------------
+ * SINGLE COLUMN
+ *
+ * The old layout was a two column grid with a sticky sidebar. It is one capped
+ * column at every width now, matching ArticleShell, so there is no width at
+ * which a second column can push the page sideways.
+ * -------------------------------------------------------------------------- */
+.article-layout {
+  display: block;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * ON THIS PAGE  (ArticleShell.jsx Contents)
+ *
+ * Closed by default and one line tall, which is the whole point: these
+ * articles have up to fourteen headings, and an open list of them is a screen
+ * and a half of links standing between a reader on a 375px phone and the
+ * article she came for.
+ * -------------------------------------------------------------------------- */
+.pv-toc {
+  margin-top: 32px;
+  border: 1px solid var(--pv-border);
+  border-radius: var(--pv-radius-card);
+  background: var(--pv-surface);
+}
+
+.pv-toc > summary {
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pv-ink);
+}
+
+.pv-toc > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pv-toc > summary span {
+  margin-left: 8px;
+  color: var(--pv-ink-2);
+}
+
+.pv-toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px 8px;
+}
+
+.pv-toc li {
+  margin: 0;
+}
+
+.pv-toc a {
+  display: block;
+  padding: 7px 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--pv-primary-ink);
+  text-decoration: underline;
+  text-decoration-color: rgb(230 84 115 / 30%);
+  text-underline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+ * KEY TAKEAWAYS  (prose.jsx KeyTakeaways)
+ *
+ * Every selector in this block, and in the CTA block further down, is prefixed
+ * with `body.pv-doc`. That is not decoration.
+ *
+ * public/blog/top-5-foods-that-irritate-your-bladder/index.html was exported
+ * with its whole article block nested inside a second copy of itself, so that
+ * one file has a .key-takeaways AND an app CTA sitting INSIDE .article-content.
+ * That is a real defect in the source, it predates this work, and fixing it
+ * means deleting duplicated words out of a published article, which is the
+ * owner's call and not this transform's.
+ *
+ * The cascade consequence is what matters here: `.article-content li` and
+ * `.key-takeaways li` are both (0,1,1), so the one written later would win and
+ * the nested takeaways card would render with body-copy bullets. The prefix
+ * takes these to (0,2,1) and settles it by specificity instead of by which
+ * block happens to be lower in the file.
+ * -------------------------------------------------------------------------- */
+body.pv-doc .key-takeaways {
+  margin-top: 32px;
+  border: 1px solid var(--pv-border);
+  border-radius: var(--pv-radius-card);
+  background: var(--pv-surface);
+  padding: 20px;
+}
+
+body.pv-doc .key-takeaways > h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pv-ink-2);
+}
+
+/* The lucide sparkle was drawn at 24px to sit beside a 20px heading. The
+   heading is a 13px kicker now, so the icon comes down with it. */
+body.pv-doc .key-takeaways > h2 svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--pv-primary);
+}
+
+body.pv-doc .key-takeaways ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+body.pv-doc .key-takeaways li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+  padding-left: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--pv-ink);
+}
+
+body.pv-doc .key-takeaways li::before {
+  content: none;
+}
+
+body.pv-doc .key-takeaways li:first-child {
+  margin-top: 0;
+}
+
+body.pv-doc .key-takeaways li svg,
+body.pv-doc .key-takeaways li .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  color: var(--pv-primary);
+}
+
+/* --------------------------------------------------------------------------
+ * THE ARTICLE BODY
+ *
+ * Not one byte of the markup inside .article-content was changed, so every
+ * rule below is an element selector. Sizes are prose.jsx: P is 17px/1.65, H2
+ * is 22px rising to 26px, H3 is 17px rising to 19px.
+ * -------------------------------------------------------------------------- */
+.article-content {
+  margin-top: 8px;
+  min-width: 0;
+}
+
+.article-content > :first-child {
+  margin-top: 0;
+}
+
+.article-content h2 {
+  scroll-margin-top: 24px;
+  margin: 48px 0 12px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--pv-ink);
+}
+
+.article-content h3 {
+  scroll-margin-top: 24px;
+  margin: 32px 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--pv-ink);
+}
+
+.article-content h4 {
+  scroll-margin-top: 24px;
+  margin: 24px 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pv-ink);
+}
+
+.article-content p {
+  margin: 16px 0 0;
+  font-size: 17px;
+  line-height: 1.65;
+  color: rgb(26 26 38 / 90%);
+}
+
+.article-content ul,
+.article-content ol {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.article-content li {
+  position: relative;
+  margin-top: 8px;
+  padding-left: 24px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: rgb(26 26 38 / 90%);
+}
+
+.article-content ul > li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pv-primary);
+}
+
+.article-content ol {
+  counter-reset: pv-step;
+}
+
+.article-content ol > li {
+  counter-increment: pv-step;
+  padding-left: 36px;
+  margin-top: 12px;
+}
+
+.article-content ol > li::before {
+  content: counter(pv-step);
+  position: absolute;
+  left: 0;
+  top: 0.1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgb(230 84 115 / 10%);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--pv-primary-ink);
+}
+
+.article-content li > ul,
+.article-content li > ol {
+  margin-top: 8px;
+}
+
+.article-content strong {
+  font-weight: 600;
+  color: var(--pv-ink);
+}
+
+.article-content em {
+  font-style: italic;
+}
+
+.article-content a {
+  font-weight: 500;
+  color: var(--pv-primary-ink);
+  text-decoration: underline;
+  text-decoration-color: rgb(230 84 115 / 40%);
+  text-underline-offset: 2px;
+}
+
+.article-content a:hover {
+  text-decoration-color: var(--pv-primary);
+}
+
+.article-content hr {
+  margin: 40px 0 0;
+  border: 0;
+  border-top: 1px solid var(--pv-border);
+}
+
+.article-content blockquote {
+  margin: 24px 0 0;
+  padding: 4px 0 4px 18px;
+  border-left: 3px solid var(--pv-primary);
+  color: var(--pv-ink);
+}
+
+.article-content blockquote p {
+  font-size: 17px;
+}
+
+.article-content img {
+  margin-top: 24px;
+  border-radius: var(--pv-radius-card);
+}
+
+/* Belt and braces. No legacy article body contains a table today (checked, all
+   53), but the day someone pastes one in it must not put the page on rails at
+   375px. display:block makes the element itself the scroll port while the rows
+   inside still lay out as a table. */
+.article-content table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  margin-top: 24px;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.article-content th,
+.article-content td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pv-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.article-content pre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+ * THE CALL TO ACTION  (prose.jsx AppCTA)
+ *
+ * Points at "/", which is the eight question funnel and the only thing on this
+ * domain that takes money. Deliberately not the App Store: an organic visit
+ * spent on a listing page is a visit the funnel never sees.
+ * -------------------------------------------------------------------------- */
+/* Prefixed for the same cascade reason as the takeaways card above: one legacy
+   file carries a CTA inside .article-content, where `.article-content p` and
+   `.article-content a` would otherwise repaint this card's copy and swallow
+   its button. */
+body.pv-doc .pv-cta {
+  display: block;
+  margin-top: 40px;
+  border: 1px solid var(--pv-border);
+  border-radius: var(--pv-radius-card);
+  background: var(--pv-surface);
+  padding: 20px;
+  overflow: hidden;
+}
+
+body.pv-doc .pv-cta__kicker {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pv-ink-2);
+}
+
+body.pv-doc .pv-cta__lead {
+  margin: 8px 0 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--pv-ink);
+}
+
+body.pv-doc .pv-cta__body {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: rgb(26 26 38 / 85%);
+}
+
+body.pv-doc .pv-cta__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 16px;
+  padding: 12px 24px;
+  border-radius: var(--pv-radius-pill);
+  background: linear-gradient(135deg, #e65473 0%, #c33a5c 100%);
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* --------------------------------------------------------------------------
+ * FAQ  (prose.jsx FAQ)
+ *
+ * <details>, so it costs no JavaScript, stays open to a crawler and reads fine
+ * with scripts off. The answers are in the HTML either way, which is the half
+ * that gets cited by an AI answer.
+ * -------------------------------------------------------------------------- */
+.pv-faq {
+  margin-top: 56px;
+}
+
+.pv-faq > h2 {
+  scroll-margin-top: 24px;
+  margin: 0 0 16px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--pv-ink);
+}
+
+.pv-faq-list {
+  border: 1px solid var(--pv-border);
+  border-radius: var(--pv-radius-card);
+  background: var(--pv-surface);
+  overflow: hidden;
+}
+
+.pv-faq-list > details + details {
+  border-top: 1px solid var(--pv-border);
+}
+
+.pv-faq-list summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--pv-ink);
+}
+
+.pv-faq-list summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The open/closed affordance is one "+" rotated 45 degrees into a cross, which
+   is what prose.jsx FAQ does. Deliberately not a "+" swapped for a dash: the
+   house rule is that no member ever reads an em or en dash, and the cheapest
+   way to keep a rule like that is to leave no glyph around that could become
+   one. */
+.pv-faq-list summary::after {
+  content: "+";
+  flex: none;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--pv-primary);
+  transition: transform 0.15s ease;
+}
+
+.pv-faq-list details[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.pv-faq-list details > p {
+  margin: 0;
+  padding: 0 16px 16px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgb(26 26 38 / 85%);
+}
+
+/* --------------------------------------------------------------------------
+ * READ NEXT  (ArticleShell.jsx Related)
+ * -------------------------------------------------------------------------- */
+.pv-related {
+  margin-top: 56px;
+}
+
+.pv-related > h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--pv-ink);
+}
+
+.pv-related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pv-related-list a {
+  display: block;
+  border: 1px solid var(--pv-border);
+  border-radius: var(--pv-radius-card);
+  background: var(--pv-surface);
+  padding: 16px;
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.pv-related-list a:hover {
+  border-color: rgb(230 84 115 / 40%);
+}
+
+.pv-related-list h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--pv-ink);
+}
+
+.pv-related-list p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pv-ink-2);
+}
+
+/* --------------------------------------------------------------------------
+ * THE ARTICLE'S OWN MEDICAL DISCLAIMER
+ *
+ * A NOTE FOR WHOEVER LOOKS AT THIS NEXT, because it is a judgement call and
+ * not an oversight.
+ *
+ * This block is byte-identical across all 53 articles, so it is boilerplate
+ * from the old Astro template rather than anything an author wrote, and the
+ * site footer directly below it now carries a medical disclaimer of its own.
+ * Two disclaimers on one screen is redundant and the tidy thing would be to
+ * delete this one.
+ *
+ * It is still here, with every word intact, deliberately. A pass before this
+ * one deleted content from these files on its own initiative and the owner put
+ * it back twice; the standing rule in this repo is that removing words from a
+ * published health article is his call, not a transform's. Deleting a MEDICAL
+ * disclaimer in particular is not a styling decision.
+ *
+ * So the redundancy is handled by rank instead of by deletion: this is an
+ * endnote now, quiet and small, and the footer below is the page's disclaimer.
+ * To drop it properly, delete the .pv-disclaimer branch in
+ * scripts/restyle-legacy-blog.py and re-run; the article bodies are untouched
+ * by it either way.
+ * -------------------------------------------------------------------------- */
+.pv-disclaimer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--pv-border);
+}
+
+.pv-disclaimer p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--pv-ink-2);
+}
+
+.pv-disclaimer strong {
+  font-weight: 600;
+  color: rgb(26 26 38 / 80%);
+}
+
+/* --------------------------------------------------------------------------
+ * SITE FOOTER  (BlogChrome.jsx BlogFooter)
+ * -------------------------------------------------------------------------- */
+.pv-site-footer {
+  margin-top: 64px;
+  border-top: 1px solid var(--pv-border);
+  background: var(--pv-surface);
+}
+
+.pv-site-footer__inner {
+  max-width: var(--pv-bar);
+  margin: 0 auto;
+  padding: 32px var(--pv-gutter);
+}
+
+.pv-site-footer__note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--pv-ink-2);
+}
+
+.pv-site-footer__note strong {
+  font-weight: 600;
+  color: rgb(26 26 38 / 80%);
+}
+
+/* Five links that were 21px tall boxes wrapping to two rows at 320px. Each is
+   a 44px row now. No row gap: at 44px the padding already leaves 23px of clear
+   space between one line of text and the next. */
+.pv-site-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+  margin-top: 16px;
+}
+
+.pv-site-footer__nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  color: rgb(26 26 38 / 80%);
+  text-decoration: none;
+}
+
+.pv-site-footer__nav a:hover {
+  color: var(--pv-primary-ink);
+}
+
+.pv-site-footer__copy {
+  margin: 24px 0 0;
+  font-size: 13px;
+  color: var(--pv-ink-2);
+}
+
+/* --------------------------------------------------------------------------
+ * /contact
+ * -------------------------------------------------------------------------- */
+.pv-contact h1 {
+  margin: 20px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--pv-ink);
+}
+
+.pv-contact__lede {
+  margin: 16px 0 0;
+  font-size: 19px;
+  line-height: 1.6;
+  font-weight: 500;
+  color: var(--pv-ink);
+}
+
+.pv-card {
+  margin-top: 32px;
+  border: 1px solid var(--pv-border);
+  border-radius: var(--pv-radius-card);
+  background: var(--pv-surface);
+  padding: 20px;
+}
+
+.pv-card h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pv-ink-2);
+}
+
+.pv-card p {
+  margin: 8px 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgb(26 26 38 / 85%);
+}
+
+.pv-card ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.pv-card li {
+  position: relative;
+  margin-top: 8px;
+  padding-left: 22px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: rgb(26 26 38 / 85%);
+}
+
+.pv-card li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pv-primary);
+}
+
+/* The email is the one thing on this page that has to survive a 320px screen
+   without pushing it sideways, and it is long. It gets its own line and is
+   allowed to break anywhere, which is safe here because it is a leaf element
+   with nothing sizing itself from it. */
+.pv-email {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--pv-primary-ink);
+  text-decoration: underline;
+  text-decoration-color: rgb(230 84 115 / 40%);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+ * LARGER SCREENS
+ *
+ * Only type sizes change. The layout is one capped column at every width, so
+ * there is nothing here that can introduce a horizontal scrollbar.
+ * -------------------------------------------------------------------------- */
+@media (min-width: 640px) {
+  .pv-title,
+  .pv-contact h1 {
+    font-size: 38px;
+  }
+
+  .article-content h2,
+  .pv-faq > h2 {
+    font-size: 26px;
+  }
+
+  .article-content h3 {
+    font-size: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

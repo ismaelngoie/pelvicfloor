@@ -27,7 +27,9 @@ import { goalAccentCSS, pathwayTitle } from "@/lib/goalCopy";
 
 export default function Exercises() {
   const {
-    goalId, dayNumber, planLength, savedIds, toggleSaved, history,
+    // `currentDayNumber` is the day she is on, and the only value allowed to
+    // print as "Day N of 90". See lib/program.js, above `programState`.
+    goalId, currentDayNumber, planLength, savedIds, toggleSaved, history,
   } = useMember();
   const { openPlayer } = usePlayer();
 
@@ -275,7 +277,7 @@ export default function Exercises() {
               {pathwayTitle(goalId)}
             </span>
             <span className="mt-1 block text-[12.5px] font-semibold text-white/90">
-              {planLength ? `Day ${Math.min(dayNumber, planLength)} of ${planLength}` : "Your 90 day plan"}
+              {planLength ? `Day ${Math.min(currentDayNumber, planLength)} of ${planLength}` : "Your 90 day plan"}
             </span>
           </Link>
 

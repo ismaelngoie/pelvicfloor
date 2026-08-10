@@ -25,6 +25,10 @@ firebase-service-account.json
 *-service-account.json
 serviceAccountKey.json
 
+# Python bytecode. scripts/ holds the public/blog transform.
+__pycache__/
+*.pyc
+
 # Editor and OS noise
 .DS_Store
 .idea/

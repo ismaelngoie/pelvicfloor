@@ -45,7 +45,9 @@ import { APP_HANDOFF_READY, appStoreURL, isIOSDevice } from "@/lib/appStore";
 export default function You() {
   const {
     member, user, goalId, entitlement, patchMember, refreshMember, refreshEntitlement, signOut,
-    completions, history, streak, planLength, dayNumber,
+    // `currentDayNumber` is the day she is on, and the only value allowed to
+    // print as "Day N of 90". See lib/program.js, above `programState`.
+    completions, history, streak, planLength, currentDayNumber,
   } = useMember();
 
   const [showGoals, setShowGoals] = useState(false);
@@ -106,7 +108,7 @@ export default function You() {
         <p className="mt-1 text-[13px] text-white/90">{pathwaySubtitle(goalId)}</p>
         <p className="mt-2 text-[12.5px] font-semibold text-white/90">
           {pathwayTitle(goalId)}
-          {planLength ? ` · Day ${Math.min(dayNumber, planLength)} of ${planLength}` : ""}
+          {planLength ? ` · Day ${Math.min(currentDayNumber, planLength)} of ${planLength}` : ""}
         </p>
         <button
           type="button"

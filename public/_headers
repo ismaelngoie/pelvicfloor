@@ -15,11 +15,34 @@
   Cache-Control: no-cache
   Service-Worker-Allowed: /
 
+# The Clarity gate and the loader the 53 hand-written articles reference. Same
+# reasoning as /sw.js above: neither filename carries a content hash, and one of
+# the two IS the allowlist that decides which pages may be recorded at all. A
+# copy pinned at the edge would keep recording a route after that route had been
+# taken off the list, so both are revalidated on every request. They are roughly
+# a kilobyte each and a revalidation is a 304.
+/clarity-gate.js
+  Cache-Control: no-cache
+/clarity-static.js
+  Cache-Control: no-cache
+
 # The 90-day programs and the 533-video catalog are large and change only on a
 # redeploy, and their filenames are not hashed. A day of edge cache with
 # revalidation keeps the Exercises tab quick without risking a stale catalog.
 /content/*
   Cache-Control: public, max-age=86400, must-revalidate
+
+# Inter, self hosted, for the 53 legacy articles and /contact. Those pages are
+# outside the app router, so they cannot use the hashed copy next/font emits
+# under /_next/static; they used to pull the family from fonts.googleapis.com
+# on the critical path instead.
+#
+# Safe to mark immutable because the version is in the filename. Changing the
+# typeface means adding -v2 and pointing public/blog-legacy.css at it, never
+# overwriting -v1: a year-long immutable copy of the old bytes will be sitting
+# in browsers that already loaded it.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
 
 # Images and the paywall clip are stable and heavy.
 /*.png

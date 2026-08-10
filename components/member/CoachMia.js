@@ -49,9 +49,12 @@ function newMessageId() {
 }
 
 export default function CoachMia() {
+  // See the block comment above `programState` in lib/program.js.
+  // `currentDayNumber` is her position, `replayDayNumber` is a day she has
+  // already finished, `sessionDayNumber` only says which videos load.
   const {
-    member, goal, goalId, streak, currentDay, dayNumber, dayUnlocked, sessionDay,
-    planLength, todaysVideos,
+    member, goal, goalId, streak, currentDay, headlineDay, currentDayNumber,
+    replayDayNumber, sessionDayNumber, bankableDayNumber, planLength, todaysVideos,
   } = useMember();
   const { openPlayer } = usePlayer();
   const reduceMotion = usePrefersReducedMotion();
@@ -176,9 +179,11 @@ export default function CoachMia() {
     goal: goal?.title || "a stronger pelvic floor",
     streak: streak?.current || 0,
     todaysPlan: todaysVideos.map((v) => v.title),
-    programDay: dayNumber || 1,
-    weekTheme: currentDay?.theme || null,
-  }), [member?.name, goal?.title, streak?.current, todaysVideos, dayNumber, currentDay?.theme]);
+    // ChatView.swift sends `engine.currentDayNumber`, so Mia is told the same
+    // day the member is reading on the card next to her.
+    programDay: currentDayNumber || 1,
+    weekTheme: headlineDay?.theme || currentDay?.theme || null,
+  }), [member?.name, goal?.title, streak?.current, todaysVideos, currentDayNumber, headlineDay?.theme, currentDay?.theme]);
 
   /**
    * Put a message on screen without Firestore.
@@ -402,17 +407,25 @@ export default function CoachMia() {
                         ? () =>
                             openPlayer({
                               videos: todaysVideos,
-                              title: currentDay ? `Day ${sessionDay}: ${currentDay.title}` : "Today's session",
-                              subtitle: `Day ${sessionDay} of ${planLength || "your plan"}`,
+                              title: currentDay ? `Day ${sessionDayNumber}: ${currentDay.title}` : "Today's session",
+                              subtitle: sessionDayNumber === bankableDayNumber
+                                ? `Day ${sessionDayNumber} of ${planLength || "your plan"}`
+                                : `Replay of Day ${sessionDayNumber}`,
                               // Same rule as the Today tab: no day context when
                               // the next day is held back, so a replay from
                               // Mia's card cannot bank a second completion.
-                              dayContext: dayUnlocked ? { day: sessionDay } : null,
+                              dayContext: sessionDayNumber === bankableDayNumber
+                                ? { day: sessionDayNumber }
+                                : null,
                             })
                         : null
                     }
+                    // Mia's card is the same offer as the Today ring, so it
+                    // names the same day the same way: her position while the
+                    // day is live, an explicit replay once it is not.
                     routineMeta={{
-                      day: sessionDay,
+                      currentDayNumber,
+                      replayDayNumber,
                       planLength,
                       count: todaysVideos.length,
                       seconds: todaysVideos.reduce((s, v) => s + (v.durationSeconds || 0), 0),
@@ -606,13 +619,21 @@ function Bubble({ message, first, last, isLastGroup, onStartRoutine, routineMeta
             onClick={onStartRoutine}
             className="mt-2 flex w-full items-center gap-3 rounded-[18px] bg-app-primary/[0.07] p-3 text-left ring-1 ring-inset ring-app-primary/25"
           >
+            {/* ChatView's routine card prints "Day \(engine.currentDayNumber)
+                of 90, N short moves". Same here while the day is live. Once it
+                is a replay the card names the replayed day and drops "of 90"
+                entirely, because that day is no longer where she is. */}
             <span className="min-w-0 flex-1">
               <span className="block text-[15px] font-bold text-app-textPrimary">
-                Today&apos;s 5-Minute Routine
+                {routineMeta.replayDayNumber == null
+                  ? "Today's 5-Minute Routine"
+                  : `Replay Day ${routineMeta.replayDayNumber}`}
               </span>
               <span className="mt-0.5 block text-[12.5px] font-medium text-app-textSecondary">
-                Day {routineMeta.day}
-                {routineMeta.planLength ? ` of ${routineMeta.planLength}` : ""}, {routineMeta.count} short
+                {routineMeta.replayDayNumber == null
+                  ? `Day ${routineMeta.currentDayNumber}${routineMeta.planLength ? ` of ${routineMeta.planLength}` : ""}, `
+                  : ""}
+                {routineMeta.count} short
                 {routineMeta.count === 1 ? " move" : " moves"}
                 {routineMeta.seconds > 0 ? ` · ${durationLabel(routineMeta.seconds)}` : ""}
               </span>

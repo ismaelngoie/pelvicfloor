@@ -24,9 +24,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AudioLines, CalendarDays, Check, ChevronDown, ChevronRight, CloudSun, Crown,
-  Flame, Footprints, Hand, Lock, Map as MapIcon, Medal, Moon, PartyPopper, Play,
-  Rocket, Shield, ShieldHalf, Sparkles, Star, Sun, Sunrise, Trophy,
+  AudioLines, CalendarDays, Check, ChevronDown, ChevronRight, Clock, CloudSun,
+  Crown, Flame, Footprints, Hand, Lock, Map as MapIcon, Medal, Moon, PartyPopper,
+  Play, Rocket, Shield, ShieldHalf, Sparkles, Star, Sun, Sunrise, Trophy,
   // `Map` is aliased because the unaliased name shadows the global Map
   // constructor, and `new Map()` in the chart helper below then throws.
 } from "lucide-react";
@@ -41,24 +41,35 @@ import { usePrefersReducedMotion } from "./VideoPlayer";
 import { goalAccentCSS, goalGerund, pathwaySubtitle, pathwayTitle } from "@/lib/goalCopy";
 import { SESSIONS_PER_WEEK } from "@/lib/guaranteeCopy";
 import { durationLabel } from "@/lib/library";
-import { dateKey, videosForDay } from "@/lib/program";
+import { videosForDay } from "@/lib/program";
 
 /** iOS counts today's five minutes as 300 seconds of video. So do we. */
 const DAILY_TARGET_SECONDS = 300;
 
 export default function Today() {
+  // Day numbers come from the provider and are never recomputed here. See the
+  // block comment above `programState` in lib/program.js: `currentDayNumber` is
+  // the day she is ON and is the only value any label may print as "Day N of 90";
+  // `replayDayNumber` is a day she has already finished and always carries the
+  // word "Replay"; `sessionDayNumber` only decides which videos load.
   const {
-    member, goalId, goal, catalog, days, currentDay, todaysVideos, dayNumber,
-    dayUnlocked, sessionDay, planLength, graduated, completions, events, streak,
-    history, contentError,
+    member, goalId, goal, catalog, days, currentDay, headlineDay, todaysVideos,
+    currentDayNumber, currentDayUnlocked, replayDayNumber, sessionDayNumber,
+    bankableDayNumber, completedDayCount, highestUnlockedDay, todayKey,
+    planLength, graduated, completions, events, streak, history, contentError,
   } = useMember();
   const { openPlayer } = usePlayer();
 
   const firstName = firstNameOf(member?.name);
   const greeting = greetingFor(new Date());
-  const sessionsThisWeek = useMemo(() => countSessionsThisWeek(completions), [completions]);
-  const doneToday = useMemo(() => hasCompletionToday(completions), [completions]);
-  const todayProgress = useMemo(() => progressToday(events, doneToday), [events, doneToday]);
+  // Every one of these asks "what about today?", so every one of them has to be
+  // rebuilt when today changes. `todayKey` is the provider's midnight tick: with
+  // only `completions` and `events` in the deps, a tab left open overnight kept
+  // yesterday's answer and showed a full ring and "Today's plan is done" at
+  // 00:01, one line above a card that had already moved on to the next day.
+  const sessionsThisWeek = useMemo(() => countSessionsThisWeek(completions), [completions, todayKey]);
+  const doneToday = useMemo(() => hasCompletionToday(completions), [completions, todayKey]);
+  const todayProgress = useMemo(() => progressToday(events, doneToday), [events, doneToday, todayKey]);
 
   /** Which eyes-free session is up, if any. */
   const [session, setSession] = useState(null);
@@ -67,41 +78,56 @@ export default function Today() {
   const graphRef = useRef(null);
 
   /**
-   * Playing a day picked off the pathway. Only the unlocked day banks a
+   * Playing a day picked off the pathway. Only the day she is on banks a
    * completion, exactly as on the phone: revisiting day 6 in week four is a
-   * revisit, not a sixth day.
+   * revisit, not a sixth day. She picked this row by its number, so the number
+   * on the row is the number the player is allowed to show.
    */
   const playPathwayDay = useCallback(
     (day) => {
       const videos = videosForDay(day, catalog);
       if (!videos.length) return;
+      const banks = day.day === bankableDayNumber;
       openPlayer({
         videos,
         title: `Day ${day.day}: ${day.title}`,
-        subtitle: `Day ${day.day} of ${planLength || "your plan"}`,
-        dayContext: day.day === dayNumber && dayUnlocked ? { day: day.day } : null,
+        subtitle: banks
+          ? `Day ${day.day} of ${planLength || "your plan"}`
+          : `Replay of Day ${day.day}`,
+        dayContext: banks ? { day: day.day } : null,
       });
     },
-    [catalog, openPlayer, planLength, dayNumber, dayUnlocked]
+    [catalog, openPlayer, planLength, bankableDayNumber]
   );
 
   /**
-   * `dayContext` is what lets the player bank a program day, so it is attached
-   * only when the day she is about to play is the unlocked one. Replaying the
-   * day she finished this morning must not write a second completion over it.
+   * The ring. Two different things depending on the hour, and the player has to
+   * say which one it is rather than borrow the other's number.
+   *
+   * Normally it is the day she is on: "Day 22: ..." / "Day 22 of 90", and
+   * finishing it banks day 22.
+   *
+   * On the evening she has already finished a day, the phone's ring stops being
+   * playable and opens the pathway instead. A browser tab has no full-screen
+   * pathway, so the ring keeps replaying the day she just did. That day is
+   * `replayDayNumber`, it is never her position, and it banks nothing, so the
+   * player says "Replay of Day 21" and not "Day 21 of 90".
    */
   const openSession = useCallback(
     (startIndex) => {
       if (!todaysVideos.length) return;
+      const banks = sessionDayNumber === bankableDayNumber;
       openPlayer({
         videos: todaysVideos,
         ...(startIndex == null ? {} : { startIndex }),
-        title: currentDay ? `Day ${sessionDay}: ${currentDay.title}` : "Today's session",
-        subtitle: `Day ${sessionDay} of ${planLength || "your plan"}`,
-        dayContext: dayUnlocked ? { day: sessionDay } : null,
+        title: currentDay ? `Day ${sessionDayNumber}: ${currentDay.title}` : "Today's session",
+        subtitle: banks
+          ? `Day ${sessionDayNumber} of ${planLength || "your plan"}`
+          : `Replay of Day ${sessionDayNumber}`,
+        dayContext: banks ? { day: sessionDayNumber } : null,
       });
     },
-    [todaysVideos, openPlayer, currentDay, sessionDay, dayUnlocked, planLength]
+    [todaysVideos, openPlayer, currentDay, sessionDayNumber, bankableDayNumber, planLength]
   );
 
   const startSession = useCallback(() => openSession(null), [openSession]);
@@ -142,9 +168,13 @@ export default function Today() {
             // spotlight said "Program", the You tab said "Seal", and the phone
             // agreed with neither.
             title={pathwayTitle(goalId)}
-            dayNumber={dayNumber}
+            currentDayNumber={currentDayNumber}
             planLength={planLength}
-            weekTheme={days?.[Math.min(dayNumber, days.length) - 1]?.theme || currentDay?.theme}
+            // The theme of the week she is IN, which is the week of the day she
+            // is on. DashboardView passes `engine.currentWeek?.theme`, derived
+            // from the same `currentDayNumber`, so it moves with the number
+            // beside it rather than with whatever the ring happens to be playing.
+            weekTheme={headlineDay?.theme || currentDay?.theme}
             graduated={graduated}
             sessionsThisWeek={sessionsThisWeek}
             onOpenPathway={() => setPathwayOpen(true)}
@@ -163,10 +193,9 @@ export default function Today() {
             // finishing day 21 the phone's card reads "Day 22: ..." with a full
             // ring and "Day 22 opens tomorrow." under it. Naming day 21 here
             // meant the same member read a different day number on each device.
-            headlineDay={days?.[Math.min(dayNumber, days.length || dayNumber) - 1] || currentDay}
-            dayNumber={dayNumber}
-            sessionDay={sessionDay}
-            dayUnlocked={dayUnlocked}
+            headlineDay={headlineDay || currentDay}
+            currentDayNumber={currentDayNumber}
+            replayDayNumber={replayDayNumber}
             planLength={planLength}
             graduated={graduated}
             videos={todaysVideos}
@@ -191,7 +220,10 @@ export default function Today() {
               the dashboard settles. A modal that appears on its own is a dark
               pattern in a browser tab and gets dismissed unread, so the same
               five questions live in a card she opens herself. */}
-          <CheckInCard dateKey={dateKey()} />
+          {/* `todayKey` and not `dateKey()`: the check-in is filed under a
+              calendar day, so it has to roll over with the same tick everything
+              else on this screen rolls over with. */}
+          <CheckInCard dateKey={todayKey} />
         </div>
       </div>
 
@@ -202,8 +234,11 @@ export default function Today() {
         onClose={() => setPathwayOpen(false)}
         goalId={goalId}
         days={days}
-        dayNumber={dayNumber}
-        dayUnlocked={dayUnlocked}
+        currentDayNumber={currentDayNumber}
+        currentDayUnlocked={currentDayUnlocked}
+        highestUnlockedDay={highestUnlockedDay}
+        completedDayCount={completedDayCount}
+        graduated={graduated}
         completions={completions}
         planLength={planLength}
         onPlayDay={playPathwayDay}
@@ -301,12 +336,14 @@ function LiveMembersLine({ goalId }) {
 // --- 1. Program pathway card ------------------------------------------------
 
 function JourneyCard({
-  goalId, title, dayNumber, planLength, weekTheme, graduated, sessionsThisWeek,
-  onOpenPathway,
+  goalId, title, currentDayNumber, planLength, weekTheme, graduated,
+  sessionsThisWeek, onOpenPathway,
 }) {
   const locked = sessionsThisWeek >= SESSIONS_PER_WEEK;
+  // Her position, never the ring's replay. DashboardView.programCard prints
+  // "Day \(info.dayNumber) of 90 · \(info.weekTheme)" from the same number.
   const dayLabel = planLength
-    ? `Day ${Math.min(dayNumber, planLength)} of ${planLength}`
+    ? `Day ${Math.min(currentDayNumber, planLength)} of ${planLength}`
     : "Getting your plan ready";
 
   return (
@@ -365,8 +402,12 @@ function JourneyCard({
  * content and same rules either way: thirteen week chapters, the current one
  * open, a day that is done, a day that is playable, and days that are not yet.
  */
-function ProgramPathwaySheet({ open, onClose, goalId, days, dayNumber, dayUnlocked, completions, planLength, onPlayDay }) {
-  const currentWeek = Math.floor((dayNumber - 1) / 7) + 1;
+function ProgramPathwaySheet({
+  open, onClose, goalId, days, currentDayNumber, currentDayUnlocked,
+  highestUnlockedDay, completedDayCount, graduated, completions, planLength,
+  onPlayDay,
+}) {
+  const currentWeek = Math.floor((currentDayNumber - 1) / 7) + 1;
   const [expanded, setExpanded] = useState(currentWeek);
 
   // Reopen on the week she is in, every time. Coming back to a sheet that is
@@ -393,7 +434,10 @@ function ProgramPathwaySheet({ open, onClose, goalId, days, dayNumber, dayUnlock
   }, [completions]);
 
   const total = planLength || days?.length || 0;
-  const pct = total ? Math.round((done.size / total) * 100) : 0;
+  // `completedDayCount`, not `done.size`: the set can still hold the phantom
+  // day 91 and 92 records the old web bug banked, and "91 of 90 days complete"
+  // at 101% is how a graduate found out about it.
+  const pct = total ? Math.round((Math.min(completedDayCount, total) / total) * 100) : 0;
 
   return (
     <Sheet open={open} onClose={onClose} title={pathwayTitle(goalId)} labelledBy="pathway-title">
@@ -406,10 +450,20 @@ function ProgramPathwaySheet({ open, onClose, goalId, days, dayNumber, dayUnlock
           One day at a time. Miss a day? Nothing is lost, you just carry on.
         </p>
 
+        {/* ProgramPathwayView.progressSummary: the day she is on on the left,
+            the count of days behind her on the right. Two numbers that mean two
+            different things, so they are worded two different ways. "Day 22 of
+            90" is where she is; "21 days done" is what she has banked. */}
         <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-inset ring-black/[0.05]">
-          <p className="flex items-baseline justify-between text-[13px] font-semibold text-app-textSecondary">
-            <span>{done.size} of {total} days complete</span>
-            <span className="tabular-nums text-app-textPrimary">{pct}%</span>
+          <p className="flex items-baseline justify-between gap-3 text-[13px] font-semibold text-app-textSecondary">
+            <span className="text-app-textPrimary">
+              {graduated
+                ? `All ${total} days complete`
+                : `Day ${Math.min(currentDayNumber, total || currentDayNumber)} of ${total}`}
+            </span>
+            <span className="shrink-0 tabular-nums">
+              {Math.min(completedDayCount, total)} days done · {pct}%
+            </span>
           </p>
           <span className="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-app-borderIdle">
             <span className="block h-full rounded-full bg-ios-pink" style={{ width: `${pct}%` }} />
@@ -454,31 +508,44 @@ function ProgramPathwaySheet({ open, onClose, goalId, days, dayNumber, dayUnlock
                     )}
                     {week.days.map((day) => {
                       const isDone = done.has(day.day);
-                      // The same rule the engine uses: everything before today
-                      // is open, today is open unless it is being held back
-                      // until midnight, and tomorrow is not.
-                      const playable = day.day < dayNumber || (day.day === dayNumber && dayUnlocked);
-                      const isToday = day.day === dayNumber;
+                      // ProgramPathwayView.dayRow, rule for rule.
+                      const isCurrent = day.day === currentDayNumber;
+                      const opensTomorrow = isCurrent && !currentDayUnlocked && !isDone;
+                      const playable = day.day <= highestUnlockedDay && !opensTomorrow;
+                      // "Opens tomorrow" is not "locked": she has already done
+                      // today's day, so the row stays at full strength instead
+                      // of being greyed out with the days she has not reached.
+                      const dim = !playable && !opensTomorrow;
+                      // Only ever ONE of these, and never "Today" on a day she
+                      // cannot do today. That badge on a held-back day is what
+                      // put "Day 22 · Today" next to "Day 22 opens tomorrow."
+                      const badge = opensTomorrow
+                        ? " · Opens tomorrow"
+                        : isCurrent && !isDone
+                          ? " · Today"
+                          : "";
                       return (
                         <li key={day.day}>
                           <button
                             type="button"
                             disabled={!playable}
                             onClick={() => { onPlayDay(day); onClose(); }}
-                            className={`flex w-full items-center gap-3 px-4 py-3 text-left ${playable ? "" : "opacity-45"}`}
+                            className={`flex w-full items-center gap-3 px-4 py-3 text-left ${dim ? "opacity-45" : ""}`}
                           >
                             <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11.5px] font-bold ${
                               isDone ? "bg-app-positive text-white"
+                                     : opensTomorrow ? "bg-ios-yellow text-white"
                                      : playable ? "bg-ios-pink text-white"
                                                 : "bg-app-borderIdle text-app-textSecondary"
                             }`}>
                               {isDone ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
+                                      : opensTomorrow ? <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                                       : playable ? <Play className="h-3 w-3 fill-white" aria-hidden="true" />
                                                  : <Lock className="h-3 w-3" aria-hidden="true" />}
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block text-[10.5px] font-semibold uppercase tracking-wider text-app-textSecondary">
-                                Day {day.day}{isToday ? " · Today" : ""}
+                                Day {day.day}{badge}
                               </span>
                               <span className="block truncate text-[14.5px] font-semibold text-app-textPrimary">
                                 {day.title}
@@ -569,7 +636,7 @@ function MomentTile({ Icon, title, subtitle, onClick }) {
  * question in the vocabulary a browser actually has.
  */
 function DailyRoutineCard({
-  currentDay, headlineDay, dayNumber, sessionDay, dayUnlocked, planLength,
+  currentDay, headlineDay, currentDayNumber, replayDayNumber, planLength,
   graduated, videos, watched, progress, goalTitle, onStart, onPlayFrom,
 }) {
   const reduceMotion = usePrefersReducedMotion();
@@ -590,11 +657,16 @@ function DailyRoutineCard({
   // `headlineDay` is the day she is ON; `currentDay` is the day that plays.
   // They are the same day every day except the evening she finishes one, when
   // the phone still names the next day here. Match the phone.
+  //
+  // Only ONE number is ever printed as a day of the plan on this card, and it is
+  // `currentDayNumber`: the title, the ring label, and the "opens tomorrow" line
+  // all read it. `replayDayNumber` appears once, on the replay button, and never
+  // without the word "Replay".
   const named = headlineDay || currentDay;
   const title = graduated
     ? "Your Daily Mix"
     : named
-      ? `Day ${dayNumber}: ${named.title}`
+      ? `Day ${currentDayNumber}: ${named.title}`
       : "Today's 5-Minute Routine";
 
   const subtitle = graduated
@@ -619,7 +691,9 @@ function DailyRoutineCard({
   const ringLabel = complete
     ? "Today's plan is done 🎉"
     : progress > 0
-      ? (graduated ? "Daily Mix" : `Day ${Math.min(dayNumber, planLength || dayNumber)} of ${planLength || 90}`)
+      ? (graduated
+          ? "Daily Mix"
+          : `Day ${Math.min(currentDayNumber, planLength || currentDayNumber)} of ${planLength || 90}`)
       : "Tap to Begin Today's Plan";
 
   return (
@@ -713,26 +787,34 @@ function DailyRoutineCard({
         </span>
         {complete && (
           <span className="mt-0.5 block text-center text-[13px] text-app-textPrimary">
-            {graduated ? "A fresh mix lands tomorrow." : dayUnlocked ? "A new plan opens tomorrow." : `Day ${dayNumber} opens tomorrow.`}
+            {/* DailyRoutineView.nextOpensText, case for case. */}
+            {graduated
+              ? "A fresh mix lands tomorrow."
+              : replayDayNumber == null
+                ? "A new plan opens tomorrow."
+                : `Day ${currentDayNumber} opens tomorrow.`}
           </span>
         )}
       </button>
 
-      {/* The card is named after the day she is on, so a replay button has to
-          name the day it actually plays or the two disagree on screen. The
-          phone has no replay here at all: tapping the ring opens the pathway. */}
+      {/* The card is named after the day she is on, so a button that plays a
+          different day has to say so. "Replay Day 21" under a card headed
+          "Day 22" reads as one thing; "Do Day 21 again" beside "Day 22 of 90"
+          read as the screen contradicting itself. The phone has no replay here
+          at all: tapping the ring opens the pathway. */}
       <PrimaryButton className="mt-4" onClick={onStart}>
-        {dayUnlocked
+        {replayDayNumber == null
           ? (complete ? "Do it again" : "Start today's session")
-          : graduated ? "Do this one again" : `Do Day ${sessionDay} again`}
+          : graduated ? "Do this one again" : `Replay Day ${replayDayNumber}`}
       </PrimaryButton>
 
       {/* One program day per calendar day, same rule as the phone. Saying so is
           better than a button that quietly writes nothing. Suppressed once the
-          ring is full, because the line under the ring has just said it. */}
-      {!dayUnlocked && !complete && (
+          ring is full, because the line under the ring has just said it, and
+          suppressed for a graduate, who has no day 91 waiting on midnight. */}
+      {replayDayNumber != null && !graduated && !complete && (
         <p className="mt-3 rounded-2xl bg-app-positive/[0.09] px-3 py-2.5 text-[13px] font-medium leading-snug text-app-textPrimary">
-          Day {dayNumber} unlocks tomorrow. One day at a time is what makes this work.
+          Day {currentDayNumber} unlocks tomorrow. One day at a time is what makes this work.
         </p>
       )}
 

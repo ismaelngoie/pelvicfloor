@@ -243,7 +243,9 @@ function TabBar() {
  */
 function SideNav() {
   const pathname = usePathname();
-  const { member, dayNumber, planLength } = useMember();
+  // `currentDayNumber` is the day she is on, and the only value allowed to
+  // print as "Day N of 90". See lib/program.js, above `programState`.
+  const { member, currentDayNumber, planLength } = useMember();
   const firstName = (member?.name || "").trim().split(/\s+/)[0];
 
   return (
@@ -296,19 +298,19 @@ function SideNav() {
               {firstName ? `${firstName}'s plan` : "Your plan"}
             </p>
             <p className="mt-1 text-[14px] font-bold text-app-textPrimary">
-              Day {Math.min(dayNumber, planLength)} of {planLength}
+              Day {Math.min(currentDayNumber, planLength)} of {planLength}
             </p>
             <div
               className="mt-2 h-1.5 overflow-hidden rounded-full bg-app-borderIdle"
               role="progressbar"
-              aria-valuenow={Math.min(dayNumber, planLength)}
+              aria-valuenow={Math.min(currentDayNumber, planLength)}
               aria-valuemin={0}
               aria-valuemax={planLength}
               aria-label="Progress through your plan"
             >
               <span
                 className="block h-full rounded-full bg-ios-pink"
-                style={{ width: `${(Math.min(dayNumber, planLength) / planLength) * 100}%` }}
+                style={{ width: `${(Math.min(currentDayNumber, planLength) / planLength) * 100}%` }}
               />
             </div>
           </div>

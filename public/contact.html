@@ -1,106 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Pelvi Health</title>
-    <meta name="description" content="Questions about your Pelvi Health plan, your subscription or the 90-day goal guarantee? Email contact@pelvi.health and a person will read it.">
-    <link rel="canonical" href="https://pelvi.health/contact.html">
-    <meta name="robots" content="index,follow">
-    <link rel="icon" href="/icon.png" type="image/png">
-    <meta name="theme-color" content="#000000">
-    <meta property="og:title" content="Contact Pelvi Health">
-    <meta property="og:description" content="Questions about your plan, your subscription or the 90-day goal guarantee? Email contact@pelvi.health.">
-    <meta property="og:url" content="https://pelvi.health/contact.html">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Pelvi Health">
-    <meta property="og:image" content="https://pelvi.health/og-image.png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://pelvi.health/og-image.png">
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"ContactPage","@id":"https://pelvi.health/contact.html#webpage","url":"https://pelvi.health/contact.html","name":"Contact Pelvi Health","description":"How to reach Pelvi Health support.","isPartOf":{"@id":"https://pelvi.health/#website"},"publisher":{"@id":"https://pelvi.health/#organization"},"inLanguage":"en-US"}</script>
-    <!--
-      The Tailwind CDN and the Google Fonts stylesheet are gone: both were
-      render blocking, and the first of them shipped a CSS compiler to a phone
-      in order to lay out one heading, one line of text and a button.
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Pelvi Health</title>
+<meta name="description" content="Reach a person at Pelvi Health. Email hello@pelvi.health about your plan, your subscription, a refund, the 90-day goal guarantee or a privacy request.">
+<link rel="canonical" href="https://pelvi.health/contact.html">
+<meta name="robots" content="index,follow">
+<link rel="icon" href="/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#FAF9FA">
+<meta property="og:title" content="Contact Pelvi Health">
+<meta property="og:description" content="Email hello@pelvi.health about your plan, your subscription, a refund or the 90-day goal guarantee. A person reads it.">
+<meta property="og:url" content="https://pelvi.health/contact.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Pelvi Health">
+<meta property="og:image" content="https://pelvi.health/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://pelvi.health/og-image.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"ContactPage","@id":"https://pelvi.health/contact.html#webpage","url":"https://pelvi.health/contact.html","name":"Contact Pelvi Health","description":"How to reach Pelvi Health support.","isPartOf":{"@id":"https://pelvi.health/#website"},"publisher":{"@id":"https://pelvi.health/#organization"},"inLanguage":"en-US"}</script>
+<!--
+      THE ADDRESS ON THIS PAGE CHANGED, AND IT IS THE ONE THING HERE WORTH
+      A SECOND LOOK.
 
-      This is the last hand-written page left in public/. The two it used to
-      sit beside, privacy-policy.html and terms-of-use.html, are deleted. They
-      described a different product at a domain we do not own, and they are
-      replaced by app router pages at /privacy-policy and /terms.
+      This page used to advertise contact@pelvi.health. Every other surface
+      that promises a human being names hello@pelvi.health: Terms section 15
+      ("refunds, cancellations, guarantee claims and complaints all go to the
+      same address, and a person reads it"), the Privacy Policy's deletion and
+      data-access routes, the You tab's "Help and refunds", the welcome screen,
+      the 404 page, and Coach Mia's own instructions, which tell her that
+      address "is the only way to reach a person". It is lib/guaranteeCopy.js
+      CLAIM_EMAIL.
+
+      A contact page pointing somewhere the Terms does not is how a refund
+      request goes unanswered inside a 30-day window that is contractual. So
+      this page now names the address the Terms commits to.
+
+      contact@pelvi.health survives in app/cora/privacy-policy, which is a
+      different product. If contact@ is in fact the staffed inbox, change
+      CLAIM_EMAIL and the legal pages, not this file on its own.
+
+      Everything else here is the same chrome the blog wears, from
+      public/blog-legacy.css. There is no Tailwind build for public/, so that
+      stylesheet is the whole design; the page loads it, one self-hosted font,
+      and nothing else. No CDN, no Google Fonts, no third party on the path.
     -->
-    <style>
-        *, ::before, ::after { box-sizing: border-box; }
-        body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #000000; color: #E5E7EB; margin: 0; }
-        img { display: block; max-width: 100%; height: auto; }
-        .flex { display: flex; }
-        .flex-col { flex-direction: column; }
-        .flex-grow { flex-grow: 1; }
-        .items-center { align-items: center; }
-        .inline-block { display: inline-block; }
-        .min-h-screen { min-height: 100vh; }
-        .container { width: 100%; margin-inline: auto; }
-        @media (min-width: 640px) { .container { max-width: 640px; } }
-        @media (min-width: 768px) { .container { max-width: 768px; } }
-        @media (min-width: 1024px) { .container { max-width: 1024px; } }
-        @media (min-width: 1280px) { .container { max-width: 1280px; } }
-        .mx-auto { margin-left: auto; margin-right: auto; }
-        .p-4 { padding: 1rem; }
-        .px-4 { padding-left: 1rem; padding-right: 1rem; }
-        .px-8 { padding-left: 2rem; padding-right: 2rem; }
-        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-        .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
-        .py-16 { padding-top: 4rem; padding-bottom: 4rem; }
-        .mb-4 { margin-bottom: 1rem; }
-        .mb-8 { margin-bottom: 2rem; }
-        .space-x-3 > * + * { margin-left: 0.75rem; }
-        .h-8 { height: 2rem; }
-        .w-8 { width: 2rem; }
-        .font-bold { font-weight: 700; }
-        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-        .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
-        .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
-        @media (min-width: 768px) { .md\:text-5xl { font-size: 3rem; line-height: 1; } }
-        .text-center { text-align: center; }
-        .text-white { color: #fff; }
-        .text-gray-400 { color: #9CA3AF; }
-        .text-gray-500 { color: #6B7280; }
-        .bg-pink-500 { background-color: #EC4899; }
-        .rounded-full { border-radius: 9999px; }
-        .transition { transition: background-color 0.15s ease, color 0.15s ease; }
-        .hover\:bg-pink-600:hover { background-color: #DB2777; }
-        h1 { margin: 0; }
-        p { margin: 0; }
-        a { color: inherit; text-decoration: none; }
-    </style>
+<link rel="preload" href="/fonts/inter-latin-v1.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/blog-legacy.css">
 </head>
-<body class="flex flex-col min-h-screen">
-    <header class="p-4">
-        <div class="container mx-auto">
-             <a href="/" class="flex items-center space-x-3">
-                <img src="logo.png" alt="App Logo" class="h-8 w-8">
-                <span class="font-bold text-xl text-white">Pelvic Floor</span>
-            </a>
-        </div>
-    </header>
-    <main class="flex-grow container mx-auto px-4 py-16 text-center">
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Get in Touch</h1>
-        <p class="text-gray-400 text-lg mb-8">Have a question or feedback? We'd love to hear from you.</p>
-        <!--
-          The href said support@ while the button said contact@, so every
-          person who tapped "Email Us: contact@pelvi.health" addressed a
-          different mailbox than the one they were shown. contact@ is what the
-          privacy policy and this button both advertise, so that is the one
-          that wins. Confirm both inboxes are monitored.
-        -->
-        <a href="mailto:contact@pelvi.health" class="inline-block bg-pink-500 text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-pink-600 transition">
-            Email Us: contact@pelvi.health
-        </a>
-    </main>
-    <footer class="py-8 px-4 text-center text-gray-500 text-sm">
-        <p>&copy; 2025 Pelvic Health. All rights reserved.</p>
-    </footer>
+<body class="pv-doc">
+<a class="pv-skip" href="#main">Skip to the content</a>
+<header class="pv-site-header">
+<div class="pv-site-header__inner">
+<a href="/" class="pv-brand">
+<img src="/icon.png" alt="" width="28" height="28">
+<span>Pelvi Health</span>
+</a>
+<a href="/blog" class="pv-site-header__link">All articles</a>
+</div>
+</header>
+<main class="pv-main" id="main">
+<div class="pv-wrap pv-contact">
+<nav class="pv-breadcrumb" aria-label="Breadcrumb">
+<ol>
+<li><a href="/">Home</a></li>
+<li aria-hidden="true">/</li>
+<li>Contact</li>
+</ol>
+</nav>
+
+<h1>Contact us</h1>
+<p class="pv-contact__lede">One inbox, read by a person. Tell us what is going on and we will sort it out.</p>
+
+<section class="pv-card" aria-labelledby="email">
+<h2 id="email">Email</h2>
+<p><a class="pv-email" href="mailto:hello@pelvi.health">hello@pelvi.health</a></p>
+<p>This is the address in our Terms, so it is the right one for every kind of question: your plan, your subscription, a refund, a claim under the 90-day goal guarantee, or anything about your data.</p>
+</section>
+
+<section class="pv-card" aria-labelledby="what">
+<h2 id="what">What to expect</h2>
+<ul>
+<li>A person reads every email. There is no ticket queue and no chatbot on this address.</li>
+<li>Refunds, cancellations and guarantee claims are handled at this address. So are complaints.</li>
+<li>Privacy requests, including a copy of your data or deletion of it, are answered within 30 days.</li>
+<li>Please write from the email address on your account, or tell us which one it is, so we can find you.</li>
+</ul>
+</section>
+
+<section class="pv-card" aria-labelledby="cancel">
+<h2 id="cancel">Cancelling without emailing</h2>
+<p>You do not need us for this. If you subscribed here on the web, open the <a href="/app">You tab</a> in your plan and use Manage or cancel.</p>
+<p>If you subscribed inside the iPhone app, Apple handles that billing, so it is cancelled in iPhone Settings, under your name, then Subscriptions.</p>
+</section>
+
+<section class="pv-card" aria-labelledby="who">
+<h2 id="who">Who you are writing to</h2>
+<p>Pelvi Health, LLC. We build a personalised pelvic floor and core programme: a short daily session, a 90-day plan behind each goal, and filmed exercises so you can see the movement instead of reading it.</p>
+<p>Not sure yet? <a href="/">Answer eight questions</a> and you will see your plan before you pay for anything.</p>
+</section>
+
+<section class="pv-card" aria-labelledby="urgent">
+<h2 id="urgent">If it is urgent</h2>
+<p>We are not a medical service and we cannot help with an emergency. If something hurts badly, if you are bleeding, or if a symptom is new and you do not know why, contact a doctor, a pelvic health physiotherapist or your local emergency number instead of this inbox.</p>
+</section>
+</div>
+</main>
+<footer class="pv-site-footer">
+<div class="pv-site-footer__inner">
+<p class="pv-site-footer__note"><strong>Medical disclaimer.</strong> Pelvi Health publishes general education about pelvic health. It is not medical advice, it is not a diagnosis, and no article here can know what is happening in your body. If something hurts, if something is bleeding, or if a symptom is new and you do not know why, see a doctor or a pelvic health physiotherapist.</p>
+<nav class="pv-site-footer__nav">
+<a href="/blog">Articles</a>
+<a href="/">Build my plan</a>
+<a href="/contact.html">Contact</a>
+<a href="/privacy-policy">Privacy</a>
+<a href="/terms">Terms</a>
+</nav>
+<p class="pv-site-footer__copy">&copy; <span id="pv-year">2026</span> Pelvi Health</p>
+</div>
+</footer>
+<script>var y=document.getElementById("pv-year");if(y){y.textContent=new Date().getFullYear()}</script>
 </body>
 </html>

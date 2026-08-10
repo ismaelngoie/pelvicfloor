@@ -22,8 +22,8 @@ import {
   fetchCompletions, recordDayCompletion, recordWorkoutEvent, resolveMember, updateMember,
 } from "@/lib/memberStore";
 import {
-  allDays, currentDayNumber, goalById, isCurrentDayUnlocked, isGraduated,
-  loadCatalog, loadProgram, totalDays, videosForDay,
+  allDays, dateKey, goalById, loadCatalog, loadProgram, programState, totalDays,
+  videosForDay,
 } from "@/lib/program";
 import { entitlementState } from "@/lib/memberEntitlement";
 import { fetchEntitlement } from "@/lib/memberBilling";
@@ -386,23 +386,96 @@ export function MemberProvider({ children }) {
 
   const days = useMemo(() => allDays(program), [program]);
   const planLength = useMemo(() => totalDays(program), [program]);
-  const dayNumber = useMemo(() => currentDayNumber(completions), [completions]);
-  const dayUnlocked = useMemo(() => isCurrentDayUnlocked(completions), [completions]);
-  const graduated = useMemo(() => isGraduated(program, completions), [program, completions]);
 
   /**
-   * The day whose exercises the Today tab actually opens. Normally that is the
-   * day she is on. When the next day is held back until midnight it is the one
-   * she just finished, so there is still something to press: `dayNumber` stays
-   * the number the phone shows, and `sessionDay` is what plays.
+   * The web's port of ProgramEngine.dayChangeToken. The midnight rule is the one
+   * piece of state the clock moves on its own, and a browser tab left open
+   * overnight has nothing to redraw against: without this, a member who finished
+   * at 22:00 still reads "Day 22 opens tomorrow" at 00:01. iOS listens for
+   * NSCalendarDayChanged; the nearest thing here is a timer to the next local
+   * midnight, plus a check when the tab is brought back to the front (a
+   * suspended tab does not fire its timers).
    */
-  const sessionDay = dayUnlocked ? dayNumber : Math.max(1, dayNumber - 1);
+  const [dayChangeToken, setDayChangeToken] = useState(0);
+  useEffect(() => {
+    let timer;
+    const tick = () => setDayChangeToken((n) => n + 1);
+    const arm = () => {
+      clearTimeout(timer);
+      const now = new Date();
+      // Two seconds past midnight, not midnight exactly: a timer that fires a
+      // hair early would still be reading yesterday's date and would re-arm for
+      // a delay of zero, spinning until the clock caught up.
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 2, 0);
+      // setTimeout takes a 32-bit signed millisecond count, so anything past
+      // ~24.8 days silently fires at once. A day is well inside that; clamp
+      // anyway, because a machine that wakes with a wrong clock is a real thing.
+      timer = setTimeout(() => { tick(); arm(); },
+        Math.min(Math.max(midnight - now, 1000), 2147483647));
+    };
+    arm();
+    // A suspended tab runs no timers, so coming back has to re-ask by itself.
+    // Deliberately not gated on `visibilityState === "visible"`: recomputing on
+    // the way out costs nothing, and an embedded or prerendered view can report
+    // a state that never satisfies that test, which would leave the member
+    // looking at yesterday until she reloaded.
+    document.addEventListener("visibilitychange", tick);
+    window.addEventListener("pageshow", tick);
+    window.addEventListener("focus", tick);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", tick);
+      window.removeEventListener("pageshow", tick);
+      window.removeEventListener("focus", tick);
+    };
+  }, []);
+
+  /**
+   * "yyyy-MM-dd" in her own calendar, recomputed on the midnight tick above.
+   * Anything scoped to "today" (has she finished a session today, how full is
+   * today's ring, which day the check-in belongs to) must depend on this and
+   * not on a bare `new Date()` inside a `useMemo`, or it keeps yesterday's
+   * answer until she reloads. That is how a tab left open overnight came to say
+   * "Today's plan is done" at one minute past midnight.
+   */
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dayChangeToken is the tick.
+  const todayKey = useMemo(() => dateKey(new Date()), [dayChangeToken]);
+
+  /**
+   * ONE source of truth for every day number on every screen. Read the block
+   * comment above `programState` in lib/program.js before using any of these:
+   * `currentDayNumber` is her position and is the only one that may be printed
+   * as "Day N of 90"; `replayDayNumber` is a day she has already finished and
+   * must carry the word "Replay"; `sessionDayNumber` is a content lookup.
+   */
+  const state = useMemo(
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dayChangeToken is
+    // the midnight tick: it carries no value, it exists to re-run this.
+    () => programState(program, completions, new Date()),
+    [program, completions, dayChangeToken]
+  );
+  const {
+    currentDayNumber, currentDayUnlocked, graduated, replayDayNumber,
+    sessionDayNumber, bankableDayNumber, completedDayCount, highestUnlockedDay,
+  } = state;
 
   const currentDay = useMemo(() => {
     if (!days.length) return null;
-    const index = Math.min(Math.max(sessionDay, 1), days.length) - 1;
+    const index = Math.min(Math.max(sessionDayNumber, 1), days.length) - 1;
     return days[index] || null;
-  }, [days, sessionDay]);
+  }, [days, sessionDayNumber]);
+
+  /**
+   * The day the Today card is NAMED after, which is always the day she is on.
+   * On the evening she finishes day 21 the phone's card reads "Day 22: ..." while
+   * the ring replays day 21, so `currentDay` (what plays) and `headlineDay` (what
+   * the card is called) are deliberately different objects that evening.
+   */
+  const headlineDay = useMemo(() => {
+    if (!days.length) return null;
+    const index = Math.min(Math.max(currentDayNumber, 1), days.length) - 1;
+    return days[index] || null;
+  }, [days, currentDayNumber]);
 
   const todaysVideos = useMemo(
     () => videosForDay(currentDay, catalog),
@@ -473,6 +546,10 @@ export function MemberProvider({ children }) {
   const logDayComplete = useCallback(
     async ({ day, secondsWatched }) => {
       if (!member?.id || !day) return;
+      // ProgramEngine.completeDay opens with `guard !completedDays.contains(day)`.
+      // Same guard, same reason: a replay must never write a second record over
+      // the day it is replaying, and a graduate must never bank a 91st day.
+      if (day !== bankableDayNumber) return;
       try {
         await recordDayCompletion(member.id, {
           programID: goalId,
@@ -480,7 +557,10 @@ export function MemberProvider({ children }) {
           secondsWatched,
         });
         await updateMember(member.id, {
-          programDay: day + 1,
+          // The same number the phone syncs (CloudSync writes
+          // `engine.currentDayNumber`, which the engine caps at the plan
+          // length). `day + 1` unguarded is how /admin came to show "Day 91 of 90".
+          programDay: Math.min(day + 1, planLength || day + 1),
           ...(member.programStartedAt ? {} : { programStartedAt: new Date().toISOString() }),
         });
       } catch {
@@ -488,7 +568,7 @@ export function MemberProvider({ children }) {
       }
       await reloadHistory();
     },
-    [member?.id, member?.programStartedAt, goalId, reloadHistory]
+    [member?.id, member?.programStartedAt, goalId, reloadHistory, bankableDayNumber, planLength]
   );
 
   const value = useMemo(
@@ -517,10 +597,26 @@ export function MemberProvider({ children }) {
       catalog,
       days,
       planLength,
-      dayNumber,
-      dayUnlocked,
-      sessionDay,
+      todayKey,
+
+      // --- Day numbers. See the block comment above `programState`. ---------
+      /** CANONICAL: the day she is on. The only one that may print as "Day N of 90". */
+      currentDayNumber,
+      /** Whether the day she is on can be played right now (midnight rule). */
+      currentDayUnlocked,
+      /** A day she has ALREADY FINISHED that the ring is offering again, or null. */
+      replayDayNumber,
+      /** Which day's videos are loaded. A content lookup, never a label. */
+      sessionDayNumber,
+      /** The day a finished session may bank, or null. */
+      bankableDayNumber,
+      /** How many days she has finished. Never printed as "Day N". */
+      completedDayCount,
+      /** Highest day the pathway renders as tappable. */
+      highestUnlockedDay,
+
       currentDay,
+      headlineDay,
       todaysVideos,
       graduated,
       completions,
@@ -538,8 +634,10 @@ export function MemberProvider({ children }) {
       entitlement, entitlementChecking, linkRedeeming, linkState,
       signIn, signInWithLink, confirmLinkEmail, signOutMember, refreshMember,
       refreshEntitlement, patchMember, goalId,
-      program, catalog, days, planLength, dayNumber, dayUnlocked, sessionDay,
-      currentDay, todaysVideos,
+      program, catalog, days, planLength, todayKey,
+      currentDayNumber, currentDayUnlocked, replayDayNumber, sessionDayNumber,
+      bankableDayNumber, completedDayCount, highestUnlockedDay,
+      currentDay, headlineDay, todaysVideos,
       graduated, completions, events, history, streak, savedIds, toggleSaved,
       reloadHistory, logVideoWatched, logDayComplete,
     ]
