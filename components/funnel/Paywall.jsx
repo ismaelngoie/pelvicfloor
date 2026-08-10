@@ -291,7 +291,23 @@ export default function Paywall({
           style={{ animationDelay: "200ms" }}
         >
           <div className="flex items-stretch justify-center gap-6">
-            <Stat value="4.9" caption="App Store Rating" suffix="out of 5">
+            {/* The real number, not the one the phone prints.
+             *
+             * iOS hardcodes "4.9" (SubscriptionViewController.swift:405). Apple's
+             * own lookup API reports 4.56 from 41 ratings for app id 6642654729,
+             * so 4.9 is a claim about a third party's public record that the
+             * third party contradicts. It is on the screen that takes the money,
+             * next to a 100% money-back guarantee, which is exactly where a
+             * regulator or a chargeback argument would look first.
+             *
+             * It also disagreed with this site's OWN structured data, which
+             * publishes the true 4.6 to Google. Shipping both numbers is the
+             * version of this that gets a manual action.
+             *
+             * 4.6 out of 41 is a good rating and it is defensible. Update it
+             * from the API if it moves; do not round it up.
+             */}
+            <Stat value="4.6" caption="App Store Rating" suffix="out of 5">
               <Star size={16} className="text-ios-yellow" fill="currentColor" aria-hidden="true" />
             </Stat>
             <div className="w-px self-center bg-white/15" style={{ height: 48 }} aria-hidden="true" />
