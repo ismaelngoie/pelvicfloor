@@ -59,8 +59,34 @@ export const OWNED_STATUSES = new Set(["active", "trialing", "past_due", "unpaid
  * and mirroring its answers into Firestore only created a second copy that
  * could drift. What this object is still good for is /admin: it is the only
  * place the dashboard can read a subscription id, a period end and a raw Stripe
- * status without a Stripe call per row. /api/restore-purchase is the one thing
- * that writes it now.
+ * status without a Stripe call per row.
+ *
+ * AND IT IS THE ONLY THING THE IPHONE APP CAN READ. Read this before deciding
+ * the object is bookkeeping and deleting it.
+ *
+ * The shipped iOS app (Core/Account/WebEntitlement.swift, grants()) opens the
+ * door for a web buyer by reading THIS object off users/{id}. It cannot ask
+ * /api/entitlement instead: that endpoint requires an Origin or a Referer
+ * header, and a native URLSession request sends neither, so every call from a
+ * phone is refused with 403 bad_origin before the token is even looked at. The
+ * app is on the App Store and cannot be changed. So for a woman who buys at
+ * pelvi.health and then installs the app, this mirrored object is not a
+ * convenience — it is the whole of her access.
+ *
+ * That is why it is now written at three moments rather than one:
+ *
+ *   1. functions/api/session-from-payment.js, the instant a payment clears.
+ *      This is the one that matters: it is the only write on the path a normal
+ *      web buyer actually takes.
+ *   2. functions/api/entitlement.js, every time the member app asks Stripe.
+ *      Keeps the mirror fresh, and back-fills every member who bought before
+ *      any of this was written.
+ *   3. functions/api/restore-purchase.js, the recovery screen's button.
+ *
+ * A stale mirror is safe in the direction that matters. The web never trusts
+ * it (it asks Stripe live), and the phone only ever GRANTS from it, so the
+ * worst a stale-active copy can do is keep a lapsed member in for a while. The
+ * failure it replaces was a paying member locked out.
  */
 export function entitlementFrom(subscription) {
   const item = subscription.items?.data?.[0];
@@ -89,43 +115,94 @@ export function entitlementFrom(subscription) {
 // with the webhook rather than sitting here as the next person's trap.
 
 /**
- * Which users/{id} document is hers?
+ * Which users/{id} document is hers, and does it exist yet?
  *
  * memberId first, because checkout resolved it and it is already the document
  * the iOS app writes to. Then the verified email, which is the join key between
  * the phone and the web. The Firebase uid is last: a web-only member has a
  * document keyed by it, but an iOS member does not.
+ *
+ * `exists` is not a detail. It is the difference between STAMPING a record
+ * somebody else owns and CREATING one, and only the second may write profile
+ * fields — see the seed handling in recordEntitlement. Writing `platform: "web"`
+ * or a fresh `joinDate` over an iPhone member's record would rewrite her history
+ * to say she joined the day she bought something.
  */
-export async function resolveMemberDoc({ projectId, token, identity }) {
+export async function resolveMemberTarget({ projectId, token, identity }) {
   if (identity.memberId && (await documentExists({ projectId, token, docId: identity.memberId }))) {
-    return identity.memberId;
+    return { docId: identity.memberId, exists: true };
   }
   if (identity.email) {
     const byEmail = await findUserIdByEmail({ projectId, token, email: identity.email });
-    if (byEmail) return byEmail;
+    if (byEmail) return { docId: byEmail, exists: true };
   }
   if (identity.uid && (await documentExists({ projectId, token, docId: identity.uid }))) {
-    return identity.uid;
+    return { docId: identity.uid, exists: true };
   }
   // A signed-in member always has a document under her uid, so if we hold a uid
   // and nothing exists yet, creating it there is correct rather than orphaning.
-  return identity.uid || null;
+  return { docId: identity.uid || null, exists: false };
+}
+
+/** The document id alone, for callers that do not care whether it exists yet. */
+export async function resolveMemberDoc({ projectId, token, identity }) {
+  const { docId } = await resolveMemberTarget({ projectId, token, identity });
+  return docId;
 }
 
 /**
  * Write the entitlement where it belongs, or park it where support can find it.
  * Returns the document id it landed on, or null when it was parked.
+ *
+ * TWO THINGS ARE WRITTEN BESIDE THE ENTITLEMENT, and both are load-bearing.
+ *
+ * `emailLower` ALWAYS, whenever we hold an address. It is the field the iPhone
+ * app never writes, so stamping it can never fight the app, and it is the only
+ * spelling of her address that always matches: findUserIdByEmail here, the
+ * `emailLower` query in lib/memberStore.js, MemberAccountLink.findMemberByEmail
+ * on the phone, and the `emailLower == callerEmail()` arm of ownsRecord() in
+ * firestore.rules all depend on it. An entitlement written onto a record that
+ * cannot then be found by address is an entitlement nobody ever reads.
+ *
+ * `seed` ONLY WHEN WE ARE CREATING THE DOCUMENT. A brand new web buyer has no
+ * users/{id} at all at the moment she pays — nothing has signed her in yet —
+ * so this call is what brings the record into being, and a record holding an
+ * entitlement and nothing else is a mystery row in /admin with no address, no
+ * join date and no program day. Never applied to a record that already exists,
+ * because that record may be the one her phone owns.
+ *
+ * @param {object|null} [seed] plain profile fields for a document being created.
  */
-export async function recordEntitlement({ projectId, token, entitlement, identity }) {
-  const docId = await resolveMemberDoc({ projectId, token, identity });
+export async function recordEntitlement({ projectId, token, entitlement, identity, seed = null }) {
+  const { docId, exists } = await resolveMemberTarget({ projectId, token, identity });
 
   if (docId) {
+    const fields = { entitlement: mapValue(entitlement) };
+    const updateMask = ["entitlement"];
+
+    const lower = (identity.email || "").trim().toLowerCase();
+    if (lower) {
+      fields.emailLower = { stringValue: lower };
+      updateMask.push("emailLower");
+    }
+
+    if (!exists && seed) {
+      for (const [key, value] of Object.entries(seed)) {
+        // Never let a seed field shadow what this function is actually for, and
+        // never write a blank over a field the member will fill in herself.
+        if (key === "entitlement" || key === "emailLower") continue;
+        if (value === null || value === undefined || value === "") continue;
+        fields[key] = typedValue(value);
+        updateMask.push(key);
+      }
+    }
+
     await patchDocument({
       projectId,
       token,
       path: `users/${encodeURIComponent(docId)}`,
-      fields: { entitlement: mapValue(entitlement) },
-      updateMask: ["entitlement"],
+      fields,
+      updateMask,
     });
     return docId;
   }
@@ -259,14 +336,35 @@ export function mapValue(object) {
   return { mapValue: { fields } };
 }
 
+/**
+ * ISO-8601 STRINGS ARE WRITTEN AS STRINGS, and that is the fix, not an
+ * oversight. Read this before "improving" it into a timestamp.
+ *
+ * This function used to promote anything matching an ISO-8601 shape to a
+ * Firestore `timestampValue`. It looked tidy and it broke the only reader the
+ * field has. The entitlement object's `currentPeriodEnd` is consumed in exactly
+ * one place in this product — the iPhone app, Core/Account/WebEntitlement.swift:
+ *
+ *     if let end = ent["currentPeriodEnd"] as? String, let date = iso8601(end),
+ *        date > Date() { return true }
+ *
+ * A Firestore timestamp arrives in the iOS SDK as a `Timestamp`, so `as? String`
+ * is nil and that whole branch — the one that keeps a member in on a plan whose
+ * `active` flag was written by an older client — silently never fires. Nothing
+ * on the web reads the field at all: lib/adminMetrics.js deliberately ignores
+ * the entitlement object, and lib/memberEntitlement.js asks Stripe instead.
+ *
+ * The same rule is what the seeded profile fields need. lib/memberStore.js
+ * writes `joinDate` as a plain ISO string from the browser SDK, and
+ * lib/adminMetrics.js reads it back as one, so a record seeded by a Worker has
+ * to be indistinguishable from a record the web app created itself. One
+ * function, one rule, nothing to pick wrongly between.
+ */
 export function typedValue(value) {
   if (value === null || value === undefined) return { nullValue: null };
   if (typeof value === "boolean") return { booleanValue: value };
   if (typeof value === "number") {
     return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
-  }
-  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(value)) {
-    return { timestampValue: value };
   }
   return { stringValue: String(value) };
 }

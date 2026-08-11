@@ -117,17 +117,27 @@ service cloud.firestore {
 
     // --- What a member may never write to her own record ---------------------
     //
-    // `entitlementOverride` is the word the owner chooses in /admin. It is the
-    // only one of these fields anything writes today, and it is written by the
-    // admin account, signed in, from the dashboard.
+    // `entitlementOverride` is the word the owner chooses in /admin, written by
+    // the admin account, signed in, from the dashboard.
     //
-    // `entitlement` is an OLDER object. A Stripe webhook used to write it after
-    // every payment. That webhook has been retired: whether a member is
-    // subscribed is now asked of Stripe directly, live, at the moment she opens
-    // the member app, so nothing keeps this field current and nothing writes it
-    // any more. Records created while the webhook ran still carry one, which is
-    // exactly why it stays on this list. A field nobody maintains is still a
-    // field somebody could forge.
+    // `entitlement` is written again, and by exactly one kind of caller: our own
+    // Cloudflare Workers, server side, holding Stripe's answer and a Firebase
+    // service account. /api/session-from-payment writes it the instant a payment
+    // clears, /api/entitlement rewrites it on every live check, and
+    // /api/restore-purchase writes it from the recovery screen.
+    //
+    // IT EXISTS FOR THE IPHONE APP, which is why it must not be dropped. The
+    // shipped app cannot ask /api/entitlement whether a member is paying: that
+    // endpoint requires an Origin or a Referer header and a native URLSession
+    // request sends neither, so it answers 403 to every phone. The app reads
+    // this field off her record instead. Without it a woman who buys at
+    // pelvi.health is shown the paywall again on the app she was told to
+    // install.
+    //
+    // NONE OF THAT CHANGES THIS LIST. A service account is not subject to these
+    // rules at all, so naming `entitlement` here costs those Workers nothing and
+    // is exactly what stops a member writing her own. The BROWSER used to write
+    // it, and that was the hole.
     //
     // Between them these fields answer "has she paid", so a member who can
     // write them can hand herself the product for nothing, from the browser

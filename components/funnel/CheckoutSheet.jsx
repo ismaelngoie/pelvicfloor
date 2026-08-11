@@ -455,6 +455,18 @@ function PaymentStep({
     () => ({
       layout: { type: "accordion", defaultCollapsed: false, radios: false, spacedAccordionItems: true },
       wallets: { applePay: "auto", googlePay: "auto" },
+      // Apple Pay first, then Google Pay, then the card form.
+      //
+      // Nearly all of this traffic is on a phone. On an iPhone, Apple Pay turns
+      // checkout into one Face ID glance; the alternative is typing a 16 digit
+      // card number, an expiry and a CVC into a small screen, which is where a
+      // paid funnel bleeds hardest. The wallet has to be the FIRST thing she
+      // sees, not a row she might notice under the card fields.
+      //
+      // Safe everywhere: Stripe drops any method the browser cannot offer, so
+      // an Android visitor gets Google Pay then card, and a desktop visitor with
+      // no wallet sees exactly the card form she saw before.
+      paymentMethodOrder: ["apple_pay", "google_pay", "card"],
       // We already have her address and show it above, so the card form should
       // not ask for it twice. It is handed to Stripe on confirm instead.
       fields: { billingDetails: { email: "never" } },

@@ -1,7 +1,10 @@
 import Stripe from "stripe";
 
 import {
+  ACTIVE_STATUSES,
+  OWNED_STATUSES,
   accessToken,
+  entitlementFrom,
   findUserIdByEmail,
   ipRateLimited,
   json,
@@ -10,6 +13,7 @@ import {
   parseServiceAccount,
   projectIdFrom,
   readJson,
+  recordEntitlement,
 } from "../../functions-lib/stripeSync.js";
 import { identityToken, mintCustomToken, payerUid } from "../../functions-lib/firebaseIdentity.js";
 
@@ -58,6 +62,38 @@ import { identityToken, mintCustomToken, payerUid } from "../../functions-lib/fi
 // So the site works either way, and it never silently does nothing. If the
 // service account is missing the member still gets in, she just taps once.
 //
+// THE THIRD JOB, AND IT IS FOR A DEVICE THAT IS NOT IN THE ROOM.
+//
+// This endpoint also writes the `entitlement` object onto her users/{id}
+// document, from the Stripe subscription behind the payment it has just
+// verified. Nothing else on the normal buying path did, and that was the whole
+// bug: a woman bought at pelvi.health, installed the iPhone app she was told to
+// install, signed in, and was shown the paywall again.
+//
+// WHY THE PHONE CANNOT JUST ASK. The shipped app's only live check is
+// /api/entitlement, which requires an Origin or a Referer header. A native
+// URLSession request sends neither, so that endpoint answers 403 bad_origin to
+// every iPhone before it even looks at the token, and the app's fallback —
+// Core/Account/WebEntitlement.swift, grants() — reads the mirrored object off
+// her record instead. The app is on the App Store and cannot be changed, so the
+// mirror has to exist. See the note over entitlementFrom in
+// functions-lib/stripeSync.js.
+//
+// IT IS WRITTEN SERVER SIDE, FROM STRIPE, AND IT HAS TO BE. The browser used to
+// write its own entitlement, and firestore.rules had to allow a member to edit
+// her own — which is the same door anyone could walk through for a free account
+// in one line of console JavaScript. Those rules now refuse it
+// (entitlementFields / touchesEntitlement), and a service account is not subject
+// to them, so THIS is the only place the write can legitimately happen.
+//
+// The one thing it needs is FIREBASE_SERVICE_ACCOUNT. Without it there is no way
+// to write to Firestore at all from here, so the mirror is simply not written
+// and an iPhone buyer stays locked out — which is one more reason that variable
+// is not optional in practice, whatever the line below says about the zero click
+// path.
+//
+// It never blocks the response. She has paid; getting her in comes first.
+//
 // Environment (Cloudflare Pages > Settings > Environment variables):
 //   STRIPE_SECRET_KEY         required, secret
 //   FIREBASE_SERVICE_ACCOUNT  optional, secret. REQUIRED for the zero click path.
@@ -70,6 +106,13 @@ import { identityToken, mintCustomToken, payerUid } from "../../functions-lib/fi
 const PAID_STATUSES = new Set(["succeeded", "processing", "requires_capture"]);
 
 const MAX_SECRET_LENGTH = 400;
+
+// How much of Stripe the entitlement mirror is willing to read before deciding
+// this payment has no subscription behind it. Same ceilings as
+// /api/entitlement and /api/restore-purchase, for the same reason: one address
+// really does end up on several customer records.
+const MAX_CUSTOMERS = 5;
+const MAX_SUBSCRIPTIONS = 20;
 
 // HOW LONG A PAYMENT IS A KEY TO AN ACCOUNT.
 //
@@ -170,6 +213,41 @@ export async function onRequestPost(context) {
     return json(200, { mode: "email_link", email, reason: "no_service_account" });
   }
 
+  // THE MIRROR, fired the moment we know which member this payment belongs to.
+  //
+  // Declared once so the blocked path and the happy path write exactly the same
+  // thing: a woman who pays on the web is entitled whether or not we were able
+  // to hand her a session in the same breath, and the phone reads the record,
+  // not the session.
+  //
+  // With waitUntil (every real Cloudflare deployment) this returns immediately
+  // and the write finishes after the response, so it cannot slow down the
+  // screen a member sees straight after being charged. Without it — a local
+  // runtime, a test harness — it is awaited, because a mirror that is skipped
+  // wherever waitUntil is missing is a mirror nobody can test.
+  const mirrorPurchase = (uid) => {
+    const work = writeEntitlementMirror({
+      env,
+      account,
+      projectId,
+      customerId,
+      email,
+      name,
+      uid,
+    }).catch((error) => {
+      // Never surfaced and never fatal. She is in; this is the copy her phone
+      // will read later, and /api/entitlement writes it again on her next visit.
+      console.error("session-from-payment: entitlement mirror failed", {
+        reason: error?.message || null,
+      });
+    });
+    if (typeof context.waitUntil === "function") {
+      context.waitUntil(work);
+      return Promise.resolve();
+    }
+    return work;
+  };
+
   try {
     const token = await identityToken(account);
     const resolved = await payerUid({
@@ -193,10 +271,24 @@ export async function onRequestPost(context) {
       },
     });
     if (resolved.blocked) {
+      // She could not be signed in from the payment, but she has still PAID,
+      // and the record this lands on is very often an App Store member's — the
+      // exact person whose phone needs the mirror. There is no uid to key the
+      // document on, so it is resolved by the address Stripe holds; failing
+      // that it parks in stripeOrphans rather than being dropped.
+      await mirrorPurchase("");
       return json(200, { mode: "email_link", email, reason: resolved.blocked });
     }
 
     const customToken = await mintCustomToken(account, resolved.uid);
+
+    // AFTER payerUid, never before. That function refuses to mint a session for
+    // an address that already has a member record (see the rule in
+    // functions-lib/firebaseIdentity.js), and this write CREATES one. Moving it
+    // above would make the second call for the same payment — a reload of
+    // /welcome — look like a stranger paying with a member's address, and drop
+    // her onto the one-tap screen this whole path exists to avoid.
+    await mirrorPurchase(resolved.uid);
 
     // Best effort, and after the session is in hand: stamping her Firebase id
     // onto the Stripe customer is what lets /admin and support tie the two
@@ -252,6 +344,103 @@ function secretsMatch(a, b) {
   let diff = 0;
   for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
+}
+
+/**
+ * Write the `entitlement` object onto her users/{id}, from Stripe's own copy of
+ * the subscription this payment created.
+ *
+ * Nothing here is taken from the browser. `email` came off a Stripe customer
+ * this server fetched with its own secret key, and the subscription is read
+ * from Stripe in the same way, so the object written is Stripe's answer rather
+ * than anybody's claim. That is the difference between this and the version
+ * that used to run in the browser, which firestore.rules now refuses.
+ *
+ * Silent when there is no subscription to describe. A payment that has not yet
+ * flipped its subscription out of `incomplete` (an ACH debit still settling) is
+ * a real state, and writing an entitlement that says "not active" over the top
+ * of one that says otherwise would be worse than writing nothing: the next
+ * /api/entitlement call the member app makes writes the true answer anyway.
+ */
+async function writeEntitlementMirror({ env, account, projectId, customerId, email, name, uid }) {
+  const stripe = makeStripe(Stripe, env.STRIPE_SECRET_KEY);
+  const subscription = await ownedSubscription(stripe, { customerId, email });
+  if (!subscription) return;
+
+  await recordEntitlement({
+    projectId,
+    // The DATASTORE scope, not the Identity Toolkit one the session was minted
+    // with. A token that can write member documents has no business being able
+    // to mint sessions, and the cache in stripeSync is keyed by scope so asking
+    // for the right one costs nothing.
+    token: await accessToken(account),
+    entitlement: entitlementFrom(subscription),
+    identity: { memberId: "", uid, email },
+    // Applied ONLY if this call is what brings the document into being, which
+    // for a first-time web buyer it is: she has never signed in, so nothing has
+    // written a record for her. Without it /admin would show a row holding an
+    // entitlement and nothing else — no address, no join date, no day one.
+    seed: {
+      email,
+      name,
+      platform: "web",
+      webUID: uid,
+      authUID: uid,
+      joinDate: new Date().toISOString(),
+      programDay: 1,
+      streak: 0,
+      bestStreak: 0,
+    },
+  });
+}
+
+/**
+ * The subscription behind this payment.
+ *
+ * The customer on the PaymentIntent first, because that is the one we just
+ * billed. Then every other customer record carrying the same address: one
+ * address really does end up spread over several, and reading only the first is
+ * how a paying member is recorded as having no plan.
+ */
+async function ownedSubscription(stripe, { customerId, email }) {
+  if (customerId) {
+    const owned = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: MAX_SUBSCRIPTIONS,
+    });
+    const chosen = pickOwned(owned.data);
+    if (chosen) return chosen;
+  }
+
+  const customers = await stripe.customers.list({ email, limit: MAX_CUSTOMERS });
+  for (const customer of customers.data) {
+    if (customer.id === customerId) continue;
+    const owned = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: "all",
+      limit: MAX_SUBSCRIPTIONS,
+    });
+    const chosen = pickOwned(owned.data);
+    if (chosen) return chosen;
+  }
+  return null;
+}
+
+/**
+ * A live subscription always wins, and among several the one running longest,
+ * so a member moved onto a new plan is not recorded on the old one's end date.
+ * `unpaid` counts as owned but not as active: it is a real thing to record and
+ * entitlementFrom marks it inactive on its own.
+ */
+function pickOwned(subscriptions) {
+  const live = subscriptions.filter((sub) => ACTIVE_STATUSES.has(sub.status));
+  if (live.length) {
+    return live.reduce((best, sub) =>
+      (sub.current_period_end || 0) > (best.current_period_end || 0) ? sub : best
+    );
+  }
+  return subscriptions.find((sub) => OWNED_STATUSES.has(sub.status)) || null;
 }
 
 async function stampFirebaseUID(env, customerId, uid) {

@@ -30,8 +30,17 @@ import {
 // Two jobs are left, and both are about the record rather than the door:
 //
 //   1. It writes the `entitlement` object onto users/{id}: the subscription id,
-//      the period end and the raw status, which is what /admin shows and what
-//      support reads when somebody writes in. Nothing else writes it.
+//      the period end and the raw status, which is what /admin shows, what
+//      support reads when somebody writes in, and — since the iPhone app cannot
+//      call /api/entitlement at all (403 bad_origin: URLSession sends no Origin
+//      header) — the ONLY thing that opens the app for a web buyer.
+//
+//      This used to be the only thing that wrote it, and that was the bug: the
+//      recovery screen is a place a successfully-entitled buyer never sees, so
+//      the mirror was written for everybody except the people who needed it.
+//      /api/session-from-payment now writes it the moment a payment clears and
+//      /api/entitlement rewrites it on every live check. This file is the third
+//      of three and no longer load-bearing on its own.
 //   2. It repairs the join. Her Firebase uid is stamped onto the Stripe
 //      customer and the subscription, so the two halves of her account can be
 //      tied together by something better than a spelling of her address.
