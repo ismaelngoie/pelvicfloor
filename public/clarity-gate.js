@@ -51,6 +51,12 @@ export const CLARITY_PROJECT_ID = "vaulq5g8w8";
 
 const ALLOWED_EXACT = new Set([
   "/", // landing page, the whole funnel, the plan reveal and the paywall
+  // The paid ad landing page for the bladder-leak keyword group. A public
+  // marketing route, and the top rung (00_lp_leaks) of the funnel ladder in
+  // lib/analytics.js: without it here, every LP-entry session would appear to
+  // begin mid-funnel. It is noindex for organic search, but indexing and
+  // recording are separate decisions made in separate files.
+  "/stop-bladder-leaks",
   "/welcome", // post-purchase confirmation
   "/blog",
   "/privacy-policy",

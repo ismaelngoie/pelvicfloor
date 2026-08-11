@@ -9,6 +9,7 @@
 // them again.
 
 import { ACTIVITY_LEVELS, HEALTH_CONDITIONS } from "./copy";
+import { GOALS } from "@/lib/program";
 
 export const FUNNEL_STORAGE_KEY = "pelvi.funnel.v1";
 const MAX_RESUME_AGE_MS = 30 * 24 * 60 * 60 * 1000; // a month, then start fresh
@@ -111,6 +112,46 @@ export function clearFunnelState() {
     window.localStorage.removeItem(FUNNEL_STORAGE_KEY);
   } catch {
     /* see above */
+  }
+}
+
+// --- The paid landing hand-off ----------------------------------------------
+//
+// app/stop-bladder-leaks (and every future per-theme ad page) enters the
+// funnel as /?goal=<goalId>. Tapping "Start My Leak-Free Plan" over there IS
+// the answer to the goal question: she typed "bladder leak exercises" into
+// Google, the ad promised leaks, the page promised leaks, and the button she
+// pressed names the plan. Re-asking on the next screen would spend the
+// highest-attention moment of the funnel asking what she just said. Funnel.js
+// consumes this once, on mount, and starts her past the goal screen with the
+// goal chosen; Back still walks to the goal screen, where her goal arrives
+// pre-selected and changeable.
+//
+// The parameter is stripped after it is read, AND ONLY IT: gclid and the other
+// ad parameters stay in the address bar for gtag to read (see the note at the
+// foot of lib/openPlanScript.js on why attribution rides the query string).
+// Stripping matters for one real person: the member who entered from the leak
+// page, walked Back, chose a different goal on purpose, and later reloaded.
+// Left in the URL, the parameter would clobber the choice she made.
+
+export function consumeGoalParam() {
+  if (typeof window === "undefined") return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const goal = params.get("goal");
+    if (!goal || !GOALS.some((g) => g.id === goal)) return null;
+    params.delete("goal");
+    const rest = params.toString();
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${rest ? `?${rest}` : ""}${window.location.hash}`
+    );
+    return goal;
+  } catch {
+    // A browser that broke URLSearchParams or blocked replaceState. The funnel
+    // then simply starts at the welcome screen, which always works.
+    return null;
   }
 }
 

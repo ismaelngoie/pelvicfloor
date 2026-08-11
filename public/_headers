@@ -91,6 +91,14 @@
 /welcome.txt
   X-Robots-Tag: noindex, nofollow
 
+# The paid ad landing page's HTML is deliberately NOT headered: it carries meta
+# noindex, follow (see app/stop-bladder-leaks/page.js), and it must stay
+# crawlable for Google Ads' landing page quality checks, so robots.txt does not
+# name it either. Its RSC .txt sibling has no meta tag to carry that directive,
+# so the header does that one's job, exactly as for /app.txt above.
+/stop-bladder-leaks.txt
+  X-Robots-Tag: noindex, nofollow
+
 # Nothing under the member app or the owner dashboard should sit in a shared
 # cache, and neither should the funnel HTML, which has to reflect a redeploy at
 # once.

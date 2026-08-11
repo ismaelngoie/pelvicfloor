@@ -20,8 +20,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./funnel.css";
 import {
-  BACKWARD, FORWARD, STEP, emptyProfile, readFunnelState, resumeStep,
-  writeFunnelState,
+  BACKWARD, FORWARD, STEP, consumeGoalParam, emptyProfile, readFunnelState,
+  resumeStep, writeFunnelState,
 } from "./funnelState";
 import { useIsomorphicLayoutEffect } from "./ui";
 import {
@@ -132,9 +132,47 @@ export default function Funnel({ onReachPaywall }) {
   // but before the browser paints. A returning member is put back where she was
   // without ever seeing the welcome screen flash past. A plain effect would run
   // after paint and show it.
+  // The paid landing pages (app/stop-bladder-leaks) arrive as /?goal=<id>.
+  // That tap already answered the goal question, so she starts one screen in,
+  // on the goal's own "how Pelvi helps" pitch, with the goal chosen and the
+  // goal screen still reachable through Back. Full reasoning is on
+  // consumeGoalParam in ./funnelState.js. Runs in the same layout effect as
+  // resume so she never sees the welcome screen flash past first.
   useIsomorphicLayoutEffect(() => {
     const saved = readFunnelState();
-    if (saved) {
+    const adGoal = consumeGoalParam();
+    if (adGoal) {
+      const base = saved ? saved.profile : emptyProfile();
+      // A different goal is a new plan, exactly as chooseGoal treats it.
+      const changed = base.goalId !== adGoal;
+      const nextProfile = {
+        ...base,
+        goalId: adGoal,
+        planBuilt: changed ? false : base.planBuilt,
+        startedAt: base.startedAt || new Date().toISOString(),
+      };
+      // A session already in flight WITH THIS GOAL resumes where it was: she
+      // clicked the ad again, and sending her back to screen two would throw
+      // away answers she gave. Anything shallower than the goal screen, or a
+      // changed goal, starts at the step after the question she just answered.
+      const resumed = saved && !changed ? resumeStep(saved) : null;
+      const nextStep =
+        resumed && resumed !== STEP.welcome && resumed !== STEP.goal
+          ? resumed
+          : STEP.howItHelps;
+      setProfile(nextProfile);
+      setStep(nextStep);
+      // Written HERE, not left to the write effect below, for the same reason
+      // reachPaywall writes its own hand-off: HomeClient's mount effect reads
+      // localStorage to decide whether to resume straight onto the paywall,
+      // and it runs BEFORE this component's write effect. Left stale, a saved
+      // paywall record for a DIFFERENT goal wins that race, the ad click's
+      // goal is thrown away, and the woman who clicked "stop bladder leaks"
+      // lands on the pelvic pain paywall. The parameter is already stripped
+      // from the URL by consumeGoalParam, so this write is the only record
+      // that her click ever happened.
+      writeFunnelState(nextStep, nextProfile);
+    } else if (saved) {
       setProfile(saved.profile);
       setStep(resumeStep(saved));
     }

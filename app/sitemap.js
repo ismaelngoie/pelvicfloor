@@ -39,9 +39,12 @@ const SITE = "https://pelvi.health";
 //    the homepage mattered nine times more than a post that ranks.
 //
 // Deliberately absent: /app and /admin (noindex, behind a gate), /welcome
-// (post-purchase only, and the one page carrying the App Store banner), and
+// (post-purchase only, and the one page carrying the App Store banner),
 // /cora/* (a different product's support pages, which exist for Apple review
-// and have no business ranking on this domain).
+// and have no business ranking on this domain), and /stop-bladder-leaks (the
+// paid ad landing page, meta noindex: listing it would ask Google to index a
+// page whose own tag says the opposite, and it must not compete with "/" in
+// organic search).
 
 export default function sitemap() {
   // No lastModified on these. The legal pages and the funnel change when
