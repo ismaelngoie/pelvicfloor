@@ -55,7 +55,7 @@ export const metadata = {
   },
 };
 
-const UPDATED = "August 9, 2026";
+const UPDATED = "August 11, 2026";
 
 const SECTIONS = [
   { id: "who-we-are", label: "Who we are" },
@@ -90,8 +90,10 @@ export default function PrivacyPolicy() {
           browser until you pay. Paying sends your email, your name if you gave one, and the goal
           you picked to Stripe. Once you sign in, your sessions, your daily check-ins and your
           messages to Coach Mia are stored in Google Firebase. We record website sessions with
-          Microsoft Clarity, but never inside the member area, and we run the Google Ads tag. Your
-          pelvic health answers are sensitive data and we treat them that way. We do not sell
+          Microsoft Clarity, but never inside the member area, and we run the Google Ads tag. The
+          email address you type in the checkout is kept whether or not you pay, and we may use it
+          to write to you and in advertising audiences — never with any health information attached.
+          Your pelvic health answers are sensitive data and we treat them that way. We do not sell
           anything about you. Email{" "}
           <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a> and we will delete the lot.
         </p>
@@ -140,9 +142,22 @@ export default function PrivacyPolicy() {
 
       <h3>Your email address</h3>
       <p>
-        We ask for it once, after your plan is built. You can skip that screen and your plan and
-        your guarantee still apply. If you pay, we need an email address for the receipt, for the
-        billing portal, and to find your subscription again if you change device.
+        We ask for it once, in the checkout, before you type a card. We need it for the receipt,
+        for the billing portal, and to find your subscription again if you change device.
+      </p>
+      <p>
+        <strong>We keep it even if you do not pay.</strong> Entering your address in the checkout
+        creates a customer record at Stripe straight away, before any card details are entered, so
+        if you change your mind at the card field we still have the address. That is worth saying
+        plainly, because nothing on the screen tells you so.
+      </p>
+      <p>
+        We may use it to email you about Pelvi — an offer, a discount, a reason to come back — and
+        we may include it in the advertising audiences described in{" "}
+        <a href="#advertising">section 5</a>. We do not sell it, and we never attach your goal or
+        any other health answer to it. If you would rather we did neither, email{" "}
+        <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a> and say so. One line is enough and we
+        will not ask why.
       </p>
 
       <h3>Your payment details</h3>
@@ -308,6 +323,33 @@ export default function PrivacyPolicy() {
         , and you can block the tag with any tracker blocker. Nothing on this site depends on it.
       </p>
 
+      <h3>Your email address in our advertising audiences</h3>
+      <p>
+        Google and Meta both let an advertiser upload a list of email addresses, so that it can
+        show ads to those people, deliberately stop showing ads to them, or ask the platform to
+        find new people who resemble them. Google calls it Customer Match; Meta calls it a Custom
+        Audience, and the find-people-like-them version a Lookalike Audience. We may use the
+        addresses we have collected this way, <strong>including the address of somebody who
+        started the checkout and did not pay</strong>.
+      </p>
+      <p>
+        <strong>We have not uploaded any list yet.</strong> This is written down before we do it
+        rather than after, so that none of it is a surprise. When we do, here is the whole of it:
+        your address is scrambled into a fingerprint before it leaves us, the platform compares
+        fingerprints against its own users, and a match decides whether you are shown an ad. The
+        platform is told nothing about your health, because we send it nothing about your health.
+      </p>
+      <p>
+        What we will never do is build an audience out of your goal, the conditions you ticked,
+        your check-ins or your messages to Coach Mia. That is a promise we are making to you and it
+        is also a rule Google enforces on advertisers. The list of addresses our own staff can
+        export carries no health information of any kind, by design.
+      </p>
+      <p>
+        To be left out, email <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a>. We will remove
+        you from anything we have already uploaded and keep you out of anything we upload later.
+      </p>
+
       {/* ------------------------------------------------------------------ */}
       <h2 id="cookies">6. Cookies and browser storage</h2>
       <p>Here is everything this site puts on your device, and what each thing is for.</p>
@@ -369,6 +411,14 @@ export default function PrivacyPolicy() {
           otherwise our interest in knowing which ads are worth paying for.
         </li>
         <li>
+          <strong>Emailing you about Pelvi, and the advertising audiences in{" "}
+          <a href="#advertising">section 5</a>:</strong> your consent where local law requires it,
+          and otherwise our legitimate interest in reaching people who came to us of their own
+          accord and in not paying to advertise at people who have already bought. You can object
+          at any time, and objecting is the end of it — there is no balancing test on our side and
+          nothing to argue about.
+        </li>
+        <li>
           <strong>Fraud prevention, rate limiting and security:</strong> our legitimate interest in
           not being attacked, and our legal duty to keep your data safe.
         </li>
@@ -380,8 +430,10 @@ export default function PrivacyPolicy() {
       {/* ------------------------------------------------------------------ */}
       <h2 id="sharing">8. Who else sees it</h2>
       <p>
-        We do not sell your personal information and we do not share it for anyone else&apos;s
-        advertising. These are the companies that handle it on our behalf, and what each one gets.
+        We do not sell your personal information, and we do not hand it to anybody so that they can
+        advertise their own products. We do use your email address to advertise ours, and{" "}
+        <a href="#advertising">section 5</a> says exactly how. These are the companies that handle
+        it on our behalf, and what each one gets.
       </p>
       <ul>
         <li>
@@ -395,11 +447,17 @@ export default function PrivacyPolicy() {
         <li>
           <strong>Google</strong> does four jobs. Three are Firebase: it signs you in, it stores
           your member record and your check-ins and your Coach Mia messages in Firestore, and it
-          serves the exercise videos. The fourth is the Google Ads tag, which measures our
-          advertising.{" "}
+          serves the exercise videos. The fourth is advertising: the Google Ads tag, which measures
+          our advertising, and — if and when we upload an audience as described in{" "}
+          <a href="#advertising">section 5</a> — a scrambled form of your email address.{" "}
           <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">
             firebase.google.com/support/privacy
           </a>
+        </li>
+        <li>
+          <strong>Meta</strong>, but only if and when we upload an advertising audience as described
+          in <a href="#advertising">section 5</a>. It would receive a scrambled form of your email
+          address and nothing else. There is no Meta tracking pixel anywhere on this site today.
         </li>
         <li>
           <strong>Microsoft</strong> runs Clarity, described in <a href="#recording">section 4</a>.
@@ -485,6 +543,12 @@ export default function PrivacyPolicy() {
         </li>
         <li>
           <strong>Support emails:</strong> 24 months, so we can see the history if you write again.
+        </li>
+        <li>
+          <strong>An email address entered in the checkout that never became a subscription:</strong>{" "}
+          Stripe keeps that customer record, and we keep the address for the purposes in{" "}
+          <a href="#advertising">section 5</a>, until you ask us to delete it. Ask and we will,
+          including from any advertising audience we have uploaded it to.
         </li>
       </ul>
 
@@ -630,11 +694,31 @@ export default function PrivacyPolicy() {
 //  4. NOBODY SENDS A PLAN EMAIL. The funnel used to ask for an address mid-flow
 //     and promise the plan and the written guarantee by email; that screen has
 //     been removed, and no sending system exists anywhere in this repo. The one
-//     address the site now collects is entered at checkout, for the purposes
-//     section 2 states (the Stripe receipt and the account). Stripe sends that
-//     receipt and is already a named processor. When you wire up any other
-//     sender (Resend, Postmark, Mailchimp, whatever), it becomes a processor and
-//     it has to be named in section 8.
+//     address the site collects is entered at checkout. Stripe sends the receipt
+//     and is already a named processor. When you wire up any other sender
+//     (Resend, Postmark, Mailchimp, whatever), it becomes a processor and it has
+//     to be named in section 8.
+//
+//  4b. SECTION 2 AND SECTION 5 NOW PROMISE MARKETING YOU HAVE NOT DONE YET, AND
+//     THAT IS DELIBERATE. /admin has an Audience tab that lists every captured
+//     address and exports it as a CSV for Google Customer Match and Meta Custom
+//     Audiences, so the CAPABILITY is live even though no list has been uploaded.
+//     Disclosing before the first upload rather than after is the only order that
+//     is honest, which is why both sections say "may" and say plainly that
+//     nothing has been uploaded yet. Two things to keep true:
+//
+//       * The moment you DO upload one, the words "We have not uploaded any list
+//         yet" in section 5 become false. Change them that day.
+//       * Section 5 promises no health information ever travels with a marketing
+//         list. functions/api/audience.js enforces it by not returning the goal
+//         at all, and lib/adminAudience.js has no goal column. If somebody adds
+//         one back, this page becomes a lie and Google's sensitive-category
+//         policy is breached at the same time. Treat those two files and that
+//         section as one change, the way section 4 and lib/analytics.js are.
+//
+//     There is also no unsubscribe mechanism yet beyond emailing you, which is
+//     what both sections say. A sender like Resend brings a real one; wire it up
+//     before the first bulk send, not after.
 //
 //  5. THE AGE FLOOR CONTRADICTS ITSELF. This page and the Terms both say 18 and
 //     over. components/funnel/funnelState.js sets AGE_RANGE.min to 16, so a

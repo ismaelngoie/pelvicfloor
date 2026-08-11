@@ -27,7 +27,19 @@ import { formatDateTime, normalizeMember } from "@/lib/adminMetrics";
 import { FIXTURES_ON } from "@/lib/devFixtures";
 import Overview, { OverviewSkeleton } from "./Overview";
 import Members, { MembersSkeleton } from "./Members";
+import Audience from "./Audience";
 import { Button, Card, ErrorState, Segmented } from "./ui";
+
+/**
+ * The three sections, named once. The sidebar, the phone segmented control and
+ * the skeleton picker all read this, so a fourth tab is one entry rather than
+ * three edits that can disagree.
+ */
+const TABS = [
+  { id: "overview", label: "Overview", hint: "Numbers and charts" },
+  { id: "members", label: "Members", hint: "Everyone, one by one" },
+  { id: "audience", label: "Audience", hint: "Every email, and the CSV" },
+];
 
 const THEME_KEY = "pelvi_admin_theme";
 
@@ -102,10 +114,7 @@ function Sidebar({ tab, onTab, countedAt, dataState, onRefresh, theme, onTheme, 
       </div>
 
       <ul className="space-y-1">
-        {[
-          { id: "overview", label: "Overview", hint: "Numbers and charts" },
-          { id: "members", label: "Members", hint: "Everyone, one by one" },
-        ].map((item) => {
+        {TABS.map((item) => {
           const selected = item.id === tab;
           return (
             <li key={item.id}>
@@ -225,7 +234,12 @@ export default function AdminDashboard() {
   const [dataState, setDataState] = useState("idle");
   const [dataError, setDataError] = useState("");
   const [countedAt, setCountedAt] = useState(null);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("audience");
+  // Bumped by every press of "Count again". The Audience tab reads Stripe
+  // through its own endpoint rather than off this Firestore read, so it needs a
+  // signal to refetch; a counter is one, and it does not fire on first mount of
+  // the dashboard, only when the tab is actually opened.
+  const [reloadToken, setReloadToken] = useState(0);
 
   const isAdmin = Boolean(user && isAdminEmail(user.email));
 
@@ -350,6 +364,7 @@ export default function AdminDashboard() {
       setMembers(next);
       setCountedAt(new Date());
       setDataState("ready");
+      setReloadToken((n) => n + 1);
     } catch (error) {
       setDataError(describeDataError(error));
       setDataState("error");
@@ -485,10 +500,7 @@ export default function AdminDashboard() {
               label="Which part of the dashboard to show"
               value={tab}
               onChange={setTab}
-              options={[
-                { value: "overview", label: "Overview" },
-                { value: "members", label: "Members" },
-              ]}
+              options={TABS.map((item) => ({ value: item.id, label: item.label }))}
             />
             <p className="text-[12px]" style={{ color: "var(--pv-ink-3)" }}>
               {countedAt
@@ -508,15 +520,16 @@ export default function AdminDashboard() {
                 <ErrorState title="The member list did not load" description={dataError} onRetry={load} />
               </Card>
             ) : dataState === "loading" || dataState === "idle" ? (
-              tab === "overview" ? (
-                <OverviewSkeleton />
-              ) : (
-                <MembersSkeleton />
-              )
+              // The Audience tab waits for the member list too: it joins Stripe
+              // to Firestore on the email address, and joining against a list
+              // that has not arrived would show every payer as a stranger.
+              tab === "overview" ? <OverviewSkeleton /> : <MembersSkeleton />
             ) : (
               <div style={{ opacity: dataState === "refreshing" ? 0.6 : 1, transition: "opacity 160ms ease" }}>
                 {tab === "overview" ? (
                   <Overview members={members} now={now} />
+                ) : tab === "audience" ? (
+                  <Audience members={members} user={user} reloadToken={reloadToken} />
                 ) : (
                   <Members members={members} onPatched={patchMember} />
                 )}
