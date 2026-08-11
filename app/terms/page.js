@@ -442,7 +442,7 @@ export default function Terms() {
 //  6. THE PAYWALL SAYS "10,200+ women" AND "4.9 App Store Rating". Neither is
 //     on this page, because neither is a term of the contract, but both are
 //     advertising claims on the screen that takes the money and both need to be
-//     true and evidenced if anyone asks. Same for "300+ videos approved by
+//     true and evidenced if anyone asks. Same for "500+ videos approved by
 //     physios": public/content/video_catalog.json holds 533 videos, so the
 //     count is safe; "approved by physios" is the half that needs a name behind
 //     it.
@@ -450,5 +450,5 @@ export default function Terms() {
 //  7. NO REFUND WINDOW IS ENFORCED IN CODE. Day 7, day 30 and day 90 are all
 //     honoured by hand, by you, in the inbox. That is fine at this size and it
 //     is the honest way to run it. It does mean the promise is only as good as
-//     the inbox, so do not let hello@pelvi.health go unread.
+//     the inbox, so do not let contact@pelvi.health go unread.
 // ---------------------------------------------------------------------------

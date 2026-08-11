@@ -428,7 +428,7 @@ export default function WelcomeClient() {
               Open your plan
             </a>
             <p className="text-[13px] text-white/60">
-              Anything at all: <a className="underline" href="mailto:hello@pelvi.health">hello@pelvi.health</a>
+              Anything at all: <a className="underline" href="mailto:contact@pelvi.health">contact@pelvi.health</a>
             </p>
           </div>
         </noscript>
@@ -722,10 +722,10 @@ function StatusScreen({ status }) {
         <p className="text-center text-[13px] leading-relaxed text-app-textSecondary">
           Anything at all:{" "}
           <a
-            href="mailto:hello@pelvi.health"
+            href="mailto:contact@pelvi.health"
             className="font-semibold text-app-primaryInk underline underline-offset-2"
           >
-            hello@pelvi.health
+            contact@pelvi.health
           </a>
         </p>
       </div>

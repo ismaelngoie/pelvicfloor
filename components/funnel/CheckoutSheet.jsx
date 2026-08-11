@@ -263,7 +263,7 @@ export default function CheckoutSheet({
           {!stripe && (
             <p className="rounded-2xl border border-white/10 bg-white/5 p-4 font-system text-[14px] text-white/80">
               Checkout is not available on this deployment yet. Please email
-              hello@pelvi.health and we will set you up by hand.
+              contact@pelvi.health and we will set you up by hand.
             </p>
           )}
 

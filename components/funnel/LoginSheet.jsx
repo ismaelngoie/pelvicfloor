@@ -133,7 +133,7 @@ export default function LoginSheet({ open, onClose }) {
         </p>
 
         <p className="mt-3 font-system text-[12.5px] leading-relaxed text-white/40">
-          Stuck? Email hello@pelvi.health and we will open your plan by hand.
+          Stuck? Email contact@pelvi.health and we will open your plan by hand.
         </p>
       </div>
     </div>

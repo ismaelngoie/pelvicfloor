@@ -176,7 +176,7 @@ export default function LeakLandingClient() {
           </h1>
 
           <p className="mx-auto mt-3 max-w-[30rem] text-[15px] leading-[1.4] text-app-textSecondary sm:text-[17px]">
-            5 minutes a day, with 300+ videos approved by physios, in a plan
+            5 minutes a day, with 500+ videos approved by physios, in a plan
             made for your body.
           </p>
 
@@ -404,8 +404,8 @@ export default function LeakLandingClient() {
           <nav className="flex flex-wrap items-center gap-x-6">
             <a className="inline-flex min-h-[44px] items-center underline-offset-2 hover:text-app-textPrimary" href="/privacy-policy">Privacy</a>
             <a className="inline-flex min-h-[44px] items-center underline-offset-2 hover:text-app-textPrimary" href="/terms">Terms</a>
-            <a className="inline-flex min-h-[44px] items-center underline-offset-2 hover:text-app-textPrimary" href="mailto:hello@pelvi.health">
-              hello@pelvi.health
+            <a className="inline-flex min-h-[44px] items-center underline-offset-2 hover:text-app-textPrimary" href="mailto:contact@pelvi.health">
+              contact@pelvi.health
             </a>
           </nav>
         </div>

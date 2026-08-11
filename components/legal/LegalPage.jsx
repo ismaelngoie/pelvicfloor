@@ -136,8 +136,8 @@ export default function LegalPage({ title, subtitle, updated, children }) {
             <a href="/blog" className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary">
               Blog
             </a>
-            <a href="mailto:hello@pelvi.health" className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary">
-              hello@pelvi.health
+            <a href="mailto:contact@pelvi.health" className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary">
+              contact@pelvi.health
             </a>
           </nav>
           {/* No year. It would be frozen at build time by the static export,

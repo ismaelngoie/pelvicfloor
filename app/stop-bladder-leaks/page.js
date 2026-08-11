@@ -32,7 +32,7 @@ import LeakLandingClient from "./LeakLandingClient";
 export const metadata = {
   title: "Stop Bladder Leaks",
   description:
-    "A personalized pelvic floor exercise plan built to stop bladder leaks. 5 minutes a day, 300+ videos approved by physios, and a 90-day money-back guarantee.",
+    "A personalized pelvic floor exercise plan built to stop bladder leaks. 5 minutes a day, 500+ videos approved by physios, and a 90-day money-back guarantee.",
   robots: { index: false, follow: true },
 };
 

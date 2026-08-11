@@ -83,10 +83,10 @@ export default function NotFound() {
       <p className="mt-2 text-[13px] leading-relaxed text-app-textSecondary">
         Stuck?{" "}
         <a
-          href="mailto:hello@pelvi.health"
+          href="mailto:contact@pelvi.health"
           className="font-semibold text-app-primaryInk underline underline-offset-2"
         >
-          hello@pelvi.health
+          contact@pelvi.health
         </a>
       </p>
     </div>

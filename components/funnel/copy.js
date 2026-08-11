@@ -37,7 +37,7 @@ export const WELCOME_SUBHEADLINE =
 
 export const WELCOME_BENEFITS = [
   { icon: "figure.run.circle.fill", text: "A new 5-minute plan, just for you, every day." },
-  { icon: "play.rectangle.on.rectangle.fill", text: "300+ videos, all approved by physios." },
+  { icon: "play.rectangle.on.rectangle.fill", text: "500+ videos, all approved by physios." },
   { icon: "bubble.left.and.bubble.right.fill", text: "Chat with your AI Coach, Mia™, 24/7." },
 ];
 

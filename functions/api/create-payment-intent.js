@@ -103,7 +103,7 @@ export async function onRequestPost(context) {
     return fail(
       503,
       "not_configured",
-      "Checkout is not available right now. Please email hello@pelvi.health and we will set you up by hand."
+      "Checkout is not available right now. Please email contact@pelvi.health and we will set you up by hand."
     );
   }
 
@@ -155,7 +155,7 @@ export async function onRequestPost(context) {
       `Checkout is not available right now. No active $${(EXPECTED_AMOUNT / 100).toFixed(2)} ` +
         `${CURRENCY.toUpperCase()} price billed ${PERIOD_WORD} could be found on ` +
         `"${PRODUCT_NAME}" (${PRODUCT_ID}). ` +
-        "Please email hello@pelvi.health and we will set you up by hand."
+        "Please email contact@pelvi.health and we will set you up by hand."
     );
   }
 
@@ -183,7 +183,7 @@ export async function onRequestPost(context) {
       return fail(
         409,
         "already_subscribed",
-        "That email already has an active plan. Continue with Google or Apple using the same address, or email hello@pelvi.health."
+        "That email already has an active plan. Continue with Google or Apple using the same address, or email contact@pelvi.health."
       );
     }
 
@@ -228,7 +228,7 @@ export async function onRequestPost(context) {
       return fail(
         502,
         "payment_setup_failed",
-        "We could not start the checkout. Please try again, or email hello@pelvi.health."
+        "We could not start the checkout. Please try again, or email contact@pelvi.health."
       );
     }
 

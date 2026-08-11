@@ -60,7 +60,7 @@ export async function onRequestPost(context) {
   if (!env.STRIPE_SECRET_KEY) {
     console.error("create-portal-session: STRIPE_SECRET_KEY is not set");
     return json(503, {
-      error: "We cannot open billing right now. Please email hello@pelvi.health and we will help.",
+      error: "We cannot open billing right now. Please email contact@pelvi.health and we will help.",
     });
   }
 

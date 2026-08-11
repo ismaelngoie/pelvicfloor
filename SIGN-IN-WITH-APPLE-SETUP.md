@@ -309,7 +309,7 @@ Two Cloudflare specifics that will otherwise waste an hour:
 * **Turn the orange cloud OFF** (set to "DNS only") for anything Firebase asks
   you to add. A proxied record does not answer the query Firebase makes.
 * Do not delete any MX record you already have unless Firebase explicitly tells
-  you to. That is how you stop receiving mail at hello@pelvi.health.
+  you to. That is how you stop receiving mail at contact@pelvi.health.
 
 Then click **Verify** in the Firebase wizard. DNS can take a few minutes; it is
 occasionally an hour. When it goes green, every login link, every password reset

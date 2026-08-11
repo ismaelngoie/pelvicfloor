@@ -314,7 +314,7 @@ function BillingCard({ email, entitlement, refreshMember, refreshEntitlement }) 
         error ||
           (entitlement.source === "ios"
             ? "Your plan was bought in the App Store, so Apple handles the billing. Open Settings on your iPhone, tap your name, then Subscriptions."
-            : "We could not find a billing account for that email. Email hello@pelvi.health and we will sort it out.")
+            : "We could not find a billing account for that email. Email contact@pelvi.health and we will sort it out.")
       );
     } catch {
       setMessage("We could not reach our billing system. Please try again in a minute.");
@@ -339,7 +339,7 @@ function BillingCard({ email, entitlement, refreshMember, refreshEntitlement }) 
         setMessage(
           answer?.active || linked
             ? "Found it. Your plan is active."
-            : "We found your plan. If it is still not open in a minute, email hello@pelvi.health."
+            : "We found your plan. If it is still not open in a minute, email contact@pelvi.health."
         );
       } else {
         setMessage(

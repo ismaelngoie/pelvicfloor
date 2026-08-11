@@ -81,7 +81,7 @@ export async function onRequestPost(context) {
   if (!env.STRIPE_SECRET_KEY) {
     return json(503, {
       isPremium: false,
-      error: "We cannot reach our billing system right now. Please email hello@pelvi.health.",
+      error: "We cannot reach our billing system right now. Please email contact@pelvi.health.",
     });
   }
 

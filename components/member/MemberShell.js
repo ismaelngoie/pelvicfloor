@@ -415,11 +415,11 @@ function SignInScreen() {
         {/* Not "open the app on your phone". Google web-app ads land ANDROID
             users in here, and there is no app on their phone to open. */}
         <p className="mt-3 text-[15px] text-app-textSecondary">
-          Sign in is switched off on this deployment. Email us at hello@pelvi.health
+          Sign in is switched off on this deployment. Email us at contact@pelvi.health
           and we will open your plan by hand.
         </p>
         <a
-          href="mailto:hello@pelvi.health"
+          href="mailto:contact@pelvi.health"
           className="mt-8 flex h-14 items-center justify-center rounded-full bg-ios-pink text-[17px] font-bold text-white"
         >
           Email us
@@ -659,7 +659,7 @@ function LockedScreen() {
       {state === "slow" && (
         <p role="alert" className="mt-4 text-[14px] leading-snug text-app-textPrimary">
           We can see your subscription, but it has not opened up yet. Give it a minute and
-          reload this page. If it still will not open, email hello@pelvi.health and we will
+          reload this page. If it still will not open, email contact@pelvi.health and we will
           do it by hand.
         </p>
       )}
@@ -697,8 +697,8 @@ function LockedScreen() {
       ) : null}
 
       <div className="mt-8 space-y-3 text-[13px] text-app-textSecondary">
-        <a href="mailto:hello@pelvi.health" className="block font-semibold text-ios-pink">
-          Email hello@pelvi.health
+        <a href="mailto:contact@pelvi.health" className="block font-semibold text-ios-pink">
+          Email contact@pelvi.health
         </a>
         <button type="button" onClick={signOut} className="font-medium underline underline-offset-4">
           Use a different account

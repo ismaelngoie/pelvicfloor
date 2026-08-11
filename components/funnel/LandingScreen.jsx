@@ -428,8 +428,8 @@ export default function LandingScreen({ onStart, returning = false }) {
                 described a different product at a domain we do not own. */}
             <a className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary" href="/privacy-policy">Privacy</a>
             <a className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary" href="/terms">Terms</a>
-            <a className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary" href="mailto:hello@pelvi.health">
-              hello@pelvi.health
+            <a className="inline-flex min-h-[44px] items-center hover:text-app-textPrimary" href="mailto:contact@pelvi.health">
+              contact@pelvi.health
             </a>
           </nav>
         </div>
