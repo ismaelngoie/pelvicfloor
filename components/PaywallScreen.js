@@ -41,10 +41,12 @@ export default function PaywallScreen({ profile, onBack }) {
   }, []);
 
   return (
+    // No email prop. The funnel no longer collects one; the checkout sheet asks
+    // for the address itself, which is also where an already-subscribed member
+    // is recognised. See components/funnel/CheckoutSheet.jsx.
     <Paywall
       goalId={profile?.goalId || "coreStrength"}
       name={profile?.name || ""}
-      email={profile?.email || ""}
       onPaid={handlePaid}
       onBack={onBack}
     />

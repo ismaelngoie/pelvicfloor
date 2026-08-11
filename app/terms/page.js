@@ -85,7 +85,7 @@ export default function Terms() {
           {DEFAULT_PRICE_PERIOD}. It renews every {DEFAULT_PRICE_PERIOD} until you stop it, and you
           stop it in two taps from the You tab or by emailing us. Cancel in the first 7 days for
           any reason and you pay nothing. At day 90, if you did the sessions and did not get where
-          you wanted to go, we refund every {DEFAULT_PRICE_PERIOD} you paid. Pelvi is exercise
+          you wanted to go, we refund the full {DEFAULT_PRICE_LABEL} you paid. Pelvi is exercise
           coaching. It is not medical care.
         </p>
       </Summary>
@@ -145,7 +145,7 @@ export default function Terms() {
         </li>
         <li>
           <strong>It renews by itself</strong> until you cancel. There is no fixed term and no
-          minimum number of months.
+          lock-in.
         </li>
         <li>
           Payments on this website are taken by Stripe. Your receipt comes from Stripe by email.
@@ -157,8 +157,8 @@ export default function Terms() {
       </ul>
       <p>
         If we ever change the price, we will email you first and you will have the chance to cancel
-        before the new price applies. A price change never applies to a month you have already
-        paid for.
+        before the new price applies. A price change never applies to a {DEFAULT_PRICE_PERIOD} you
+        have already paid for.
       </p>
       <p>
         If a payment fails, Stripe will try again over the following days. If it keeps failing, the
@@ -204,7 +204,7 @@ export default function Terms() {
 
       <h3>Day 30: still not sure</h3>
       <p>
-        If you have given it a month and you are still not sure Pelvi is for you, email{" "}
+        If you have given it 30 days and you are still not sure Pelvi is for you, email{" "}
         <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a> before day 30 and we refund everything
         you have paid so far. Again, no conditions and no explanation needed.
       </p>
@@ -238,8 +238,7 @@ export default function Terms() {
           <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a>.
         </li>
         <li>
-          <strong>We refund every {DEFAULT_PRICE_PERIOD} you were charged.</strong> Not just the
-          first. No forms.
+          <strong>We refund the full {DEFAULT_PRICE_LABEL} you paid.</strong> No forms.
         </li>
         <li>Your 7-day money-back guarantee is separate and needs no conditions.</li>
       </ul>
@@ -377,7 +376,8 @@ export default function Terms() {
       <p>
         If we change these terms we will update this page and the date at the top. If a change
         affects what you pay or what a guarantee covers, we will email you before it applies to
-        you, and the terms you subscribed under keep covering the months you already paid for.
+        you, and the terms you subscribed under keep covering the {DEFAULT_PRICE_PERIOD} you already
+        paid for.
       </p>
 
       {/* ------------------------------------------------------------------ */}
@@ -417,8 +417,9 @@ export default function Terms() {
 //     which is worse. Tell me the state and I will add the clause.
 //
 //  3. STRIPE PORTAL: CONFIRM IT CANCELS AT PERIOD END. Section 5 says "you keep
-//     access until the end of the month you have already paid for", which is
-//     Stripe's default (cancel_at_period_end) and the fair reading. If the
+//     access until the end of the year you have already paid for" (the period
+//     word is read from lib/pricing.js), which is Stripe's default
+//     (cancel_at_period_end) and the fair reading. If the
 //     portal in your Stripe dashboard is set to cancel immediately, either flip
 //     the setting or change that sentence. Right now the page and the dashboard
 //     have to agree and only you can see the dashboard.

@@ -116,17 +116,23 @@ export default function RootLayout({ children }) {
             cache are in lib/openPlan.js. Read that before editing this. */}
         <script dangerouslySetInnerHTML={{ __html: OPEN_PLAN_SCRIPT }} />
 
-        {/* --- GOOGLE ADS & ANALYTICS --- */}
+        {/* --- GOOGLE ADS & ANALYTICS ---
+            AW-18382744409 is the account the paid search campaign spends from,
+            and the Purchase conversion (send_to AW-18382744409/PRCtCMubzN8cENnWyb1E)
+            is fired once, server-confirmed, from the post-purchase screen with the
+            real charged amount. Smart Bidding is blind without that value, so the
+            fire lives next to the Stripe success, not on a button click. See
+            lib/analytics.js trackPurchase and components/postpurchase. */}
         <Script
           strategy="afterInteractive"
-          src="https://www.googletagmanager.com/gtag/js?id=AW-17911323675"
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18382744409"
         />
         <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'AW-17911323675');
+            gtag('config', 'AW-18382744409');
           `}
         </Script>
 

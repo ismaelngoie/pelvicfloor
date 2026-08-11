@@ -38,7 +38,7 @@
 
 import LegalPage, { Contents, Summary, Callout } from "@/components/legal/LegalPage";
 import { CLAIM_EMAIL } from "@/lib/guaranteeCopy";
-import { DEFAULT_PRICE_LABEL } from "@/lib/pricing";
+import { DEFAULT_PRICE_LABEL, DEFAULT_PRICE_PERIOD } from "@/lib/pricing";
 
 export const metadata = {
   title: "Privacy Policy",
@@ -579,7 +579,7 @@ export default function PrivacyPolicy() {
       </p>
       <p>
         For the money side of things, including how to cancel and exactly what the {DEFAULT_PRICE_LABEL}{" "}
-        a month subscription and the 90-Day Goal Guarantee promise, read the{" "}
+        a {DEFAULT_PRICE_PERIOD} subscription and the 90-Day Goal Guarantee promise, read the{" "}
         <a href="/terms">Terms</a>.
       </p>
     </LegalPage>
@@ -627,13 +627,14 @@ export default function PrivacyPolicy() {
 //     has neither. One line under the conditions list, with a link to this page,
 //     would make it airtight and would cost roughly nothing in conversion.
 //
-//  4. NOBODY SENDS THE EMAIL. lib/guaranteeCopy.js EMAIL_CHECKLIST promises her
-//     "Your personalized 90-day plan" and "Your 90-Day Goal Guarantee, in
-//     writing" by email, and there is no sending system anywhere in this repo.
-//     Section 2 of this page states the purposes we collect the address for,
-//     which matches that promise. When you wire up a real sender (Resend,
-//     Postmark, Mailchimp, whatever), it becomes a processor and it has to be
-//     named in section 8.
+//  4. NOBODY SENDS A PLAN EMAIL. The funnel used to ask for an address mid-flow
+//     and promise the plan and the written guarantee by email; that screen has
+//     been removed, and no sending system exists anywhere in this repo. The one
+//     address the site now collects is entered at checkout, for the purposes
+//     section 2 states (the Stripe receipt and the account). Stripe sends that
+//     receipt and is already a named processor. When you wire up any other
+//     sender (Resend, Postmark, Mailchimp, whatever), it becomes a processor and
+//     it has to be named in section 8.
 //
 //  5. THE AGE FLOOR CONTRADICTS ITSELF. This page and the Terms both say 18 and
 //     over. components/funnel/funnelState.js sets AGE_RANGE.min to 16, so a

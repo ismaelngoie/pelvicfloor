@@ -40,7 +40,7 @@ import AppInstallSheet from "@/components/postpurchase/AppInstallSheet";
 import ProgramIntro from "@/components/postpurchase/ProgramIntro";
 import { canOfferApp } from "@/lib/appPrompt";
 import { isValidEmail } from "@/lib/checkout";
-import { isEntitled, markEntitlementActive, writeEntitlement } from "@/lib/entitlement";
+import { isEntitled, markEntitlementActive, readEntitlement, writeEntitlement } from "@/lib/entitlement";
 // No `sendLoginLink`. This page does not offer to email anything, and the
 // payment path no longer falls back to a link either — see the note on
 // signInFromPayment in lib/identity.js. `completeEmailLinkSignIn` and
@@ -51,7 +51,7 @@ import {
   readPaidIntent, signInFromPayment,
 } from "@/lib/identity";
 import { readPlan } from "@/lib/postPurchase";
-import { trackWelcomeStatus } from "@/lib/analytics";
+import { trackPurchase, trackWelcomeStatus } from "@/lib/analytics";
 
 const COPY = {
   confirming: {
@@ -85,6 +85,14 @@ export default function WelcomeClient() {
   // Her goal and her first name, or nulls. See lib/postPurchase.js: nulls are a
   // supported answer and the intro has a real shape for them.
   const [plan, setPlan] = useState({ goalId: null, name: "", price: null });
+
+  // The Stripe PaymentIntent id, pulled off the client secret this browser paid
+  // with. It is the transaction_id for the Google Ads purchase conversion below:
+  // the thing that lets Google dedupe a reload and match a refund. Null until we
+  // have a real secret in hand, and it stays null on a reload (the secret is a
+  // one-shot in sessionStorage, cleared once redeemed, and stripped out of the
+  // 3-D Secure return URL), which is exactly why a reload cannot re-fire.
+  const [paymentIntentId, setPaymentIntentId] = useState(null);
 
   /**
    * "Have we worked out yet which of these screens this is?"
@@ -189,6 +197,12 @@ export default function WelcomeClient() {
     // past. Either way it is the thing that proves this browser paid, and it is
     // what her account is built from.
     const clientSecret = redirectSecret || readPaidIntent();
+    // The PaymentIntent id is the client secret with its "_secret_..." tail cut
+    // off (pi_ABC_secret_xyz -> pi_ABC). It is the id the conversion below is
+    // keyed and deduped on. Set once, here, while we still hold the secret.
+    if (clientSecret) {
+      setPaymentIntentId(clientSecret.split("_secret_")[0] || null);
+    }
     const redirectStatus = params.get("redirect_status");
     const restored = params.get("restored") === "1";
     const paidFlag = params.get("paid") === "1";
@@ -357,6 +371,39 @@ export default function WelcomeClient() {
   useEffect(() => {
     trackWelcomeStatus(status);
   }, [status]);
+
+  // THE GOOGLE ADS PURCHASE CONVERSION. Fired once, here, and nowhere else in
+  // the product. The two conditions are the whole guarantee that it is real:
+  //   status === "paid"   the page has resolved to a genuine, Stripe-confirmed
+  //                       purchase (the 90-day intro). "processing", "restored",
+  //                       "member", "failed" and "unknown" never reach this, so
+  //                       a returning member, a recovery, or a page reloaded
+  //                       without a fresh payment cannot fire it.
+  //   paymentIntentId     a real Stripe id is in hand. A QA or preview visit
+  //                       that lands on /welcome?paid=1 with no client secret
+  //                       has no id, so it cannot fire either. This is what
+  //                       keeps the conversion off the funnel's test paths.
+  // Everything else (the once-only guard, the never-empty transaction_id, the
+  // value fallback, the optional hashed email) lives in trackPurchase. It is
+  // idempotent per PaymentIntent, so calling it again after a re-mount is safe.
+  useEffect(() => {
+    if (status !== "paid" || !paymentIntentId) return;
+    // Prefer the amount Stripe actually charged, kept by rememberPrice at
+    // checkout. price.amount is in cents; Google wants dollars. When it is not
+    // known (a restore, storage off), trackPurchase falls back to the advertised
+    // price in lib/pricing.js rather than sending a valueless conversion.
+    const saved = readPlan();
+    const value =
+      saved?.price && Number.isFinite(saved.price.amount)
+        ? saved.price.amount / 100
+        : undefined;
+    const currency = saved?.price?.currency || undefined;
+    // Enhanced conversions only, and best effort: the address Stripe verified is
+    // on the entitlement note by now on the inline path, and may not be yet on
+    // the 3-D Secure path. Absent is fine; the value conversion is what matters.
+    const email = readEntitlement()?.email || undefined;
+    trackPurchase({ transactionId: paymentIntentId, value, currency, email });
+  }, [status, paymentIntentId]);
 
   // The held frame. This is what welcome.html actually contains, and what a
   // browser paints for the instant between that file arriving and the effects

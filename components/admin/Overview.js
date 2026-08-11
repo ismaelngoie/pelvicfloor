@@ -14,7 +14,7 @@
 import { useMemo, useState } from "react";
 import {
   ACTIVE_WINDOW_DAYS,
-  MONTHLY_PRICE_USD,
+  ANNUAL_PRICE_USD,
   PROGRAM_LENGTH_DAYS,
   RANGES,
   buildBuckets,
@@ -259,18 +259,18 @@ export default function Overview({ members, now }) {
 
           <Tile
             delay={240}
-            label="Monthly revenue it can see"
-            value={formatMoney(stats.monthlyRevenue)}
-            unavailableReason={stats.monthlyRevenue === null ? "Not known here" : null}
+            label="Annual revenue it can see"
+            value={formatMoney(stats.annualRevenue)}
+            unavailableReason={stats.annualRevenue === null ? "Not known here" : null}
             explanation={
-              stats.monthlyRevenue !== null
-                ? `The ${formatCount(stats.billed)} member${stats.billed === 1 ? "" : "s"} this dashboard can see money from, times the ${formatMoneyExact(MONTHLY_PRICE_USD)} monthly price. It is the least you are earning, not the total.`
+              stats.annualRevenue !== null
+                ? `The ${formatCount(stats.billed)} member${stats.billed === 1 ? "" : "s"} this dashboard can see money from, times the ${formatMoneyExact(ANNUAL_PRICE_USD)} annual price. It is the least you are earning in a year, not the total.`
                 : stats.hasSubscriptionData
                 ? "This dashboard cannot see anybody being charged right now. That is not the same as nobody paying: it cannot see Stripe, and everyone who subscribed on the website is invisible to it. Open your Stripe dashboard for the real figure."
                 : noSubscriptionReason
             }
             footnote={
-              stats.monthlyRevenue !== null
+              stats.annualRevenue !== null
                 ? `Counted from what this dashboard can see, which is iPhone purchases and the people you marked by hand. Web subscriptions, cancellations, refunds and failed payments are all missing, it cannot tell whether an iPhone subscription is still live, and Apple keeps a share of the iPhone ones before the money reaches you. ${blindSpotNote}`
                 : null
             }
@@ -332,7 +332,7 @@ export default function Overview({ members, now }) {
               state existing. With nobody visibly paying, this chart would draw
               a flat line along zero, and a zero drawn that confidently is the
               one thing this dashboard must never say about revenue. */}
-          {stats.monthlyRevenue !== null ? (
+          {stats.annualRevenue !== null ? (
             <TimeSeriesChart
               delay={120}
               className="xl:col-span-7"
@@ -342,10 +342,10 @@ export default function Overview({ members, now }) {
               values={revenue}
               mode="area"
               color="var(--pv-series-3)"
-              valueNoun="dollars a month"
+              valueNoun="dollars a year"
               formatValue={formatMoney}
               formatAxis={formatMoney}
-              note={`Every member it can see money from who had joined by then, times the ${formatMoneyExact(MONTHLY_PRICE_USD)} monthly price. That means iPhone purchases and the people you marked by hand. Subscriptions taken on the website through Stripe are not in this line at any point, and neither are cancellations or refunds. Apple keeps a share of the iPhone purchases as well. Your Stripe dashboard has the real chart.`}
+              note={`Every member it can see money from who had joined by then, times the ${formatMoneyExact(ANNUAL_PRICE_USD)} annual price. That means iPhone purchases and the people you marked by hand. Subscriptions taken on the website through Stripe are not in this line at any point, and neither are cancellations or refunds. Apple keeps a share of the iPhone purchases as well. Your Stripe dashboard has the real chart.`}
               emptyTitle="Nothing visible in this window"
               emptyDescription="Try a longer time range, or check Stripe."
             />
@@ -354,7 +354,7 @@ export default function Overview({ members, now }) {
               delay={120}
               className="xl:col-span-7"
               title="Revenue this dashboard can see, over time"
-              subtitle="Monthly revenue, period by period."
+              subtitle="Annual revenue, period by period."
               reason={noSubscriptionReason}
             />
           )}

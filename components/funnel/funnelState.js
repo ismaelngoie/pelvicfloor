@@ -20,26 +20,22 @@ export const STEP = {
   intake: "intake",
   health: "health",
   personalizing: "personalizing",
-  email: "email",
-  // Not a rung of the funnel: a door out of it. The address she just gave is
-  // already paying us, so there is nothing left to sell her and the rest of the
-  // funnel would be a lie. See RecognisedScreen.js.
-  recognised: "recognised",
   planReveal: "planReveal",
   paywall: "paywall",
 };
 
-// iOS order. Email capture sits between the plan-building animation and the
-// timeline, not after it: the plan is finished, so "Where should we send it?"
-// is true, and the timeline runs straight into the paywall with nothing between.
+// The plan-building animation runs straight into the timeline, and the timeline
+// into the paywall, with nothing between. There is no longer an email step in
+// the funnel: the address is collected at checkout, where the card needs one
+// anyway, and an already-subscribed member is recognised there. See the header
+// of components/funnel/CheckoutSheet.jsx.
 export const FORWARD = {
   welcome: STEP.goal,
   goal: STEP.howItHelps,
   howItHelps: STEP.intake,
   intake: STEP.health,
   health: STEP.personalizing,
-  personalizing: STEP.email,
-  email: STEP.planReveal,
+  personalizing: STEP.planReveal,
   planReveal: STEP.paywall,
 };
 
@@ -51,8 +47,6 @@ export const BACKWARD = {
   intake: STEP.howItHelps,
   health: STEP.intake,
   personalizing: STEP.health,
-  email: STEP.health,
-  recognised: STEP.email,
   planReveal: STEP.health,
   paywall: STEP.planReveal,
 };
@@ -72,8 +66,6 @@ export function emptyProfile() {
     conditions: [],
     noConditions: false,
     activity: null,
-    email: "",
-    emailAsked: false,
     planBuilt: false,
     startedAt: null,
   };
@@ -136,10 +128,6 @@ export function resumeStep(saved) {
   // on a lookup two screens later.
   if (step !== STEP.welcome && !profile.goalId) return STEP.goal;
   if (step === STEP.personalizing) return STEP.health;
-  // Not resumed into either, and for a similar reason: arriving on it sends an
-  // email, so a reload there would send a second one. She lands back on the
-  // question that produced it.
-  if (step === STEP.recognised) return STEP.email;
   if ((step === STEP.planReveal || step === STEP.paywall) && !profile.planBuilt) {
     return STEP.health;
   }
@@ -189,6 +177,10 @@ export function activityPhrase(activityId) {
   return ACTIVITY_LEVELS.find((a) => a.id === activityId)?.phrase || "lightly active";
 }
 
+// Email is no longer collected in the funnel, so the funnel's own address
+// validator moved out with the screen that used it. Checkout has its own check
+// in lib/checkout.js (isValidEmail), which is where an address is entered now.
+
 /**
  * "pelvic pain", "bladder leaks and prostate concerns", "A, B and C".
  * With nothing selected the sentence still has to read, so it becomes the thing
@@ -202,20 +194,4 @@ export function conditionPhrase(conditions, noConditions) {
   if (nouns.length === 0) return "your unique needs";
   if (nouns.length === 1) return nouns[0];
   return `${nouns.slice(0, -1).join(", ")} and ${nouns[nouns.length - 1]}`;
-}
-
-/**
- * Email is valid when there is something before the @, a dot after it, and a
- * domain long enough to be real. Same shape as the iOS check, so the button
- * enables at the same moment on both.
- */
-export function isEmailValid(value) {
-  const email = (value || "").trim();
-  const at = email.indexOf("@");
-  if (at < 1) return false;
-  if (email.indexOf("@", at + 1) !== -1) return false;
-  const domain = email.slice(at + 1);
-  if (domain.length < 3) return false;
-  const dot = domain.indexOf(".");
-  return dot > 0 && dot < domain.length - 1;
 }

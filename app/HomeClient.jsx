@@ -7,13 +7,14 @@
 // onReachPaywall(profile). `profile` carries everything she answered:
 //
 //   goalId, name, age, weightLbs, heightInches, weightUnit, heightUnit,
-//   conditions[], noConditions, activity, email, emailAsked, planBuilt,
-//   startedAt, reachedPaywallAt
+//   conditions[], noConditions, activity, planBuilt, startedAt,
+//   reachedPaywallAt
 //
-// `email` matters beyond the receipt: the Stripe customer has to be created
-// with it, or Restore Purchase and Manage Subscription can never find her
-// again. It may be an empty string, because skipping the email screen is
-// deliberately free.
+// No email is in there any more. The funnel used to ask for one mid-flow; it no
+// longer does, because sign-in is Google or Apple only and the address the
+// Stripe customer is created against is collected on the checkout sheet, which
+// is also where an already-subscribed member is recognised. See
+// components/funnel/CheckoutSheet.jsx.
 //
 // The paywall is owned separately. This file only decides when it is shown and
 // how to get back out of it.

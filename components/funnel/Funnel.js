@@ -25,13 +25,10 @@ import {
 } from "./funnelState";
 import { useIsomorphicLayoutEffect } from "./ui";
 import {
-  trackEmailChoice, trackFunnelStep, trackGoalChosen, trackHealthAnswers,
-  trackPaywallReached,
+  trackFunnelStep, trackGoalChosen, trackHealthAnswers, trackPaywallReached,
 } from "@/lib/analytics";
-import { hasActivePlan } from "@/lib/identity";
 import { isEntitled } from "@/lib/entitlement";
 import FunnelAside from "./FunnelAside";
-import RecognisedScreen from "./RecognisedScreen";
 import LandingScreen from "./LandingScreen";
 import WelcomeScreen from "./WelcomeScreen";
 import SelectGoalScreen from "./SelectGoalScreen";
@@ -39,7 +36,6 @@ import HowPelviHelpsScreen from "./HowPelviHelpsScreen";
 import PersonalIntakeScreen from "./PersonalIntakeScreen";
 import HealthInfoScreen from "./HealthInfoScreen";
 import PersonalizingScreen from "./PersonalizingScreen";
-import EmailCaptureScreen from "./EmailCaptureScreen";
 import PlanRevealScreen from "./PlanRevealScreen";
 
 /**
@@ -118,9 +114,6 @@ export default function Funnel({ onReachPaywall }) {
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(STEP.welcome);
   const [profile, setProfile] = useState(emptyProfile);
-  // True for the one round trip between "she gave us her address" and knowing
-  // whether we are already charging her for this.
-  const [checkingEmail, setCheckingEmail] = useState(false);
   // "Has this browser already bought the thing this page is selling."
   //
   // Read after mount and never during render: this is a static export, so the
@@ -277,7 +270,7 @@ export default function Funnel({ onReachPaywall }) {
         // Coming back to change an answer should not cost her the seven second
         // build again, but changing her goal should, because it is a new plan.
         if (profile.planBuilt) {
-          setStep(profile.emailAsked ? STEP.planReveal : STEP.email);
+          setStep(STEP.planReveal);
           return;
         }
         setStep(STEP.personalizing);
@@ -317,34 +310,6 @@ export default function Funnel({ onReachPaywall }) {
       setStep(STEP.goal);
     },
     [chooseGoal, patch, profile.startedAt]
-  );
-
-  /**
-   * She gave us her address. Before anything else, ask quietly whether we are
-   * already charging her for this.
-   *
-   * This is the earliest point in the funnel where the question can be asked at
-   * all, and it is the last point where the answer still saves her something: a
-   * plan reveal for a plan she has, a paywall for a price she pays, and a
-   * checkout that would have refused her at the very end with "that email
-   * already has an active plan". If the answer is yes she goes to
-   * RecognisedScreen and the selling stops.
-   *
-   * hasActivePlan never throws and gives up after three seconds, so the worst
-   * case is the funnel she was about to see anyway, three seconds later. The
-   * button says "One moment" while it waits rather than sitting dead.
-   */
-  const submitEmail = useCallback(
-    async (email) => {
-      // "given", never the address. The field itself is masked.
-      trackEmailChoice("given");
-      patch({ email, emailAsked: true });
-      setCheckingEmail(true);
-      const known = await hasActivePlan(email);
-      setCheckingEmail(false);
-      setStep(known ? STEP.recognised : STEP.planReveal);
-    },
-    [patch]
   );
 
   const reachPaywall = useCallback(() => {
@@ -405,32 +370,9 @@ export default function Funnel({ onReachPaywall }) {
             profile={profile}
             onDone={() => {
               patch({ planBuilt: true });
-              setStep(profile.emailAsked ? STEP.planReveal : STEP.email);
-            }}
-            onBack={goBack}
-          />
-        );
-      case STEP.email:
-        return (
-          <EmailCaptureScreen
-            profile={profile}
-            busy={checkingEmail}
-            onSubmit={submitEmail}
-            onSkip={() => {
-              trackEmailChoice("skipped");
-              patch({ emailAsked: true });
               setStep(STEP.planReveal);
             }}
             onBack={goBack}
-          />
-        );
-      case STEP.recognised:
-        return (
-          <RecognisedScreen
-            email={profile.email}
-            onBack={goBack}
-            onNotMe={() => setStep(STEP.email)}
-            onContinueAnyway={() => setStep(STEP.planReveal)}
           />
         );
       case STEP.planReveal:

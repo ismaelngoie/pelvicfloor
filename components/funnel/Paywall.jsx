@@ -121,7 +121,9 @@ const STYLES = `
  * @param {object}   props
  * @param {string}   props.goalId      one of lib/program.js GOALS ids
  * @param {string}   props.name        her first name, or "" for the no-name headline
- * @param {string}   props.email       captured earlier in the funnel, if we have it
+ * @param {string}   props.email       a known address to prefill, or "". The funnel
+ *                                     no longer collects one, so from the funnel this
+ *                                     is "" and the checkout sheet asks for it itself.
  * @param {string}   props.uid         Firebase uid, when she is signed in
  * @param {string}   props.memberId    her users/{id} document id, when we know it
  * @param {string}   props.priceLabel  what to show before Stripe answers
