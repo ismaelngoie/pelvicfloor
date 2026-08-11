@@ -111,8 +111,12 @@ export default function SelectGoalScreen({ goalId, onSelect, onNext, onBack }) {
       </div>
 
       <div className="relative z-10 shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5">
+        {/* A disabled button that does not say why reads as a broken one, and on
+            paid traffic that is a lost sale. The goal genuinely IS required (the
+            whole 90 day plan is built from it), so rather than letting anyone
+            through, the button explains itself until she has picked. */}
         <PrimaryButton onClick={onNext} disabled={!goalId}>
-          {GOAL_CTA}
+          {goalId ? GOAL_CTA : "Pick a goal above to continue"}
         </PrimaryButton>
       </div>
     </div>

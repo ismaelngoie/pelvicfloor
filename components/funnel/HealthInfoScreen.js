@@ -68,7 +68,30 @@ export default function HealthInfoScreen({ profile, onPatch, onNext, onBack }) {
 
   const conditions = profile.conditions || [];
   const answeredConditions = profile.noConditions || conditions.length > 0;
+  // Whether she has told us everything, used ONLY to fill the progress rail and
+  // to decide what to default on the way out. It no longer gates the button.
   const ready = answeredConditions && Boolean(profile.activity);
+
+  // THE BUTTON IS NEVER DISABLED, and that is deliberate.
+  //
+  // It used to need both answers. A disabled primary button is indistinguishable
+  // from a broken one: paid visitors were tapping it, getting nothing, and
+  // leaving. Neither answer is load-bearing enough to lose a sale over. No
+  // condition selected already means "none", and activityPhrase() in
+  // funnelState.js has always fallen back to "lightly active", so an unanswered
+  // screen produces exactly the plan it produced before, with no empty strings
+  // downstream.
+  //
+  // The defaults are written on the way out rather than left undefined so the
+  // plan reveal, the analytics tags and the member record all see the same
+  // values a woman who answered explicitly would have produced.
+  const continueToPlan = () => {
+    const patch = {};
+    if (!answeredConditions) patch.noConditions = true;
+    if (!profile.activity) patch.activity = "light";
+    if (Object.keys(patch).length) onPatch(patch);
+    onNext();
+  };
 
   const toggleCondition = (id) => {
     const next = conditions.includes(id)
@@ -163,7 +186,7 @@ export default function HealthInfoScreen({ profile, onPatch, onNext, onBack }) {
       </div>
 
       <div className="shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5">
-        <PrimaryButton onClick={onNext} disabled={!ready}>
+        <PrimaryButton onClick={continueToPlan}>
           {block.cta}
         </PrimaryButton>
       </div>

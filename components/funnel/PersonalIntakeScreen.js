@@ -356,8 +356,15 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
         className="shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5"
         style={keyboardInset ? { paddingBottom: keyboardInset + 16 } : undefined}
       >
+        {/* Only the name step can be blocked, and when it is the button says so
+            rather than sitting there looking broken. The three wheel steps are
+            never blocked: they always hold a sensible value. */}
         <PrimaryButton onClick={goForward} disabled={!canAdvance}>
-          {subStep === "height" ? "Continue" : "Next"}
+          {!canAdvance
+            ? "Enter your first name"
+            : subStep === "height"
+              ? "Continue"
+              : "Next"}
         </PrimaryButton>
       </div>
     </div>

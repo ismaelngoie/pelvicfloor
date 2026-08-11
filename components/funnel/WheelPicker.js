@@ -20,6 +20,30 @@ const VISIBLE_ROWS = 3;
 const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE_ROWS;
 const PAD = (WHEEL_HEIGHT - ITEM_HEIGHT) / 2;
 
+// A highlighted band with faded numbers above and below reads as a display, not
+// a control: a Clarity recording caught a woman on the age screen spending most
+// of her visit trying to work out whether it moved. On paid traffic that is a
+// lost sale to a "this looks broken" moment. These three cues, scoped to this
+// component so all three wheels get them, say "you can scroll me" without a word
+// of instruction: chevrons that bob, a one-time bounce the moment the wheel
+// appears, and a caption that leaves as soon as she touches it. All decorative,
+// all gone under prefers-reduced-motion, none of it changes the value.
+const AFFORDANCE_CSS = `
+@keyframes pelviWheelBob {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50%      { transform: translateY(3px); opacity: 1; }
+}
+@keyframes pelviWheelBobUp {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50%      { transform: translateY(-3px); opacity: 1; }
+}
+.pelvi-wheel-chevron { animation: pelviWheelBob 1.5s ease-in-out infinite; }
+.pelvi-wheel-chevron-up { animation: pelviWheelBobUp 1.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .pelvi-wheel-chevron, .pelvi-wheel-chevron-up { animation: none; }
+}
+`;
+
 export default function WheelPicker({
   range,
   value,
@@ -34,6 +58,10 @@ export default function WheelPicker({
   const emittedRef = useRef(value);
   const frameRef = useRef(0);
   const [dragging, setDragging] = useState(false);
+  // Once she has touched the wheel she knows it moves, so the cues retire and
+  // never nag again on this screen.
+  const [touched, setTouched] = useState(false);
+  const markTouched = useCallback(() => setTouched(true), []);
 
   // A smooth programmatic scroll is still motion, and `behavior: "smooth"`
   // beats the CSS `scroll-behavior` rule, so reduced motion has to be honoured
@@ -59,6 +87,27 @@ export default function WheelPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range]);
 
+  // THE ONE-TIME BOUNCE. The moment the wheel appears, nudge it a few pixels and
+  // let it settle back, so the numbers physically move once before she has done
+  // anything. Motion is the clearest possible "this is interactive". The nudge
+  // is 18px, well under half a row (27px), so the rounded index never changes
+  // and no value is emitted. Skipped for reduced motion and once she has
+  // touched it herself.
+  useEffect(() => {
+    if (reduced || touched) return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    const start = window.setTimeout(() => {
+      const base = el.scrollTop;
+      el.scrollTo({ top: base + 18, behavior: "smooth" });
+      window.setTimeout(() => {
+        if (scrollerRef.current) scrollerRef.current.scrollTo({ top: base, behavior: "smooth" });
+      }, 260);
+    }, 420);
+    return () => window.clearTimeout(start);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
+
   // Re-centre when the value moved for a reason that was not this wheel.
   useEffect(() => {
     if (value === emittedRef.current) return;
@@ -69,6 +118,7 @@ export default function WheelPicker({
   useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
 
   const handleScroll = () => {
+    if (!touched) setTouched(true);
     if (frameRef.current) return;
     frameRef.current = requestAnimationFrame(() => {
       frameRef.current = 0;
@@ -113,6 +163,8 @@ export default function WheelPicker({
   };
 
   return (
+    <div>
+    <style dangerouslySetInnerHTML={{ __html: AFFORDANCE_CSS }} />
     <div
       className="relative mx-auto w-full max-w-[320px] overflow-hidden"
       style={{ height: WHEEL_HEIGHT }}
@@ -126,6 +178,31 @@ export default function WheelPicker({
         }`}
         style={{ top: PAD, height: ITEM_HEIGHT }}
       />
+
+      {/* Chevrons flanking the band: the universal "scroll here" language. They
+          bob gently until she touches the wheel, then fade out for good. */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute left-1/2 z-30 -translate-x-1/2 text-ios-pink transition-opacity duration-300 ${
+          touched ? "opacity-0" : "opacity-100"
+        }`}
+        style={{ top: PAD - 20 }}
+      >
+        <svg className="pelvi-wheel-chevron-up" width="22" height="13" viewBox="0 0 22 13" fill="none">
+          <path d="M2 11L11 2l9 9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute left-1/2 z-30 -translate-x-1/2 text-ios-pink transition-opacity duration-300 ${
+          touched ? "opacity-0" : "opacity-100"
+        }`}
+        style={{ top: PAD + ITEM_HEIGHT + 7 }}
+      >
+        <svg className="pelvi-wheel-chevron" width="22" height="13" viewBox="0 0 22 13" fill="none">
+          <path d="M2 2l9 9 9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-app-background via-app-background/85 to-transparent"
@@ -140,8 +217,8 @@ export default function WheelPicker({
       <div
         ref={scrollerRef}
         onScroll={handleScroll}
-        onKeyDown={handleKeyDown}
-        onPointerDown={() => setDragging(true)}
+        onKeyDown={(e) => { markTouched(); handleKeyDown(e); }}
+        onPointerDown={() => { markTouched(); setDragging(true); }}
         onPointerUp={() => setDragging(false)}
         onPointerCancel={() => setDragging(false)}
         tabIndex={0}
@@ -182,6 +259,20 @@ export default function WheelPicker({
           );
         })}
       </div>
+    </div>
+
+    {/* Said in words as well, because the chevrons are silent for anyone who
+        does not read motion, and because "Scroll" is the one word that removes
+        all doubt. It leaves the moment she touches the wheel, so it never
+        becomes clutter for the two screens that follow. */}
+    <p
+      aria-hidden="true"
+      className={`mt-2 text-center text-[13px] font-medium text-app-textSecondary transition-opacity duration-300 ${
+        touched ? "opacity-0" : "opacity-100"
+      }`}
+    >
+      Scroll to choose
+    </p>
     </div>
   );
 }
