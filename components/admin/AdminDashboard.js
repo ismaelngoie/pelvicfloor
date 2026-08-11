@@ -234,7 +234,7 @@ export default function AdminDashboard() {
   const [dataState, setDataState] = useState("idle");
   const [dataError, setDataError] = useState("");
   const [countedAt, setCountedAt] = useState(null);
-  const [tab, setTab] = useState("audience");
+  const [tab, setTab] = useState("overview");
   // Bumped by every press of "Count again". The Audience tab reads Stripe
   // through its own endpoint rather than off this Firestore read, so it needs a
   // signal to refetch; a counter is one, and it does not fire on first mount of

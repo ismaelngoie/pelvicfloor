@@ -85,14 +85,13 @@ export async function onRequestPost(context) {
   if (ipRateLimited(request, { max: 30 })) {
     return json(429, { error: "That is a lot of requests. Wait a minute and try again." });
   }
-  if (!env.STRIPE_SECRET_KEY) {
-    console.error("audience: STRIPE_SECRET_KEY is not set");
-    return json(503, {
-      error:
-        "This deployment has no Stripe key, so there is no customer list to read. Add STRIPE_SECRET_KEY in Cloudflare Pages > Settings > Environment variables.",
-    });
-  }
 
+  // IDENTITY FIRST, CONFIGURATION SECOND, and that order is deliberate here even
+  // though the other endpoints in this folder check the Stripe key first. They
+  // answer a member about herself and a 503 tells her something useful. This one
+  // is owner-only, so a stranger should not be able to learn even whether this
+  // deployment has a Stripe key wired up. Nobody who is not the owner gets a
+  // fact about our setup.
   const caller = await checkIdToken(bearerToken(request), firebaseProjectId(env));
 
   if (!caller.ok && caller.reason === "unavailable") {
@@ -108,6 +107,14 @@ export async function onRequestPost(context) {
   if (!isOwner) {
     return json(403, {
       error: "This is the owner's dashboard. Sign in with the account that owns the business.",
+    });
+  }
+
+  if (!env.STRIPE_SECRET_KEY) {
+    console.error("audience: STRIPE_SECRET_KEY is not set");
+    return json(503, {
+      error:
+        "This deployment has no Stripe key, so there is no customer list to read. Add STRIPE_SECRET_KEY in Cloudflare Pages > Settings > Environment variables.",
     });
   }
 

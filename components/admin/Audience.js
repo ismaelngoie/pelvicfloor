@@ -234,7 +234,7 @@ export default function Audience({ members, user, reloadToken = 0 }) {
         <Tile
           label="Counted"
           value={stripe?.fetchedAt ? formatDate(stripe.fetchedAt) : "Just now"}
-          explanation={`Read from Stripe at ${formatDateTime(now)}. Press Count again in the sidebar to read it fresh.${windowed.undated ? ` ${formatCount(windowed.undated)} row${windowed.undated === 1 ? " has" : "s have"} no first-seen date and only appear under All time.` : ""}`}
+          explanation={`Read from Stripe at ${formatDateTime(now)}. Press Count again in the sidebar to read it fresh.${windowed.undated ? ` ${formatCount(windowed.undated)} row${windowed.undated === 1 ? " has" : "s have"} no first-seen date and only appear under All time.` : ""}${stripe?.withoutEmail ? ` ${formatCount(stripe.withoutEmail)} Stripe customer${stripe.withoutEmail === 1 ? " has" : "s have"} no address at all and cannot be counted here.` : ""}`}
         />
       </div>
 
