@@ -24,16 +24,37 @@ const pick = (table, goalId) => table[goalId] || table[DEFAULT_GOAL];
 // 1. Welcome
 // ---------------------------------------------------------------------------
 
+// The headline says the category, the time cost and nothing abstract, and the
+// subheadline names the three jobs people actually come here for.
+//
+// It replaced "Strength & Confidence / From Your Core Outward.", which was the
+// weakest-converting element on the screen: an abstract feeling, with the
+// subheadline left doing all the concrete work. A Nature study of 8,977 real
+// headline experiments found vagueness costs clicks (and going fully clinical
+// costs them too, so this stops at "pelvic floor" and does not say
+// "dysfunction").
+//
+// The subheadline ENDS on intimacy on purpose. Intimacy is the most-clicked
+// goal in the grid below, so it is the strongest pull this audience has, but
+// the headline deliberately does NOT lead with it: this is the general welcome
+// screen where leaks, postpartum, pain and pregnancy traffic all land, and
+// leading with one symptom narrows the funnel for everyone else. The goal grid
+// is what segments. (The paid leak landing page at /stop-bladder-leaks is the
+// place that does lead with one symptom, because its traffic already did.)
+//
+// "Fewer" and "easier" are comparative on purpose. "Stop your leaks" would be
+// an absolute outcome promise on a health product, which is the wording the FTC
+// health-claims guidance and Google's ad policy both punish.
 export const WELCOME_HEADLINE_LINES = [
-  "Strength & Confidence",
-  "From Your Core Outward.",
+  "A Stronger Pelvic Floor,",
+  "in 5 Minutes a Day.",
 ];
 
 export const WELCOME_HEADLINE_A11Y =
-  "Strength and Confidence from your core outward.";
+  "A stronger pelvic floor, in 5 minutes a day.";
 
 export const WELCOME_SUBHEADLINE =
-  "Your personal AI physio-coach for leaks, pain, and confidence.";
+  "Fewer leaks, easier recovery, better intimacy.";
 
 export const WELCOME_BENEFITS = [
   { icon: "figure.run.circle.fill", text: "A new 5-minute plan, just for you, every day." },

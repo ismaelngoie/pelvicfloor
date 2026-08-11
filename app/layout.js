@@ -69,7 +69,7 @@ export const metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Pelvi Health: Strength and Confidence From Your Core Outward.",
+        alt: "Pelvi Health: a stronger pelvic floor, in 5 minutes a day.",
       },
     ],
     locale: "en_US",

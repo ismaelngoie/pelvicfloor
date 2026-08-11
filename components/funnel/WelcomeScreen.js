@@ -55,9 +55,9 @@ const HEADLINE_MIN_SCALE = 0.45;
 /**
  * The headline, at the largest size that still fits on two lines.
  *
- * "From Your Core Outward." is 395px wide at 32px, and the content column is
- * 311px on a 375px phone, so the second line wraps to three and the shape of
- * the hero falls apart. iOS solves this with minimumScaleFactor. This is the
+ * The longest line is wider at 32px than the content column, which is 311px on
+ * a 375px phone, so it would wrap to three lines and the shape of the hero
+ * would fall apart. iOS solves this with minimumScaleFactor. This is the
  * same idea: a hidden probe holds the sentence at full size and never changes,
  * the visible copy is sized from the ratio between that and the real column
  * width, and the font size itself changes so the text stays crisp.
