@@ -29,10 +29,15 @@ import LeakLandingClient from "./LeakLandingClient";
 // hand), meta noindex here, and an X-Robots-Tag on the RSC .txt sibling in
 // public/_headers, which a meta tag cannot cover.
 
+// The title carries the ad headline itself ("Bladder Leakage Exercises"), which
+// is the single strongest message-match signal available above the fold of the
+// browser chrome, and the description echoes the four headlines the page is
+// built around: 5-minute daily sessions, at home with no equipment, built with
+// women's health physios, 90-day money-back guarantee.
 export const metadata = {
-  title: "Stop Bladder Leaks",
+  title: "Bladder Leakage Exercises for Women",
   description:
-    "A personalized pelvic floor exercise plan built to stop bladder leaks. 5 minutes a day, 500+ videos approved by physios, and a 90-day money-back guarantee.",
+    "Pelvic floor exercises for bladder leaks you can do at home in 5 minutes a day. Built with women's health physios, no equipment, no clinic visits, and a 90-day money-back guarantee.",
   robots: { index: false, follow: true },
 };
 
