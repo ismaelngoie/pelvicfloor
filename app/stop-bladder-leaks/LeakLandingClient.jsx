@@ -587,15 +587,22 @@ export default function LeakLandingClient() {
       <section className="border-t border-app-borderIdle bg-app-background">
         <div className="mx-auto w-full max-w-[44rem] px-5 py-11 pl-[max(1.25rem,var(--sal))] pr-[max(1.25rem,var(--sar))] sm:px-6 tab:py-16">
           <div className="mx-auto max-w-[36rem] text-center">
+            {/* "for incontinence" is in this heading because the account's
+                top-spend keyword is [pelvic floor exercises for incontinence]
+                and Google flagged it low-QS while the page carried the token
+                exactly once. This is the clinical beat of the page, so the
+                clinical word belongs here, not in the hero, whose register is
+                recognition. */}
             <h2 style={H2_SIZE} className="font-bold leading-[1.15] tracking-[-0.02em]">
-              What actually works has a name
+              What actually works for incontinence has a name
             </h2>
             <p className="mt-4 text-[16px] leading-[1.55] sm:text-[17px]">
               Pelvic floor muscle training. Finding the right muscle, working it
               in the right order, holding and letting go at the right speeds, and
               making it harder as you get stronger. It is the first thing a
-              women&apos;s health physical therapist teaches for bladder leaks, and it is the
-              most studied approach there is.
+              women&apos;s health physical therapist teaches for bladder leaks
+              and urinary incontinence, and it is the most studied approach
+              there is.
             </p>
           </div>
 
@@ -604,9 +611,9 @@ export default function LeakLandingClient() {
               Cochrane, the independent group doctors rely on to weigh medical
               evidence, pooled 31 trials covering 1,817 women across 14
               countries. Among the women doing pelvic floor muscle training for
-              stress incontinence, the leaks that come with a sneeze, a laugh
-              or a run, 74% reported they were better or their symptoms had
-              gone, against 11% of the women who were not doing it. The reviewers
+              stress urinary incontinence, the leaks that come with a sneeze, a
+              laugh or a run, 74% reported they were better or their symptoms
+              had gone, against 11% of the women who were not doing it. The reviewers
               concluded it belongs in first line care, and that side effects were
               rare and minor.
             </p>

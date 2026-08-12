@@ -29,15 +29,18 @@ import LeakLandingClient from "./LeakLandingClient";
 // hand), meta noindex here, and an X-Robots-Tag on the RSC .txt sibling in
 // public/_headers, which a meta tag cannot cover.
 
-// The title carries the ad headline itself ("Bladder Leakage Exercises"), which
-// is the single strongest message-match signal available above the fold of the
-// browser chrome, and the description echoes the four headlines the page is
-// built around: 5-minute daily sessions, at home with no equipment, built with
-// women's health physios, 90-day money-back guarantee.
+// The title carries the account's top-spending keyword verbatim. On Aug 11,
+// [pelvic floor exercises for incontinence] took $77.84 of the $100.58 spent
+// and sat flagged "Rarely shown (low Quality Score)" while its head token,
+// "incontinence", appeared once on the whole page, buried in a citation. The
+// near-verbatim-matched keyword ([bladder leakage exercises]) was unflagged.
+// Google matches tokens; the token has to exist. This page is noindex, so
+// SERP truncation of the longer title costs nothing; the Quality Score
+// crawler reads all of it.
 export const metadata = {
-  title: "Bladder Leakage Exercises for Women",
+  title: "Pelvic Floor Exercises for Incontinence & Bladder Leaks",
   description:
-    "Pelvic floor exercises for bladder leaks you can do at home in 5 minutes a day. Built with women's health physios, no equipment, no clinic visits, and a 90-day money-back guarantee.",
+    "Pelvic floor exercises for urinary incontinence and bladder leaks, at home in 5 minutes a day. Built with women's health physical therapists, no equipment, no clinic visits, and a 90-day money-back guarantee.",
   robots: { index: false, follow: true },
 };
 
