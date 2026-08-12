@@ -16,9 +16,18 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "./ui";
 
 const ITEM_HEIGHT = 54;
-const VISIBLE_ROWS = 3;
+// Five rows, not three. With three, the fades swallowed the only two
+// neighbouring values, so the "wheel" showed exactly one number and read as a
+// display even to someone looking straight at it. Five gives the selected row
+// two fully visible neighbours, and the outermost pair sits half-hidden under
+// the fades: the next values are literally on screen, waiting, which is the
+// clearest possible "there is more above and below".
+const VISIBLE_ROWS = 5;
 const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE_ROWS;
 const PAD = (WHEEL_HEIGHT - ITEM_HEIGHT) / 2;
+// The fade covers exactly the outermost row at each end. It must NOT reach the
+// selected row's direct neighbours: those stay fully legible on purpose.
+const FADE_HEIGHT = ITEM_HEIGHT;
 
 // A highlighted band with faded numbers above and below reads as a display, not
 // a control: a Clarity recording caught a woman on the age screen spending most
@@ -117,8 +126,14 @@ export default function WheelPicker({
 
   useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
 
+  // NOTE: this deliberately does NOT mark the wheel as touched. Scroll events
+  // cannot tell her thumb from our own code, and both the mount re-centre and
+  // the one-time bounce scroll this element, so "any scroll = touched" retired
+  // the chevrons and the caption within a second of the wheel appearing,
+  // before she had done anything at all. Real interaction is caught where it
+  // is unambiguous instead: pointerdown for a thumb or a mouse, onWheel for a
+  // trackpad or a scroll wheel, keydown for a keyboard.
   const handleScroll = () => {
-    if (!touched) setTouched(true);
     if (frameRef.current) return;
     frameRef.current = requestAnimationFrame(() => {
       frameRef.current = 0;
@@ -179,14 +194,17 @@ export default function WheelPicker({
         style={{ top: PAD, height: ITEM_HEIGHT }}
       />
 
-      {/* Chevrons flanking the band: the universal "scroll here" language. They
-          bob gently until she touches the wheel, then fade out for good. */}
+      {/* Chevrons at the outer edges: the universal "scroll here" language.
+          They used to flank the selection band, but with five rows that spot
+          belongs to the fully visible neighbouring values, so the chevrons now
+          live in the faded end rows where they cover nothing that matters.
+          They bob gently until she touches the wheel, then fade out for good. */}
       <div
         aria-hidden="true"
         className={`pointer-events-none absolute left-1/2 z-30 -translate-x-1/2 text-ios-pink transition-opacity duration-300 ${
           touched ? "opacity-0" : "opacity-100"
         }`}
-        style={{ top: PAD - 20 }}
+        style={{ top: 10 }}
       >
         <svg className="pelvi-wheel-chevron-up" width="22" height="13" viewBox="0 0 22 13" fill="none">
           <path d="M2 11L11 2l9 9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -197,27 +215,31 @@ export default function WheelPicker({
         className={`pointer-events-none absolute left-1/2 z-30 -translate-x-1/2 text-ios-pink transition-opacity duration-300 ${
           touched ? "opacity-0" : "opacity-100"
         }`}
-        style={{ top: PAD + ITEM_HEIGHT + 7 }}
+        style={{ bottom: 10 }}
       >
         <svg className="pelvi-wheel-chevron" width="22" height="13" viewBox="0 0 22 13" fill="none">
           <path d="M2 2l9 9 9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
+      {/* via /75, not /85: the end rows should be dimmed enough to read as
+          "further away" but still visibly BE numbers, because a half-seen
+          value is what tells her the list continues. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-app-background via-app-background/85 to-transparent"
-        style={{ height: PAD }}
+        className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-app-background via-app-background/75 to-transparent"
+        style={{ height: FADE_HEIGHT }}
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-app-background via-app-background/85 to-transparent"
-        style={{ height: PAD }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-app-background via-app-background/75 to-transparent"
+        style={{ height: FADE_HEIGHT }}
       />
 
       <div
         ref={scrollerRef}
         onScroll={handleScroll}
         onKeyDown={(e) => { markTouched(); handleKeyDown(e); }}
+        onWheel={markTouched}
         onPointerDown={() => { markTouched(); setDragging(true); }}
         onPointerUp={() => setDragging(false)}
         onPointerCancel={() => setDragging(false)}

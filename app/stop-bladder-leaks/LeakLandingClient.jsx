@@ -86,7 +86,7 @@ import React, { useEffect, useState } from "react";
 import { Check, Droplet, MonitorPlay, Shield, Timer, TrendingUp, Zap } from "lucide-react";
 
 import {
-  BADGE_TITLE, COVERAGE_TITLE, LADDER_LINE, MILESTONE_CARD_BODY,
+  BADGE_TITLE, CLAIM_EMAIL, COVERAGE_TITLE, LADDER_LINE, MILESTONE_CARD_BODY,
   MILESTONE_CARD_TITLE, coverageBody,
 } from "@/lib/guaranteeCopy";
 import { DEFAULT_PRICE_LABEL } from "@/lib/pricing";
@@ -669,8 +669,22 @@ export default function LeakLandingClient() {
               </p>
             </div>
 
+            {/* The three rungs used to sit here bare, and a reader who has not
+                memorised the iOS guarantee had no way to know what "Day 7: any
+                reason" was a list OF. Three unlabelled checkmarks read as
+                cryptic tiers, not as what they are: three separate days on
+                which she qualifies for the same full refund. So the card now
+                says what the list is before the list starts. The rung strings
+                themselves are shipped iOS copy and stay byte for byte. */}
             <div className="rounded-[20px] border border-app-borderIdle bg-app-background p-5">
-              <ul className="space-y-3">
+              <h3 className="text-[16px] font-bold leading-snug">
+                Three ways to get all of it back
+              </h3>
+              <p className="mt-1.5 text-[14px] leading-relaxed text-app-textSecondary sm:text-[15px]">
+                Whichever line is yours, email {CLAIM_EMAIL} and we send the
+                full {DEFAULT_PRICE_LABEL} back. No forms.
+              </p>
+              <ul className="mt-4 space-y-3">
                 {rungs.map((rung) => (
                   <li key={rung} className="flex items-start gap-3">
                     <span className="mt-[2px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-app-positive/15">

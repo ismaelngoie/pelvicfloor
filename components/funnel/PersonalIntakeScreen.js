@@ -271,8 +271,13 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
           <MiaBubble text={question} showTyping={greeting && subStep === "name"} />
 
           {/* The answer sits centred between what Mia said and the button, so
-              the eye travels question, answer, next, with nothing in between. */}
-          <div className="flex flex-1 flex-col justify-center py-8">
+              the eye travels question, answer, next, with nothing in between.
+              py-4, not py-8: the five-row wheel is 108px taller than the
+              three-row one was, and on a 667px phone the weight step (unit
+              toggle + wheel + captions) overflowed the scroll area by ~20px,
+              clipping the "Scroll to choose" line. On tall phones the flex
+              centring absorbs the difference and nothing moves. */}
+          <div className="flex flex-1 flex-col justify-center py-4">
             {subStep === "name" ? (
               <NameField value={name} onChange={setName} onSubmit={goForward} />
             ) : null}
