@@ -61,6 +61,14 @@ export default function WheelPicker({
   formatLabel,
   label,
   valueText,
+  // Optional one-liner that takes over the caption slot below the wheel. The
+  // default caption is "Scroll to choose", which earns its place exactly once,
+  // on the first wheel a visitor meets; by her second wheel she knows how
+  // wheels work, and that slot is better spent saying WHY we are asking (the
+  // weight and height questions are the two that can read as nosy). A hint is
+  // persistent where the default caption fades on touch, because a reason,
+  // unlike an instruction, stays true after she starts scrolling.
+  hint,
 }) {
   const reduced = useReducedMotion();
   const scrollerRef = useRef(null);
@@ -285,16 +293,22 @@ export default function WheelPicker({
 
     {/* Said in words as well, because the chevrons are silent for anyone who
         does not read motion, and because "Scroll" is the one word that removes
-        all doubt. It leaves the moment she touches the wheel, so it never
-        becomes clutter for the two screens that follow. */}
-    <p
-      aria-hidden="true"
-      className={`mt-2 text-center text-[13px] font-medium text-app-textSecondary transition-opacity duration-300 ${
-        touched ? "opacity-0" : "opacity-100"
-      }`}
-    >
-      Scroll to choose
-    </p>
+        all doubt. It leaves the moment she touches the wheel. When a hint is
+        provided it owns this slot instead and stays put; see the prop note. */}
+    {hint ? (
+      <p className="mx-auto mt-1.5 max-w-[300px] text-center text-[12px] leading-snug text-app-textSecondary/85">
+        {hint}
+      </p>
+    ) : (
+      <p
+        aria-hidden="true"
+        className={`mt-2 text-center text-[13px] font-medium text-app-textSecondary transition-opacity duration-300 ${
+          touched ? "opacity-0" : "opacity-100"
+        }`}
+      >
+        Scroll to choose
+      </p>
+    )}
     </div>
   );
 }

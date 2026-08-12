@@ -82,11 +82,11 @@
 //
 // House rules apply: no em dashes, no en dashes, plain English.
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Check, Droplet, MonitorPlay, Shield, Timer, TrendingUp, Zap } from "lucide-react";
 
 import {
-  BADGE_TITLE, CLAIM_EMAIL, COVERAGE_TITLE, LADDER_LINE, MILESTONE_CARD_BODY,
+  BADGE_TITLE, COVERAGE_TITLE, LADDER_LINE, MILESTONE_CARD_BODY,
   MILESTONE_CARD_TITLE, coverageBody,
 } from "@/lib/guaranteeCopy";
 import { DEFAULT_PRICE_LABEL } from "@/lib/pricing";
@@ -204,6 +204,11 @@ const FAQ = [
       "Both are in scope. They have different causes, birth on one side and falling estrogen on the other, and the plan is built around which one you tell us about, along with your age and how you spend your day.",
   },
   {
+    q: "Does it help in the bedroom too?",
+    a:
+      "The same muscles run both, which is why intimacy is one of the eight goals Pelvi trains. Your plan builds control, relaxation and feeling together, so what improves for the sneeze tends to improve there too.",
+  },
+  {
     q: "I do not have five spare minutes.",
     a:
       "You already spend more than five minutes a day on this. Finding the toilet, choosing the dark trousers, packing the spare pair, deciding not to go. This asks for less time than the leaks are already taking.",
@@ -233,6 +238,41 @@ function useStartHref() {
     }
   }, []);
   return href;
+}
+
+/**
+ * THE STICKY CTA's on switch. The page is around 8,500px tall on a phone and
+ * nearly all of its traffic is a thumb on a phone, so the button must never be
+ * a scroll away. The bar shows once the hero's own button has left the screen
+ * and steps aside while the closing section's button is visible, so there are
+ * never two identical buttons stacked on top of each other.
+ *
+ * IntersectionObserver against the viewport: the page's scroll container is a
+ * fixed element that fills the viewport exactly, so the default root sees the
+ * same geometry. If IO is missing (it is baseline in every browser this page
+ * supports), the bar simply never shows and the three inline buttons carry the
+ * page, which is exactly what shipped before the bar existed.
+ */
+function useStickyCta(heroCtaRef, closeRef) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const hero = heroCtaRef.current;
+    const close = closeRef.current;
+    if (!hero || !close || typeof IntersectionObserver === "undefined") return undefined;
+    let heroIn = true;
+    let closeIn = false;
+    const io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === hero) heroIn = entry.isIntersecting;
+        if (entry.target === close) closeIn = entry.isIntersecting;
+      }
+      setShow(!heroIn && !closeIn);
+    });
+    io.observe(hero);
+    io.observe(close);
+    return () => io.disconnect();
+  }, [heroCtaRef, closeRef]);
+  return show;
 }
 
 /** The one button shape on this page. A plain anchor: "/" is a new document. */
@@ -277,6 +317,9 @@ function GuaranteeBadge({ className = "" }) {
 
 export default function LeakLandingClient() {
   const startHref = useStartHref();
+  const heroCtaRef = useRef(null);
+  const closeRef = useRef(null);
+  const stickyShown = useStickyCta(heroCtaRef, closeRef);
 
   // The page's own rung, 00_lp_leaks, one notch below the funnel's 01_landing.
   // It is what lets the owner split sessions by doorway in Clarity: paywall
@@ -346,7 +389,7 @@ export default function LeakLandingClient() {
             visit, no equipment, and nobody has to know.
           </p>
 
-          <div className="mt-6 flex flex-col items-center gap-3">
+          <div ref={heroCtaRef} className="mt-6 flex flex-col items-center gap-3">
             <StartLink href={startHref} />
             <CtaReassurance />
           </div>
@@ -596,6 +639,33 @@ export default function LeakLandingClient() {
               </li>
             ))}
           </ul>
+
+          {/* THE INTIMACY CALLOUT. Every buyer of this app arrives through some
+              door, and intimacy is the single most chosen goal in the funnel,
+              so the overlap deserves to be said rather than implied. It lives
+              here, in the after state, and NOT in the H1: the headline's job
+              is to repeat the ad she clicked ("bladder leakage exercises"),
+              and diluting that costs Quality Score on every click. The
+              mechanism claim is anatomical fact (one set of muscles does both
+              jobs), and the outcome is carried by a quote from the protected
+              set, byte for byte, covered by the typicality line below. */}
+          <aside className="mx-auto mt-6 max-w-[34rem] rounded-[20px] border border-app-primary/25 bg-blush p-5">
+            <h3 className="text-[16px] font-bold leading-snug sm:text-[17px]">
+              And the part nobody says out loud
+            </h3>
+            <p className="mt-2 text-[15px] leading-relaxed text-app-textSecondary sm:text-[16px]">
+              The muscles that stop the leaks are the same muscles that matter
+              in the bedroom. Train one and you have trained the other.
+            </p>
+            <figure className="mt-3.5 border-l-2 border-app-primary/40 pl-3.5">
+              <blockquote className="text-[15px] leading-snug sm:text-[16px]">
+                <em className="not-italic">&ldquo;{TESTIMONIALS[2].text}&rdquo;</em>
+              </blockquote>
+              <figcaption className="mt-1 text-[13px] font-semibold text-app-textSecondary">
+                {TESTIMONIALS[2].author}
+              </figcaption>
+            </figure>
+          </aside>
         </div>
       </section>
 
@@ -680,9 +750,13 @@ export default function LeakLandingClient() {
               <h3 className="text-[16px] font-bold leading-snug">
                 Three ways to get all of it back
               </h3>
+              {/* No "email us" here. A refund that starts with "email" reads
+                  like a refund that starts with an argument. The mechanics
+                  live in the coverage card below; this line's only job is
+                  that the money comes back. */}
               <p className="mt-1.5 text-[14px] leading-relaxed text-app-textSecondary sm:text-[15px]">
-                Whichever line is yours, email {CLAIM_EMAIL} and we send the
-                full {DEFAULT_PRICE_LABEL} back. No forms.
+                Any one of these gets you the full {DEFAULT_PRICE_LABEL} back.
+                No questions, no forms, no hoops.
               </p>
               <ul className="mt-4 space-y-3">
                 {rungs.map((rung) => (
@@ -765,7 +839,7 @@ export default function LeakLandingClient() {
           The summit line, then the button under it. Nothing else competes at
           this point: no price, no new argument, no third idea. She has read the
           whole page and the only thing left to give her is the reason she came. */}
-      <section className="border-t border-app-borderIdle bg-blush">
+      <section ref={closeRef} className="border-t border-app-borderIdle bg-blush">
         <div className="mx-auto w-full max-w-[42rem] px-5 py-12 pl-[max(1.25rem,var(--sal))] pr-[max(1.25rem,var(--sar))] text-center sm:px-6 tab:py-16">
           <h2 style={H2_SIZE} className="font-bold leading-[1.15] tracking-[-0.02em]">
             Feel like yourself again
@@ -805,6 +879,22 @@ export default function LeakLandingClient() {
           </div>
         </div>
       </footer>
+
+      {/* ------------------------------------------------- the sticky CTA
+          Slides up once the hero button is gone, steps aside for the closing
+          button, and is inert (aria-hidden, no pointer events) while off
+          screen so it can never trap a screen reader or a stray tap. */}
+      <div
+        aria-hidden={!stickyShown}
+        className={`fixed inset-x-0 bottom-0 z-40 border-t border-app-borderIdle bg-white/95 pb-[max(0.75rem,var(--sab))] pl-[max(1.25rem,var(--sal))] pr-[max(1.25rem,var(--sar))] pt-3 backdrop-blur transition-transform duration-300 motion-reduce:transition-none ${
+          stickyShown ? "translate-y-0" : "pointer-events-none translate-y-full"
+        }`}
+      >
+        <div className="mx-auto flex w-full max-w-[26rem] flex-col items-center gap-1.5">
+          <StartLink href={startHref} className="xs:!w-full" />
+          <CtaReassurance />
+        </div>
+      </div>
     </div>
   );
 }

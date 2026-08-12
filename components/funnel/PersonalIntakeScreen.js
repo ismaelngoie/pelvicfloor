@@ -276,8 +276,15 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
               three-row one was, and on a 667px phone the weight step (unit
               toggle + wheel + captions) overflowed the scroll area by ~20px,
               clipping the "Scroll to choose" line. On tall phones the flex
-              centring absorbs the difference and nothing moves. */}
-          <div className="flex flex-1 flex-col justify-center py-4">
+              centring absorbs the difference and nothing moves.
+
+              my-auto, not flex-1 justify-center: they centre identically when
+              there is room, but justify-center pushes overflow out through
+              BOTH ends of a scroll container, and whatever leaves through the
+              top cannot be scrolled back to. Auto margins collapse to zero
+              under pressure instead, so on a 568px phone every line stays
+              reachable. */}
+          <div className="my-auto flex flex-col py-4">
             {subStep === "name" ? (
               <NameField value={name} onChange={setName} onSubmit={goForward} />
             ) : null}
@@ -296,7 +303,7 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
             ) : null}
 
             {subStep === "weight" ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <UnitToggle
                   label="Weight units"
                   value={profile.weightUnit}
@@ -317,13 +324,24 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
                   unit={profile.weightUnit}
                   label={`Your weight in ${profile.weightUnit === "kg" ? "kilograms" : "pounds"}`}
                   valueText={`${weightValue} ${profile.weightUnit}`}
+                  // The reason rides WITH the ask. Weight is the one question
+                  // in this funnel that can read as nosy, and Mia's own
+                  // explanation ("I'll set the pressure and impact...") only
+                  // arrives after she has already answered. The hint takes
+                  // over the wheel's caption slot: "Scroll to choose" earned
+                  // its keep on the age wheel, her first; by this one she
+                  // knows how wheels work, and the slot is better spent on
+                  // why. Goal-neutral on purpose, this screen serves all
+                  // eight goals, and pressure is the honest reason for every
+                  // one of them.
+                  hint="Weight sets the pressure on your pelvic floor."
                 />
                 <p className="text-center text-[14px] text-app-textSecondary">{conversion}</p>
               </div>
             ) : null}
 
             {subStep === "height" ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <UnitToggle
                   label="Height units"
                   value={profile.heightUnit}
@@ -349,6 +367,9 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
                       ? `${heightValue} centimetres`
                       : feetInchesLabel(heightValue)
                   }
+                  // Same treatment as weight: the last question before her
+                  // plan gets its reason stated up front, in the caption slot.
+                  hint="Height fits the plan to your body, not an average."
                 />
                 <p className="text-center text-[14px] text-app-textSecondary">{conversion}</p>
               </div>
