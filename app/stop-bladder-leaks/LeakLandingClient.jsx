@@ -221,6 +221,111 @@ const FAQ = [
   },
 ];
 
+// The product, finally visible. Three real screens: the session player and
+// the daily plan are the app's own App Store screenshots (screens cropped
+// from the owner's marketing set), and the third is the funnel's plan reveal
+// captured from this site, so nothing here is a mockup of something that does
+// not exist. One research gap this closes: the page sold an app subscription
+// with zero product visualization, the biggest miss against every top
+// web-to-app health funnel (MarketingExperiments/SAP: imagery at a key
+// click-through section lifted CTA engagement 62%).
+const APP_FRAMES = [
+  {
+    src: "/lp/app-session.webp",
+    alt: "Pelvi app screenshot: today's five minute session playing in the guided video player",
+    caption: "Your 5-minute session, guided move by move.",
+  },
+  {
+    src: "/lp/app-plan.webp",
+    alt: "Pelvi app screenshot: the daily exercise plan with video categories",
+    caption: "500+ guided videos, arranged into your day.",
+  },
+  {
+    src: "/lp/app-reveal.webp",
+    alt: "Pelvi plan screenshot: a personalized 90 day plan with real dates, shown before payment",
+    caption: "The exact plan you see before you ever pay.",
+  },
+];
+
+/**
+ * Plays the after-state film only while she is looking at it. preload="none"
+ * plus a 15KB poster means the 1.9MB file costs nothing until the section is
+ * actually on screen, and it is the same file the paywall plays, so watching
+ * it here warms the cache for the screen where it matters most. Reduced
+ * motion gets the poster and silence, permanently.
+ */
+function useInViewVideo() {
+  const videoRef = useRef(null);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || typeof IntersectionObserver === "undefined") return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) video.play().catch(() => {});
+          else video.pause();
+        }
+      },
+      { threshold: 0.35 }
+    );
+    io.observe(video);
+    return () => io.disconnect();
+  }, []);
+  return videoRef;
+}
+
+/**
+ * The pelvic floor, drawn instead of described. The page's core mechanism
+ * claim is one sentence ("what feels like a weak bladder is often weak muscle
+ * underneath it"), and this makes that sentence visible: a bladder resting on
+ * a hammock of muscle. Line work echoes the app icon's pelvis mark, inline
+ * SVG so it costs zero requests, and deliberately diagrammatic rather than
+ * anatomical: the reader should think "now I get it", never "gross".
+ */
+function MethodDiagram() {
+  return (
+    <figure className="mx-auto mt-7 max-w-[300px]">
+      <svg
+        viewBox="0 0 240 150"
+        role="img"
+        aria-label="Diagram: the bladder resting on the pelvic floor, a hammock of muscle at the base of the pelvis"
+        className="w-full"
+      >
+        {/* iliac wings, one path mirrored */}
+        <path
+          d="M96 22 C64 10 34 26 30 58 C27 82 44 100 68 106 C60 88 62 70 74 56 C82 46 90 38 96 22 Z"
+          fill="#FDEDF1" stroke="#C0374F" strokeWidth="3" strokeLinejoin="round"
+        />
+        <path
+          d="M144 22 C176 10 206 26 210 58 C213 82 196 100 172 106 C180 88 178 70 166 56 C158 46 150 38 144 22 Z"
+          fill="#FDEDF1" stroke="#C0374F" strokeWidth="3" strokeLinejoin="round"
+        />
+        {/* sacrum, the icon's four stacked discs */}
+        <ellipse cx="120" cy="30" rx="15" ry="6" fill="#C0374F" opacity="0.9" />
+        <ellipse cx="120" cy="46" rx="13" ry="5.5" fill="#C0374F" opacity="0.75" />
+        <ellipse cx="120" cy="61" rx="11" ry="5" fill="#C0374F" opacity="0.6" />
+        <ellipse cx="120" cy="75" rx="9" ry="4.5" fill="#C0374F" opacity="0.45" />
+        {/* the bladder, resting its weight on the hammock */}
+        <circle cx="120" cy="103" r="17" fill="#FADBE3" stroke="#C0374F" strokeWidth="2.5" />
+        {/* the pelvic floor: the hammock, drawn thick and unmistakable */}
+        <path
+          d="M70 112 C88 134 152 134 170 112"
+          fill="none" stroke="#FF2D55" strokeWidth="9" strokeLinecap="round"
+        />
+        {/* muscle fibre ticks across the hammock */}
+        <path d="M88 121 l-3 9 M104 127 l-2 10 M120 129 l0 10 M136 127 l2 10 M152 121 l3 9"
+          stroke="#FF2D55" strokeWidth="2.5" strokeLinecap="round" opacity="0.55"
+        />
+      </svg>
+      <figcaption className="mt-2 text-center text-[13px] leading-snug text-app-textSecondary">
+        Your bladder rests on a hammock of muscle. That hammock is what you
+        train.
+      </figcaption>
+    </figure>
+  );
+}
+
 /**
  * The funnel href with the ad click's own query string carried along.
  *
@@ -259,25 +364,26 @@ function useStartHref() {
  * supports), the bar simply never shows and the three inline buttons carry the
  * page, which is exactly what shipped before the bar existed.
  */
-function useStickyCta(heroCtaRef, closeRef) {
+function useStickyCta() {
   const [show, setShow] = useState(false);
   useEffect(() => {
-    const hero = heroCtaRef.current;
-    const close = closeRef.current;
-    if (!hero || !close || typeof IntersectionObserver === "undefined") return undefined;
-    let heroIn = true;
-    let closeIn = false;
+    // Every in-flow CTA cluster is marked data-cta-block, and the bar shows
+    // only while NONE of them is on screen. The first version watched only
+    // the hero and the close, which stacked a second identical button under
+    // the mid-page ones the moment they scrolled into view.
+    const blocks = [...document.querySelectorAll("[data-cta-block]")];
+    if (!blocks.length || typeof IntersectionObserver === "undefined") return undefined;
+    const visible = new Set();
     const io = new IntersectionObserver((entries) => {
       for (const entry of entries) {
-        if (entry.target === hero) heroIn = entry.isIntersecting;
-        if (entry.target === close) closeIn = entry.isIntersecting;
+        if (entry.isIntersecting) visible.add(entry.target);
+        else visible.delete(entry.target);
       }
-      setShow(!heroIn && !closeIn);
+      setShow(visible.size === 0);
     });
-    io.observe(hero);
-    io.observe(close);
+    blocks.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [heroCtaRef, closeRef]);
+  }, []);
   return show;
 }
 
@@ -349,9 +455,8 @@ function GuaranteeBadge({ className = "" }) {
 
 export default function LeakLandingClient() {
   const startHref = useStartHref();
-  const heroCtaRef = useRef(null);
-  const closeRef = useRef(null);
-  const stickyShown = useStickyCta(heroCtaRef, closeRef);
+  const stickyShown = useStickyCta();
+  const afterVideoRef = useInViewVideo();
 
   // The page's own rung, 00_lp_leaks, one notch below the funnel's 01_landing.
   // It is what lets the owner split sessions by doorway in Clarity: paywall
@@ -438,7 +543,7 @@ export default function LeakLandingClient() {
             no equipment, and nobody has to know.
           </p>
 
-          <div ref={heroCtaRef} className="mt-6 flex flex-col items-center gap-3">
+          <div data-cta-block className="mt-6 flex flex-col items-center gap-3">
             <StartLink href={startHref} />
             <CtaReassurance />
             {/* Risk reversal at the first decision point. VWO's UnderstandQuran
@@ -516,7 +621,7 @@ export default function LeakLandingClient() {
               the funnel wants to consume it, and is harmlessly ignored today.
               Chip answers map to the three clinical patterns (stress, urge,
               mixed) without using those words on her. */}
-          <div className="mx-auto mt-8 max-w-[24rem]">
+          <div data-cta-block className="mx-auto mt-8 max-w-[24rem]">
             <p className="text-center text-[16px] font-bold leading-snug sm:text-[17px]">
               Quick question. When do leaks show up for you?
             </p>
@@ -606,6 +711,8 @@ export default function LeakLandingClient() {
             </p>
           </div>
 
+          <MethodDiagram />
+
           <div className="mx-auto mt-7 max-w-[36rem] rounded-[20px] border border-app-borderIdle bg-app-surface p-5">
             <p className="text-[15px] leading-relaxed text-app-textSecondary sm:text-[16px]">
               Cochrane, the independent group doctors rely on to weigh medical
@@ -691,7 +798,37 @@ export default function LeakLandingClient() {
             ))}
           </ol>
 
-          <div className="mt-8 flex flex-col items-center gap-3">
+          {/* The strip pays off step 2 visually: "see your plan before you
+              pay" stops being a promise and becomes a picture. Snap scroll on
+              a phone (about one and a half frames visible, which is its own
+              "there is more" cue), all three abreast on wider screens. Fixed
+              card widths plus width/height attributes mean zero layout shift
+              while the lazy images arrive. */}
+          <div className="mt-10">
+            <p className="text-center text-[16px] font-bold leading-snug sm:text-[17px]">
+              This is what five minutes looks like
+            </p>
+            <div className="no-scrollbar -mx-5 mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 sm:mx-0 sm:justify-center sm:overflow-visible sm:px-0">
+              {APP_FRAMES.map((frame) => (
+                <figure key={frame.src} className="w-[228px] shrink-0 snap-center sm:w-[196px]">
+                  <img
+                    src={frame.src}
+                    alt={frame.alt}
+                    width={560}
+                    height={1212}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full rounded-[22px] border border-app-borderIdle shadow-[0_10px_28px_rgba(0,0,0,0.10)]"
+                  />
+                  <figcaption className="mt-2.5 text-center text-[13px] leading-snug text-app-textSecondary">
+                    {frame.caption}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+
+          <div data-cta-block className="mt-9 flex flex-col items-center gap-3">
             <StartLink href={startHref} />
             <CtaReassurance />
           </div>
@@ -761,7 +898,30 @@ export default function LeakLandingClient() {
             ))}
           </ul>
 
-          <ul className="mx-auto mt-9 max-w-[34rem] space-y-2.5">
+          {/* The after state as film, not adjectives: fifteen seconds of a
+              woman running through a field with nowhere she has to be. It is
+              the paywall's own background video byte for byte, so playing it
+              here also means it is already in her cache when the paywall
+              needs it. preload="none" and the poster keep it free until this
+              section is actually on screen. */}
+          <div className="mx-auto mt-9 max-w-[34rem] overflow-hidden rounded-[20px] border border-app-borderIdle shadow-[0_10px_28px_rgba(0,0,0,0.08)]">
+            <video
+              ref={afterVideoRef}
+              muted
+              loop
+              playsInline
+              preload="none"
+              poster="/lp/after-poster.jpg"
+              width={1280}
+              height={676}
+              aria-label="A woman running freely across a sunny field"
+              className="block h-auto w-full"
+            >
+              <source src="/paywall_video.mp4" type="video/mp4" />
+            </video>
+          </div>
+
+          <ul className="mx-auto mt-8 max-w-[34rem] space-y-2.5">
             {TRANSFORMATION.map((line) => (
               <li key={line} className="flex items-start gap-3">
                 <span className="mt-[3px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-app-positive/15">
@@ -965,7 +1125,7 @@ export default function LeakLandingClient() {
               that makes it look small, and the promise that she gets it back.
               Without this she has to scroll past six questions she may not
               have to find a way to act on a decision she has already made. */}
-          <div className="mt-8 flex flex-col items-center gap-3">
+          <div data-cta-block className="mt-8 flex flex-col items-center gap-3">
             <StartLink href={startHref} />
             <CtaReassurance />
           </div>
@@ -1011,10 +1171,10 @@ export default function LeakLandingClient() {
           The summit line, then the button under it. Nothing else competes at
           this point: no price, no new argument, no third idea. She has read the
           whole page and the only thing left to give her is the reason she came. */}
-      {/* closeRef wraps the close AND the footer: if it sat on the close
+      {/* The marker wraps the close AND the footer: if it sat on the close
           section alone, scrolling past it into the footer would bring the bar
           back up over the legal links, the one place it must never sit. */}
-      <div ref={closeRef}>
+      <div data-cta-block>
       <section className="border-t border-app-borderIdle bg-blush">
         <div className="mx-auto w-full max-w-[42rem] px-5 py-12 pl-[max(1.25rem,var(--sal))] pr-[max(1.25rem,var(--sar))] text-center sm:px-6 tab:py-16">
           <h2 style={H2_SIZE} className="font-bold leading-[1.15] tracking-[-0.02em]">
