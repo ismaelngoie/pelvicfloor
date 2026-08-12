@@ -5,10 +5,16 @@
 // WHY THE PAGE IS SHAPED THE WAY IT IS
 //
 // She is Problem-Aware, never Unaware. She did not search "bladder leakage
-// exercises" to discover she leaks. So the page does not open by describing the
-// product, it opens by describing her Tuesday. Recognition first, product
-// second. The old H1 ("The pelvic floor exercise plan built to stop bladder
-// leaks") was a feature sentence in the highest-attention slot on the page.
+// exercises" to discover she leaks. So the page opens with a division of
+// labour settled by the campaign's own search-terms data (Aug 2026: the word
+// "exercises" appeared in 178 of 234 paid impressions, "bladder" in 84, and
+// every live ad headline promises exercises): the H1 hands back the words she
+// typed, because message match is what she scans for in the first second and
+// what Quality Score prices; the eyebrow above it carries the pre-suasive
+// emotional line; and the subhead carries the reframe (common, not something
+// to live with, strengthen the muscles that control your bladder). Then the
+// recognition section describes her Tuesday before the product says another
+// word.
 //
 // The emotional spine, in order, and every section below is one beat of it:
 //   1. hero          she is in the right place, and there is a way out
@@ -87,7 +93,7 @@ import { Check, Droplet, MonitorPlay, Shield, Timer, TrendingUp, Zap } from "luc
 
 import {
   BADGE_TITLE, COVERAGE_TITLE, LADDER_LINE, MILESTONE_CARD_BODY,
-  MILESTONE_CARD_TITLE, coverageBody,
+  coverageBody,
 } from "@/lib/guaranteeCopy";
 import { DEFAULT_PRICE_LABEL } from "@/lib/pricing";
 import { ctaLabel, showcaseItems } from "@/lib/paywallCopy";
@@ -131,7 +137,7 @@ const H2_SIZE = { fontSize: "clamp(1.375rem, 1.2rem + 0.8vw, 1.875rem)" };
 // an inventory of her failures.
 const RECOGNITION = [
   "You cross your legs before you sneeze.",
-  "You know where the toilet is in every shop you walk into.",
+  "You know where the bathroom is in every store you walk into.",
   "You wear black. Not because you like black.",
   "There is a spare pair in your bag. Just in case.",
   "You said no to the trampoline with your kids.",
@@ -150,7 +156,7 @@ const WHY_NOTHING_WORKED = [
   {
     title: "Nobody ever coached your kegels",
     body:
-      "Up to half of women doing them are bearing down instead of lifting, which works against them. No one has ever watched you do one and told you which half you are in. That is not you failing. That is being handed one word and no instructions.",
+      "When researchers watched women do kegels after spoken instructions, only about half got them right, and one in four was pushing down instead of lifting, which can make leaks worse. No one has ever watched you do one and told you whether you lift or push. That is not you failing. That is being handed one word and no instructions.",
   },
   {
     title: "A video is not a plan",
@@ -170,8 +176,8 @@ const TRANSFORMATION = [
   "A sneeze arrives and you do not brace for it.",
   "You laugh at the joke properly, the whole way through.",
   "You get on the trampoline.",
-  "You pack for the day without doing the bathroom maths first.",
-  "The pads go in the bin, and you do not replace them.",
+  "You pack for the day without doing the bathroom math first.",
+  "The pads go in the trash, and you do not replace them.",
   "You stop thinking about it, which is the part you actually miss.",
 ];
 
@@ -196,7 +202,7 @@ const FAQ = [
   {
     q: "Will anyone know?",
     a:
-      "No. There is nothing to collect from a shop and nothing on your doorstep. Your answers and your progress are yours, and we do not sell them to anyone.",
+      "No. There is nothing to pick up at a store and nothing showing up on your doorstep. Your answers and your progress are yours, and we do not sell them to anyone.",
   },
   {
     q: "Does it work after a baby, or after menopause?",
@@ -211,7 +217,7 @@ const FAQ = [
   {
     q: "I do not have five spare minutes.",
     a:
-      "You already spend more than five minutes a day on this. Finding the toilet, choosing the dark trousers, packing the spare pair, deciding not to go. This asks for less time than the leaks are already taking.",
+      "You already spend more than five minutes a day on this. Finding the bathroom, choosing the dark pants, packing the spare pair, deciding not to go. This asks for less time than the leaks are already taking.",
   },
 ];
 
@@ -275,12 +281,21 @@ function useStickyCta(heroCtaRef, closeRef) {
   return show;
 }
 
-/** The one button shape on this page. A plain anchor: "/" is a new document. */
+/** The one button shape on this page. A plain anchor: "/" is a new document.
+ *
+ * Deep pink, not ios-pink. White 17px text on #FF2D55 measures about 3.6:1,
+ * under the 4.5:1 WCAG 1.4.3 minimum, and half this page's audience is 45 to
+ * 60 years old reading a phone. The repo already defines primaryInk #C0374F at
+ * 5.38:1 on white for exactly this reason (see tailwind.config.js), so the
+ * gradient runs primaryInk into a 10% darker stop: same pill, same white
+ * label, every stop past 5:1. The button she meets next inside the funnel is
+ * still ios-pink, and the two read as the same brand pink; only the pale end
+ * of the old gradient is gone. */
 function StartLink({ href, children, className = "" }) {
   return (
     <a
       href={href}
-      className={`inline-flex h-14 w-full items-center justify-center whitespace-nowrap rounded-pill bg-gradient-to-b from-ios-pink to-ios-pink/85 px-8 text-[17px] font-bold text-white shadow-[0_8px_24px_rgba(255,45,85,0.30)] transition-transform duration-150 active:scale-[0.98] motion-reduce:transition-none xs:w-auto ${className}`}
+      className={`inline-flex h-14 w-full items-center justify-center whitespace-nowrap rounded-pill bg-gradient-to-b from-app-primaryInk to-[#A93046] px-8 text-[17px] font-bold text-white shadow-[0_8px_24px_rgba(192,55,79,0.35)] transition-transform duration-150 active:scale-[0.98] motion-reduce:transition-none xs:w-auto ${className}`}
     >
       {children || ctaLabel(GOAL_ID)}
     </a>
@@ -379,14 +394,15 @@ export default function LeakLandingClient() {
           </p>
 
           <h1 style={H1_SIZE} className="mt-2.5 font-bold leading-[1.08] tracking-[-0.02em]">
-            Bladder leaks are common. They are not something you have to live
-            with.
+            Pelvic floor exercises for bladder leaks. Five minutes a day, at
+            home.
           </h1>
 
           <p className="mx-auto mt-3.5 max-w-[32rem] text-[15px] leading-[1.45] text-app-textSecondary sm:text-[17px]">
-            Pelvic floor exercises for women, five minutes a day, at home. Built
-            with women&apos;s health physios into a plan for your body. No clinic
-            visit, no equipment, and nobody has to know.
+            Bladder leaks are common, and you do not have to live with them.
+            Your plan is built with women&apos;s health physical therapists to
+            strengthen the muscles that control your bladder. No clinic visit,
+            no equipment, and nobody has to know.
           </p>
 
           <div ref={heroCtaRef} className="mt-6 flex flex-col items-center gap-3">
@@ -442,7 +458,9 @@ export default function LeakLandingClient() {
             About one woman in three lives with this. You are not unusual, you
             are not careless, and there is nothing wrong with you. Common is not
             the same as normal, and it is not the same as permanent. The pelvic
-            floor is muscle. Muscle responds to training, at 32 and at 62.
+            floor is muscle, and what feels like a weak bladder is often weak
+            muscle underneath it. Muscle gets stronger when you train it, at 32
+            and at 62.
           </p>
         </div>
       </section>
@@ -498,23 +516,25 @@ export default function LeakLandingClient() {
               Pelvic floor muscle training. Finding the right muscle, working it
               in the right order, holding and letting go at the right speeds, and
               making it harder as you get stronger. It is the first thing a
-              women&apos;s health physio teaches for bladder leaks, and it is the
+              women&apos;s health physical therapist teaches for bladder leaks, and it is the
               most studied approach there is.
             </p>
           </div>
 
           <div className="mx-auto mt-7 max-w-[36rem] rounded-[20px] border border-app-borderIdle bg-app-surface p-5">
             <p className="text-[15px] leading-relaxed text-app-textSecondary sm:text-[16px]">
-              Cochrane pooled 31 trials covering 1,817 women across 14 countries.
-              Among the women doing pelvic floor muscle training for stress
-              leaks, 74% reported they were better or their symptoms had gone,
-              against 11% of the women who were not doing it. The reviewers
+              Cochrane, the independent group doctors rely on to weigh medical
+              evidence, pooled 31 trials covering 1,817 women across 14
+              countries. Among the women doing pelvic floor muscle training for
+              stress incontinence, the leaks that come with a sneeze, a laugh
+              or a run, 74% reported they were better or their symptoms had
+              gone, against 11% of the women who were not doing it. The reviewers
               concluded it belongs in first line care, and that side effects were
               rare and minor.
             </p>
             <p className="mt-3.5 text-[15px] leading-relaxed text-app-textSecondary sm:text-[16px]">
               That is the method. Pelvi is that method, built with
-              women&apos;s health physios into 500+ short video sessions and
+              women&apos;s health physical therapists into 500+ short video sessions and
               arranged into a 90 day plan around your age, your body and your
               day. Results are not the same for everyone, which is what the
               guarantee below is for.
@@ -534,7 +554,7 @@ export default function LeakLandingClient() {
             {[
               {
                 title: "Tell Coach Mia about you",
-                body: "A few quiet questions about your body and your day. It takes about a minute, and nobody sees the answers but you.",
+                body: "Coach Mia is the guide built into the app, not a person on the other end. A few quiet questions about your body and your day, it takes about a minute, and nobody sees the answers but you.",
               },
               {
                 title: "See your plan before you pay",
@@ -715,8 +735,15 @@ export default function LeakLandingClient() {
         <div className="mx-auto w-full max-w-[44rem] px-5 py-11 pl-[max(1.25rem,var(--sal))] pr-[max(1.25rem,var(--sar))] sm:px-6 tab:py-16">
           <div className="text-center">
             <GuaranteeBadge />
+            {/* Not MILESTONE_CARD_TITLE. The shipped string is "Week 6 is the
+                milestone. Day 90 is the promise.", and inside the funnel the
+                plan reveal has already established what week 6 means. Here
+                nothing has, so "Week 6" was an unexplained number sitting
+                directly above the refund rungs, where it could be misread as
+                one more condition. The page renders only the half it has
+                earned. The shipped string itself is untouched. */}
             <h2 style={H2_SIZE} className="mt-4 font-bold leading-[1.15] tracking-[-0.02em]">
-              {MILESTONE_CARD_TITLE}
+              Day 90 is the promise.
             </h2>
           </div>
 
@@ -725,14 +752,25 @@ export default function LeakLandingClient() {
                 spending money on this problem, just in a form that never ends. */}
             <div className="rounded-[20px] border border-app-primary/25 bg-blush p-5 text-center">
               <p className="text-[15px] leading-relaxed text-app-textSecondary sm:text-[16px]">
-                Pads run about $15 a month, for the rest of your life, and they
-                were never going to change anything. One session with a pelvic
-                floor physio is $150 or more, and it takes a referral and a
-                waiting list.
+                Women with regular leaks spend about $500 a year on pads and
+                extra laundry, and that was measured in 2005 dollars. Year
+                after year, and none of it was ever going to change anything.
+                One session with a pelvic floor physical therapist often costs
+                $150 or more, a full course takes weeks of visits, and step one
+                is telling a stranger everything you have never said out loud.
               </p>
               <p className="mt-4 text-[19px] font-bold leading-snug sm:text-[21px]">
                 Pelvi is {DEFAULT_PRICE_LABEL} for the year. Around 41 cents a
                 day.
+              </p>
+              {/* $492/365 is $1.35 a day against our $0.41: "about triple" is
+                  accurate and rounds in the conservative direction. Gourville's
+                  pennies-a-day research says the per-day frame works best when
+                  it stands next to a small ongoing expense, which is exactly
+                  what the pads line above just established. */}
+              <p className="mt-1.5 text-[14px] leading-snug text-app-textSecondary sm:text-[15px]">
+                In that 2005 study, women spent about triple that just managing
+                the problem.
               </p>
               <p className="mt-2.5 text-[13px] leading-snug text-app-textSecondary sm:text-[14px]">
                 Billed once, renews yearly, cancel anytime.
@@ -756,7 +794,7 @@ export default function LeakLandingClient() {
                   that the money comes back. */}
               <p className="mt-1.5 text-[14px] leading-relaxed text-app-textSecondary sm:text-[15px]">
                 Any one of these gets you the full {DEFAULT_PRICE_LABEL} back.
-                No questions, no forms, no hoops.
+                No forms, no phone calls, no hoops.
               </p>
               <ul className="mt-4 space-y-3">
                 {rungs.map((rung) => (
@@ -839,7 +877,11 @@ export default function LeakLandingClient() {
           The summit line, then the button under it. Nothing else competes at
           this point: no price, no new argument, no third idea. She has read the
           whole page and the only thing left to give her is the reason she came. */}
-      <section ref={closeRef} className="border-t border-app-borderIdle bg-blush">
+      {/* closeRef wraps the close AND the footer: if it sat on the close
+          section alone, scrolling past it into the footer would bring the bar
+          back up over the legal links, the one place it must never sit. */}
+      <div ref={closeRef}>
+      <section className="border-t border-app-borderIdle bg-blush">
         <div className="mx-auto w-full max-w-[42rem] px-5 py-12 pl-[max(1.25rem,var(--sal))] pr-[max(1.25rem,var(--sar))] text-center sm:px-6 tab:py-16">
           <h2 style={H2_SIZE} className="font-bold leading-[1.15] tracking-[-0.02em]">
             Feel like yourself again
@@ -879,6 +921,7 @@ export default function LeakLandingClient() {
           </div>
         </div>
       </footer>
+      </div>
 
       {/* ------------------------------------------------- the sticky CTA
           Slides up once the hero button is gone, steps aside for the closing
