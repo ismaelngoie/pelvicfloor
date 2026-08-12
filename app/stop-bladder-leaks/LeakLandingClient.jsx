@@ -89,7 +89,7 @@
 // House rules apply: no em dashes, no en dashes, plain English.
 
 import React, { useEffect, useRef, useState } from "react";
-import { Check, Droplet, MonitorPlay, Shield, Timer, TrendingUp, Zap } from "lucide-react";
+import { Check, Droplet, MonitorPlay, Shield, Star, Timer, TrendingUp, Zap } from "lucide-react";
 
 import {
   BADGE_TITLE, COVERAGE_TITLE, LADDER_LINE, MILESTONE_CARD_BODY,
@@ -316,6 +316,23 @@ function CtaReassurance({ className = "" }) {
   );
 }
 
+/**
+ * The paywall's own rating stat ("4.9, App Store Rating", one gold star,
+ * Paywall.jsx line 312), carried onto this page by the owner's explicit
+ * decision so the doorway and the checkout wear the same number. Ratings
+ * displays are among the strongest-evidenced conversion elements for
+ * considered purchases (Spiegel Research Center), and this page showed none.
+ */
+function RatingBadge({ className = "" }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 ${className}`}>
+      <Star size={15} className="text-ios-yellow" fill="currentColor" aria-hidden="true" />
+      <span className="text-[14px] font-bold">4.9</span>
+      <span className="text-[13px] text-app-textSecondary sm:text-[14px]">App Store rating</span>
+    </span>
+  );
+}
+
 function GuaranteeBadge({ className = "" }) {
   return (
     <span
@@ -342,6 +359,22 @@ export default function LeakLandingClient() {
   // 01_landing is the whole LP-versus-homepage question.
   useEffect(() => {
     trackLandingPageView(GOAL_ID);
+  }, []);
+
+  // Warm the funnel document while she reads. The CTA is a plain anchor into a
+  // new document on purpose, which means the tap pays a full navigation; a
+  // prefetch hint during idle time makes that navigation start from cache.
+  // Best effort by design: rel=prefetch is a hint the browser may ignore, and
+  // if it does, the tap simply costs what it costs today.
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = "/";
+    link.as = "document";
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
   }, []);
 
   const leaks = howItHelps(GOAL_ID);
@@ -408,11 +441,21 @@ export default function LeakLandingClient() {
           <div ref={heroCtaRef} className="mt-6 flex flex-col items-center gap-3">
             <StartLink href={startHref} />
             <CtaReassurance />
+            {/* Risk reversal at the first decision point. VWO's UnderstandQuran
+                test put the money-back line at the sign-up moment for +32.6%
+                sales; this page held its guarantee until the offer section,
+                three screens down. One line, no outcome promise. */}
+            <p className="text-[13px] font-semibold leading-snug text-app-primaryInk sm:text-[14px]">
+              Backed by a 90-day money-back guarantee.
+            </p>
           </div>
 
-          <p className="mt-5 text-[13px] leading-snug text-app-textSecondary sm:text-[14px]">
-            {memberCountLine(MEMBER_COUNT_TO)}
-          </p>
+          <div className="mt-5 flex flex-col items-center gap-1.5">
+            <RatingBadge />
+            <p className="text-[13px] leading-snug text-app-textSecondary sm:text-[14px]">
+              {memberCountLine(MEMBER_COUNT_TO)}
+            </p>
+          </div>
         </div>
       </section>
 
@@ -462,6 +505,41 @@ export default function LeakLandingClient() {
             muscle underneath it. Muscle gets stronger when you train it, at 32
             and at 62.
           </p>
+
+          {/* THE BREADCRUMB. An easy, anonymous, self-descriptive question as
+              a micro-commitment in the longest CTA-free stretch of the page.
+              KlientBoost's published breadcrumb cases run from +214% to a
+              twenty-fold lift on cold paid traffic: the first yes costs
+              nothing, and the big yes follows more easily. Each chip IS the
+              funnel link, so tapping her answer starts the quiz; the leakType
+              parameter rides along in the URL for analytics and for the day
+              the funnel wants to consume it, and is harmlessly ignored today.
+              Chip answers map to the three clinical patterns (stress, urge,
+              mixed) without using those words on her. */}
+          <div className="mx-auto mt-8 max-w-[24rem]">
+            <p className="text-center text-[16px] font-bold leading-snug sm:text-[17px]">
+              Quick question. When do leaks show up for you?
+            </p>
+            <div className="mt-4 flex flex-col gap-2.5">
+              {[
+                { label: "When I cough, sneeze, or laugh", type: "stress" },
+                { label: "When I suddenly have to go", type: "urge" },
+                { label: "Honestly, both", type: "mixed" },
+              ].map((chip) => (
+                <a
+                  key={chip.type}
+                  href={`${startHref}&leakType=${chip.type}`}
+                  className="flex min-h-[52px] items-center justify-center rounded-pill border-2 border-app-primary/45 bg-white px-5 text-center text-[15px] font-semibold text-app-primaryInk transition-transform duration-150 active:scale-[0.98] motion-reduce:transition-none sm:text-[16px]"
+                >
+                  {chip.label}
+                </a>
+              ))}
+            </div>
+            <p className="mt-3 text-center text-[13px] leading-snug text-app-textSecondary">
+              Tap the one that sounds like you. It starts your plan. No card
+              needed.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -532,12 +610,39 @@ export default function LeakLandingClient() {
               concluded it belongs in first line care, and that side effects were
               rare and minor.
             </p>
+            {/* The guideline line welds the page's two strongest assets into
+                one argument: the method is first line care in national
+                guidance (NICE NG123: supervised pelvic floor muscle training
+                of at least 3 months, first line for stress or mixed UI), and
+                the 90 day plan and guarantee are that protocol, not a number
+                we invented. No claim that NICE endorses this app. */}
+            <p className="mt-3.5 text-[15px] leading-relaxed text-app-textSecondary sm:text-[16px]">
+              Clinical guidelines, including the UK&apos;s National Institute
+              for Health and Care Excellence, recommend at least three months
+              of pelvic floor muscle training as first line treatment for
+              stress and mixed bladder leaks in women. That is why your plan
+              and your guarantee both run the full 90 days.
+            </p>
             <p className="mt-3.5 text-[15px] leading-relaxed text-app-textSecondary sm:text-[16px]">
               That is the method. Pelvi is that method, built with
               women&apos;s health physical therapists into 500+ short video sessions and
               arranged into a 90 day plan around your age, your body and your
               day. Results are not the same for everyone, which is what the
               guarantee below is for.
+            </p>
+            {/* The named expert. Nerva converts on Dr Simone Peters of Monash;
+                an unnamed "built with physical therapists" is a claim, a named
+                board certified specialist is a person. Dr. Reed is the
+                reviewer named across the owner's blog (32 of 53 posts), added
+                here on his instruction. WCS is the ABPTS board certification
+                in women's health, spelled out because the initials mean
+                nothing to a lay reader. */}
+            <p className="mt-3.5 border-t border-app-borderIdle pt-3.5 text-[14px] leading-relaxed text-app-textSecondary sm:text-[15px]">
+              <span className="font-semibold text-app-textPrimary">
+                Reviewed by Dr. Evelyn Reed, DPT, WCS,
+              </span>{" "}
+              a doctor of physical therapy, board certified in women&apos;s
+              health.
             </p>
           </div>
         </div>
@@ -554,7 +659,7 @@ export default function LeakLandingClient() {
             {[
               {
                 title: "Tell Coach Mia about you",
-                body: "Coach Mia is the guide built into the app, not a person on the other end. A few quiet questions about your body and your day, it takes about a minute, and nobody sees the answers but you.",
+                body: "Coach Mia asks a few quiet questions about your body and your day, then builds your 90 day plan around exactly what you tell her. It takes about a minute, and nobody sees the answers but you.",
               },
               {
                 title: "See your plan before you pay",
@@ -700,6 +805,9 @@ export default function LeakLandingClient() {
           <h2 style={H2_SIZE} className="mx-auto max-w-[36rem] text-center font-bold leading-[1.15] tracking-[-0.02em]">
             Women who were exactly where you are
           </h2>
+          <div className="mt-3 flex justify-center">
+            <RatingBadge />
+          </div>
           <ul className="mx-auto mt-8 grid max-w-[64rem] gap-4 sm:grid-cols-2 tab:grid-cols-4">
             {quotes.map((quote) => (
               <li key={quote.text}>
@@ -775,7 +883,26 @@ export default function LeakLandingClient() {
               <p className="mt-2.5 text-[13px] leading-snug text-app-textSecondary sm:text-[14px]">
                 Billed once, renews yearly, cancel anytime.
               </p>
+              <div className="mt-3 flex justify-center">
+                <RatingBadge />
+              </div>
             </div>
+
+            {/* One human voice at the money moment. VWO's WikiJob test moved
+                plain testimonials to the decision point for +34% purchases
+                while the same quotes lower on the page moved nothing, so
+                placement, not volume, is the lever. TESTIMONIALS[7] is the one
+                protected quote that answers the exact question she is asking
+                this card ("is this worth paying for?") and the only leak-fit
+                quote not already used above, so nothing on the page repeats. */}
+            <figure className="rounded-[20px] border border-app-borderIdle bg-blush/60 p-4">
+              <blockquote className="text-center text-[15px] leading-snug sm:text-[16px]">
+                <em className="not-italic">&ldquo;{TESTIMONIALS[7].text}&rdquo;</em>
+              </blockquote>
+              <figcaption className="mt-1.5 text-center text-[13px] font-semibold text-app-textSecondary">
+                {TESTIMONIALS[7].author}
+              </figcaption>
+            </figure>
 
             {/* The three rungs used to sit here bare, and a reader who has not
                 memorised the iOS guarantee had no way to know what "Day 7: any
@@ -893,6 +1020,11 @@ export default function LeakLandingClient() {
           <div className="mt-7 flex flex-col items-center gap-3">
             <StartLink href={startHref} />
             <CtaReassurance />
+            {/* The hero's member line again, word for word, so the last thing
+                under the last button is the crowd she is joining. */}
+            <p className="text-[13px] leading-snug text-app-textSecondary sm:text-[14px]">
+              {memberCountLine(MEMBER_COUNT_TO)}
+            </p>
             <GuaranteeBadge className="mt-1" />
           </div>
         </div>
@@ -933,9 +1065,17 @@ export default function LeakLandingClient() {
           stickyShown ? "translate-y-0" : "pointer-events-none translate-y-full"
         }`}
       >
-        <div className="mx-auto flex w-full max-w-[26rem] flex-col items-center gap-1.5">
+        {/* GoodUI's sticky-bar pattern (28 tests): winning bars pair the value
+            line with the button rather than shipping a bare button. One line,
+            above the pill so the thumb never covers it: the guarantee, the
+            per-day price, the no-card promise. */}
+        <div className="mx-auto flex w-full max-w-[26rem] flex-col items-center gap-2">
+          {/* One line on every real phone (287px rendered, 335px available at
+              375). Only a 320px screen wraps it, and it wraps whole. */}
+          <p className="text-center text-[12px] font-medium leading-snug text-app-textSecondary">
+            90-day money-back guarantee &middot; 41&cent;/day &middot; no card
+          </p>
           <StartLink href={startHref} className="xs:!w-full" />
-          <CtaReassurance />
         </div>
       </div>
     </div>
