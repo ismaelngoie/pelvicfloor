@@ -1,4 +1,4 @@
-// app/terms/page.js
+// app/terms-of-service/page.js
 //
 // The subscription terms, the price, how to cancel, and the guarantees.
 //
@@ -40,14 +40,14 @@ import { DEFAULT_PRICE_LABEL, DEFAULT_PRICE_PERIOD } from "@/lib/pricing";
 import { GOALS } from "@/lib/program";
 
 export const metadata = {
-  title: "Terms",
+  title: "Terms of Service",
   description: `The Pelvi Health subscription terms: ${DEFAULT_PRICE_LABEL} a ${DEFAULT_PRICE_PERIOD}, how to cancel in two taps, and exactly what the 7 day, 30 day and 90-Day Goal Guarantee promises cover.`,
-  alternates: { canonical: "/terms" },
+  alternates: { canonical: "/terms-of-service" },
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Terms | Pelvi Health",
+    title: "Terms of Service | Pelvi Health",
     description: `${DEFAULT_PRICE_LABEL} a ${DEFAULT_PRICE_PERIOD}, cancel in two taps, and the 90-Day Goal Guarantee in full.`,
-    url: "https://pelvi.health/terms",
+    url: "https://pelvi.health/terms-of-service",
     type: "website",
   },
 };
@@ -75,7 +75,7 @@ const SECTIONS = [
 export default function Terms() {
   return (
     <LegalPage
-      title="Terms"
+      title="Terms of Service"
       subtitle="The subscription, the guarantees, and how to leave."
       updated={UPDATED}
     >
