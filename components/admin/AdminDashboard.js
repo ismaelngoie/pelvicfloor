@@ -23,22 +23,21 @@ import {
 } from "firebase/auth";
 import { ADMIN_EMAIL, auth, isAdminEmail, isFirebaseConfigured } from "@/lib/firebase";
 import { fetchAllMembers } from "@/lib/adminData";
+import { fetchAppTelemetry } from "@/lib/adminAppData";
 import { formatDateTime, normalizeMember } from "@/lib/adminMetrics";
 import { FIXTURES_ON } from "@/lib/devFixtures";
-import Overview, { OverviewSkeleton } from "./Overview";
+import AppOverview from "./AppOverview";
+import Acquisition from "./Acquisition";
 import Members, { MembersSkeleton } from "./Members";
-import Audience from "./Audience";
+import Programs from "./Programs";
 import { Button, Card, ErrorState, Segmented } from "./ui";
 
-/**
- * The three sections, named once. The sidebar, the phone segmented control and
- * the skeleton picker all read this, so a fourth tab is one entry rather than
- * three edits that can disagree.
- */
+/** One source of truth for desktop and phone navigation. */
 const TABS = [
-  { id: "overview", label: "Overview", hint: "Numbers and charts" },
-  { id: "members", label: "Members", hint: "Everyone, one by one" },
-  { id: "audience", label: "Audience", hint: "Every email, and the CSV" },
+  { id: "overview", label: "App pulse", hint: "Engagement and program health" },
+  { id: "acquisition", label: "Apple Ads", hint: "Install, trial, and paid" },
+  { id: "members", label: "Members", hint: "Support and app controls" },
+  { id: "programs", label: "Programs", hint: "Edit workouts remotely" },
 ];
 
 const THEME_KEY = "pelvi_admin_theme";
@@ -231,14 +230,12 @@ export default function AdminDashboard() {
   const [signingIn, setSigningIn] = useState(false);
 
   const [members, setMembers] = useState([]);
+  const [telemetry, setTelemetry] = useState({ completions: [], events: [], checkins: [], commands: [], lifecycle: [], lifecycleAvailable: false });
   const [dataState, setDataState] = useState("idle");
   const [dataError, setDataError] = useState("");
   const [countedAt, setCountedAt] = useState(null);
   const [tab, setTab] = useState("overview");
-  // Bumped by every press of "Count again". The Audience tab reads Stripe
-  // through its own endpoint rather than off this Firestore read, so it needs a
-  // signal to refetch; a counter is one, and it does not fire on first mount of
-  // the dashboard, only when the tab is actually opened.
+  // Bumped after every refresh so Apple Ads uses the same fresh 28-day window.
   const [reloadToken, setReloadToken] = useState(0);
 
   const isAdmin = Boolean(user && isAdminEmail(user.email));
@@ -355,13 +352,16 @@ export default function AdminDashboard() {
     setDataError("");
     try {
       let next;
+      let nextTelemetry;
       if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
         const f = await import("@/lib/devFixtureData");
         next = f.fixtureMembers().map((row) => normalizeMember(row));
+        nextTelemetry = { completions: [], events: [], checkins: [], commands: [], lifecycle: [], lifecycleAvailable: false };
       } else {
-        next = await fetchAllMembers();
+        [next, nextTelemetry] = await Promise.all([fetchAllMembers(), fetchAppTelemetry()]);
       }
       setMembers(next);
+      setTelemetry(nextTelemetry);
       setCountedAt(new Date());
       setDataState("ready");
       setReloadToken((n) => n + 1);
@@ -380,6 +380,7 @@ export default function AdminDashboard() {
   }, []);
 
   const now = useMemo(() => countedAt || new Date(), [countedAt]);
+  const appMembers = useMemo(() => members.filter((member) => member.platform === "ios"), [members]);
 
   /* --- Gates ----------------------------------------------------------- */
 
@@ -520,19 +521,16 @@ export default function AdminDashboard() {
                 <ErrorState title="The member list did not load" description={dataError} onRetry={load} />
               </Card>
             ) : dataState === "loading" || dataState === "idle" ? (
-              // The Audience tab waits for the member list too: it joins Stripe
-              // to Firestore on the email address, and joining against a list
-              // that has not arrived would show every payer as a stranger.
-              tab === "overview" ? <OverviewSkeleton /> : <MembersSkeleton />
+              <MembersSkeleton />
             ) : (
               <div style={{ opacity: dataState === "refreshing" ? 0.6 : 1, transition: "opacity 160ms ease" }}>
                 {tab === "overview" ? (
-                  <Overview members={members} now={now} />
-                ) : tab === "audience" ? (
-                  <Audience members={members} user={user} reloadToken={reloadToken} />
-                ) : (
-                  <Members members={members} onPatched={patchMember} />
-                )}
+                  <AppOverview members={appMembers} telemetry={telemetry} now={now} />
+                ) : tab === "acquisition" ? (
+                  <Acquisition user={user} telemetry={telemetry} reloadToken={reloadToken} />
+                ) : tab === "programs" ? (
+                  <Programs />
+                ) : <Members members={appMembers} onPatched={patchMember} />}
               </div>
             )}
           </main>
@@ -544,8 +542,8 @@ export default function AdminDashboard() {
 
   return (
     // data-clarity-mask: the same second layer the member app carries, and for
-    // a stronger reason. This screen lists every member by name, email, goal
-    // and billing state at once. Microsoft Clarity is never injected on /admin
+    // a stronger reason. This screen lists every member by name, email, goal,
+    // app activity, and clinical check-ins. Microsoft Clarity is never injected on /admin
     // (see app/Clarity.jsx), so this only matters if a client-side navigation
     // ever reaches here from a recorded page, which nothing in the product does
     // today. It costs nothing and it fails safe.

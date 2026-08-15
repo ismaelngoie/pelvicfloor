@@ -8,9 +8,7 @@
 
 import { useMemo, useState } from "react";
 import {
-  ENTITLEMENT_LABELS,
   PROGRAM_LENGTH_DAYS,
-  SORT_COLUMNS,
   displayName,
   formatCount,
   formatDate,
@@ -20,17 +18,16 @@ import {
   sortMembers,
 } from "@/lib/adminMetrics";
 import MemberPanel from "./MemberPanel";
-import { Card, EmptyState, Input, Pill, RowsSkeleton, SectionHeader } from "./ui";
+import { Card, EmptyState, Input, RowsSkeleton, SectionHeader } from "./ui";
 
-function entitlementTone(value) {
-  if (value === "active" || value === "ios") return "good";
-  if (value === "trial") return "accent";
-  if (value === "retrying") return "warn";
-  if (value === "expired") return "crit";
-  // "Not known here" stays grey on purpose. It is the commonest state on this
-  // list, it is not a problem, and colouring it would read as one.
-  return "neutral";
-}
+const APP_COLUMNS = [
+  { id: "name", label: "Member" },
+  { id: "goalTitle", label: "Goal" },
+  { id: "programDay", label: "Day", numeric: true },
+  { id: "streak", label: "Streak", numeric: true },
+  { id: "lastSeenAt", label: "Last app open", numeric: true },
+  { id: "joinedAt", label: "Joined", numeric: true },
+];
 
 function dayLabel(member) {
   return Number.isFinite(member.programDay)
@@ -81,7 +78,7 @@ export default function Members({ members, onPatched }) {
     } else {
       setSortKey(columnId);
       // Dates and counts are most useful biggest first; names read A to Z.
-      setSortDir(columnId === "name" || columnId === "goalTitle" || columnId === "entitlement" ? "asc" : "desc");
+      setSortDir(columnId === "name" || columnId === "goalTitle" ? "asc" : "desc");
     }
   };
 
@@ -93,9 +90,9 @@ export default function Members({ members, onPatched }) {
   return (
     <div className="space-y-5">
       <SectionHeader
-        eyebrow="Everyone"
-        title="Members"
-        description='Search by name, email address or member id. Click anyone to see her whole record and to change it. The Subscription column says only what this dashboard can see, so most people read "Not known here" until you look them up in Stripe and mark them.'
+        eyebrow="iPhone members"
+        title="Members and their programs"
+        description="Search by name, email address, or app member id. Open anyone to see her sessions, check-ins, video activity, Coach Mia chat, and app controls."
       />
 
       <div className="relative">
@@ -129,7 +126,7 @@ export default function Members({ members, onPatched }) {
             description={
               term.trim()
                 ? "Try part of a first name, an email address, or the member id shown at the top of her panel."
-                : "Members appear here the moment somebody finishes onboarding on the phone or signs in on the web."
+                : "Members appear here after the iPhone app creates their Firebase profile."
             }
             icon={term.trim() ? "⌕" : "○"}
           />
@@ -165,9 +162,7 @@ export default function Members({ members, onPatched }) {
                         {member.email || "No email on record"}
                       </span>
                     </span>
-                    <Pill tone={entitlementTone(member.entitlement)}>
-                      {ENTITLEMENT_LABELS[member.entitlement]}
-                    </Pill>
+                    <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: "var(--pv-surface-2)", color: "var(--pv-ink-2)" }}>Day {member.programDay || 1}</span>
                   </span>
                   <span
                     className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-[12px]"
@@ -227,7 +222,7 @@ export default function Members({ members, onPatched }) {
                 </caption>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--pv-border)" }}>
-                    {SORT_COLUMNS.map((column, columnIndex) => (
+                    {APP_COLUMNS.map((column, columnIndex) => (
                       <th
                         key={column.id}
                         scope="col"
@@ -301,11 +296,6 @@ export default function Members({ members, onPatched }) {
                       </td>
                       <td className="px-4 py-3 text-right" style={{ color: "var(--pv-ink-2)" }}>
                         {formatDate(member.joinedAt, "Not recorded")}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Pill tone={entitlementTone(member.entitlement)}>
-                          {ENTITLEMENT_LABELS[member.entitlement]}
-                        </Pill>
                       </td>
                     </tr>
                   ))}

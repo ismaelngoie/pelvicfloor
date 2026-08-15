@@ -30,13 +30,11 @@
 //   * Every other person can only ever touch her own record. She cannot list
 //     the members collection, cannot read anyone else's profile, and cannot read
 //     anyone else's chat, check-ins or completions.
-//   * Nobody can edit the exercise catalog or the programs from a phone or a
-//     browser. Those are published from the Firebase console only.
+//   * Only the verified owner can publish the exercise catalog and programs,
+//     either from /admin or the Firebase console. Member accounts cannot.
 //   * Nobody can write her own subscription fields, so a member cannot hand
-//     herself a paid account by editing her own record from the browser
-//     console. Who is actually paying is asked of Stripe directly, live, when
-//     she opens the member app. Nothing about a subscription is stored here
-//     except the note the owner can write by hand in /admin.
+//     herself paid app access by editing Firestore. RevenueCat remains the
+//     source of truth for App Store purchases.
 //
 // -----------------------------------------------------------------------------
 // BEFORE YOU PUBLISH: READ THIS ONCE
@@ -267,6 +265,14 @@ service cloud.firestore {
       allow create: if signedIn();
       allow read: if isAdmin();
       allow update, delete: if false;
+    }
+
+    // Server-side RevenueCat purchase lifecycle events. The Cloudflare Worker
+    // writes with a service account (rules do not apply to it); only the owner
+    // dashboard may read the records used for install -> trial -> paid reports.
+    match /revenuecat_events/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // --- Everything else -----------------------------------------------------
