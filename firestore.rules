@@ -231,6 +231,27 @@ service cloud.firestore {
       }
     }
 
+    // The overview counts activity across every member with collectionGroup()
+    // queries. Firestore evaluates those queries against a collection-group
+    // rule, not the nested users/{userId}/... rule above. These four read-only
+    // admin matches make the totals load without opening any member data to a
+    // normal account. Writes still go through the owner-scoped rule above.
+    match /{path=**}/completions/{document} {
+      allow read: if isAdmin();
+    }
+
+    match /{path=**}/events/{document} {
+      allow read: if isAdmin();
+    }
+
+    match /{path=**}/checkins/{document} {
+      allow read: if isAdmin();
+    }
+
+    match /{path=**}/adminCommands/{document} {
+      allow read: if isAdmin();
+    }
+
     // --- Published content ---------------------------------------------------
     //
     // content/catalog_v1 and content/programs_v1 hold newer copies of the
