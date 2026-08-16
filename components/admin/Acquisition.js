@@ -238,13 +238,6 @@ function normalizedName(value) {
   return text(value).toLocaleLowerCase();
 }
 
-function campaignMatchesEvent(campaignId, campaignName, event) {
-  const eventCampaignId = text(event.campaignId);
-  if (eventCampaignId) return Boolean(campaignId) && eventCampaignId === campaignId;
-  return Boolean(campaignName)
-    && normalizedName(event.campaignName) === normalizedName(campaignName);
-}
-
 function FunnelStep({ label, value, displayValue, denominator, detail, accent }) {
   const hasDenominator = denominator !== null && denominator !== undefined;
   return (
@@ -392,54 +385,161 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
       ) : state === "loading" ? (
         <div className="pv-skeleton h-72 w-full" />
       ) : (
-        <CampaignTable campaigns={report?.campaigns || []} lifecycle={lifecycle} telemetryAvailable={telemetryAvailable} revenueCatCoverageComplete={revenueCatCoverageComplete} />
+        <CampaignTable
+          campaigns={report?.campaigns || []}
+          lifecycle={lifecycle}
+          telemetryAvailable={telemetryAvailable}
+          revenueCatCoverageComplete={revenueCatCoverageComplete}
+          totalTrialStarts={allTrialStarts}
+          totalFirstPaid={firstPaidCustomers}
+          reportTotals={appleTotals}
+          costCoverageAligned={costCoverageAligned}
+          ownerScopeMatches={ownerScopeMatches}
+        />
       )}
     </div>
   );
 }
 
-function CampaignTable({ campaigns, lifecycle, telemetryAvailable, revenueCatCoverageComplete }) {
-  const rows = campaigns.map((campaign) => {
+function CampaignTable({
+  campaigns,
+  lifecycle,
+  telemetryAvailable,
+  revenueCatCoverageComplete,
+  totalTrialStarts,
+  totalFirstPaid,
+  reportTotals,
+  costCoverageAligned,
+  ownerScopeMatches,
+}) {
+  const campaignRows = campaigns.map((campaign, index) => {
     const id = text(String(campaign.id || campaign.campaignId || ""));
     const name = campaign.name || campaign.campaignName || "Unnamed campaign";
-    const events = lifecycle.filter((event) => campaignMatchesEvent(id, name, event));
-    const metrics = summarizeLifecycle(events);
     return {
       ...campaign,
       id,
       name,
-      trials: metrics.trialStarts.length,
-      paid: metrics.paidMembers.length,
+      rowKey: `${id || normalizedName(name) || "campaign"}:${index}`,
     };
   });
 
+  const eventsByCampaign = campaignRows.map(() => []);
+  const campaignIndexById = new Map();
+  const campaignIndexesByName = new Map();
+  campaignRows.forEach((row, index) => {
+    if (row.id && !campaignIndexById.has(row.id)) campaignIndexById.set(row.id, index);
+    const nameKey = normalizedName(row.name);
+    if (!nameKey) return;
+    const indexes = campaignIndexesByName.get(nameKey) || [];
+    indexes.push(index);
+    campaignIndexesByName.set(nameKey, indexes);
+  });
+
+  lifecycle.forEach((event) => {
+    const eventCampaignId = text(event.campaignId);
+    let campaignIndex = eventCampaignId ? campaignIndexById.get(eventCampaignId) : undefined;
+    if (campaignIndex === undefined && !eventCampaignId) {
+      const nameMatches = campaignIndexesByName.get(normalizedName(event.campaignName)) || [];
+      if (nameMatches.length === 1) campaignIndex = nameMatches[0];
+    }
+    if (campaignIndex !== undefined) eventsByCampaign[campaignIndex].push(event);
+  });
+
+  const rows = campaignRows.map((campaign, index) => {
+    const metrics = summarizeLifecycle(eventsByCampaign[index]);
+    return {
+      ...campaign,
+      trials: metrics.trialStarts.length,
+      firstPaid: metrics.directPurchases.length + metrics.trialConversions.length,
+    };
+  });
+
+  const confirmedTrials = rows.reduce((sum, row) => sum + row.trials, 0);
+  const confirmedPaid = rows.reduce((sum, row) => sum + row.firstPaid, 0);
+  const hasTrialTotal = ownerScopeMatches && Number.isFinite(totalTrialStarts);
+  const hasPaidTotal = ownerScopeMatches && Number.isFinite(totalFirstPaid);
+  const unidentifiedTrials = telemetryAvailable && hasTrialTotal
+    ? Math.max(0, totalTrialStarts - confirmedTrials)
+    : null;
+  const unidentifiedPaid = telemetryAvailable && hasPaidTotal
+    ? Math.max(0, totalFirstPaid - confirmedPaid)
+    : null;
+  const showUnidentified = (unidentifiedTrials || 0) > 0 || (unidentifiedPaid || 0) > 0;
+  const reconciliationMismatch = telemetryAvailable && (
+    (hasTrialTotal && confirmedTrials > totalTrialStarts)
+    || (hasPaidTotal && confirmedPaid > totalFirstPaid)
+  );
+  const totalSpend = Number(reportTotals?.spend);
+  const totalTaps = Number(reportTotals?.taps);
+  const totalInstalls = Number(reportTotals?.totalInstalls);
+  const displayTotalSpend = Number.isFinite(totalSpend)
+    ? totalSpend
+    : rows.reduce((sum, row) => sum + (Number(row.spend) || 0), 0);
+  const displayTotalTaps = Number.isFinite(totalTaps)
+    ? totalTaps
+    : rows.reduce((sum, row) => sum + (Number(row.taps) || 0), 0);
+  const displayTotalInstalls = Number.isFinite(totalInstalls)
+    ? totalInstalls
+    : rows.reduce((sum, row) => sum + (Number(row.installs) || 0), 0);
+
   return (
     <section>
-      <SectionHeader eyebrow="Campaign truth" title="Every campaign in one table" description={!telemetryAvailable ? "Spend and installs come from Apple. Trial and paid cells show unavailable because RevenueCat telemetry could not be read." : revenueCatCoverageComplete ? "Spend and installs come from Apple. Trials and paid conversions come from RevenueCat, never from an estimate." : "Apple spend and installs cover 28 days. RevenueCat trial and paid counts begin Aug 15, 2026, so cost per paid stays blank until both sources cover the same window."} />
+      <SectionHeader eyebrow="Campaign truth" title="Every campaign in one table" description={!telemetryAvailable ? "Spend and installs come from Apple. Trial and paid cells show unavailable because RevenueCat telemetry could not be read." : revenueCatCoverageComplete ? "Spend and installs come from Apple. Trials and paid conversions come from RevenueCat, never from an estimate." : "Named campaigns show only confirmed attribution. Any remaining trial or first payment appears as Campaign not identified so the table always reconciles with RevenueCat's complete totals."} />
       <Card flat className="overflow-hidden" style={{ background: "var(--pv-surface-solid)" }}>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex="0" aria-label="Apple Ads campaign performance table">
           <table className="w-full min-w-[860px] text-left text-[13px]">
+            <caption className="sr-only">Apple Ads spend, installs, confirmed campaign outcomes, unidentified outcomes, and authoritative totals</caption>
             <thead><tr style={{ borderBottom: "1px solid var(--pv-border)" }}>
-              {['Campaign','Spend','Taps','Installs','Trials','Paid','Cost / paid'].map((label) => <th key={label} className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--pv-ink-3)" }}>{label}</th>)}
+              {['Campaign','Spend','Taps','Installs','Trials','First paid','Cost / first paid'].map((label) => <th key={label} scope="col" className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--pv-ink-3)" }}>{label}</th>)}
             </tr></thead>
             <tbody>
               {rows.map((row) => {
                 const spend = Number(row.spend) || 0;
-                return <tr key={row.id || row.name} style={{ borderBottom: "1px solid var(--pv-border)" }}>
-                  <td className="px-4 py-4"><p className="font-semibold" style={{ color: "var(--pv-ink)" }}>{row.name}</p><p className="mt-1 text-[11px]" style={{ color: "var(--pv-ink-3)" }}>{row.status || ""}</p></td>
+                return <tr key={row.rowKey} style={{ borderBottom: "1px solid var(--pv-border)" }}>
+                  <th scope="row" className="px-4 py-4 text-left"><p className="font-semibold" style={{ color: "var(--pv-ink)" }}>{row.name}</p><p className="mt-1 text-[11px] font-normal" style={{ color: "var(--pv-ink-3)" }}>{row.status || ""}</p></th>
                   <td className="pv-tabular px-4 py-4">{formatMoneyExact(spend)}</td>
                   <td className="pv-tabular px-4 py-4">{formatCount(Number(row.taps) || 0)}</td>
                   <td className="pv-tabular px-4 py-4">{formatCount(Number(row.installs) || 0)}</td>
                   <td className="pv-tabular px-4 py-4">{telemetryAvailable ? formatCount(row.trials) : "—"}</td>
-                  <td className="pv-tabular px-4 py-4 font-semibold">{telemetryAvailable ? formatCount(row.paid) : "—"}</td>
-                  <td className="pv-tabular px-4 py-4">{telemetryAvailable && revenueCatCoverageComplete && row.paid ? formatMoneyExact(spend / row.paid) : "—"}</td>
+                  <td className="pv-tabular px-4 py-4 font-semibold">{telemetryAvailable ? formatCount(row.firstPaid) : "—"}</td>
+                  <td className="pv-tabular px-4 py-4">{telemetryAvailable && revenueCatCoverageComplete && row.firstPaid ? formatMoneyExact(spend / row.firstPaid) : "—"}</td>
                 </tr>;
               })}
+              {showUnidentified ? (
+                <tr style={{ borderBottom: "1px solid var(--pv-border)", background: "color-mix(in srgb, var(--pv-warn) 6%, transparent)" }}>
+                  <th scope="row" className="px-4 py-4 text-left">
+                    <p className="font-semibold" style={{ color: "var(--pv-ink)" }}>Campaign not identified</p>
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--pv-warn)" }}>No confirmed campaign reported</p>
+                  </th>
+                  <td className="pv-tabular px-4 py-4"><span aria-label="Not available">—</span></td>
+                  <td className="pv-tabular px-4 py-4"><span aria-label="Not available">—</span></td>
+                  <td className="pv-tabular px-4 py-4"><span aria-label="Not available">—</span></td>
+                  <td className="pv-tabular px-4 py-4">{hasTrialTotal ? formatCount(unidentifiedTrials) : "—"}</td>
+                  <td className="pv-tabular px-4 py-4 font-semibold">{hasPaidTotal ? formatCount(unidentifiedPaid) : "—"}</td>
+                  <td className="pv-tabular px-4 py-4"><span aria-label="Not available">—</span></td>
+                </tr>
+              ) : null}
               {!rows.length ? <tr><td colSpan="7" className="px-5 py-12 text-center" style={{ color: "var(--pv-ink-2)" }}>No Apple Ads campaign rows were returned for this period.</td></tr> : null}
             </tbody>
+            <tfoot>
+              <tr style={{ borderTop: "1px solid var(--pv-border)", background: "color-mix(in srgb, var(--pv-violet) 7%, var(--pv-surface-solid))" }}>
+                <th scope="row" className="px-4 py-4 text-left">
+                  <p className="font-semibold" style={{ color: "var(--pv-ink)" }}>Total</p>
+                  <p className="mt-1 text-[11px] font-normal uppercase tracking-[0.08em]" style={{ color: "var(--pv-ink-3)" }}>Apple Ads + RevenueCat</p>
+                </th>
+                <td className="pv-tabular px-4 py-4 font-semibold">{formatMoneyExact(displayTotalSpend)}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{formatCount(displayTotalTaps)}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{formatCount(displayTotalInstalls)}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{hasTrialTotal ? formatCount(totalTrialStarts) : "—"}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{hasPaidTotal ? formatCount(totalFirstPaid) : "—"}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{costCoverageAligned && totalFirstPaid > 0 ? formatMoneyExact(displayTotalSpend / totalFirstPaid) : "—"}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </Card>
+      {showUnidentified ? <p className="mt-3 text-[12px] leading-relaxed" style={{ color: "var(--pv-ink-3)" }}>Campaign not identified is the difference between RevenueCat's complete App Store outcomes and outcomes with a confirmed Apple campaign. It may be organic, privacy-limited, or still processing; if RevenueCat later confirms a campaign, the outcome moves into that campaign automatically.</p> : null}
+      {reconciliationMismatch ? <p className="mt-2 text-[12px] leading-relaxed" role="status" style={{ color: "var(--pv-warn)" }}>RevenueCat is still reconciling recent events: confirmed campaign rows temporarily exceed its current all-App-Store total. No negative remainder was shown.</p> : null}
     </section>
   );
 }
