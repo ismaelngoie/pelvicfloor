@@ -54,6 +54,7 @@ export async function onRequestPost({ request, env }) {
         startTime: dates.start,
         endTime: dates.end,
         selector: {
+          orderBy: [{ field: "campaignId", sortOrder: "ASCENDING" }],
           pagination: { offset: 0, limit: 1000 },
         },
         timeZone: "UTC",
