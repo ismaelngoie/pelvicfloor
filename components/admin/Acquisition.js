@@ -50,11 +50,44 @@ export default function Acquisition({ user, telemetry, reloadToken }) {
     return () => { active = false; };
   }, [user, range.startDate, range.endDate, reloadToken]);
 
-  const lifecycle = useMemo(() => telemetry.lifecycle.filter((event) => {
-    if (event.environment && event.environment !== "PRODUCTION") return false;
-    const attributedToAppleAds = event.mediaSource === "apple_search_ads" || Boolean(event.campaignId);
-    return attributedToAppleAds && event.occurredAt && event.occurredAt >= range.start && event.occurredAt <= new Date(range.end.getTime() + 86400000);
-  }), [telemetry.lifecycle, range]);
+  const lifecycle = useMemo(() => {
+    // Attribution can arrive after INITIAL_PURCHASE because Apple resolves the
+    // AdServices token asynchronously. Carry a later attributed event back to
+    // earlier events for the same RevenueCat user so a real trial is not lost
+    // merely because its first webhook won a race by a few minutes.
+    const byUser = new Map();
+    for (const event of telemetry.lifecycle) {
+      if (!event.appUserId) continue;
+      const source = String(event.mediaSource || "").toLowerCase().replaceAll(" ", "_");
+      const attributed = source === "apple_search_ads" || Boolean(event.campaignId || event.campaignName);
+      if (attributed) byUser.set(event.appUserId, {
+        mediaSource: event.mediaSource,
+        campaignId: event.campaignId,
+        campaignName: event.campaignName,
+        adGroupId: event.adGroupId,
+        adGroupName: event.adGroupName,
+        keyword: event.keyword,
+      });
+    }
+
+    return telemetry.lifecycle.map((event) => {
+      const known = byUser.get(event.appUserId);
+      return known ? {
+        ...event,
+        mediaSource: event.mediaSource || known.mediaSource,
+        campaignId: event.campaignId || known.campaignId,
+        campaignName: event.campaignName || known.campaignName,
+        adGroupId: event.adGroupId || known.adGroupId,
+        adGroupName: event.adGroupName || known.adGroupName,
+        keyword: event.keyword || known.keyword,
+      } : event;
+    }).filter((event) => {
+      if (event.environment && event.environment !== "PRODUCTION") return false;
+      const source = String(event.mediaSource || "").toLowerCase().replaceAll(" ", "_");
+      const attributedToAppleAds = source === "apple_search_ads" || Boolean(event.campaignId || event.campaignName);
+      return attributedToAppleAds && event.occurredAt && event.occurredAt >= range.start && event.occurredAt <= new Date(range.end.getTime() + 86400000);
+    });
+  }, [telemetry.lifecycle, range]);
 
   const trialStarts = lifecycle.filter((event) => event.type === "INITIAL_PURCHASE" && event.periodType === "TRIAL");
   const directPurchases = lifecycle.filter((event) => event.type === "INITIAL_PURCHASE" && event.periodType !== "TRIAL");
@@ -98,7 +131,7 @@ function CampaignTable({ campaigns, lifecycle }) {
   const rows = campaigns.map((campaign) => {
     const id = String(campaign.id || campaign.campaignId || "");
     const name = campaign.name || campaign.campaignName || "Unnamed campaign";
-    const events = lifecycle.filter((event) => event.campaignId === id || (!event.campaignId && event.campaignName === name));
+    const events = lifecycle.filter((event) => event.campaignId === id || event.campaignName === name);
     const trials = events.filter((event) => event.type === "INITIAL_PURCHASE" && event.periodType === "TRIAL").length;
     const paid = events.filter((event) => (event.type === "RENEWAL" && event.trialConversion) || (event.type === "INITIAL_PURCHASE" && event.periodType !== "TRIAL")).length;
     return { ...campaign, id, name, trials, paid };

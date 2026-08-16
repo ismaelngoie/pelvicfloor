@@ -36,6 +36,14 @@ export async function onRequestPost({ request, env }) {
     const token = await accessToken(account);
     const projectId = projectIdFrom(env, account);
     const attributes = event.subscriber_attributes || {};
+    const campaign = attributionPair(
+      attribute(attributes, "$campaign"),
+      attribute(attributes, "$appleAdsCampaignId")
+    );
+    const adGroup = attributionPair(
+      attribute(attributes, "$adGroup"),
+      attribute(attributes, "$appleAdsAdGroupId")
+    );
     const fields = {
       type: typedValue(event.type),
       store: typedValue(event.store),
@@ -50,8 +58,10 @@ export async function onRequestPost({ request, env }) {
       expirationAt: typedValue(iso(event.expiration_at_ms)),
       transactionId: typedValue(event.transaction_id || ""),
       originalTransactionId: typedValue(event.original_transaction_id || ""),
-      campaignId: typedValue(attribute(attributes, "$campaign")),
-      adGroupId: typedValue(attribute(attributes, "$adGroup")),
+      campaignId: typedValue(campaign.id),
+      campaignName: typedValue(campaign.name),
+      adGroupId: typedValue(adGroup.id),
+      adGroupName: typedValue(adGroup.name),
       keyword: typedValue(attribute(attributes, "$keyword")),
       mediaSource: typedValue(attribute(attributes, "$mediaSource")),
       price: typedValue(Number(event.price) || 0),
@@ -78,6 +88,18 @@ export async function onRequestPost({ request, env }) {
 function attribute(attributes, name) {
   const entry = attributes?.[name];
   return typeof entry?.value === "string" ? entry.value : "";
+}
+
+// The approved iPhone app sends Apple's numeric ids through RevenueCat's
+// $campaign/$adGroup fields. RevenueCat's Advanced integration can instead
+// resolve those same fields to human-readable names. Accept both shapes, and
+// prefer the dedicated id attribute if a future SDK supplies it.
+function attributionPair(value, explicitId) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  const id = typeof explicitId === "string" && explicitId.trim()
+    ? explicitId.trim()
+    : /^\d+$/.test(raw) ? raw : "";
+  return { id, name: id === raw ? "" : raw };
 }
 
 function iso(milliseconds) {
