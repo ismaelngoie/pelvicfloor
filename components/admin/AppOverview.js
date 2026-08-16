@@ -4,7 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchAppleAdsReport } from "@/lib/adminAppData";
 import { Card, ErrorState, SectionHeader } from "./ui";
 import { formatCount, formatMoneyExact, formatPercent, formatRelativeDay, startOfDay } from "@/lib/adminMetrics";
-import { prepareLifecycle, summarizeLifecycle, utcRange } from "./Acquisition";
+import { utcRange } from "./Acquisition";
+import OwnerRevenue from "./OwnerRevenue";
+import OwnerGrowth from "./OwnerGrowth";
+import PremiumMemberMap from "./PremiumMemberMap";
+
+function ownerValue(report, key) {
+  const metric = report?.metrics?.[key];
+  const value = Number(metric?.value);
+  return metric?.available === true && Number.isFinite(value) ? value : null;
+}
+
+function ownerMoney(value, currency = "USD") {
+  return Number.isFinite(value) ? formatMoneyExact(value, currency) : null;
+}
 
 function Metric({ label, value, note, tone = "default" }) {
   const color = tone === "good" ? "var(--pv-good)" : tone === "warn" ? "var(--pv-warn)" : "var(--pv-ink)";
@@ -69,7 +82,7 @@ function LastSeenChart({ buckets }) {
   );
 }
 
-function AcquisitionPulse({ user, telemetry, reloadToken, onOpen }) {
+function AcquisitionPulse({ user, ownerMetrics, reloadToken, onOpen }) {
   const [state, setState] = useState("loading");
   const [report, setReport] = useState(null);
   const range = useMemo(() => utcRange(28), [reloadToken]);
@@ -94,22 +107,21 @@ function AcquisitionPulse({ user, telemetry, reloadToken, onOpen }) {
     return () => { active = false; };
   }, [user, range.startDate, range.endDate, reloadToken]);
 
-  const lifecycle = useMemo(
-    () => prepareLifecycle(Array.isArray(telemetry?.lifecycle) ? telemetry.lifecycle : [], range),
-    [telemetry?.lifecycle, range]
-  );
-  const conversions = useMemo(() => summarizeLifecycle(lifecycle), [lifecycle]);
   const appleReady = state === "ready";
-  const revenueCatReady = telemetry?.lifecycleAvailable === true;
   const installs = Number(report?.totals?.totalInstalls) || 0;
   const spend = Number(report?.totals?.spend) || 0;
+  const trialsStarted = ownerValue(ownerMetrics, "trialsStarted");
+  const firstPaid = ownerValue(ownerMetrics, "firstPaidCustomers");
+  const appleCurrency = report?.currency || report?.totals?.currency || null;
+  const revenueCurrency = ownerMetrics?.scope?.currency || null;
+  const costReady = appleReady && Boolean(appleCurrency) && appleCurrency === revenueCurrency;
 
   return (
     <section>
       <SectionHeader
         eyebrow="Acquisition pulse"
         title="Apple Ads at a glance"
-        description="Apple spend and installs cover the last 28 UTC days. RevenueCat conversion history begins Aug 15, 2026, so tracked trials and paid members use the honest shorter window for now."
+        description="Apple spend, installs, and RevenueCat App Store outcomes use the same 28-day UTC window. Cost is calculated from real totals, never estimated from onboarding profiles."
         action={onOpen ? (
           <button
             type="button"
@@ -124,14 +136,14 @@ function AcquisitionPulse({ user, telemetry, reloadToken, onOpen }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Apple Ads installs · 28d" value={appleReady ? formatCount(installs) : "—"} note={appleReady ? `${formatMoneyExact(spend)} total spend` : state === "loading" ? "Loading Apple’s report" : "Apple reporting is unavailable"} />
         <Metric label="Cost per install · 28d" value={appleReady && installs > 0 ? formatMoneyExact(spend / installs) : "—"} note="Apple spend divided by Apple-reported installs" />
-        <Metric label="Tracked trials" value={revenueCatReady ? formatCount(conversions.trialStarts.length) : "—"} note="Apple-attributed RevenueCat trials observed since Aug 15" tone="good" />
-        <Metric label="Tracked first paid" value={revenueCatReady ? formatCount(conversions.paidMembers.length) : "—"} note="Unique direct purchases plus observed trial conversions" tone="good" />
+        <Metric label="All App Store trials · 28d" value={Number.isFinite(trialsStarted) ? formatCount(trialsStarted) : "—"} note={!Number.isFinite(trialsStarted) ? "RevenueCat reporting is unavailable" : !costReady ? "Cost appears when Apple and RevenueCat return the same currency" : trialsStarted > 0 ? `${formatMoneyExact(spend / trialsStarted)} per trial start` : "No trial starts in this period"} tone="good" />
+        <Metric label="First-paid subscriptions · 28d" value={Number.isFinite(firstPaid) ? formatCount(firstPaid) : "—"} note={!Number.isFinite(firstPaid) ? "RevenueCat reporting is unavailable" : !costReady ? "Cost appears when Apple and RevenueCat return the same currency" : firstPaid > 0 ? `${formatMoneyExact(spend / firstPaid)} per first-paid subscription` : "No first payments in this period"} tone="good" />
       </div>
     </section>
   );
 }
 
-export default function AppOverview({ members, allPeople, membership, membershipError, telemetry, now, user, reloadToken, onOpenAcquisition, onRetry }) {
+export default function AppOverview({ members, allPeople, membership, membershipError, ownerMetrics, ownerMetricsError, telemetry, now, user, reloadToken, onOpenAcquisition, onRetry }) {
   const stats = useMemo(() => {
     const monthAgo = new Date(now.getTime() - 30 * 86400000);
     const activeIds = new Set();
@@ -198,9 +210,111 @@ export default function AppOverview({ members, allPeople, membership, membership
   const canceled = Number.isFinite(totals.canceledWithAccess) ? totals.canceledWithAccess : 0;
   const syncedActive = Number.isFinite(totals.syncedActivePremium) ? totals.syncedActivePremium : members.length;
   const goalMax = Math.max(1, ...stats.goals.map((row) => row.value));
+  const currency = ownerMetrics?.scope?.currency || "USD";
+  const grossRevenue = ownerValue(ownerMetrics, "grossRevenue");
+  const lifetimeGrossRevenue = ownerValue(ownerMetrics, "lifetimeGrossRevenue");
+  const lifetimeTransactions = ownerValue(ownerMetrics, "lifetimeTransactions");
+  const paidRenewing = ownerValue(ownerMetrics, "paidSetToRenew");
+  const trialRenewing = ownerValue(ownerMetrics, "trialsSetToRenew");
+  const grossMrr = ownerValue(ownerMetrics, "mrr");
+  const grossArr = ownerValue(ownerMetrics, "arr");
+  const cancellations = ownerValue(ownerMetrics, "activeCancellations");
+  const refunds = ownerValue(ownerMetrics, "refundedTransactions");
+  const refundDetails = ownerMetrics?.metrics?.refundedTransactions || {};
+  const countries = (Array.isArray(ownerMetrics?.geography?.countries) ? ownerMetrics.geography.countries : []).map((country) => ({
+    countryCode: country.code,
+    country: country.name,
+    count: country.activePremium,
+    paid: country.paid,
+    trials: country.trials,
+  }));
+  const growthPoints = Array.isArray(ownerMetrics?.growth?.points)
+    ? ownerMetrics.growth.points
+    : Array.isArray(ownerMetrics?.snapshots)
+      ? ownerMetrics.snapshots
+      : [];
+  const revenueKpis = [
+    {
+      label: "Revenue · selected 28d",
+      value: ownerMoney(grossRevenue, currency),
+      note: ownerMetrics?.scope?.startDate && ownerMetrics?.scope?.endDate
+        ? `${ownerMetrics.scope.startDate} to ${ownerMetrics.scope.endDate} · gross customer revenue`
+        : "Gross customer revenue across the selected UTC dates",
+      tone: "rose",
+    },
+    {
+      label: "Paid and renewing",
+      value: Number.isFinite(paidRenewing) ? formatCount(paidRenewing) : null,
+      note: "Active App Store paid subscriptions set to renew",
+      tone: "good",
+    },
+    {
+      label: "Trials set to renew",
+      value: Number.isFinite(trialRenewing) ? formatCount(trialRenewing) : null,
+      note: "Current trials that still have renewal turned on",
+      tone: "neutral",
+    },
+    {
+      label: "Gross MRR",
+      value: ownerMoney(grossMrr, currency),
+      note: "Current monthly recurring run rate before Apple commission",
+      tone: "rose",
+    },
+    {
+      label: "Gross ARR",
+      value: ownerMoney(grossArr, currency),
+      note: "Current annual recurring run rate, not cash already collected",
+      tone: "rose",
+    },
+    {
+      label: "Set to cancel",
+      value: Number.isFinite(cancellations) ? formatCount(cancellations) : null,
+      note: "Still has access now, but renewal is switched off",
+      tone: "warn",
+    },
+    {
+      label: "Refunded transactions",
+      value: Number.isFinite(refunds) ? formatCount(refunds) : null,
+      note: Number.isFinite(Number(refundDetails.paidTransactions))
+        ? `${formatCount(refundDetails.paidTransactions)} paid transactions in this RevenueCat cohort`
+        : "RevenueCat refund count for this period",
+      tone: refunds > 0 ? "warn" : "good",
+    },
+  ];
 
   return (
     <div className="space-y-10">
+      <section>
+        <SectionHeader
+          eyebrow="Pelvi command center"
+          title="The whole business, in one place"
+          description="Live App Store subscription truth, gross customer revenue, premium growth, and acquisition efficiency. No onboarding-only profiles are counted as customers."
+        />
+        {ownerMetricsError ? (
+          <Card className="mb-5 p-5" style={{ borderColor: "color-mix(in srgb, var(--pv-warn) 55%, var(--pv-border))" }}>
+            <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>Business metrics are temporarily unavailable</p>
+            <p className="mt-2 text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>{ownerMetricsError} Membership and app operations below are still live.</p>
+          </Card>
+        ) : null}
+      </section>
+
+      <OwnerRevenue
+        grossRevenue={Number.isFinite(lifetimeGrossRevenue) ? lifetimeGrossRevenue : grossRevenue}
+        currency={currency}
+        periodLabel={Number.isFinite(lifetimeGrossRevenue)
+          ? `All App Store history since Jan 1, 2020${Number.isFinite(lifetimeTransactions) ? ` · ${formatCount(lifetimeTransactions)} transactions` : ""}`
+          : ownerMetrics?.scope?.startDate && ownerMetrics?.scope?.endDate
+            ? `${ownerMetrics.scope.startDate} to ${ownerMetrics.scope.endDate} · UTC`
+            : "Last 28 UTC days"}
+        activePaid={paidRenewing}
+        activeTrials={trialRenewing}
+        annualRunRate={grossArr}
+        fetchedAt={ownerMetrics?.fetchedAt ? new Date(ownerMetrics.fetchedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null}
+        sourceLabel="RevenueCat live"
+        unavailableReason={ownerMetricsError || "RevenueCat has not returned gross App Store revenue yet."}
+        kpis={revenueKpis}
+      />
+
       <section>
         <SectionHeader
           eyebrow="Live business pulse"
@@ -215,7 +329,24 @@ export default function AppOverview({ members, allPeople, membership, membership
         </div>
       </section>
 
-      <AcquisitionPulse user={user} telemetry={telemetry} reloadToken={reloadToken} onOpen={onOpenAcquisition} />
+      <OwnerGrowth
+        points={growthPoints}
+        title="Renewing premium growth"
+        description="A strict RevenueCat snapshot on each UTC day this dashboard refreshes: paid subscriptions and trials still set to renew. Tracking starts now; missed days and earlier history are never invented."
+        unitLabel="renewing premium members"
+        unavailableReason={ownerMetrics?.growth?.reason || ownerMetricsError || "The first verified daily premium snapshot has not been stored yet."}
+        sourceLabel="RevenueCat snapshots"
+      />
+
+      <PremiumMemberMap
+        locations={countries}
+        activePremiumTotal={activeTotal}
+        title="Where renewing premium members are"
+        description="Country-level subscription geography from RevenueCat for paid members and trials set to renew. These are real aggregate countries, not GPS or invented city pins."
+        unavailableReason={ownerMetrics?.geography?.reason || ownerMetricsError || "RevenueCat did not return country segmentation for current renewing members."}
+      />
+
+      <AcquisitionPulse user={user} ownerMetrics={ownerMetrics} reloadToken={reloadToken} onOpen={onOpenAcquisition} />
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_.65fr]">
         <Card className="p-6">

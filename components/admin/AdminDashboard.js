@@ -22,7 +22,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { ADMIN_EMAIL, auth, isAdminEmail, isFirebaseConfigured } from "@/lib/firebase";
-import { fetchAllMembers, fetchRevenueCatMembers } from "@/lib/adminData";
+import { fetchAllMembers, fetchRevenueCatMembers, fetchRevenueCatOwnerMetrics } from "@/lib/adminData";
 import { fetchAppTelemetry } from "@/lib/adminAppData";
 import { formatDateTime, normalizeMember } from "@/lib/adminMetrics";
 import { FIXTURES_ON } from "@/lib/devFixtures";
@@ -34,13 +34,25 @@ import { Button, Card, ErrorState, Segmented } from "./ui";
 
 /** One source of truth for desktop and phone navigation. */
 const TABS = [
-  { id: "overview", label: "App pulse", hint: "Engagement and program health" },
-  { id: "acquisition", label: "Apple Ads", hint: "Install, trial, and paid" },
+  { id: "overview", label: "Command center", hint: "Revenue, growth, and members" },
+  { id: "acquisition", label: "Apple Ads", hint: "Spend, trial, paid, and cost" },
   { id: "members", label: "Members", hint: "Active premium and all people" },
   { id: "programs", label: "Programs", hint: "Edit workouts remotely" },
 ];
 
 const THEME_KEY = "pelvi_admin_theme";
+const DAY_MS = 86400000;
+
+function ownerMetricsRange(days = 28) {
+  const now = new Date();
+  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const endExclusive = new Date(todayUtc + DAY_MS);
+  const start = new Date(endExclusive.getTime() - days * DAY_MS);
+  return {
+    startDate: start.toISOString().slice(0, 10),
+    endDate: new Date(endExclusive.getTime() - 1).toISOString().slice(0, 10),
+  };
+}
 
 /* -------------------------------------------------------------------------
    Chrome
@@ -233,6 +245,8 @@ export default function AdminDashboard() {
   const [telemetry, setTelemetry] = useState({ completions: [], events: [], checkins: [], commands: [], lifecycle: [], lifecycleAvailable: false });
   const [membership, setMembership] = useState(null);
   const [membershipError, setMembershipError] = useState("");
+  const [ownerMetrics, setOwnerMetrics] = useState(null);
+  const [ownerMetricsError, setOwnerMetricsError] = useState("");
   const [dataState, setDataState] = useState("idle");
   const [dataError, setDataError] = useState("");
   const [countedAt, setCountedAt] = useState(null);
@@ -345,6 +359,8 @@ export default function AdminDashboard() {
     setMembers([]);
     setMembership(null);
     setMembershipError("");
+    setOwnerMetrics(null);
+    setOwnerMetricsError("");
     setDataState("idle");
     setCountedAt(null);
   };
@@ -355,10 +371,12 @@ export default function AdminDashboard() {
     setDataState((current) => (current === "ready" ? "refreshing" : "loading"));
     setDataError("");
     setMembershipError("");
+    setOwnerMetricsError("");
     try {
       let next;
       let nextTelemetry;
       let nextMembership;
+      let nextOwnerMetrics;
       if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
         const f = await import("@/lib/devFixtureData");
         next = f.fixtureMembers().map((row) => normalizeMember(row));
@@ -380,10 +398,55 @@ export default function AdminDashboard() {
           customers: fixtureActive,
           totals: { activePremium: 26, paid: 20, trials: 6, syncedActivePremium: 26, syncedPaid: 20, syncedTrials: 6, canceledWithAccess: 0, openedToday: 0, opened7Days: fixtureActive.filter((row) => row.lastSeenAt && new Date(row.lastSeenAt) >= new Date(Date.now() - 7 * 86400000)).length },
         };
+        const range = ownerMetricsRange();
+        nextOwnerMetrics = {
+          source: "RevenueCat API v2 fixture",
+          fetchedAt: new Date().toISOString(),
+          scope: { ...range, currency: "USD", timezone: "UTC" },
+          metrics: {
+            grossRevenue: { available: true, value: 446.19 },
+            lifetimeGrossRevenue: { available: true, value: 16222.59 },
+            lifetimeTransactions: { available: true, value: 658 },
+            paidSetToRenew: { available: true, value: 20 },
+            trialsSetToRenew: { available: true, value: 6 },
+            trialsStarted: { available: true, value: 8 },
+            trialsCanceled: { available: true, value: 2 },
+            trialsConvertedToPaid: { available: true, value: 3 },
+            cohortTrialConversions: { available: true, value: 3, cohortStarts: 8 },
+            pendingTrialOutcomes: { available: true, value: 3 },
+            firstPaidCustomers: { available: true, value: 5, direct: 2, trialConversions: 3 },
+            activeCancellations: { available: true, value: 4, paid: 2, trials: 2 },
+            refundedTransactions: { available: true, value: 0, paidTransactions: 16, refundRate: 0 },
+            mrr: { available: true, value: 783.67 },
+            arr: { available: true, value: 9404.1 },
+            appleAttributedTrialsStarted: { available: true, value: 5 },
+            appleAttributedFirstPaidCustomers: { available: true, value: 4 },
+          },
+          geography: {
+            available: true,
+            countries: [
+              { code: "US", name: "United States", paid: 18, trials: 4, activePremium: 22 },
+              { code: "AE", name: "United Arab Emirates", paid: 1, trials: 0, activePremium: 1 },
+              { code: "AL", name: "Albania", paid: 1, trials: 0, activePremium: 1 },
+              { code: "AU", name: "Australia", paid: 0, trials: 2, activePremium: 2 },
+            ],
+          },
+          growth: {
+            available: true,
+            points: Array.from({ length: 8 }, (_, index) => ({
+              date: new Date(Date.now() - (7 - index) * DAY_MS).toISOString().slice(0, 10),
+              activePremium: 19 + index,
+            })),
+          },
+        };
       } else {
-        const [memberRows, appTelemetry] = await Promise.all([
+        const range = ownerMetricsRange();
+        const [memberRows, appTelemetry, ownerMetricsResult] = await Promise.all([
           fetchAllMembers(),
           fetchAppTelemetry(),
+          fetchRevenueCatOwnerMetrics(user, range.startDate, range.endDate)
+            .then((value) => ({ value, error: "" }))
+            .catch((error) => ({ value: null, error: error?.message || "RevenueCat business metrics did not load." })),
         ]);
         const membershipResult = await fetchRevenueCatMembers(user, memberRows.map((member) => member.id))
           .then((value) => ({ value, error: "" }))
@@ -391,11 +454,14 @@ export default function AdminDashboard() {
         next = memberRows;
         nextTelemetry = appTelemetry;
         nextMembership = membershipResult.value;
+        nextOwnerMetrics = ownerMetricsResult.value;
         setMembershipError(membershipResult.error);
+        setOwnerMetricsError(ownerMetricsResult.error);
       }
       setMembers(next);
       setTelemetry(nextTelemetry);
       setMembership(nextMembership);
+      setOwnerMetrics(nextOwnerMetrics);
       setCountedAt(new Date());
       setDataState("ready");
       setReloadToken((n) => n + 1);
@@ -565,6 +631,8 @@ export default function AdminDashboard() {
                     allPeople={memberViews.allPeople}
                     membership={membership}
                     membershipError={membershipError}
+                    ownerMetrics={ownerMetrics}
+                    ownerMetricsError={ownerMetricsError}
                     telemetry={telemetry}
                     now={now}
                     user={user}
@@ -573,7 +641,13 @@ export default function AdminDashboard() {
                     onRetry={load}
                   />
                 ) : tab === "acquisition" ? (
-                  <Acquisition user={user} telemetry={telemetry} reloadToken={reloadToken} />
+                  <Acquisition
+                    user={user}
+                    telemetry={telemetry}
+                    reloadToken={reloadToken}
+                    ownerMetrics={ownerMetrics}
+                    ownerMetricsError={ownerMetricsError}
+                  />
                 ) : tab === "programs" ? (
                   <Programs />
                 ) : <Members

@@ -97,7 +97,7 @@ export function Card({ as: Tag = "div", className = "", flat = false, children, 
   );
 }
 
-export function SectionHeader({ eyebrow, title, description, action }) {
+export function SectionHeader({ eyebrow, title, description, action, id }) {
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
@@ -109,7 +109,7 @@ export function SectionHeader({ eyebrow, title, description, action }) {
             {eyebrow}
           </p>
         ) : null}
-        <h2 className="text-lg font-semibold sm:text-xl" style={{ color: "var(--pv-ink)" }}>
+        <h2 id={id} className="text-lg font-semibold sm:text-xl" style={{ color: "var(--pv-ink)" }}>
           {title}
         </h2>
         {description ? (
@@ -277,14 +277,24 @@ export function Button({
 
 /** A segmented control. One row, real thumb targets, keyboard reachable. */
 export function Segmented({ options, value, onChange, label }) {
+  const optionRefs = useRef([]);
+
+  const moveSelection = (currentIndex, nextIndex) => {
+    const boundedIndex = (nextIndex + options.length) % options.length;
+    const next = options[boundedIndex];
+    if (!next) return;
+    onChange(next.value);
+    optionRefs.current[boundedIndex]?.focus();
+  };
+
   return (
     <div
       role="radiogroup"
       aria-label={label}
-      className="inline-flex flex-wrap gap-1 rounded-[22px] p-1"
+      className="grid w-full grid-cols-2 gap-1 rounded-[22px] p-1 sm:inline-flex sm:w-auto sm:flex-nowrap"
       style={{ background: "var(--pv-surface-2)", border: "1px solid var(--pv-border)" }}
     >
-      {options.map((option) => {
+      {options.map((option, index) => {
         const selected = option.value === value;
         return (
           <button
@@ -292,8 +302,25 @@ export function Segmented({ options, value, onChange, label }) {
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={selected ? 0 : -1}
+            ref={(node) => { optionRefs.current[index] = node; }}
             onClick={() => onChange(option.value)}
-            className="min-h-[36px] rounded-full px-3.5 text-[13px] font-semibold transition-colors"
+            onKeyDown={(event) => {
+              if (["ArrowRight", "ArrowDown"].includes(event.key)) {
+                event.preventDefault();
+                moveSelection(index, index + 1);
+              } else if (["ArrowLeft", "ArrowUp"].includes(event.key)) {
+                event.preventDefault();
+                moveSelection(index, index - 1);
+              } else if (event.key === "Home") {
+                event.preventDefault();
+                moveSelection(index, 0);
+              } else if (event.key === "End") {
+                event.preventDefault();
+                moveSelection(index, options.length - 1);
+              }
+            }}
+            className="min-h-[44px] w-full rounded-full px-3.5 text-[13px] font-semibold transition-colors sm:w-auto"
             style={
               selected
                 ? { background: "var(--pv-rose)", color: "var(--pv-accent-ink)" }

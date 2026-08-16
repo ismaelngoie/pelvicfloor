@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchAppleAdsReport } from "@/lib/adminAppData";
 import { formatCount, formatMoneyExact, formatPercent } from "@/lib/adminMetrics";
 import { Card, ErrorState, SectionHeader } from "./ui";
+import TrialLifecycleFunnel from "./TrialLifecycleFunnel";
 
 const DAY_MS = 86400000;
 export const REVENUECAT_COVERAGE_START_MS = Date.UTC(2026, 7, 15);
@@ -35,6 +36,20 @@ export function utcRange(days) {
 
 function text(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function metricEntry(report, ...keys) {
+  for (const key of keys) {
+    const entry = report?.metrics?.[key];
+    if (entry && typeof entry === "object") return entry;
+  }
+  return null;
+}
+
+function metricNumber(report, ...keys) {
+  const entry = metricEntry(report, ...keys);
+  const value = Number(entry?.value);
+  return entry?.available === true && Number.isFinite(value) ? value : null;
 }
 
 function eventTime(event) {
@@ -243,7 +258,7 @@ function FunnelStep({ label, value, displayValue, denominator, detail, accent })
   );
 }
 
-export default function Acquisition({ user, telemetry, reloadToken }) {
+export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics, ownerMetricsError }) {
   const [state, setState] = useState("loading");
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
@@ -275,38 +290,95 @@ export default function Acquisition({ user, telemetry, reloadToken }) {
     return prepareLifecycle(events, range);
   }, [telemetry?.lifecycle, range]);
 
-  const lifecycleMetrics = useMemo(() => summarizeLifecycle(lifecycle), [lifecycle]);
-  const { trialStarts, directPurchases, trialConversions, paidMembers } = lifecycleMetrics;
   const telemetryAvailable = telemetry?.lifecycleAvailable === true;
   const sourceLifecycle = Array.isArray(telemetry?.lifecycle) ? telemetry.lifecycle : [];
-  const paid = paidMembers.length;
   const appleTotals = report?.totals || {};
   const installs = Number(appleTotals.totalInstalls) || 0;
   const spend = Number(appleTotals.spend) || 0;
+  const taps = Number(appleTotals.taps) || 0;
   const appleAvailable = state === "ready";
   const revenueCatCoverageComplete = range.start.getTime() >= REVENUECAT_COVERAGE_START_MS;
+  const allTrialStarts = metricNumber(ownerMetrics, "trialsStarted");
+  const currentTrialRenewing = metricNumber(ownerMetrics, "trialsSetToRenew");
+  const currentTrialCanceled = metricNumber(ownerMetrics, "trialsCanceled");
+  const cohortConversionMetric = metricEntry(ownerMetrics, "cohortTrialConversions");
+  const cohortConversions = metricNumber(ownerMetrics, "cohortTrialConversions");
+  const cohortTrialStarts = Number.isFinite(Number(cohortConversionMetric?.cohortStarts))
+    ? Number(cohortConversionMetric.cohortStarts)
+    : null;
+  const firstPaidMetric = metricEntry(ownerMetrics, "firstPaidCustomers", "newPaidCustomers");
+  const rawEventPeriodTrialConversions = firstPaidMetric?.trialConversions;
+  const eventPeriodTrialConversions = rawEventPeriodTrialConversions === null || rawEventPeriodTrialConversions === undefined
+    ? null
+    : Number(rawEventPeriodTrialConversions);
+  const convertedTrials = Number.isFinite(eventPeriodTrialConversions)
+    ? eventPeriodTrialConversions
+    : metricNumber(ownerMetrics, "trialsConvertedToPaid");
+  const firstPaidCustomers = metricNumber(ownerMetrics, "firstPaidCustomers", "newPaidCustomers");
+  const attributedTrials = metricNumber(ownerMetrics, "appleAttributedTrialsStarted", "appleAdsTrialsStarted");
+  const attributedPaid = metricNumber(ownerMetrics, "appleAttributedFirstPaidCustomers", "appleAdsFirstPaidCustomers");
+  const ownerScopeMatches = ownerMetrics?.scope?.startDate === range.startDate
+    && ownerMetrics?.scope?.endDate === range.endDate;
+  const ownerCurrency = ownerMetrics?.scope?.currency || null;
+  const appleCurrency = report?.currency || report?.totals?.currency || null;
+  const costCoverageAligned = appleAvailable
+    && ownerScopeMatches
+    && Boolean(ownerCurrency)
+    && ownerCurrency === appleCurrency
+    && Number.isFinite(allTrialStarts)
+    && Number.isFinite(firstPaidCustomers);
+  const attributionParts = [];
+  if (Number.isFinite(attributedTrials) && Number.isFinite(allTrialStarts)) {
+    attributionParts.push(`${formatCount(attributedTrials)} of ${formatCount(allTrialStarts)} trials carry confirmed Apple Search Ads attribution`);
+  }
+  if (Number.isFinite(attributedPaid) && Number.isFinite(firstPaidCustomers)) {
+    attributionParts.push(`${formatCount(attributedPaid)} of ${formatCount(firstPaidCustomers)} first-paid subscriptions are confirmed by RevenueCat attribution`);
+  }
+  const coverageNote = costCoverageAligned
+    ? `Apple spend and all production App Store outcomes use ${range.startDate} through ${range.endDate} UTC. ${attributionParts.join("; ") || "RevenueCat attribution detail is unavailable."} Pelvi currently uses Apple Ads as its paid acquisition channel, while unattributed App Store outcomes remain visibly distinct from confirmed attribution.`
+    : ownerMetricsError || (appleAvailable && ownerScopeMatches && ownerCurrency !== appleCurrency
+      ? "Apple and RevenueCat did not return the same reporting currency, so cost per result is hidden rather than mislabeled."
+      : "Apple Ads and RevenueCat must both return the same date window and currency before cost per result is shown.");
 
   return (
     <div className="space-y-10">
       <section>
-        <SectionHeader eyebrow="Apple Ads · last 28 days" title="Installs to paid members" description={revenueCatCoverageComplete ? "Apple supplies spend, taps, and installs. RevenueCat supplies trial starts and first paid renewals. The dashboard joins them by the campaign attribution already sent by the iPhone app." : "Apple Ads covers the full 28 days. RevenueCat webhook history begins Aug 15, 2026, so trial and paid counts only cover events observed since then. Mixed-source rates stay blank until RevenueCat covers the full window."} />
+        <SectionHeader eyebrow="Apple Ads · last 28 UTC days" title="Acquisition economics" description="Apple supplies spend, taps, and installs. RevenueCat supplies every App Store trial start and first-paid subscription for the same dates. Confirmed campaign attribution is shown separately from all business outcomes." />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <FunnelStep label="Apple Ads installs" value={installs} displayValue={appleAvailable ? undefined : "—"} detail={appleAvailable ? `${formatMoneyExact(spend)} spent` : state === "loading" ? "Loading from Apple" : "Apple reporting unavailable"} accent="var(--pv-rose)" />
-          <FunnelStep label="Trials started" value={trialStarts.length} displayValue={telemetryAvailable ? undefined : "—"} denominator={telemetryAvailable && appleAvailable && revenueCatCoverageComplete ? installs : undefined} detail={!telemetryAvailable ? "RevenueCat telemetry unavailable" : !revenueCatCoverageComplete ? "Observed since RevenueCat connected Aug 15" : appleAvailable ? "of attributed installs" : "matched Apple Ads trials"} accent="var(--pv-violet)" />
-          <FunnelStep label="Trials became paid" value={trialConversions.length} displayValue={telemetryAvailable ? undefined : "—"} denominator={telemetryAvailable ? trialStarts.length : undefined} detail={!telemetryAvailable ? "RevenueCat telemetry unavailable" : `${formatCount(directPurchases.length)} direct purchases excluded; only observed trial cohorts`} accent="var(--pv-good)" />
-          <FunnelStep label="Cost per paid" value={paid} displayValue={appleAvailable && telemetryAvailable && revenueCatCoverageComplete && paid > 0 ? formatMoneyExact(spend / paid) : "—"} detail={!appleAvailable ? "Apple reporting unavailable" : !telemetryAvailable ? "RevenueCat telemetry unavailable" : !revenueCatCoverageComplete ? "Waiting for 28 matching days of RevenueCat coverage" : paid > 0 ? "Spend divided by matched first paid members, including direct purchases" : "No matched paid members in this period"} accent="linear-gradient(90deg,var(--pv-rose),var(--pv-good))" />
+          <FunnelStep label="Ad spend" value={spend} displayValue={appleAvailable ? formatMoneyExact(spend) : "—"} detail={appleAvailable ? `${range.startDate} to ${range.endDate}` : state === "loading" ? "Loading from Apple" : "Apple reporting unavailable"} accent="var(--pv-rose)" />
+          <FunnelStep label="Apple Ads installs" value={installs} displayValue={appleAvailable ? undefined : "—"} detail={appleAvailable ? `${formatCount(taps)} taps` : "Apple reporting unavailable"} accent="var(--pv-violet)" />
+          <FunnelStep label="Cost per install" value={installs} displayValue={appleAvailable && installs > 0 ? formatMoneyExact(spend / installs) : "—"} detail="Apple spend divided by reported installs" accent="var(--pv-good)" />
+          <FunnelStep label="Tap to install" value={installs} displayValue={appleAvailable && taps > 0 ? formatPercent(installs, taps) : "—"} detail="Apple-reported installs divided by taps" accent="linear-gradient(90deg,var(--pv-rose),var(--pv-good))" />
         </div>
       </section>
 
+      <TrialLifecycleFunnel
+        trialStarts={allTrialStarts}
+        activeTrials={currentTrialRenewing}
+        canceledTrials={currentTrialCanceled}
+        convertedTrials={convertedTrials}
+        cohortConversions={cohortConversions}
+        cohortTrialStarts={cohortTrialStarts}
+        paidCustomers={firstPaidCustomers}
+        adSpend={appleAvailable ? spend : null}
+        costPerTrialStart={costCoverageAligned && allTrialStarts > 0 ? spend / allTrialStarts : null}
+        costPerPayer={costCoverageAligned && firstPaidCustomers > 0 ? spend / firstPaidCustomers : null}
+        coverageAligned={costCoverageAligned}
+        currency={ownerCurrency || appleCurrency || "USD"}
+        periodLabel={`${range.startDate} to ${range.endDate} · UTC`}
+        coverageNote={coverageNote}
+        unavailableReason={ownerMetricsError || "RevenueCat owner metrics are unavailable for this period."}
+      />
+
       {!telemetryAvailable ? (
         <Card className="p-5" style={{ borderColor: "color-mix(in srgb, var(--pv-warn) 55%, var(--pv-border))" }}>
-          <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>RevenueCat lifecycle telemetry is unavailable</p>
-          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>The dashboard could not read the lifecycle collection, so trial and paid values are shown as unavailable rather than as zero.</p>
+          <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>Campaign-level lifecycle telemetry is unavailable</p>
+          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>The all-App-Store totals above still come directly from RevenueCat. Only the campaign-by-campaign trial and paid columns below are unavailable.</p>
         </Card>
       ) : sourceLifecycle.length === 0 ? (
         <Card className="p-5">
-          <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>RevenueCat is connected, with no lifecycle events yet</p>
-          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>The lifecycle collection loaded successfully. No events have been observed since webhook coverage began Aug 15, 2026; earlier days in Apple’s 28-day window are not represented.</p>
+          <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>Campaign history starts Aug 15</p>
+          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>RevenueCat’s full totals above include receipt history. The campaign table only knows events delivered after the webhook was connected, so it can be lower for now.</p>
         </Card>
       ) : lifecycle.length === 0 ? (
         <Card className="p-5">

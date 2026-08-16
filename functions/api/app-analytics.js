@@ -72,17 +72,21 @@ export async function onRequestPost({ request, env }) {
     const report = payload?.data?.reportingDataResponse || payload?.data || payload?.reportingDataResponse || payload;
     const rows = Array.isArray(report?.row) ? report.row : Array.isArray(report?.rows) ? report.rows : [];
     const campaigns = rows.map(normalizeCampaign);
+    const currencies = [...new Set(campaigns.map((row) => row.currency).filter(Boolean))];
+    const currency = currencies.length === 1 ? currencies[0] : null;
     const totals = campaigns.reduce((sum, row) => ({
       impressions: sum.impressions + row.impressions,
       taps: sum.taps + row.taps,
       totalInstalls: sum.totalInstalls + row.installs,
       spend: sum.spend + row.spend,
     }), { impressions: 0, taps: 0, totalInstalls: 0, spend: 0 });
+    totals.currency = currency;
 
     return json(200, {
       source: "Apple Ads Campaign Management API 5",
       fetchedAt: Date.now(),
       range: { startDate: dates.start, endDate: dates.end },
+      currency,
       totals,
       campaigns,
     });
@@ -106,6 +110,7 @@ function normalizeCampaign(row) {
     newDownloads: number(metrics.totalNewDownloads),
     redownloads: number(metrics.totalRedownloads),
     spend: money(metrics.localSpend),
+    currency: moneyCurrency(metrics.localSpend),
     avgCpt: money(metrics.avgCPT),
     avgCpi: money(metrics.totalAvgCPI),
   };
@@ -119,7 +124,10 @@ function lastGranularity(value) {
     totalInstalls: number(total.totalInstalls) + number(row.totalInstalls),
     totalNewDownloads: number(total.totalNewDownloads) + number(row.totalNewDownloads),
     totalRedownloads: number(total.totalRedownloads) + number(row.totalRedownloads),
-    localSpend: { amount: money(total.localSpend) + money(row.localSpend) },
+    localSpend: {
+      amount: money(total.localSpend) + money(row.localSpend),
+      currency: moneyCurrency(row.localSpend) || moneyCurrency(total.localSpend),
+    },
   }), {});
 }
 
@@ -130,6 +138,11 @@ function number(value) {
 
 function money(value) {
   return number(value?.amount ?? value);
+}
+
+function moneyCurrency(value) {
+  const currency = typeof value?.currency === "string" ? value.currency.trim().toUpperCase() : "";
+  return /^[A-Z]{3}$/.test(currency) ? currency : null;
 }
 
 function reportDates(start, end) {
