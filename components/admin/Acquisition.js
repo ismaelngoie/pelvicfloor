@@ -335,7 +335,7 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
     attributionParts.push(`${formatCount(attributedPaid)} of ${formatCount(firstPaidCustomers)} first-paid subscriptions are confirmed by RevenueCat attribution`);
   }
   const coverageNote = costCoverageAligned
-    ? `Apple spend and all production App Store outcomes use ${range.startDate} through ${range.endDate} UTC. ${attributionParts.join("; ") || "RevenueCat attribution detail is unavailable."} Pelvi currently uses Apple Ads as its paid acquisition channel, while unattributed App Store outcomes remain visibly distinct from confirmed attribution.`
+    ? `Apple spend and all production App Store outcomes use ${range.startDate} through ${range.endDate} UTC. ${attributionParts.length ? `${attributionParts.join("; ")}.` : "RevenueCat attribution detail is unavailable."} Pelvi currently uses Apple Ads as its paid acquisition channel, while unattributed App Store outcomes remain visibly distinct from confirmed attribution.`
     : ownerMetricsError || (appleAvailable && ownerScopeMatches && ownerCurrency !== appleCurrency
       ? "Apple and RevenueCat did not return the same reporting currency, so cost per result is hidden rather than mislabeled."
       : "Apple Ads and RevenueCat must both return the same date window and currency before cost per result is shown.");
