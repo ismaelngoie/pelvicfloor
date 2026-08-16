@@ -60,8 +60,9 @@ function normalizeLocations(locations) {
   const resolved = [];
   for (const item of locations) {
     const location = item?.location && typeof item.location === "object" ? { ...item, ...item.location } : item || {};
-    const code = text(location.countryCode).toUpperCase()
-      || COUNTRY_NAME_TO_CODE[text(location.country).toLowerCase()]
+    const suppliedCode = text(location.countryCode).toUpperCase();
+    const code = (/^[A-Z]{2}$/.test(suppliedCode) ? suppliedCode : "")
+      || COUNTRY_NAME_TO_CODE[text(location.country || location.countryCode).toLowerCase()]
       || "";
     const fallback = COUNTRY_CENTROIDS[code];
     const rawLatitude = finite(location.latitude ?? location.lat);

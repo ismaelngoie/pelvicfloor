@@ -15,8 +15,8 @@ function money(value, currency) {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
-      minimumFractionDigits: number >= 1000 ? 0 : 2,
-      maximumFractionDigits: number >= 1000 ? 0 : 2,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(number);
   } catch {
     return `${currency} ${number.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
