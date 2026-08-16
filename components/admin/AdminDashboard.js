@@ -22,7 +22,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { ADMIN_EMAIL, auth, isAdminEmail, isFirebaseConfigured } from "@/lib/firebase";
-import { fetchAllMembers } from "@/lib/adminData";
+import { fetchAllMembers, fetchRevenueCatMembers } from "@/lib/adminData";
 import { fetchAppTelemetry } from "@/lib/adminAppData";
 import { formatDateTime, normalizeMember } from "@/lib/adminMetrics";
 import { FIXTURES_ON } from "@/lib/devFixtures";
@@ -36,7 +36,7 @@ import { Button, Card, ErrorState, Segmented } from "./ui";
 const TABS = [
   { id: "overview", label: "App pulse", hint: "Engagement and program health" },
   { id: "acquisition", label: "Apple Ads", hint: "Install, trial, and paid" },
-  { id: "members", label: "Members", hint: "Support and app controls" },
+  { id: "members", label: "Members", hint: "Active premium and all people" },
   { id: "programs", label: "Programs", hint: "Edit workouts remotely" },
 ];
 
@@ -231,6 +231,8 @@ export default function AdminDashboard() {
 
   const [members, setMembers] = useState([]);
   const [telemetry, setTelemetry] = useState({ completions: [], events: [], checkins: [], commands: [], lifecycle: [], lifecycleAvailable: false });
+  const [membership, setMembership] = useState(null);
+  const [membershipError, setMembershipError] = useState("");
   const [dataState, setDataState] = useState("idle");
   const [dataError, setDataError] = useState("");
   const [countedAt, setCountedAt] = useState(null);
@@ -341,6 +343,8 @@ export default function AdminDashboard() {
       setAuthError(describeAuthError(error));
     }
     setMembers([]);
+    setMembership(null);
+    setMembershipError("");
     setDataState("idle");
     setCountedAt(null);
   };
@@ -350,18 +354,48 @@ export default function AdminDashboard() {
   const load = useCallback(async () => {
     setDataState((current) => (current === "ready" ? "refreshing" : "loading"));
     setDataError("");
+    setMembershipError("");
     try {
       let next;
       let nextTelemetry;
+      let nextMembership;
       if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
         const f = await import("@/lib/devFixtureData");
         next = f.fixtureMembers().map((row) => normalizeMember(row));
         nextTelemetry = { completions: [], events: [], checkins: [], commands: [], lifecycle: [], lifecycleAvailable: false };
+        const fixtureActive = next.slice(0, 26).map((member, index) => ({
+          id: member.id,
+          identityIds: [member.id],
+          email: member.email,
+          displayName: member.name,
+          lastSeenAt: member.lastSeenAt?.toISOString() || null,
+          isActivePremium: true,
+          phase: index < 20 ? "paid" : "trial",
+          state: index < 20 ? "paid" : "trial",
+          subscription: { autoRenewalStatus: "will_renew", status: index < 20 ? "active" : "trialing" },
+        }));
+        nextMembership = {
+          source: "RevenueCat API v2 fixture",
+          fetchedAt: Date.now(),
+          customers: fixtureActive,
+          totals: { activePremium: 26, paid: 20, trials: 6, syncedActivePremium: 26, syncedPaid: 20, syncedTrials: 6, canceledWithAccess: 0, openedToday: 0, opened7Days: fixtureActive.filter((row) => row.lastSeenAt && new Date(row.lastSeenAt) >= new Date(Date.now() - 7 * 86400000)).length },
+        };
       } else {
-        [next, nextTelemetry] = await Promise.all([fetchAllMembers(), fetchAppTelemetry()]);
+        const [memberRows, appTelemetry] = await Promise.all([
+          fetchAllMembers(),
+          fetchAppTelemetry(),
+        ]);
+        const membershipResult = await fetchRevenueCatMembers(user, memberRows.map((member) => member.id))
+          .then((value) => ({ value, error: "" }))
+          .catch((error) => ({ value: null, error: error?.message || "RevenueCat memberships did not load." }));
+        next = memberRows;
+        nextTelemetry = appTelemetry;
+        nextMembership = membershipResult.value;
+        setMembershipError(membershipResult.error);
       }
       setMembers(next);
       setTelemetry(nextTelemetry);
+      setMembership(nextMembership);
       setCountedAt(new Date());
       setDataState("ready");
       setReloadToken((n) => n + 1);
@@ -369,7 +403,7 @@ export default function AdminDashboard() {
       setDataError(describeDataError(error));
       setDataState("error");
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (isAdmin) load();
@@ -381,6 +415,7 @@ export default function AdminDashboard() {
 
   const now = useMemo(() => countedAt || new Date(), [countedAt]);
   const appMembers = useMemo(() => members.filter((member) => member.platform === "ios"), [members]);
+  const memberViews = useMemo(() => joinMembership(appMembers, membership), [appMembers, membership]);
 
   /* --- Gates ----------------------------------------------------------- */
 
@@ -525,12 +560,30 @@ export default function AdminDashboard() {
             ) : (
               <div style={{ opacity: dataState === "refreshing" ? 0.6 : 1, transition: "opacity 160ms ease" }}>
                 {tab === "overview" ? (
-                  <AppOverview members={appMembers} telemetry={telemetry} now={now} />
+                  <AppOverview
+                    members={memberViews.activeMembers}
+                    allPeople={memberViews.allPeople}
+                    membership={membership}
+                    membershipError={membershipError}
+                    telemetry={telemetry}
+                    now={now}
+                    user={user}
+                    reloadToken={reloadToken}
+                    onOpenAcquisition={() => setTab("acquisition")}
+                    onRetry={load}
+                  />
                 ) : tab === "acquisition" ? (
                   <Acquisition user={user} telemetry={telemetry} reloadToken={reloadToken} />
                 ) : tab === "programs" ? (
                   <Programs />
-                ) : <Members members={appMembers} onPatched={patchMember} />}
+                ) : <Members
+                  activeMembers={memberViews.activeMembers}
+                  allPeople={memberViews.allPeople}
+                  activeTotal={membership?.totals?.activePremium}
+                  membershipError={membershipError}
+                  onRetry={load}
+                  onPatched={patchMember}
+                />}
               </div>
             )}
           </main>
@@ -553,6 +606,71 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
+}
+
+/**
+ * Join the app profile to the RevenueCat customer without changing either
+ * source. The normal key is the RevenueCat app user id, which is also the
+ * Firestore document id. Email is a careful fallback for the handful of
+ * profiles that were linked to a Firebase account and therefore changed their
+ * Firestore document id.
+ */
+function joinMembership(appMembers, report) {
+  const customers = Array.isArray(report?.customers) ? report.customers : [];
+  const byIdentity = new Map();
+  const byEmail = new Map();
+  for (const customer of customers) {
+    const ids = Array.isArray(customer.identityIds) ? customer.identityIds : [customer.id];
+    for (const id of ids) if (id) byIdentity.set(id, customer);
+    if (customer.email) byEmail.set(customer.email.trim().toLowerCase(), customer);
+  }
+
+  const profileById = new Map(appMembers.map((member) => [member.id, member]));
+  const profileByEmail = new Map(appMembers.filter((member) => member.email).map((member) => [member.email.toLowerCase(), member]));
+  const customerFor = (member) => byIdentity.get(member.id) || (member.email ? byEmail.get(member.email.toLowerCase()) : null) || null;
+  const profileFor = (customer) => {
+    const ids = Array.isArray(customer.identityIds) ? customer.identityIds : [customer.id];
+    for (const id of ids) if (profileById.has(id)) return profileById.get(id);
+    return customer.email ? profileByEmail.get(customer.email.toLowerCase()) || null : null;
+  };
+
+  const merge = (profile, customer) => {
+    const rcSeen = customer?.lastSeenAt ? new Date(customer.lastSeenAt) : null;
+    const rcSeenValid = rcSeen && !Number.isNaN(rcSeen.getTime()) ? rcSeen : null;
+    const lastSeenAt = profile.lastSeenAt && rcSeenValid
+      ? (profile.lastSeenAt > rcSeenValid ? profile.lastSeenAt : rcSeenValid)
+      : profile.lastSeenAt || rcSeenValid;
+    return {
+      ...profile,
+      name: profile.name || customer?.displayName || "",
+      email: profile.email || customer?.email || "",
+      lastSeenAt,
+      appVersion: profile.appVersion || customer?.appVersion || "",
+      revenueCat: customer,
+      premiumState: customer?.state || "inactive",
+      premiumPhase: customer?.phase || "inactive",
+      isActivePremium: customer?.isActivePremium === true,
+    };
+  };
+
+  const allPeople = appMembers.map((member) => merge(member, customerFor(member)));
+  const activeMembers = customers
+    .filter((customer) => customer.isActivePremium === true)
+    .map((customer) => {
+      const profile = profileFor(customer);
+      if (profile) return merge(profile, customer);
+      const synthetic = normalizeMember({
+        id: customer.id,
+        name: customer.displayName,
+        email: customer.email,
+        platform: "ios",
+        lastActiveAt: customer.lastSeenAt,
+        appVersion: customer.appVersion,
+      });
+      return { ...merge(synthetic, customer), isRevenueCatOnly: true };
+    });
+
+  return { activeMembers, allPeople };
 }
 
 /* -------------------------------------------------------------------------

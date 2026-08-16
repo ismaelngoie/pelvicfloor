@@ -18,16 +18,24 @@ import {
   sortMembers,
 } from "@/lib/adminMetrics";
 import MemberPanel from "./MemberPanel";
-import { Card, EmptyState, Input, RowsSkeleton, SectionHeader } from "./ui";
+import { Card, EmptyState, ErrorState, Input, Pill, RowsSkeleton, SectionHeader, Segmented } from "./ui";
 
 const APP_COLUMNS = [
   { id: "name", label: "Member" },
+  { id: "premiumPhase", label: "Access" },
   { id: "goalTitle", label: "Goal" },
   { id: "programDay", label: "Day", numeric: true },
   { id: "streak", label: "Streak", numeric: true },
   { id: "lastSeenAt", label: "Last app open", numeric: true },
   { id: "joinedAt", label: "Joined", numeric: true },
 ];
+
+function premiumLabel(member) {
+  if (member?.premiumPhase === "trial") return { label: "Trial", tone: "accent" };
+  if (member?.premiumPhase === "paid") return { label: "Paid", tone: "good" };
+  if (member?.premiumState === "canceled_with_access") return { label: "Canceled", tone: "warn" };
+  return { label: "No renewing access", tone: "neutral" };
+}
 
 function dayLabel(member) {
   return Number.isFinite(member.programDay)
@@ -59,12 +67,14 @@ export function MembersSkeleton() {
   );
 }
 
-export default function Members({ members, onPatched }) {
+export default function Members({ activeMembers, allPeople, activeTotal, membershipError, onRetry, onPatched }) {
+  const [view, setView] = useState("active");
   const [term, setTerm] = useState("");
   const [sortKey, setSortKey] = useState("lastSeenAt");
   const [sortDir, setSortDir] = useState("desc");
   const [openId, setOpenId] = useState(null);
 
+  const members = view === "active" ? activeMembers : allPeople;
   const rows = useMemo(() => {
     const found = searchMembers(members, term);
     return sortMembers(found, sortKey, sortDir);
@@ -90,12 +100,35 @@ export default function Members({ members, onPatched }) {
   return (
     <div className="space-y-5">
       <SectionHeader
-        eyebrow="iPhone members"
-        title="Members and their programs"
-        description="Search by name, email address, or app member id. Open anyone to see her sessions, check-ins, video activity, Coach Mia chat, and app controls."
+        eyebrow={view === "active" ? "RevenueCat verified" : "Every iPhone profile"}
+        title={view === "active" ? "Synced active members" : "All people"}
+        description={view === "active"
+          ? `RevenueCat-verified premium members whose profiles are synced by the current iPhone app. The exact whole-business total is ${formatCount(activeTotal)} on App pulse; canceled and expired subscriptions are excluded.`
+          : "Every iPhone profile created in Firebase, including people who only completed onboarding, canceled, or expired."}
+        action={
+          <Segmented
+            label="Which people to show"
+            value={view}
+            onChange={(next) => { setView(next); setOpenId(null); }}
+            options={[
+              { value: "active", label: `Synced active ${formatCount(activeMembers.length)}` },
+              { value: "all", label: `All people ${formatCount(allPeople.length)}` },
+            ]}
+          />
+        }
       />
 
-      <div className="relative">
+      {view === "active" && membershipError ? (
+        <Card className="p-4">
+          <ErrorState
+            title="Live membership did not load"
+            description={`${membershipError} No Firebase profile is being counted as premium while RevenueCat is unavailable.`}
+            onRetry={onRetry}
+          />
+        </Card>
+      ) : null}
+
+      {view === "active" && membershipError ? null : <div className="relative">
         <Input
           type="search"
           value={term}
@@ -111,22 +144,26 @@ export default function Members({ members, onPatched }) {
         >
           ⌕
         </span>
-      </div>
+      </div>}
 
-      <p className="text-[13px]" style={{ color: "var(--pv-ink-2)" }} role="status">
+      {view === "active" && membershipError ? null : <p className="text-[13px]" style={{ color: "var(--pv-ink-2)" }} role="status">
         {term.trim()
-          ? `${formatCount(rows.length)} of ${formatCount(members.length)} members match "${term.trim()}".`
-          : `${formatCount(members.length)} member${members.length === 1 ? "" : "s"} in total.`}
-      </p>
+          ? `${formatCount(rows.length)} of ${formatCount(members.length)} ${view === "active" ? "active members" : "people"} match "${term.trim()}".`
+          : view === "active"
+            ? `${formatCount(members.length)} synced active premium member${members.length === 1 ? "" : "s"}; ${formatCount(activeTotal)} active premium across RevenueCat.`
+            : `${formatCount(members.length)} iPhone profile${members.length === 1 ? "" : "s"} in all people.`}
+      </p>}
 
-      {rows.length === 0 ? (
+      {view === "active" && membershipError ? null : rows.length === 0 ? (
         <Card className="p-4">
           <EmptyState
-            title={term.trim() ? "Nobody matches that" : "No members yet"}
+            title={term.trim() ? "Nobody matches that" : view === "active" ? "No renewing premium members" : "No people yet"}
             description={
               term.trim()
                 ? "Try part of a first name, an email address, or the member id shown at the top of her panel."
-                : "Members appear here after the iPhone app creates their Firebase profile."
+                : view === "active"
+                  ? "RevenueCat has no active trial or paid App Store subscription that is still set to renew."
+                  : "People appear here after the iPhone app creates their Firebase profile."
             }
             icon={term.trim() ? "⌕" : "○"}
           />
@@ -162,7 +199,7 @@ export default function Members({ members, onPatched }) {
                         {member.email || "No email on record"}
                       </span>
                     </span>
-                    <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: "var(--pv-surface-2)", color: "var(--pv-ink-2)" }}>Day {member.programDay || 1}</span>
+                    <Pill tone={premiumLabel(member).tone}>{premiumLabel(member).label}</Pill>
                   </span>
                   <span
                     className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-[12px]"
@@ -281,6 +318,9 @@ export default function Members({ members, onPatched }) {
                             </span>
                           </span>
                         </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Pill tone={premiumLabel(member).tone}>{premiumLabel(member).label}</Pill>
                       </td>
                       <td className="px-4 py-3" style={{ color: "var(--pv-ink-2)" }}>
                         {member.goalTitle}

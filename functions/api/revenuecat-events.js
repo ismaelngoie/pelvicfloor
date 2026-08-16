@@ -25,9 +25,16 @@ export async function onRequestPost({ request, env }) {
   const event = body.event;
   if (!event?.id || !event?.type) return json(400, { error: "RevenueCat event is missing its id or type." });
 
-  // The admin is intentionally app-only. Ignore Stripe, sandbox, and the
-  // other RevenueCat projects even if a wider webhook is configured.
+  // The admin is intentionally app-only. Ignore Stripe and sandbox events. A
+  // RevenueCat webhook should also be scoped to the Pelvi app in RevenueCat;
+  // REVENUECAT_APP_ID is a second, server-side guard in case the integration is
+  // later widened. It is optional so existing deployments keep accepting the
+  // already-scoped webhook until the app id is added to Cloudflare.
   if (event.environment !== "PRODUCTION" || !["APP_STORE", "MAC_APP_STORE"].includes(event.store)) {
+    return json(200, { received: true, stored: false });
+  }
+  const expectedAppId = typeof env.REVENUECAT_APP_ID === "string" ? env.REVENUECAT_APP_ID.trim() : "";
+  if (expectedAppId && event.app_id !== expectedAppId) {
     return json(200, { received: true, stored: false });
   }
 
