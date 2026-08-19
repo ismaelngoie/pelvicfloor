@@ -1,358 +1,117 @@
 "use client";
 
-// The members tab: search, sort, open one.
-//
-// Two layouts, one list. A real table once there is room for it, and stacked
-// cards on a phone, because a seven-column table on a 375px screen is a
-// horizontal scroll nobody uses.
+// Members — every person, live. The table is the product here: dense rows,
+// saved views that answer real questions, keyboard navigation, and a click
+// that docks her record in the inspector instead of covering the list.
 
-import { useMemo, useState } from "react";
-import {
-  PROGRAM_LENGTH_DAYS,
-  displayName,
-  formatCount,
-  formatDate,
-  formatRelativeDay,
-  memberInitials,
-  searchMembers,
-  sortMembers,
-} from "@/lib/adminMetrics";
-import MemberPanel from "./MemberPanel";
-import { Card, EmptyState, ErrorState, Input, Pill, RowsSkeleton, SectionHeader, Segmented } from "./ui";
+import { useEffect, useMemo, useState } from "react";
+import { displayName, memberInitials, formatRelativeDay } from "@/lib/adminMetrics";
+import { Card, CardHead, Chip, Input, PageHead, RankedBars, Segmented, Unavailable, count, ratio, shortDate } from "./ui";
 
-const APP_COLUMNS = [
-  { id: "name", label: "Member" },
-  { id: "premiumPhase", label: "Access" },
-  { id: "goalTitle", label: "Goal" },
-  { id: "programDay", label: "Day", numeric: true },
-  { id: "streak", label: "Streak", numeric: true },
-  { id: "lastSeenAt", label: "Last app open", numeric: true },
-  { id: "joinedAt", label: "Joined", numeric: true },
+const VIEWS = [
+  { id: "active", label: "Active premium", filter: (m) => m.isActivePremium },
+  { id: "trials-ending", label: "Trials ending · 7d", filter: (m, now) => m.premiumPhase === "trial" && m.revenueCat?.subscription?.currentPeriodEndsAt && new Date(m.revenueCat.subscription.currentPeriodEndsAt) <= new Date(now.getTime() + 7 * 86400000) },
+  { id: "silent", label: "Paid · silent 14d", filter: (m, now) => m.premiumPhase === "paid" && (!m.lastSeenAt || now - m.lastSeenAt > 14 * 86400000) },
+  { id: "streaks", label: "Top streaks", filter: (m) => m.isActivePremium && (m.streak || 0) >= 3 },
+  { id: "canceling", label: "Set to cancel", filter: (m) => m.revenueCat?.subscription?.autoRenewalStatus && !/will_renew/i.test(m.revenueCat.subscription.autoRenewalStatus) },
+  { id: "all", label: "All people", filter: () => true },
 ];
 
-function premiumLabel(member) {
-  if (member?.premiumPhase === "trial") return { label: "Trial", tone: "accent" };
-  if (member?.premiumPhase === "paid") return { label: "Paid", tone: "good" };
-  if (member?.premiumState === "canceled_with_access") return { label: "Canceled", tone: "warn" };
-  return { label: "No renewing access", tone: "neutral" };
+const COLUMNS = [
+  { id: "name", label: "Member", sort: (m) => displayName(m).toLowerCase() },
+  { id: "access", label: "Access", sort: (m) => (m.premiumPhase === "paid" ? 2 : m.premiumPhase === "trial" ? 1 : 0) },
+  { id: "goal", label: "Goal", sort: (m) => m.goalTitle || "" },
+  { id: "day", label: "Day", num: true, sort: (m) => m.programDay || 0 },
+  { id: "streak", label: "Streak", num: true, sort: (m) => m.streak || 0 },
+  { id: "lastSeenAt", label: "Last open", sort: (m) => m.lastSeenAt?.getTime() || 0 },
+  { id: "renews", label: "Renews", sort: (m) => (m.revenueCat?.subscription?.currentPeriodEndsAt ? new Date(m.revenueCat.subscription.currentPeriodEndsAt).getTime() : Infinity) },
+  { id: "joined", label: "Joined", sort: (m) => m.joinedAt?.getTime() || 0 },
+];
+
+function flag(code) {
+  if (!code || code.length !== 2) return "🌐";
+  return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)));
 }
 
-function dayLabel(member) {
-  return Number.isFinite(member.programDay)
-    ? `${member.programDay} of ${PROGRAM_LENGTH_DAYS}`
-    : "Not started";
-}
-
-function Avatar({ member }) {
-  return (
-    <span
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12px] font-bold"
-      style={{
-        background: "linear-gradient(135deg, var(--pv-rose), var(--pv-violet))",
-        color: "var(--pv-accent-ink)",
-      }}
-      aria-hidden="true"
-    >
-      {memberInitials(member)}
-    </span>
-  );
-}
-
-export function MembersSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="pv-skeleton h-12 w-full" />
-      <RowsSkeleton rows={8} />
-    </div>
-  );
-}
-
-export default function Members({ activeMembers, allPeople, activeTotal, membershipError, onRetry, onPatched }) {
+export default function Members({ members, allPeople, activeTotal, membershipError, onRetry, onOpenMember, inspectedId, now, ownerMetrics }) {
   const [view, setView] = useState("active");
   const [term, setTerm] = useState("");
-  const [sortKey, setSortKey] = useState("lastSeenAt");
-  const [sortDir, setSortDir] = useState("desc");
-  const [openId, setOpenId] = useState(null);
+  const [sort, setSort] = useState({ key: "lastSeenAt", dir: "desc" });
+  const [density, setDensity] = useState("comfortable");
+  const [cursor, setCursor] = useState(-1);
 
-  const members = view === "active" ? activeMembers : allPeople;
+  const source = view === "all" ? allPeople : members;
   const rows = useMemo(() => {
-    const found = searchMembers(members, term);
-    return sortMembers(found, sortKey, sortDir);
-  }, [members, term, sortKey, sortDir]);
+    const v = VIEWS.find((x) => x.id === view) || VIEWS[0];
+    const q = term.trim().toLowerCase();
+    const col = COLUMNS.find((c) => c.id === sort.key) || COLUMNS[5];
+    const filtered = source.filter((m) => v.filter(m, now) && (!q || `${m.name} ${m.email} ${m.id} ${m.goalTitle}`.toLowerCase().includes(q)));
+    return filtered.sort((a, b) => { const x = col.sort(a); const y = col.sort(b); const r = x < y ? -1 : x > y ? 1 : 0; return sort.dir === "asc" ? r : -r; });
+  }, [source, view, term, sort, now]);
 
-  const openMember = useMemo(() => members.find((m) => m.id === openId) || null, [members, openId]);
+  useEffect(() => { setCursor(-1); }, [view, term]);
+  useEffect(() => {
+    const onKey = (e) => {
+      const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (e.key === "j") setCursor((c) => Math.min(rows.length - 1, c + 1));
+      else if (e.key === "k") setCursor((c) => Math.max(0, c - 1));
+      else if (e.key === "Enter" && cursor >= 0 && rows[cursor]) onOpenMember(rows[cursor]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [rows, cursor, onOpenMember]);
 
-  const toggleSort = (columnId) => {
-    if (columnId === sortKey) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(columnId);
-      // Dates and counts are most useful biggest first; names read A to Z.
-      setSortDir(columnId === "name" || columnId === "goalTitle" ? "asc" : "desc");
-    }
-  };
-
-  const sortLabel = (column) => {
-    if (column.id !== sortKey) return "none";
-    return sortDir === "asc" ? "ascending" : "descending";
-  };
+  const counts = useMemo(() => Object.fromEntries(VIEWS.map((v) => [v.id, (v.id === "all" ? allPeople : members).filter((m) => v.filter(m, now)).length])), [members, allPeople, now]);
+  const countries = useMemo(() => (Array.isArray(ownerMetrics?.geography?.countries) ? ownerMetrics.geography.countries : []).map((c) => ({ key: c.code, label: `${flag(c.code)}  ${c.name}`, sub: `${c.paid || 0} paid · ${c.trials || 0} trial`, value: c.activePremium || 0 })).sort((a, b) => b.value - a.value), [ownerMetrics]);
+  const th = (c) => (
+    <th key={c.id} className={c.num ? "num" : ""} aria-sort={sort.key === c.id ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}>
+      <button type="button" onClick={() => setSort((s) => ({ key: c.id, dir: s.key === c.id && s.dir === "desc" ? "asc" : "desc" }))}>{c.label}{sort.key === c.id ? (sort.dir === "asc" ? " ↑" : " ↓") : ""}</button>
+    </th>
+  );
 
   return (
-    <div className="space-y-5">
-      <SectionHeader
-        eyebrow={view === "active" ? "RevenueCat verified" : "Every iPhone profile"}
-        title={view === "active" ? "Synced active members" : "All people"}
-        description={view === "active"
-          ? `RevenueCat-verified premium members whose profiles are synced by the current iPhone app. The exact whole-business total is ${formatCount(activeTotal)} on App pulse; canceled and expired subscriptions are excluded.`
-          : "Every iPhone profile created in Firebase, including people who only completed onboarding, canceled, or expired."}
-        action={
-          <Segmented
-            label="Which people to show"
-            value={view}
-            onChange={(next) => { setView(next); setOpenId(null); }}
-            options={[
-              { value: "active", label: `Synced active ${formatCount(activeMembers.length)}` },
-              { value: "all", label: `All people ${formatCount(allPeople.length)}` },
-            ]}
-          />
-        }
-      />
+    <div className="pv-rise" style={{ display: "grid", gap: 12 }}>
+      <PageHead title="Members" description={`${count(activeTotal ?? members.length)} active premium verified by RevenueCat · ${count(allPeople.length)} iPhone profiles in total`} right={<Segmented label="Row density" value={density} onChange={setDensity} options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />} />
+      {membershipError ? <Unavailable reason={`Live RevenueCat membership: ${membershipError}`} onRetry={onRetry} /> : null}
 
-      {view === "active" && membershipError ? (
-        <Card className="p-4">
-          <ErrorState
-            title="Live membership did not load"
-            description={`${membershipError} No Firebase profile is being counted as premium while RevenueCat is unavailable.`}
-            onRetry={onRetry}
-          />
-        </Card>
-      ) : null}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {VIEWS.map((v) => <Chip key={v.id} on={view === v.id} onClick={() => setView(v.id)}>{v.label}<span className="pv-kbd" style={{ marginLeft: 4 }}>{counts[v.id]}</span></Chip>)}
+        <div style={{ flex: 1 }} />
+        <Input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Search name, email, id, goal" aria-label="Search members" style={{ maxWidth: 280 }} />
+      </div>
 
-      {view === "active" && membershipError ? null : <div className="relative">
-        <Input
-          type="search"
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          placeholder="Search members"
-          aria-label="Search members by name, email or id"
-          className="pl-11"
-        />
-        <span
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px]"
-          style={{ color: "var(--pv-ink-3)" }}
-          aria-hidden="true"
-        >
-          ⌕
-        </span>
-      </div>}
-
-      {view === "active" && membershipError ? null : <p className="text-[13px]" style={{ color: "var(--pv-ink-2)" }} role="status">
-        {term.trim()
-          ? `${formatCount(rows.length)} of ${formatCount(members.length)} ${view === "active" ? "active members" : "people"} match "${term.trim()}".`
-          : view === "active"
-            ? `${formatCount(members.length)} synced active premium member${members.length === 1 ? "" : "s"}; ${formatCount(activeTotal)} active premium across RevenueCat.`
-            : `${formatCount(members.length)} iPhone profile${members.length === 1 ? "" : "s"} in all people.`}
-      </p>}
-
-      {view === "active" && membershipError ? null : rows.length === 0 ? (
-        <Card className="p-4">
-          <EmptyState
-            title={term.trim() ? "Nobody matches that" : view === "active" ? "No renewing premium members" : "No people yet"}
-            description={
-              term.trim()
-                ? "Try part of a first name, an email address, or the member id shown at the top of her panel."
-                : view === "active"
-                  ? "RevenueCat has no active trial or paid App Store subscription that is still set to renew."
-                  : "People appear here after the iPhone app creates their Firebase profile."
-            }
-            icon={term.trim() ? "⌕" : "○"}
-          />
-        </Card>
-      ) : (
-        <>
-          {/* Phone: stacked cards ---------------------------------------- */}
-          <ul className="space-y-2 tab:hidden">
-            {rows.map((member, i) => (
-              <li key={member.id}>
-                {/* Only spans inside: a button may not contain block elements,
-                    and the whole card has to stay one tap target. */}
-                <button
-                  type="button"
-                  onClick={() => setOpenId(member.id)}
-                  className="pv-rise w-full rounded-2xl p-4 text-left"
-                  style={{
-                    background: "var(--pv-surface)",
-                    border: "1px solid var(--pv-border)",
-                    animationDelay: `${Math.min(i * 18, 240)}ms`,
-                  }}
-                >
-                  <span className="flex items-center gap-3">
-                    <Avatar member={member} />
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className="block truncate text-[15px] font-semibold"
-                        style={{ color: "var(--pv-ink)" }}
-                      >
-                        {displayName(member)}
-                      </span>
-                      <span className="block truncate text-[12px]" style={{ color: "var(--pv-ink-3)" }}>
-                        {member.email || "No email on record"}
-                      </span>
-                    </span>
-                    <Pill tone={premiumLabel(member).tone}>{premiumLabel(member).label}</Pill>
-                  </span>
-                  <span
-                    className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-[12px]"
-                    style={{ borderColor: "var(--pv-border)" }}
-                  >
-                    <span className="block">
-                      <span className="block" style={{ color: "var(--pv-ink-3)" }}>
-                        Day
-                      </span>
-                      <span className="pv-tabular block font-semibold" style={{ color: "var(--pv-ink)" }}>
-                        {dayLabel(member)}
-                      </span>
-                    </span>
-                    <span className="block">
-                      <span className="block" style={{ color: "var(--pv-ink-3)" }}>
-                        Streak
-                      </span>
-                      <span className="pv-tabular block font-semibold" style={{ color: "var(--pv-ink)" }}>
-                        {formatCount(member.streak)}
-                      </span>
-                    </span>
-                    <span className="block">
-                      <span className="block" style={{ color: "var(--pv-ink-3)" }}>
-                        Last seen
-                      </span>
-                      <span className="block font-semibold" style={{ color: "var(--pv-ink)" }}>
-                        {formatRelativeDay(member.lastSeenAt)}
-                      </span>
-                    </span>
-                  </span>
-                  <span className="mt-2 block truncate text-[12px]" style={{ color: "var(--pv-ink-2)" }}>
-                    {member.goalTitle}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          {/* Tablet and up: a real table --------------------------------
-              From 704px, not 1024: an iPad in portrait has room for seven
-              columns, and the stacked cards there were a column of address
-              labels. It scrolls sideways between 704 and about 1000, which is
-              why the name column is frozen and the header is sticky.
-
-              The card is flat and solid rather than glass, because the sticky
-              header and the frozen column need an opaque background to sit on
-              and a translucent one would let the rows slide through them. */}
-          <Card
-            flat
-            className="hidden overflow-hidden tab:block"
-            style={{ background: "var(--pv-surface-solid)" }}
-          >
-            <div className="pv-table-scroll">
-              <table className="w-full min-w-[820px] text-left text-[13px]">
-                <caption className="pv-sr">
-                  Members, sortable. Use the buttons in each column heading to sort.
-                </caption>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--pv-border)" }}>
-                    {APP_COLUMNS.map((column, columnIndex) => (
-                      <th
-                        key={column.id}
-                        scope="col"
-                        aria-sort={sortLabel(column)}
-                        className={`pv-th px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] ${
-                          column.numeric ? "text-right" : ""
-                        } ${columnIndex === 0 ? "pv-th-frozen pv-cell-frozen" : ""}`}
-                        style={{ color: "var(--pv-ink-3)" }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => toggleSort(column.id)}
-                          className="inline-flex min-h-[32px] items-center gap-1.5"
-                          style={{ color: column.id === sortKey ? "var(--pv-ink)" : "var(--pv-ink-3)" }}
-                        >
-                          {column.label}
-                          <span aria-hidden="true">
-                            {column.id === sortKey ? (sortDir === "asc" ? "↑" : "↓") : "·"}
-                          </span>
-                        </button>
-                      </th>
-                    ))}
+      <div className="pv-bento">
+        <Card className="pv-span-12">
+          <div className="pv-table-wrap" style={{ maxHeight: "calc(100dvh - 300px)", overflowY: "auto" }}>
+            <table className="pv-table" data-density={density}>
+              <thead><tr>{COLUMNS.map(th)}</tr></thead>
+              <tbody>
+                {rows.length === 0 ? <tr><td colSpan={COLUMNS.length} style={{ textAlign: "center", color: "var(--pv-ink-3)", height: 96 }}>{term ? `No one matches “${term}”.` : "Nobody in this view."}</td></tr> : null}
+                {rows.map((m, i) => (
+                  <tr key={m.id} aria-selected={m.id === inspectedId || i === cursor} onClick={() => onOpenMember(m)} onMouseEnter={() => setCursor(i)}>
+                    <td className="ink"><span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0 }}><span className="pv-avatar">{memberInitials(m)}</span><span style={{ minWidth: 0 }}><span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 220 }}>{displayName(m)}</span><span className="pv-faint" style={{ fontSize: 11, display: "block", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 220 }}>{m.email || m.id}</span></span></span></td>
+                    <td><span className="pv-pill" data-tone={m.premiumPhase === "paid" ? "good" : m.premiumPhase === "trial" ? "accent" : m.premiumState === "canceled_with_access" ? "warn" : "neutral"}>{m.premiumPhase === "paid" ? "Paid" : m.premiumPhase === "trial" ? "Trial" : m.premiumState === "canceled_with_access" ? "Canceled" : "No access"}</span></td>
+                    <td>{m.goalTitle || <span className="pv-faint">—</span>}</td>
+                    <td className="num">{Number.isFinite(m.programDay) ? `${m.programDay}` : <span className="pv-faint">—</span>}</td>
+                    <td className="num">{m.streak || 0}</td>
+                    <td>{m.lastSeenAt ? formatRelativeDay(m.lastSeenAt, now) : <span className="pv-faint">Never</span>}</td>
+                    <td className="pv-mono">{m.revenueCat?.subscription?.currentPeriodEndsAt ? shortDate(m.revenueCat.subscription.currentPeriodEndsAt.slice(0, 10)) : <span className="pv-faint">—</span>}</td>
+                    <td className="pv-mono">{m.joinedAt ? shortDate(m.joinedAt.toISOString().slice(0, 10)) : <span className="pv-faint">—</span>}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {/* Each row stays a row. The member's name is the button, so
-                      the table keeps its structure and a keyboard gets one
-                      clear stop per member instead of a mystery row. */}
-                  {rows.map((member, i) => (
-                    <tr
-                      key={member.id}
-                      onClick={() => setOpenId(member.id)}
-                      className="pv-fade cursor-pointer transition-colors hover:brightness-125"
-                      style={{
-                        borderTop: i === 0 ? "none" : "1px solid var(--pv-border)",
-                        animationDelay: `${Math.min(i * 10, 200)}ms`,
-                      }}
-                    >
-                      <td className="pv-cell-frozen px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenId(member.id);
-                          }}
-                          className="flex w-full items-center gap-3 text-left"
-                          aria-label={`Open ${displayName(member)}`}
-                        >
-                          <Avatar member={member} />
-                          <span className="min-w-0">
-                            <span className="block truncate font-semibold" style={{ color: "var(--pv-ink)" }}>
-                              {displayName(member)}
-                            </span>
-                            <span className="block truncate text-[12px]" style={{ color: "var(--pv-ink-3)" }}>
-                              {member.email || "No email on record"}
-                            </span>
-                          </span>
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Pill tone={premiumLabel(member).tone}>{premiumLabel(member).label}</Pill>
-                      </td>
-                      <td className="px-4 py-3" style={{ color: "var(--pv-ink-2)" }}>
-                        {member.goalTitle}
-                      </td>
-                      <td className="pv-tabular px-4 py-3 text-right" style={{ color: "var(--pv-ink)" }}>
-                        {dayLabel(member)}
-                      </td>
-                      <td className="pv-tabular px-4 py-3 text-right" style={{ color: "var(--pv-ink)" }}>
-                        {formatCount(member.streak)}
-                      </td>
-                      <td className="px-4 py-3 text-right" style={{ color: "var(--pv-ink-2)" }}>
-                        {formatRelativeDay(member.lastSeenAt)}
-                      </td>
-                      <td className="px-4 py-3 text-right" style={{ color: "var(--pv-ink-2)" }}>
-                        {formatDate(member.joinedAt, "Not recorded")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="pv-faint" style={{ padding: "8px 12px", fontSize: 11, fontFamily: "var(--font-mono)", borderTop: "1px solid var(--pv-border)" }}>{rows.length} shown · j / k move · ↵ open · esc close</div>
+        </Card>
+        {countries.length ? (
+          <Card className="pv-span-4 pv-half">
+            <CardHead label="Where renewing members are" info={{ body: "Country attached to current production App Store paid subscriptions and trials that are set to renew. Real aggregate countries from RevenueCat, not GPS.", source: ownerMetrics?.geography?.source }} />
+            <div className="pv-card-pad"><RankedBars rows={countries} color="var(--pv-accent)" /></div>
+            <div className="pv-faint" style={{ padding: "0 16px 12px", fontSize: 11 }}>{countries.length} countr{countries.length === 1 ? "y" : "ies"} · {ratio(countries[0]?.value, countries.reduce((s, c) => s + c.value, 0))} in {countries[0]?.label.replace(/^\S+\s+/, "")}</div>
           </Card>
-        </>
-      )}
-
-      {openMember ? (
-        <MemberPanel
-          member={openMember}
-          onClose={() => setOpenId(null)}
-          onPatched={(patch) => onPatched(openMember.id, patch)}
-        />
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
