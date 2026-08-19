@@ -93,9 +93,10 @@
   color-scheme: light;
 }
 
+/* Resets at zero specificity (:where) so every component class wins over them. */
 .pv-admin *, .pv-admin *::before, .pv-admin *::after { box-sizing: border-box; }
-.pv-admin button, .pv-admin input, .pv-admin select, .pv-admin textarea { font: inherit; color: inherit; }
-.pv-admin button { cursor: pointer; background: none; border: 0; padding: 0; }
+:where(.pv-admin) :where(button, input, select, textarea) { font: inherit; color: inherit; }
+:where(.pv-admin) :where(button) { cursor: pointer; background: none; border: 0; padding: 0; }
 .pv-admin :focus-visible { outline: 2px solid var(--pv-focus); outline-offset: 2px; border-radius: 6px; }
 .pv-admin ::selection { background: var(--pv-accent-soft); }
 
