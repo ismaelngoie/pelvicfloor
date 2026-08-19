@@ -62,8 +62,15 @@
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* The site's root layout centres every route in a capped, light column.
+     The admin is an instrument panel: it takes the whole viewport, every
+     pixel, on every screen size — so it escapes that column outright. */
+  position: fixed;
+  inset: 0;
+  width: 100vw;
   height: 100dvh;
   overflow: hidden;
+  z-index: 10;
 }
 
 .pv-admin[data-admin-theme="light"] {

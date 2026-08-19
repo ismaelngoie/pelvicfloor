@@ -408,15 +408,14 @@ export default function AdminDashboard() {
         nextPrev = compare ? await fixtureOwnerMetrics(prev, 0.88) : null;
         nextApple = f.fixtureAppleReport(range);
       } else {
-        const [memberRows, appTelemetry, ownerResult, prevResult, appleResult] = await Promise.all([
+        const [memberRows, appTelemetry, ownerResult, appleResult] = await Promise.all([
           fetchAllMembers(),
           fetchAppTelemetry(),
-          fetchRevenueCatOwnerMetrics(user, range.startDate, range.endDate).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat business metrics did not load." })),
-          compare ? fetchRevenueCatOwnerMetrics(user, prev.startDate, prev.endDate).then((value) => ({ value, error: "" })).catch(() => ({ value: null, error: "" })) : Promise.resolve({ value: null, error: "" }),
+          fetchRevenueCatOwnerMetrics(user, range.startDate, range.endDate, "USD", compare ? prev : null).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat business metrics did not load." })),
           fetchAppleAdsReport(user, range.startDate, range.endDate).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "Apple Ads reporting did not load." })),
         ]);
         const membershipResult = await fetchRevenueCatMembers(user, memberRows.map((m) => m.id)).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat memberships did not load." }));
-        next = memberRows; nextTelemetry = appTelemetry; nextMembership = membershipResult.value; nextOwner = ownerResult.value; nextPrev = prevResult.value; nextApple = appleResult.value;
+        next = memberRows; nextTelemetry = appTelemetry; nextMembership = membershipResult.value; nextOwner = ownerResult.value; nextPrev = ownerResult.value?.previous || null; nextApple = appleResult.value;
         setMembershipError(membershipResult.error); setOwnerMetricsError(ownerResult.error); setAppleError(appleResult.error);
       }
       setMembers(next); setTelemetry(nextTelemetry); setMembership(nextMembership); setOwnerMetrics(nextOwner); setOwnerPrevious(nextPrev); setAppleReport(nextApple);

@@ -78,13 +78,24 @@ export async function onRequestPost({ request, env }) {
   const currency = String(body.currency || "USD").trim().toUpperCase();
   if (!SUPPORTED_CURRENCIES.has(currency)) return json(400, { error: "Choose a supported reporting currency." });
 
+  // Optional comparison window. It is built inside THIS request, after the
+  // main report, so the dashboard's "vs previous period" never competes with
+  // the main report for the one-fresh-report-per-minute slot below.
+  let compareRange = null;
+  if (body.compareStartDate && body.compareEndDate) {
+    const parsed = reportRange(body.compareStartDate, body.compareEndDate);
+    if (!parsed.ok) return json(400, { error: `Comparison range: ${parsed.error}` });
+    compareRange = parsed;
+  }
+
   try {
     const projectId = first(env, ["REVENUECAT_PROJECT_ID"])
       || (await discoverProjectId(apiKey, env.REVENUECAT_PROJECT_NAME));
     const cacheKey = `${projectId}:${range.startDate}:${range.endDate}:${currency}`;
     const cached = reportCache.get(cacheKey);
     if (cached && Date.now() - cached.savedAt < CACHE_MS) {
-      return json(200, { ...cached.value, cache: { status: "hit", maxAgeSeconds: CACHE_MS / 1000 } });
+      const previous = compareRange ? await comparisonReport({ apiKey, projectId, currency, range: compareRange, env }) : undefined;
+      return json(200, { ...cached.value, ...(previous !== undefined ? { previous } : {}), cache: { status: "hit", maxAgeSeconds: CACHE_MS / 1000 } });
     }
 
     let pending = inFlightReports.get(cacheKey);
@@ -110,7 +121,8 @@ export async function onRequestPost({ request, env }) {
 
     reportCache.set(cacheKey, { savedAt: Date.now(), value });
     pruneCache();
-    return json(200, { ...value, cache: { status: "miss", maxAgeSeconds: CACHE_MS / 1000 } });
+    const previous = compareRange ? await comparisonReport({ apiKey, projectId, currency, range: compareRange, env }) : undefined;
+    return json(200, { ...value, ...(previous !== undefined ? { previous } : {}), cache: { status: "miss", maxAgeSeconds: CACHE_MS / 1000 } });
   } catch (error) {
     console.error("RevenueCat owner metrics failed", {
       message: error?.message || "unknown",
@@ -127,6 +139,33 @@ export async function onRequestPost({ request, env }) {
       });
     }
     return json(502, { error: "RevenueCat owner metrics could not be reached. Try again shortly." });
+  }
+}
+
+/**
+ * The previous-period report for the dashboard's deltas. Served from the same
+ * cache as a main report; when it has to be built, it rides on the main
+ * report's cooldown slot rather than taking one of its own, and any failure
+ * degrades to `null` — the main numbers never depend on it.
+ */
+async function comparisonReport({ apiKey, projectId, currency, range, env }) {
+  const key = `${projectId}:${range.startDate}:${range.endDate}:${currency}`;
+  const cached = reportCache.get(key);
+  if (cached && Date.now() - cached.savedAt < CACHE_MS) return cached.value;
+  let pending = inFlightReports.get(key);
+  if (!pending) {
+    pending = buildOwnerReport({ apiKey, projectId, currency, range, env });
+    inFlightReports.set(key, pending);
+  }
+  try {
+    const value = await pending;
+    reportCache.set(key, { savedAt: Date.now(), value });
+    return value;
+  } catch (error) {
+    console.error("RevenueCat comparison report failed", { message: error?.message || "unknown" });
+    return null;
+  } finally {
+    if (inFlightReports.get(key) === pending) inFlightReports.delete(key);
   }
 }
 
