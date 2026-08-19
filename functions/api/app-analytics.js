@@ -12,6 +12,9 @@ import {
 
 const ADMIN_EMAIL = "ismael@ngoie.com";
 const APPLE_API = "https://api.searchads.apple.com/api/v5";
+const PELVIC_FLOOR_ADAM_ID = "6642654729";
+const APPLE_CHUNK_DAYS = 90;
+const APPLE_HISTORY_DAYS = 732;
 
 export async function onRequestPost({ request, env }) {
   if (!originAllowed(request, env)) return json(403, { error: "This request did not come from pelvi.health." });
@@ -43,49 +46,41 @@ export async function onRequestPost({ request, env }) {
 
   try {
     const access = await appleAccessToken(env);
-    const response = await fetch(`${APPLE_API}/reports/campaigns`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${access}`,
-        "X-AP-Context": `orgId=${env.APPLE_ADS_ORG_ID}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        startTime: dates.start,
-        endTime: dates.end,
-        selector: {
-          orderBy: [{ field: "campaignId", sortOrder: "ASCENDING" }],
-          pagination: { offset: 0, limit: 1000 },
-        },
-        timeZone: "UTC",
-        returnRecordsWithNoMetrics: true,
-        returnRowTotals: true,
-        returnGrandTotals: true,
-      }),
-    });
-    if (!response.ok) {
-      console.error("Apple Ads report failed", { status: response.status });
-      return json(502, { error: "Apple Ads did not return the campaign report. Check the read-only API user and organization id." });
-    }
-
-    const payload = await response.json();
-    const report = payload?.data?.reportingDataResponse || payload?.data || payload?.reportingDataResponse || payload;
-    const rows = Array.isArray(report?.row) ? report.row : Array.isArray(report?.rows) ? report.rows : [];
-    const campaigns = rows.map(normalizeCampaign);
+    const chunks = reportChunks(dates.start, dates.end, APPLE_CHUNK_DAYS);
+    const reports = await mapWithConcurrency(chunks, 3, (chunk) => fetchCampaignChunk({
+      access,
+      orgId: env.APPLE_ADS_ORG_ID,
+      start: chunk.start,
+      end: chunk.end,
+    }));
+    const mergedCampaigns = mergeCampaignReports(reports);
+    const appIds = [...new Set(mergedCampaigns.map((campaign) => campaign.appId).filter(Boolean))];
+    const appFilterApplied = appIds.length > 0;
+    const campaigns = appFilterApplied
+      ? mergedCampaigns.filter((campaign) => campaign.appId === PELVIC_FLOOR_ADAM_ID)
+      : mergedCampaigns;
     const currencies = [...new Set(campaigns.map((row) => row.currency).filter(Boolean))];
     const currency = currencies.length === 1 ? currencies[0] : null;
     const totals = campaigns.reduce((sum, row) => ({
       impressions: sum.impressions + row.impressions,
       taps: sum.taps + row.taps,
       totalInstalls: sum.totalInstalls + row.installs,
+      newDownloads: sum.newDownloads + row.newDownloads,
+      redownloads: sum.redownloads + row.redownloads,
       spend: sum.spend + row.spend,
-    }), { impressions: 0, taps: 0, totalInstalls: 0, spend: 0 });
+    }), { impressions: 0, taps: 0, totalInstalls: 0, newDownloads: 0, redownloads: 0, spend: 0 });
     totals.currency = currency;
 
     return json(200, {
       source: "Apple Ads Campaign Management API 5",
       fetchedAt: Date.now(),
       range: { startDate: dates.start, endDate: dates.end },
+      app: {
+        adamId: PELVIC_FLOOR_ADAM_ID,
+        filterApplied: appFilterApplied,
+        ...(appFilterApplied ? {} : { warning: "Apple did not return app metadata, so the report could not verify its app scope." }),
+      },
+      chunks: chunks.length,
       currency,
       totals,
       campaigns,
@@ -96,11 +91,45 @@ export async function onRequestPost({ request, env }) {
   }
 }
 
+async function fetchCampaignChunk({ access, orgId, start, end }) {
+  const response = await fetch(`${APPLE_API}/reports/campaigns`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${access}`,
+      "X-AP-Context": `orgId=${orgId}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      startTime: start,
+      endTime: end,
+      selector: {
+        orderBy: [{ field: "campaignId", sortOrder: "ASCENDING" }],
+        pagination: { offset: 0, limit: 1000 },
+      },
+      timeZone: "UTC",
+      returnRecordsWithNoMetrics: true,
+      returnRowTotals: true,
+      returnGrandTotals: true,
+    }),
+  });
+  if (!response.ok) {
+    console.error("Apple Ads report chunk failed", { status: response.status, start, end });
+    const error = new Error("Apple Ads did not return the campaign report.");
+    error.status = response.status;
+    throw error;
+  }
+  const payload = await response.json();
+  const report = payload?.data?.reportingDataResponse || payload?.data || payload?.reportingDataResponse || payload;
+  const rows = Array.isArray(report?.row) ? report.row : Array.isArray(report?.rows) ? report.rows : [];
+  return rows.map(normalizeCampaign);
+}
+
 function normalizeCampaign(row) {
   const metadata = row?.metadata || row?.campaign || {};
   const metrics = row?.total || row?.grandTotals?.total || lastGranularity(row?.granularity) || {};
   return {
     id: String(metadata.campaignId ?? row?.campaignId ?? ""),
+    appId: String(metadata?.app?.adamId ?? metadata.adamId ?? row?.adamId ?? ""),
     name: metadata.campaignName || row?.campaignName || "Unnamed campaign",
     status: metadata.campaignStatus || metadata.status || "",
     countries: metadata.countriesOrRegions || [],
@@ -114,6 +143,35 @@ function normalizeCampaign(row) {
     avgCpt: money(metrics.avgCPT),
     avgCpi: money(metrics.totalAvgCPI),
   };
+}
+
+function mergeCampaignReports(reports) {
+  const merged = new Map();
+  for (const report of reports) {
+    for (const campaign of report) {
+      const key = campaign.id || `${campaign.appId}:${campaign.name}`;
+      const current = merged.get(key);
+      if (!current) {
+        merged.set(key, { ...campaign, countries: [...new Set(campaign.countries || [])] });
+        continue;
+      }
+      merged.set(key, {
+        ...current,
+        appId: campaign.appId || current.appId,
+        name: campaign.name || current.name,
+        status: campaign.status || current.status,
+        countries: [...new Set([...(current.countries || []), ...(campaign.countries || [])])],
+        impressions: current.impressions + campaign.impressions,
+        taps: current.taps + campaign.taps,
+        installs: current.installs + campaign.installs,
+        newDownloads: current.newDownloads + campaign.newDownloads,
+        redownloads: current.redownloads + campaign.redownloads,
+        spend: current.spend + campaign.spend,
+        currency: campaign.currency || current.currency,
+      });
+    }
+  }
+  return [...merged.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
 function lastGranularity(value) {
@@ -152,8 +210,45 @@ function reportDates(start, end) {
   const startDate = new Date(`${start}T00:00:00Z`);
   const endDate = new Date(`${end}T00:00:00Z`);
   const days = (endDate - startDate) / 86400000;
-  if (!Number.isFinite(days) || days < 0 || days > 90) return { ok: false, error: "Apple Ads reports can cover up to 90 days at a time." };
+  if (!Number.isFinite(days) || days < 0 || days > APPLE_HISTORY_DAYS) {
+    return { ok: false, error: "Apple Ads history can cover up to the latest 24 months." };
+  }
+  if (endDate > new Date(`${utcDate(Date.now())}T00:00:00Z`)) {
+    return { ok: false, error: "The reporting end date cannot be in the future." };
+  }
   return { ok: true, start, end };
+}
+
+function reportChunks(start, end, maximumDays) {
+  const chunks = [];
+  let cursor = new Date(`${start}T00:00:00Z`);
+  const final = new Date(`${end}T00:00:00Z`);
+  while (cursor <= final) {
+    // Apple limits one report to 90 calendar dates. Subtract one because both
+    // startTime and endTime are inclusive.
+    const chunkEnd = new Date(Math.min(final.getTime(), cursor.getTime() + (maximumDays - 1) * 86400000));
+    chunks.push({ start: utcDate(cursor.getTime()), end: utcDate(chunkEnd.getTime()) });
+    cursor = new Date(chunkEnd.getTime() + 86400000);
+  }
+  return chunks;
+}
+
+async function mapWithConcurrency(items, concurrency, task) {
+  const results = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      results[index] = await task(items[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+function utcDate(value) {
+  return new Date(value).toISOString().slice(0, 10);
 }
 
 let cachedAppleToken = null;
@@ -203,3 +298,9 @@ async function importAppleKey(pem) {
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
   return crypto.subtle.importKey("pkcs8", bytes, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
 }
+
+export const __test = {
+  mergeCampaignReports,
+  reportChunks,
+  reportDates,
+};

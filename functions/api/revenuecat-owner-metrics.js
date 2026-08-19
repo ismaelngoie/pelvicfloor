@@ -23,7 +23,7 @@ import {
 // - Refund Rate attributes a refund to the original paid transaction's date.
 //
 // RevenueCat's Charts & Metrics API is limited to 25 requests/minute. A fresh
-// report uses at most 19 RevenueCat subrequests (including project discovery),
+// report uses at most 20 RevenueCat subrequests (including project discovery),
 // responses are cached for five minutes, and identical in-flight requests are
 // coalesced. A daily growth snapshot adds at most three Google subrequests
 // (token, write, read), still safely below Cloudflare's worker subrequest cap.
@@ -36,12 +36,15 @@ const MAX_CACHE_ENTRIES = 24;
 const GROWTH_COLLECTION = "adminOwnerDailyMetrics";
 const MAX_GROWTH_POINTS = 3660;
 const LIFETIME_REVENUE_START = "2020-01-01";
+const ACQUISITION_RELAUNCH_START = "2026-08-15";
+const CHART_OPTIONS_CACHE_MS = 10 * 60 * 1000;
 const SUPPORTED_CURRENCIES = new Set([
   "USD", "EUR", "GBP", "AUD", "CAD", "JPY", "BRL", "KRW", "CNY", "MXN", "INR", "IDR", "SGD", "PHP", "RUB",
 ]);
 
 const reportCache = new Map();
 const inFlightReports = new Map();
+const chartOptionsCache = new Map();
 let projectCache = null;
 let lastFreshReportAt = 0;
 
@@ -187,6 +190,7 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
   const introOffers = chartTotal(firstPaid, [/^intro offers$/i, /introductory offers/i]);
   const productChanges = chartTotal(firstPaid, [/^product changes$/i]);
   const resubscriptions = chartTotal(firstPaid, [/^resubscriptions$/i]);
+  const firstSuccessfulPayments = addAvailable(directSubscriptions, paidTrialConversions, introOffers);
 
   const trialCancelCurrent = status?.trials?.setToCancel ?? null;
   const paidCancelCurrent = status?.paid?.setToCancel ?? null;
@@ -287,11 +291,7 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       reason: "RevenueCat's Refunds chart is visible in the dashboard but is not yet exposed by the public Charts API v2. No amount is inferred from refund counts.",
       period: range,
     }),
-    firstPaidCustomers: valueMetric(firstPaidTotal ?? addAvailable(
-      directSubscriptions,
-      paidTrialConversions,
-      introOffers
-    ), {
+    firstPaidCustomers: valueMetric(firstSuccessfulPayments, {
       source: "RevenueCat New Paid Subscriptions chart (API v2, actives_new)",
       unit: "new_paid_subscriptions",
       definition: "Subscriptions whose first successful payment occurred inside the selected UTC date range. This is the exact event-period first-payment measure for acquisition cost and can differ from unique people if one person starts more than one subscription.",
@@ -302,6 +302,7 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       introductoryOffers: finiteOrNull(introOffers),
       productChanges: finiteOrNull(productChanges),
       resubscriptions: finiteOrNull(resubscriptions),
+      allNewPaidSubscriptions: finiteOrNull(firstPaidTotal),
     }),
     mrr: valueMetric(status?.mrr?.total, {
       source: "RevenueCat Subscription Status chart (API v2)",
@@ -325,20 +326,31 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     }),
   };
 
-  const [adsTrialsResult, adsFirstPaidResult, lifetimeRevenueResult] = await Promise.all([
+  const acquisitionRange = acquisitionHistoryRange(range.endDate);
+  const [adsTrialsResult, adsFirstPaidResult, adsConversionsResult, lifetimeRevenueResult] = await Promise.all([
     capture("apple_search_ads_trials", () => loadAppleSearchAdsChart({
       apiKey,
       projectId,
       loaded: trialsResult,
-      range,
+      range: acquisitionRange,
       tracker,
+      segmentCampaign: true,
     }), errors),
     capture("apple_search_ads_first_paid", () => loadAppleSearchAdsChart({
       apiKey,
       projectId,
       loaded: firstPaidResult,
-      range,
+      range: acquisitionRange,
       tracker,
+      segmentCampaign: true,
+    }), errors),
+    capture("apple_search_ads_trial_conversion", () => loadAppleSearchAdsChart({
+      apiKey,
+      projectId,
+      loaded: conversionsResult,
+      range: acquisitionRange,
+      tracker,
+      segmentCampaign: true,
     }), errors),
     capture("lifetime_revenue", () => loadLifetimeRevenueChart({
       apiKey,
@@ -351,23 +363,30 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
   ]);
   const adsTrials = adsTrialsResult?.chart || null;
   const adsFirstPaid = adsFirstPaidResult?.chart || null;
+  const adsConversions = adsConversionsResult?.chart || null;
   const lifetimeRevenue = lifetimeRevenueResult?.chart || null;
   const lifetimePeriod = { startDate: LIFETIME_REVENUE_START, endDate: range.endDate };
   const lifetimeRevenueTotal = chartTotal(lifetimeRevenue, [/^revenue$/i, /gross revenue/i]);
   const lifetimeTransactions = chartTotal(lifetimeRevenue, [/^transactions$/i]);
-  const adsTrialsStarted = chartTotal(adsTrials, [/^new trials$/i, /^trial starts$/i]);
-  const adsDirect = chartTotal(adsFirstPaid, [/^direct subscriptions$/i, /^direct$/i]);
-  const adsTrialConversions = chartTotal(adsFirstPaid, [/^trial conversions$/i]);
-  const adsIntroOffers = chartTotal(adsFirstPaid, [/^intro offers$/i, /introductory offers/i]);
-  const adsProductChanges = chartTotal(adsFirstPaid, [/^product changes$/i]);
-  const adsResubscriptions = chartTotal(adsFirstPaid, [/^resubscriptions$/i]);
-  const adsFirstPaidTotal = chartTotal(adsFirstPaid, [
-    /^total paid subscriptions$/i,
-    /^total new paid subscriptions$/i,
-    /^new paid subscriptions$/i,
-    /^new actives$/i,
-    /^total$/i,
-  ]) ?? addAvailable(adsDirect, adsTrialConversions, adsIntroOffers);
+  const acquisition = buildAcquisitionPresets({
+    trialsChart: adsTrials,
+    firstPaidChart: adsFirstPaid,
+    conversionChart: adsConversions,
+    historyRange: acquisitionRange,
+  });
+  const selectedAcquisition = buildAcquisitionWindow({
+    trialsChart: adsTrials,
+    firstPaidChart: adsFirstPaid,
+    conversionChart: adsConversions,
+    range,
+  });
+  const adsTrialsStarted = selectedAcquisition.totals.trialStarts;
+  const adsDirect = selectedAcquisition.totals.directFirstPaid;
+  const adsTrialConversions = selectedAcquisition.totals.trialConversions;
+  const adsIntroOffers = selectedAcquisition.totals.introductoryFirstPaid;
+  const adsProductChanges = selectedAcquisition.totals.productChanges;
+  const adsResubscriptions = selectedAcquisition.totals.resubscriptions;
+  const adsFirstPaidTotal = selectedAcquisition.totals.firstPaid;
   metrics.appleAttributedTrialsStarted = valueMetric(adsTrialsStarted, {
     source: "RevenueCat New Trials chart (Apple Search Ads attribution filter)",
     unit: "trials",
@@ -419,6 +438,7 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     newPaidSubscriptions: chartCoverage(firstPaidResult),
     appleSearchAdsTrials: chartCoverage(adsTrialsResult),
     appleSearchAdsNewPaidSubscriptions: chartCoverage(adsFirstPaidResult),
+    appleSearchAdsTrialConversion: chartCoverage(adsConversionsResult),
     lifetimeRevenue: chartCoverage(lifetimeRevenueResult),
   };
   const availableChartCount = Object.values(charts).filter((entry) => entry?.available).length;
@@ -467,6 +487,7 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
         available: finiteOrNull(adsTrialsStarted) !== null && finiteOrNull(adsFirstPaidTotal) !== null,
       },
     },
+    acquisition,
     geography: {
       source: "RevenueCat Subscription Status chart segmented by country (API v2)",
       definition: "Country attached to current production App Store paid subscriptions and trials that are set to renew.",
@@ -561,7 +582,7 @@ async function loadChart(apiKey, projectId, chartName, {
   tracker,
   selectorIntent,
 }) {
-  const options = await revenueCatGet(apiKey, chartPath(projectId, chartName, "/options?realtime=true"), tracker);
+  const options = await loadChartOptions(apiKey, projectId, chartName, tracker);
   const filter = appStoreFilter(options);
   const resolution = dayResolution(options);
   const selectors = {};
@@ -588,13 +609,22 @@ async function loadChart(apiKey, projectId, chartName, {
   return { chart, options, chartName };
 }
 
-async function loadAppleSearchAdsChart({ apiKey, projectId, loaded, range, tracker }) {
+async function loadChartOptions(apiKey, projectId, chartName, tracker) {
+  const key = `${projectId}:${chartName}`;
+  const cached = chartOptionsCache.get(key);
+  if (cached && Date.now() - cached.savedAt < CHART_OPTIONS_CACHE_MS) return cached.value;
+  const value = await revenueCatGet(apiKey, chartPath(projectId, chartName, "/options?realtime=true"), tracker);
+  chartOptionsCache.set(key, { savedAt: Date.now(), value });
+  return value;
+}
+
+async function loadAppleSearchAdsChart({ apiKey, projectId, loaded, range, tracker, segmentCampaign = false }) {
   const chartName = loaded?.chartName;
   const options = loaded?.options;
   if (!chartName || !options) {
     throw schemaError("apple_search_ads", "The base RevenueCat chart was unavailable, so its attribution filter could not be inspected.");
   }
-  const filters = [appStoreFilter(options)[0], appleSearchAdsAttributionFilter(options)];
+  const filters = [...appStoreFilter(options), appleSearchAdsAttributionFilter(options)];
   const params = new URLSearchParams({
     realtime: "true",
     start_date: range.startDate,
@@ -602,11 +632,15 @@ async function loadAppleSearchAdsChart({ apiKey, projectId, loaded, range, track
     resolution: dayResolution(options),
     filters: JSON.stringify(filters),
   });
+  if (segmentCampaign) {
+    params.set("segment", appleSearchAdsCampaignSegment(options));
+    params.set("limit_num_segments", "250");
+  }
   const chart = await revenueCatGet(apiKey, chartPath(projectId, chartName, `?${params}`), tracker);
   if (!Array.isArray(chart?.values) || !Array.isArray(chart?.measures)) {
     throw schemaError(chartName, "RevenueCat returned an attributed chart shape that could not be read safely.");
   }
-  return { chart, options, chartName: `${chartName}:apple_search_ads` };
+  return { chart, options, chartName: `${chartName}:apple_search_ads${segmentCampaign ? ":campaign" : ""}` };
 }
 
 async function loadLifetimeRevenueChart({ apiKey, projectId, loaded, endDate, currency, tracker }) {
@@ -665,6 +699,31 @@ function appleSearchAdsAttributionFilter(options) {
     throw schemaError("apple_search_ads", "RevenueCat did not advertise an Apple Search Ads attribution filter.");
   }
   return { name: String(filterId), values: [String(value)] };
+}
+
+function appleSearchAdsCampaignSegment(options) {
+  const segments = Array.isArray(options?.segments) ? options.segments : [];
+  const exact = segments.find((segment) => matchesPatterns([
+    segment?.display_name,
+    segment?.name,
+    segment?.id,
+  ], [
+    /^apple search ads campaign$/i,
+    /^apple_search_ads_campaign$/i,
+    /^search ads campaign$/i,
+    /^attribution campaign$/i,
+    /^attribution_campaign$/i,
+  ]));
+  const semantic = exact || segments.find((segment) => matchesPatterns([
+    segment?.display_name,
+    segment?.name,
+    segment?.id,
+  ], [/apple.*(?:search )?ads.*campaign/i, /attribution.*campaign/i]));
+  const id = semantic?.id ?? semantic?.name;
+  if (id === null || id === undefined || id === "") {
+    throw schemaError("apple_search_ads_campaign", "RevenueCat did not advertise Apple Search Ads Campaign segmentation.");
+  }
+  return String(id);
 }
 
 async function persistAndReadGrowth({ env, paid, trials, mrr, arr, currency }) {
@@ -878,6 +937,241 @@ function chartTotal(chart, patterns) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) : null;
 }
 
+function buildAcquisitionPresets({ trialsChart, firstPaidChart, conversionChart, historyRange }) {
+  const sinceStart = historyRange.startDate > ACQUISITION_RELAUNCH_START
+    ? historyRange.startDate
+    : ACQUISITION_RELAUNCH_START;
+  const ranges = {
+    today: { startDate: historyRange.endDate, endDate: historyRange.endDate },
+    sinceRelaunch: { startDate: sinceStart, endDate: historyRange.endDate },
+    allTime: { startDate: historyRange.startDate, endDate: historyRange.endDate },
+  };
+  const presets = Object.fromEntries(Object.entries(ranges).map(([key, selectedRange]) => [
+    key,
+    buildAcquisitionWindow({
+      trialsChart,
+      firstPaidChart,
+      conversionChart,
+      range: selectedRange,
+    }),
+  ]));
+  return {
+    available: Object.values(presets).some((preset) => preset.available),
+    source: "RevenueCat Charts API v2 filtered by Apple Search Ads and segmented by Apple Search Ads Campaign",
+    definition: "Campaign outcomes come from RevenueCat receipt history. First paid includes direct subscriptions without a trial, paid introductory offers, and trial conversions. Missing attribution is never assigned to a campaign.",
+    defaultPreset: "sinceRelaunch",
+    historyRange,
+    presets,
+  };
+}
+
+function buildAcquisitionWindow({ trialsChart, firstPaidChart, conversionChart, range }) {
+  const trialStarts = segmentedMeasureTotals(trialsChart, [/^new trials$/i, /^trial starts$/i], range);
+  const firstPaid = segmentedMeasureTotals(firstPaidChart, [
+    /^total paid subscriptions$/i,
+    /^total new paid subscriptions$/i,
+    /^new paid subscriptions$/i,
+    /^new actives$/i,
+    /^total$/i,
+  ], range);
+  const directFirstPaid = segmentedMeasureTotals(firstPaidChart, [/^direct subscriptions$/i, /^direct$/i], range);
+  const trialConversions = segmentedMeasureTotals(firstPaidChart, [/^trial conversions$/i], range);
+  const introductoryFirstPaid = segmentedMeasureTotals(firstPaidChart, [/^intro offers$/i, /introductory offers/i], range);
+  const productChanges = segmentedMeasureTotals(firstPaidChart, [/^product changes$/i], range);
+  const resubscriptions = segmentedMeasureTotals(firstPaidChart, [/^resubscriptions$/i], range);
+  const cohortStarts = segmentedMeasureTotals(conversionChart, [/^trial starts$/i], range);
+  const cohortConversions = segmentedMeasureTotals(conversionChart, [/^conversions$/i, /converted/i], range);
+  const pendingTrialOutcomes = segmentedMeasureTotals(conversionChart, [/^pending$/i], range);
+
+  const rows = [];
+  applySegmentMetric(rows, trialStarts, "trialStarts");
+  applySegmentMetric(rows, firstPaid, "firstPaid");
+  applySegmentMetric(rows, directFirstPaid, "directFirstPaid");
+  applySegmentMetric(rows, trialConversions, "trialConversions");
+  applySegmentMetric(rows, introductoryFirstPaid, "introductoryFirstPaid");
+  applySegmentMetric(rows, productChanges, "productChanges");
+  applySegmentMetric(rows, resubscriptions, "resubscriptions");
+  applySegmentMetric(rows, cohortStarts, "cohortStarts");
+  applySegmentMetric(rows, cohortConversions, "cohortConversions");
+  applySegmentMetric(rows, pendingTrialOutcomes, "pendingTrialOutcomes");
+
+  const trialStartsAvailable = trialStarts !== null;
+  const firstPaidComponentsAvailable = [directFirstPaid, trialConversions, introductoryFirstPaid]
+    .every((value) => value !== null);
+  const firstPaidCanSubtractMovements = firstPaid !== null && productChanges !== null && resubscriptions !== null;
+  const firstPaidAvailable = firstPaidComponentsAvailable || firstPaidCanSubtractMovements;
+  const conversionAvailable = cohortStarts !== null && cohortConversions !== null;
+
+  const campaigns = rows.map((row) => {
+    const totalFirstPaid = firstPaidComponentsAvailable
+      ? metricOrZero(row.directFirstPaid) + metricOrZero(row.trialConversions) + metricOrZero(row.introductoryFirstPaid)
+      : Math.max(0, metricOrZero(row.firstPaid) - metricOrZero(row.productChanges) - metricOrZero(row.resubscriptions));
+    const starts = trialStartsAvailable ? metricOrZero(row.trialStarts) : null;
+    const matchedStarts = conversionAvailable ? metricOrZero(row.cohortStarts) : null;
+    const matchedConversions = conversionAvailable ? metricOrZero(row.cohortConversions) : null;
+    return {
+      campaignId: row.campaignId,
+      campaignName: row.campaignName,
+      unidentified: row.unidentified,
+      trialStarts: starts,
+      firstPaid: firstPaidAvailable ? totalFirstPaid : null,
+      allNewPaidSubscriptions: firstPaid !== null ? metricOrZero(row.firstPaid) : null,
+      directFirstPaid: directFirstPaid !== null ? metricOrZero(row.directFirstPaid) : null,
+      trialConversions: trialConversions !== null ? metricOrZero(row.trialConversions) : null,
+      introductoryFirstPaid: introductoryFirstPaid !== null ? metricOrZero(row.introductoryFirstPaid) : null,
+      productChanges: productChanges !== null ? metricOrZero(row.productChanges) : null,
+      resubscriptions: resubscriptions !== null ? metricOrZero(row.resubscriptions) : null,
+      cohortStarts: matchedStarts,
+      cohortConversions: matchedConversions,
+      pendingTrialOutcomes: pendingTrialOutcomes !== null ? metricOrZero(row.pendingTrialOutcomes) : null,
+      trialToPaidRate: matchedStarts > 0 ? matchedConversions / matchedStarts : null,
+    };
+  }).sort((left, right) => (
+    Number(left.unidentified) - Number(right.unidentified)
+    || metricOrZero(right.firstPaid) - metricOrZero(left.firstPaid)
+    || metricOrZero(right.trialStarts) - metricOrZero(left.trialStarts)
+    || left.campaignName.localeCompare(right.campaignName)
+  ));
+
+  const total = (field, available) => available
+    ? campaigns.reduce((sum, campaign) => sum + metricOrZero(campaign[field]), 0)
+    : null;
+  const totalCohortStarts = total("cohortStarts", conversionAvailable);
+  const totalCohortConversions = total("cohortConversions", conversionAvailable);
+  return {
+    available: trialStartsAvailable && firstPaidAvailable,
+    scope: {
+      startDate: range.startDate,
+      endDate: range.endDate,
+      timezone: "UTC",
+      store: "app_store",
+      attributionSource: "Apple Search Ads",
+      includesPartialToday: range.endDate === utcDate(Date.now()),
+    },
+    totals: {
+      trialStarts: total("trialStarts", trialStartsAvailable),
+      firstPaid: total("firstPaid", firstPaidAvailable),
+      directFirstPaid: total("directFirstPaid", directFirstPaid !== null),
+      trialConversions: total("trialConversions", trialConversions !== null),
+      introductoryFirstPaid: total("introductoryFirstPaid", introductoryFirstPaid !== null),
+      productChanges: total("productChanges", productChanges !== null),
+      resubscriptions: total("resubscriptions", resubscriptions !== null),
+      cohortStarts: totalCohortStarts,
+      cohortConversions: totalCohortConversions,
+      pendingTrialOutcomes: total("pendingTrialOutcomes", pendingTrialOutcomes !== null),
+      trialToPaidRate: totalCohortStarts > 0 ? totalCohortConversions / totalCohortStarts : null,
+    },
+    campaigns,
+    ...(trialStartsAvailable && firstPaidAvailable ? {} : {
+      reason: "RevenueCat did not return both campaign-segmented trial starts and first-paid subscriptions. No missing value was treated as zero.",
+    }),
+  };
+}
+
+function segmentedMeasureTotals(chart, patterns, range) {
+  if (!chart) return null;
+  const measure = measureIndex(chart, patterns);
+  if (measure < 0) return null;
+  const totals = new Map();
+  for (const row of chart.values || []) {
+    if (!row || Array.isArray(row) || Number(row.measure) !== measure) continue;
+    const date = chartRowDate(row);
+    if (!date || date < range.startDate || date > range.endDate) continue;
+    const value = finiteOrNull(row.value);
+    if (value === null) continue;
+    const segment = campaignSegmentInfo(chart, row.segment);
+    if (!segment || segment.aggregate) continue;
+    const current = totals.get(segment.key) || { segment, value: 0 };
+    current.value += value;
+    totals.set(segment.key, current);
+  }
+  return totals;
+}
+
+function chartRowDate(row) {
+  const raw = row?.cohort ?? row?.timestamp ?? row?.date;
+  if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  return epochDate(raw);
+}
+
+function campaignSegmentInfo(chart, segmentValue) {
+  const rawMetadata = segmentMetadata(Array.isArray(chart?.segments) ? chart.segments : [], segmentValue);
+  const metadata = rawMetadata && typeof rawMetadata === "object"
+    ? rawMetadata
+    : { display_name: rawMetadata === null || rawMetadata === undefined ? "" : String(rawMetadata) };
+  const candidates = [
+    metadata?.campaign_id,
+    metadata?.campaignId,
+    metadata?.value,
+    metadata?.id,
+  ].filter((value) => value !== null && value !== undefined && value !== "").map(String);
+  const campaignId = candidates.find((value) => /^\d{5,}$/.test(value.trim()))
+    || candidates.map((value) => value.match(/(?:^|\D)(\d{5,})(?:\D|$)/)?.[1]).find(Boolean)
+    || "";
+  const display = String(
+    metadata?.display_name
+    || metadata?.name
+    || metadata?.label
+    || metadata?.value
+    || metadata?.id
+    || ""
+  ).trim();
+  const normalized = normalizeCampaignName(display);
+  const aggregate = /^(all|total|all campaigns)$/.test(normalized);
+  const unidentified = !normalized
+    || /^(unknown|unattributed|none|not set|no campaign|organic|unspecified)$/.test(normalized)
+    || /campaign (?:not )?(?:available|identified)/.test(normalized);
+  const campaignName = unidentified
+    ? "Campaign not identified"
+    : display || (campaignId ? `Campaign ${campaignId}` : "Campaign not identified");
+  return {
+    key: campaignId ? `id:${campaignId}` : unidentified ? "unidentified" : `name:${normalizeCampaignName(campaignName)}`,
+    campaignId,
+    campaignName,
+    normalizedName: normalizeCampaignName(campaignName),
+    unidentified,
+    aggregate,
+  };
+}
+
+function applySegmentMetric(rows, values, field) {
+  if (values === null) return;
+  for (const { segment, value } of values.values()) {
+    let row = rows.find((candidate) => (
+      (segment.campaignId && candidate.campaignId === segment.campaignId)
+      || (!segment.unidentified && segment.normalizedName && candidate.normalizedName === segment.normalizedName)
+      || (segment.unidentified && candidate.unidentified)
+    ));
+    if (!row) {
+      row = {
+        campaignId: segment.campaignId,
+        campaignName: segment.campaignName,
+        normalizedName: segment.normalizedName,
+        unidentified: segment.unidentified,
+      };
+      rows.push(row);
+    } else {
+      if (!row.campaignId && segment.campaignId) row.campaignId = segment.campaignId;
+      if ((!row.campaignName || row.unidentified) && !segment.unidentified) row.campaignName = segment.campaignName;
+    }
+    row[field] = metricOrZero(row[field]) + value;
+  }
+}
+
+function normalizeCampaignName(value) {
+  return String(value || "")
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function metricOrZero(value) {
+  const number = finiteOrNull(value);
+  return number === null ? 0 : number;
+}
+
 function chartSummaryValue(chart, patterns) {
   const summary = chart?.summary?.total;
   if (!summary || typeof summary !== "object") return null;
@@ -902,14 +1196,6 @@ function chartSeries(chart, patterns) {
 }
 
 function newPaidSeries(chart) {
-  const total = chartSeries(chart, [
-    /^total paid subscriptions$/i,
-    /^total new paid subscriptions$/i,
-    /^new paid subscriptions$/i,
-    /^new actives$/i,
-    /^total$/i,
-  ]);
-  if (total.length) return total;
   if (!chart) return [];
 
   const measures = [
@@ -917,7 +1203,15 @@ function newPaidSeries(chart) {
     measureIndex(chart, [/^trial conversions$/i]),
     measureIndex(chart, [/^intro offers$/i, /introductory offers/i]),
   ];
-  if (measures.some((index) => index < 0)) return [];
+  if (measures.some((index) => index < 0)) {
+    return chartSeries(chart, [
+      /^total paid subscriptions$/i,
+      /^total new paid subscriptions$/i,
+      /^new paid subscriptions$/i,
+      /^new actives$/i,
+      /^total$/i,
+    ]);
+  }
 
   const byDate = new Map();
   for (const row of chart.values || []) {
@@ -1008,7 +1302,14 @@ function appStoreFilter(options) {
   const appStore = choices.find((choice) => choice?.id === "app_store")
     || choices.find((choice) => /^app store$/i.test(String(choice?.display_name || "")));
   if (!store?.id || !appStore?.id) throw schemaError("filters", "RevenueCat did not advertise an App Store filter.");
-  return [{ name: store.id, values: [appStore.id] }];
+  const selected = [{ name: store.id, values: [appStore.id] }];
+  const app = filters.find((filter) => /^(app|app id|app_id)$/i.test(String(filter?.id || filter?.name || filter?.display_name || "")));
+  const appChoices = selectorChoices(app);
+  const pelvicFloorApp = appChoices.find((choice) => choice?.id === "appec71ecec7b")
+    || appChoices.find((choice) => /pelvic floor.*core coach/i.test(String(choice?.display_name || "")))
+    || (appChoices.length === 1 ? appChoices[0] : null);
+  if (app?.id && pelvicFloorApp?.id) selected.push({ name: app.id, values: [pelvicFloorApp.id] });
+  return selected;
 }
 
 function dayResolution(options) {
@@ -1144,6 +1445,19 @@ function safePath(value) {
   return typeof value === "string" && value.startsWith("/v2/") ? value : null;
 }
 
+function acquisitionHistoryRange(endDate) {
+  const end = new Date(`${endDate}T00:00:00Z`);
+  const targetYear = end.getUTCFullYear() - 2;
+  const month = end.getUTCMonth();
+  const maximumDay = new Date(Date.UTC(targetYear, month + 1, 0)).getUTCDate();
+  const start = new Date(Date.UTC(targetYear, month, Math.min(end.getUTCDate(), maximumDay)));
+  return {
+    startDate: utcDate(start.getTime()),
+    endDate,
+    days: Math.round((end - start) / 86400000) + 1,
+  };
+}
+
 function reportRange(start, end) {
   if (!validDate(start) || !validDate(end)) return { ok: false, error: "Choose a valid UTC reporting date range." };
   const startDate = new Date(`${start}T00:00:00Z`);
@@ -1212,3 +1526,12 @@ function epochIso(value) {
 function newestIso(...values) {
   return values.filter(Boolean).sort().at(-1) || null;
 }
+
+export const __test = {
+  acquisitionHistoryRange,
+  appleSearchAdsCampaignSegment,
+  appStoreFilter,
+  buildAcquisitionPresets,
+  buildAcquisitionWindow,
+  campaignSegmentInfo,
+};

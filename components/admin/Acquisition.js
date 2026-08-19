@@ -3,29 +3,65 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchAppleAdsReport } from "@/lib/adminAppData";
 import { formatCount, formatMoneyExact, formatPercent } from "@/lib/adminMetrics";
-import { Card, ErrorState, SectionHeader } from "./ui";
+import { Card, ErrorState, SectionHeader, Segmented } from "./ui";
 import TrialLifecycleFunnel from "./TrialLifecycleFunnel";
 
 const DAY_MS = 86400000;
 export const REVENUECAT_COVERAGE_START_MS = Date.UTC(2026, 7, 15);
+export const ACQUISITION_RELAUNCH_DATE = "2026-08-15";
+const RANGE_OPTIONS = [
+  { value: "today", label: "Today" },
+  { value: "sinceRelaunch", label: "Since Aug 15" },
+  { value: "allTime", label: "All time" },
+];
 const ATTRIBUTION_FIELDS = [
-  "mediaSource",
-  "campaignId",
-  "campaignName",
-  "adGroupId",
-  "adGroupName",
-  "keyword",
+  "mediaSource", "campaignId", "campaignName", "adGroupId", "adGroupName", "keyword",
 ];
 
 function iso(date) {
   return date.toISOString().slice(0, 10);
 }
 
-export function utcRange(days) {
+function utcToday() {
   const now = new Date();
-  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const endExclusive = new Date(todayUtc + DAY_MS);
-  const start = new Date(endExclusive.getTime() - days * DAY_MS);
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+function twoYearsBefore(date) {
+  const targetYear = date.getUTCFullYear() - 2;
+  const month = date.getUTCMonth();
+  const maximumDay = new Date(Date.UTC(targetYear, month + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(targetYear, month, Math.min(date.getUTCDate(), maximumDay)));
+}
+
+export function acquisitionRange(preset, historyStartDate) {
+  const today = utcToday();
+  const endExclusive = new Date(today.getTime() + DAY_MS);
+  const fallbackHistoryStart = iso(twoYearsBefore(today));
+  const historyStart = /^\d{4}-\d{2}-\d{2}$/.test(historyStartDate || "")
+    ? historyStartDate
+    : fallbackHistoryStart;
+  const startDate = preset === "today"
+    ? iso(today)
+    : preset === "allTime"
+      ? historyStart
+      : ACQUISITION_RELAUNCH_DATE;
+  const start = new Date(`${startDate}T00:00:00Z`);
+  return {
+    start,
+    endExclusive,
+    startDate,
+    endDate: iso(new Date(endExclusive.getTime() - 1)),
+  };
+}
+
+// Shared by the overview's rolling engagement window. Acquisition itself uses
+// the explicit business presets above.
+export function utcRange(days = 28) {
+  const today = utcToday();
+  const count = Math.max(1, Math.round(Number(days) || 1));
+  const start = new Date(today.getTime() - (count - 1) * DAY_MS);
+  const endExclusive = new Date(today.getTime() + DAY_MS);
   return {
     start,
     endExclusive,
@@ -34,8 +70,10 @@ export function utcRange(days) {
   };
 }
 
-function text(value) {
-  return typeof value === "string" ? value.trim() : "";
+function finiteNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 function metricEntry(report, ...keys) {
@@ -48,8 +86,20 @@ function metricEntry(report, ...keys) {
 
 function metricNumber(report, ...keys) {
   const entry = metricEntry(report, ...keys);
-  const value = Number(entry?.value);
-  return entry?.available === true && Number.isFinite(value) ? value : null;
+  const value = finiteNumber(entry?.value);
+  return entry?.available === true ? value : null;
+}
+
+function text(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizedName(value) {
+  return text(value)
+    .toLocaleLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function eventTime(event) {
@@ -61,13 +111,11 @@ function eventTime(event) {
 
 function buildIdentityResolver(events) {
   const parents = new Map();
-
   const add = (value) => {
     const id = text(value);
     if (id && !parents.has(id)) parents.set(id, id);
     return id;
   };
-
   const find = (value) => {
     const id = add(value);
     if (!id) return "";
@@ -77,7 +125,6 @@ function buildIdentityResolver(events) {
     parents.set(id, root);
     return root;
   };
-
   const union = (left, right) => {
     const leftRoot = find(left);
     const rightRoot = find(right);
@@ -85,13 +132,11 @@ function buildIdentityResolver(events) {
     const [root, child] = [leftRoot, rightRoot].sort();
     parents.set(child, root);
   };
-
   for (const event of events) {
     const appUserId = add(event.appUserId);
     const originalAppUserId = add(event.originalAppUserId);
     if (appUserId && originalAppUserId) union(appUserId, originalAppUserId);
   }
-
   return (event) => {
     const userId = text(event.appUserId) || text(event.originalAppUserId);
     if (userId) return `user:${find(userId)}`;
@@ -109,9 +154,7 @@ function dedupeKey(event) {
   const transactionId = text(event.transactionId);
   if (transactionId) return `${type}|${periodType}|transaction:${transactionId}`;
   const originalTransactionId = text(event.originalTransactionId);
-  if (originalTransactionId) {
-    return `${type}|${periodType}|original:${originalTransactionId}|time:${eventTime(event)}`;
-  }
+  if (originalTransactionId) return `${type}|${periodType}|original:${originalTransactionId}|time:${eventTime(event)}`;
   const id = text(event.id);
   if (id) return `event:${id}`;
   return `${event._identity}|${type}|${periodType}|${eventTime(event)}`;
@@ -138,31 +181,34 @@ function mergeDuplicateEvent(current, incoming) {
   return merged;
 }
 
+function attributionKey(event) {
+  const originalTransactionId = text(event.originalTransactionId);
+  return originalTransactionId ? `subscription:${originalTransactionId}` : event._identity;
+}
+
 export function prepareLifecycle(events, range) {
   const sorted = [...events].sort((left, right) => eventTime(left) - eventTime(right));
   const identityFor = buildIdentityResolver(sorted);
   const deduped = new Map();
-
   for (const event of sorted) {
     const identified = { ...event, _identity: identityFor(event) };
     const key = dedupeKey(identified);
     const current = deduped.get(key);
     deduped.set(key, current ? mergeDuplicateEvent(current, identified) : identified);
   }
-
   const chronological = [...deduped.values()].sort((left, right) => eventTime(left) - eventTime(right));
-  const attributionByIdentity = new Map();
+  const attributionBySubscription = new Map();
   for (const event of chronological) {
-    const known = { ...(attributionByIdentity.get(event._identity) || {}) };
+    const key = attributionKey(event);
+    const known = { ...(attributionBySubscription.get(key) || {}) };
     for (const field of ATTRIBUTION_FIELDS) {
       const value = text(event[field]);
       if (value) known[field] = value;
     }
-    attributionByIdentity.set(event._identity, known);
+    attributionBySubscription.set(key, known);
   }
-
   return chronological.map((event) => {
-    const known = attributionByIdentity.get(event._identity) || {};
+    const known = attributionBySubscription.get(attributionKey(event)) || {};
     const merged = { ...event };
     for (const field of ATTRIBUTION_FIELDS) {
       if (!text(merged[field]) && text(known[field])) merged[field] = known[field];
@@ -190,9 +236,7 @@ function uniqueBy(events, keyFor) {
 }
 
 function trialStartKey(event) {
-  return text(event.originalTransactionId)
-    || text(event.transactionId)
-    || event._identity;
+  return text(event.originalTransactionId) || text(event.transactionId) || event._identity;
 }
 
 export function summarizeLifecycle(events) {
@@ -204,61 +248,40 @@ export function summarizeLifecycle(events) {
     events.filter((event) => event.type === "INITIAL_PURCHASE" && event.periodType !== "TRIAL"),
     (event) => text(event.transactionId) || text(event.originalTransactionId) || event._identity
   );
-
-  const trialsByOriginalTransaction = new Map();
-  const trialsByIdentity = new Map();
-  for (const trial of trialStarts) {
-    const originalTransactionId = text(trial.originalTransactionId);
-    if (originalTransactionId && !trialsByOriginalTransaction.has(originalTransactionId)) {
-      trialsByOriginalTransaction.set(originalTransactionId, trial);
-    }
-    if (!trialsByIdentity.has(trial._identity)) trialsByIdentity.set(trial._identity, trial);
-  }
-
-  const convertedCohorts = new Map();
-  for (const event of events) {
-    if (event.type !== "RENEWAL" || event.trialConversion !== true) continue;
-    const originalTransactionId = text(event.originalTransactionId);
-    const trial = (originalTransactionId && trialsByOriginalTransaction.get(originalTransactionId))
-      || trialsByIdentity.get(event._identity);
-    if (!trial || eventTime(event) < eventTime(trial)) continue;
-    const cohortKey = trialStartKey(trial);
-    if (!convertedCohorts.has(cohortKey)) convertedCohorts.set(cohortKey, event);
-  }
-  const trialConversions = [...convertedCohorts.values()];
+  const trialConversions = uniqueBy(
+    events.filter((event) => event.type === "RENEWAL" && event.trialConversion === true),
+    (event) => text(event.transactionId) || text(event.originalTransactionId) || event._identity
+  );
   const paidMembers = uniqueBy(
     [...directPurchases, ...trialConversions].sort((left, right) => eventTime(left) - eventTime(right)),
     (event) => event._identity || text(event.originalTransactionId) || text(event.transactionId)
   );
-
   return { trialStarts, directPurchases, trialConversions, paidMembers };
 }
 
-function normalizedName(value) {
-  return text(value).toLocaleLowerCase();
-}
-
-function FunnelStep({ label, value, displayValue, denominator, detail, accent }) {
-  const hasDenominator = denominator !== null && denominator !== undefined;
+function FunnelStep({ label, value, displayValue, detail, accent }) {
   return (
     <Card className="relative overflow-hidden p-5">
       <div className="absolute inset-x-0 top-0 h-1" style={{ background: accent }} />
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--pv-ink-3)" }}>{label}</p>
-      <p className="pv-figure mt-2 text-[40px] font-semibold leading-none" style={{ color: "var(--pv-ink)" }}>{displayValue ?? formatCount(value)}</p>
-      <p className="mt-3 text-[13px]" style={{ color: "var(--pv-ink-2)" }}>{hasDenominator ? formatPercent(value, denominator) : detail}</p>
-      {hasDenominator && detail ? <p className="mt-1 text-[12px]" style={{ color: "var(--pv-ink-3)" }}>{detail}</p> : null}
+      <p className="pv-figure mt-2 text-[36px] font-semibold leading-none" style={{ color: "var(--pv-ink)" }}>{displayValue ?? formatCount(value)}</p>
+      <p className="mt-3 text-[12px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>{detail}</p>
     </Card>
   );
 }
 
+function selectedCampaignOutcomes(ownerMetrics, preset) {
+  const value = ownerMetrics?.acquisition?.presets?.[preset];
+  return value && typeof value === "object" ? value : null;
+}
+
 export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics, ownerMetricsError }) {
+  const [preset, setPreset] = useState("sinceRelaunch");
   const [state, setState] = useState("loading");
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
-
-  const range = useMemo(() => {
-    return utcRange(28);
-  }, [reloadToken]);
+  const historyStartDate = ownerMetrics?.acquisition?.historyRange?.startDate || "";
+  const range = useMemo(() => acquisitionRange(preset, historyStartDate), [preset, historyStartDate]);
 
   useEffect(() => {
     let active = true;
@@ -272,6 +295,7 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
       })
       .catch((reason) => {
         if (!active) return;
+        setReport(null);
         setError(reason?.message || "Apple Ads did not load.");
         setState("error");
       });
@@ -282,264 +306,395 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
     const events = Array.isArray(telemetry?.lifecycle) ? telemetry.lifecycle : [];
     return prepareLifecycle(events, range);
   }, [telemetry?.lifecycle, range]);
-
+  const fallback = useMemo(() => summarizeLifecycle(lifecycle), [lifecycle]);
+  const selectedOutcomes = selectedCampaignOutcomes(ownerMetrics, preset);
+  const historicalCampaignsAvailable = selectedOutcomes?.available === true;
+  const outcomeScopeMatches = selectedOutcomes?.scope?.startDate === range.startDate
+    && selectedOutcomes?.scope?.endDate === range.endDate;
   const telemetryAvailable = telemetry?.lifecycleAvailable === true;
-  const sourceLifecycle = Array.isArray(telemetry?.lifecycle) ? telemetry.lifecycle : [];
   const appleTotals = report?.totals || {};
-  const installs = Number(appleTotals.totalInstalls) || 0;
-  const spend = Number(appleTotals.spend) || 0;
-  const taps = Number(appleTotals.taps) || 0;
+  const installs = finiteNumber(appleTotals.totalInstalls) || 0;
+  const newDownloads = finiteNumber(appleTotals.newDownloads);
+  const redownloads = finiteNumber(appleTotals.redownloads);
+  const spend = finiteNumber(appleTotals.spend) || 0;
+  const taps = finiteNumber(appleTotals.taps) || 0;
   const appleAvailable = state === "ready";
-  const revenueCatCoverageComplete = range.start.getTime() >= REVENUECAT_COVERAGE_START_MS;
-  const allTrialStarts = metricNumber(ownerMetrics, "trialsStarted");
+  const appleAppScopeVerified = report?.app?.filterApplied !== false;
+  const outcomeTotals = selectedOutcomes?.totals || {};
+  const trialStarts = historicalCampaignsAvailable
+    ? finiteNumber(outcomeTotals.trialStarts)
+    : telemetryAvailable ? fallback.trialStarts.length : null;
+  const firstPaid = historicalCampaignsAvailable
+    ? finiteNumber(outcomeTotals.firstPaid)
+    : telemetryAvailable ? fallback.directPurchases.length + fallback.trialConversions.length : null;
+  const directFirstPaid = historicalCampaignsAvailable
+    ? finiteNumber(outcomeTotals.directFirstPaid)
+    : telemetryAvailable ? fallback.directPurchases.length : null;
+  const convertedTrials = historicalCampaignsAvailable
+    ? finiteNumber(outcomeTotals.trialConversions)
+    : telemetryAvailable ? fallback.trialConversions.length : null;
+  const introductoryFirstPaid = historicalCampaignsAvailable
+    ? finiteNumber(outcomeTotals.introductoryFirstPaid)
+    : null;
+  const cohortStarts = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.cohortStarts) : null;
+  const cohortConversions = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.cohortConversions) : null;
   const currentTrialRenewing = metricNumber(ownerMetrics, "trialsSetToRenew");
   const currentTrialCanceled = metricNumber(ownerMetrics, "trialsCanceled");
-  const cohortConversionMetric = metricEntry(ownerMetrics, "cohortTrialConversions");
-  const cohortConversions = metricNumber(ownerMetrics, "cohortTrialConversions");
-  const cohortTrialStarts = Number.isFinite(Number(cohortConversionMetric?.cohortStarts))
-    ? Number(cohortConversionMetric.cohortStarts)
-    : null;
-  const firstPaidMetric = metricEntry(ownerMetrics, "firstPaidCustomers", "newPaidCustomers");
-  const rawEventPeriodTrialConversions = firstPaidMetric?.trialConversions;
-  const eventPeriodTrialConversions = rawEventPeriodTrialConversions === null || rawEventPeriodTrialConversions === undefined
-    ? null
-    : Number(rawEventPeriodTrialConversions);
-  const convertedTrials = Number.isFinite(eventPeriodTrialConversions)
-    ? eventPeriodTrialConversions
-    : metricNumber(ownerMetrics, "trialsConvertedToPaid");
-  const firstPaidCustomers = metricNumber(ownerMetrics, "firstPaidCustomers", "newPaidCustomers");
-  const attributedTrials = metricNumber(ownerMetrics, "appleAttributedTrialsStarted", "appleAdsTrialsStarted");
-  const attributedPaid = metricNumber(ownerMetrics, "appleAttributedFirstPaidCustomers", "appleAdsFirstPaidCustomers");
-  const ownerScopeMatches = ownerMetrics?.scope?.startDate === range.startDate
-    && ownerMetrics?.scope?.endDate === range.endDate;
   const ownerCurrency = ownerMetrics?.scope?.currency || null;
   const appleCurrency = report?.currency || report?.totals?.currency || null;
   const costCoverageAligned = appleAvailable
-    && ownerScopeMatches
+    && appleAppScopeVerified
+    && historicalCampaignsAvailable
+    && outcomeScopeMatches
     && Boolean(ownerCurrency)
     && ownerCurrency === appleCurrency
-    && Number.isFinite(allTrialStarts)
-    && Number.isFinite(firstPaidCustomers);
-  const attributionParts = [];
-  if (Number.isFinite(attributedTrials) && Number.isFinite(allTrialStarts)) {
-    attributionParts.push(`${formatCount(attributedTrials)} of ${formatCount(allTrialStarts)} trials carry confirmed Apple Search Ads attribution`);
-  }
-  if (Number.isFinite(attributedPaid) && Number.isFinite(firstPaidCustomers)) {
-    attributionParts.push(`${formatCount(attributedPaid)} of ${formatCount(firstPaidCustomers)} first-paid subscriptions are confirmed by RevenueCat attribution`);
-  }
+    && trialStarts !== null
+    && firstPaid !== null;
+  const periodLabel = `${range.startDate} to ${range.endDate} UTC`;
+  const isToday = preset === "today";
+  const allTimeStart = ownerMetrics?.acquisition?.historyRange?.startDate || range.startDate;
+  const sourceDetail = historicalCampaignsAvailable
+    ? "RevenueCat receipt history, segmented by Apple Search Ads campaign"
+    : telemetryAvailable
+      ? "Recent RevenueCat webhook fallback; historical campaign charts are temporarily unavailable"
+      : "RevenueCat campaign outcomes unavailable";
   const coverageNote = costCoverageAligned
-    ? `Apple spend and all production App Store outcomes use ${range.startDate} through ${range.endDate} UTC. ${attributionParts.length ? `${attributionParts.join("; ")}.` : "RevenueCat attribution detail is unavailable."} Pelvi currently uses Apple Ads as its paid acquisition channel, while unattributed App Store outcomes remain visibly distinct from confirmed attribution.`
-    : ownerMetricsError || (appleAvailable && ownerScopeMatches && ownerCurrency !== appleCurrency
-      ? "Apple and RevenueCat did not return the same reporting currency, so cost per result is hidden rather than mislabeled."
-      : "Apple Ads and RevenueCat must both return the same date window and currency before cost per result is shown.");
+    ? `Apple spend and RevenueCat campaign outcomes cover the same dates and currency. ${isToday ? "Today is still in progress and both services can revise recent numbers." : "No outcome is assigned to a campaign unless RevenueCat reports it."}`
+    : ownerMetricsError || selectedOutcomes?.reason || "Cost per result is hidden until Apple and RevenueCat return matching dates and currency.";
 
   return (
     <div className="space-y-10">
       <section>
-        <SectionHeader eyebrow="Apple Ads · last 28 UTC days" title="Acquisition economics" description="Apple supplies spend, taps, and installs. RevenueCat supplies every App Store trial start and first-paid subscription for the same dates. Confirmed campaign attribution is shown separately from all business outcomes." />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <FunnelStep label="Ad spend" value={spend} displayValue={appleAvailable ? formatMoneyExact(spend) : "—"} detail={appleAvailable ? `${range.startDate} to ${range.endDate}` : state === "loading" ? "Loading from Apple" : "Apple reporting unavailable"} accent="var(--pv-rose)" />
-          <FunnelStep label="Apple Ads installs" value={installs} displayValue={appleAvailable ? undefined : "—"} detail={appleAvailable ? `${formatCount(taps)} taps` : "Apple reporting unavailable"} accent="var(--pv-violet)" />
-          <FunnelStep label="Cost per install" value={installs} displayValue={appleAvailable && installs > 0 ? formatMoneyExact(spend / installs) : "—"} detail="Apple spend divided by reported installs" accent="var(--pv-good)" />
-          <FunnelStep label="Tap to install" value={installs} displayValue={appleAvailable && taps > 0 ? formatPercent(installs, taps) : "—"} detail="Apple-reported installs divided by taps" accent="linear-gradient(90deg,var(--pv-rose),var(--pv-good))" />
+        <SectionHeader
+          eyebrow="Apple Ads"
+          title="Acquisition economics"
+          description={`Spend, installs, trials, and first payments for ${periodLabel}. First paid includes direct purchases from products with no free trial.`}
+          action={<Segmented options={RANGE_OPTIONS} value={preset} onChange={setPreset} label="Apple Ads reporting period" />}
+        />
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px]" style={{ color: "var(--pv-ink-3)" }}>
+          <span className="rounded-full px-3 py-1.5" style={{ background: "var(--pv-surface-2)", border: "1px solid var(--pv-border)" }}>{sourceDetail}</span>
+          {isToday ? <span className="rounded-full px-3 py-1.5" style={{ color: "var(--pv-warn)", background: "color-mix(in srgb, var(--pv-warn) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--pv-warn) 30%, var(--pv-border))" }}>Today is provisional</span> : null}
+          {preset === "allTime" ? <span>All time means the latest 24 months available from Apple, beginning {allTimeStart}.</span> : null}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <FunnelStep label="Ad spend" value={spend} displayValue={appleAvailable ? formatMoneyExact(spend) : "N/A"} detail={appleAvailable ? periodLabel : state === "loading" ? "Loading from Apple" : "Apple reporting unavailable"} accent="var(--pv-rose)" />
+          <FunnelStep label="Apple Ads installs" value={installs} displayValue={appleAvailable ? undefined : "N/A"} detail={appleAvailable ? `${formatCount(taps)} taps${newDownloads !== null ? `, ${formatCount(newDownloads)} new downloads` : ""}${redownloads ? `, ${formatCount(redownloads)} redownloads` : ""}` : "Apple reporting unavailable"} accent="var(--pv-violet)" />
+          <FunnelStep label="Attributed trials" value={trialStarts} displayValue={trialStarts === null ? "N/A" : undefined} detail="Trial starts RevenueCat confirmed came from Apple Ads" accent="var(--pv-good)" />
+          <FunnelStep label="First paid" value={firstPaid} displayValue={firstPaid === null ? "N/A" : undefined} detail="First successful payments, including direct purchases without a trial" accent="linear-gradient(90deg,var(--pv-rose),var(--pv-violet))" />
+          <FunnelStep label="Cost per trial" displayValue={costCoverageAligned && trialStarts > 0 ? formatMoneyExact(spend / trialStarts) : "N/A"} detail="Selected-period spend divided by attributed trial starts" accent="var(--pv-warn)" />
+          <FunnelStep label="Cost per first paid" displayValue={costCoverageAligned && firstPaid > 0 ? formatMoneyExact(spend / firstPaid) : "N/A"} detail="Selected-period spend divided by first successful payments" accent="linear-gradient(90deg,var(--pv-good),var(--pv-violet))" />
         </div>
       </section>
 
       <TrialLifecycleFunnel
-        trialStarts={allTrialStarts}
+        mode="acquisition"
+        trialStarts={trialStarts}
         activeTrials={currentTrialRenewing}
         canceledTrials={currentTrialCanceled}
         convertedTrials={convertedTrials}
         cohortConversions={cohortConversions}
-        cohortTrialStarts={cohortTrialStarts}
-        paidCustomers={firstPaidCustomers}
+        cohortTrialStarts={cohortStarts}
+        paidCustomers={firstPaid}
+        directPaidCustomers={directFirstPaid}
+        introductoryPaidCustomers={introductoryFirstPaid}
         adSpend={appleAvailable ? spend : null}
-        costPerTrialStart={costCoverageAligned && allTrialStarts > 0 ? spend / allTrialStarts : null}
-        costPerPayer={costCoverageAligned && firstPaidCustomers > 0 ? spend / firstPaidCustomers : null}
+        costPerTrialStart={costCoverageAligned && trialStarts > 0 ? spend / trialStarts : null}
+        costPerPayer={costCoverageAligned && firstPaid > 0 ? spend / firstPaid : null}
         coverageAligned={costCoverageAligned}
         currency={ownerCurrency || appleCurrency || "USD"}
-        periodLabel={`${range.startDate} to ${range.endDate} · UTC`}
+        periodLabel={periodLabel}
         coverageNote={coverageNote}
-        unavailableReason={ownerMetricsError || "RevenueCat owner metrics are unavailable for this period."}
+        unavailableReason={ownerMetricsError || selectedOutcomes?.reason || "RevenueCat campaign metrics are unavailable for this period."}
       />
 
-      {!telemetryAvailable ? (
+      {!historicalCampaignsAvailable ? (
         <Card className="p-5" style={{ borderColor: "color-mix(in srgb, var(--pv-warn) 55%, var(--pv-border))" }}>
-          <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>Campaign-level lifecycle telemetry is unavailable</p>
-          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>The all-App-Store totals above still come directly from RevenueCat. Only the campaign-by-campaign trial and paid columns below are unavailable.</p>
-        </Card>
-      ) : sourceLifecycle.length === 0 ? (
-        <Card className="p-5">
-          <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>Campaign history starts Aug 15</p>
-          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>RevenueCat’s full totals above include receipt history. The campaign table only knows events delivered after the webhook was connected, so it can be lower for now.</p>
-        </Card>
-      ) : lifecycle.length === 0 ? (
-        <Card className="p-5">
-          <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>No matched Apple Ads lifecycle events in this period</p>
-          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>RevenueCat loaded successfully and no matched events were observed within its available coverage. Webhook history begins Aug 15, 2026, so this is not yet a complete 28-day conversion zero.</p>
+          <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>Historical campaign outcomes are temporarily unavailable</p>
+          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>The table is using RevenueCat webhook events received since Aug 15 as a fallback. Costs stay hidden because that fallback cannot reconstruct older campaign history.</p>
         </Card>
       ) : null}
 
-      {state === "error" ? (
-        <Card className="p-4"><ErrorState title="Apple Ads reporting is not connected yet" description={error} /></Card>
-      ) : state === "loading" ? (
+      {appleAvailable && !appleAppScopeVerified ? (
+        <Card className="p-5" style={{ borderColor: "color-mix(in srgb, var(--pv-warn) 55%, var(--pv-border))" }}>
+          <p className="text-[14px] font-semibold" style={{ color: "var(--pv-ink)" }}>Apple did not verify the app scope</p>
+          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>Spend and installs are visible, but cost metrics stay hidden because this response did not include Apple app metadata. No cross-app total is presented as a verified cost.</p>
+        </Card>
+      ) : null}
+
+      {state === "error" ? <Card className="p-4"><ErrorState title="Apple Ads reporting could not load" description={error} /></Card> : null}
+      {state === "loading" ? (
         <div className="pv-skeleton h-72 w-full" />
       ) : (
         <CampaignTable
           campaigns={report?.campaigns || []}
+          campaignOutcomes={selectedOutcomes?.campaigns || []}
+          historicalCampaignsAvailable={historicalCampaignsAvailable}
           lifecycle={lifecycle}
           telemetryAvailable={telemetryAvailable}
-          revenueCatCoverageComplete={revenueCatCoverageComplete}
-          totalTrialStarts={allTrialStarts}
-          totalFirstPaid={firstPaidCustomers}
+          totalTrialStarts={trialStarts}
+          totalFirstPaid={firstPaid}
+          totalCohortStarts={cohortStarts}
+          totalCohortConversions={cohortConversions}
           reportTotals={appleTotals}
           costCoverageAligned={costCoverageAligned}
-          ownerScopeMatches={ownerScopeMatches}
+          periodLabel={periodLabel}
         />
       )}
     </div>
   );
 }
 
-function CampaignTable({
-  campaigns,
-  lifecycle,
-  telemetryAvailable,
-  revenueCatCoverageComplete,
-  totalTrialStarts,
-  totalFirstPaid,
-  reportTotals,
-  costCoverageAligned,
-  ownerScopeMatches,
-}) {
-  const campaignRows = campaigns.map((campaign, index) => {
+function campaignRowsFromApple(campaigns) {
+  return campaigns.map((campaign, index) => {
     const id = text(String(campaign.id || campaign.campaignId || ""));
-    const name = campaign.name || campaign.campaignName || "Unnamed campaign";
+    const name = text(campaign.name || campaign.campaignName) || "Unnamed campaign";
     return {
       ...campaign,
       id,
       name,
-      rowKey: `${id || normalizedName(name) || "campaign"}:${index}`,
+      normalizedName: normalizedName(name),
+      rowKey: `apple:${id || normalizedName(name) || index}:${index}`,
+      appleMetricsAvailable: true,
     };
   });
+}
 
-  const eventsByCampaign = campaignRows.map(() => []);
-  const campaignIndexById = new Map();
-  const campaignIndexesByName = new Map();
-  campaignRows.forEach((row, index) => {
-    if (row.id && !campaignIndexById.has(row.id)) campaignIndexById.set(row.id, index);
-    const nameKey = normalizedName(row.name);
-    if (!nameKey) return;
-    const indexes = campaignIndexesByName.get(nameKey) || [];
-    indexes.push(index);
-    campaignIndexesByName.set(nameKey, indexes);
-  });
+function emptyOutcome() {
+  return {
+    trialStarts: 0,
+    firstPaid: 0,
+    directFirstPaid: 0,
+    trialConversions: 0,
+    introductoryFirstPaid: 0,
+    cohortStarts: 0,
+    cohortConversions: 0,
+    pendingTrialOutcomes: 0,
+    trialToPaidRate: null,
+  };
+}
 
-  lifecycle.forEach((event) => {
-    const eventCampaignId = text(event.campaignId);
-    let campaignIndex = eventCampaignId ? campaignIndexById.get(eventCampaignId) : undefined;
-    if (campaignIndex === undefined && !eventCampaignId) {
-      const nameMatches = campaignIndexesByName.get(normalizedName(event.campaignName)) || [];
-      if (nameMatches.length === 1) campaignIndex = nameMatches[0];
+function authoritativeRows(campaigns, outcomes) {
+  const appleRows = campaignRowsFromApple(campaigns);
+  const used = new Set();
+  const findOutcome = (campaign) => {
+    let match = outcomes.findIndex((outcome, index) => !used.has(index)
+      && campaign.id && text(String(outcome.campaignId || "")) === campaign.id);
+    if (match < 0 && campaign.normalizedName) {
+      const candidates = outcomes
+        .map((outcome, index) => ({ outcome, index }))
+        .filter(({ outcome, index }) => !used.has(index)
+          && normalizedName(outcome.campaignName) === campaign.normalizedName);
+      if (candidates.length === 1) match = candidates[0].index;
     }
-    if (campaignIndex !== undefined) eventsByCampaign[campaignIndex].push(event);
+    if (match >= 0) used.add(match);
+    return match >= 0 ? outcomes[match] : null;
+  };
+  const rows = appleRows.map((campaign) => ({
+    ...campaign,
+    ...emptyOutcome(),
+    ...(findOutcome(campaign) || {}),
+    name: campaign.name,
+    id: campaign.id,
+    normalizedName: campaign.normalizedName,
+    rowKey: campaign.rowKey,
+    appleMetricsAvailable: true,
+  }));
+  outcomes.forEach((outcome, index) => {
+    if (used.has(index)) return;
+    const id = text(String(outcome.campaignId || ""));
+    const name = outcome.unidentified
+      ? "Campaign not identified"
+      : text(outcome.campaignName) || (id ? `Campaign ${id}` : "Campaign not identified");
+    rows.push({
+      ...emptyOutcome(),
+      ...outcome,
+      id,
+      name,
+      normalizedName: normalizedName(name),
+      rowKey: `revenuecat:${id || normalizedName(name) || index}:${index}`,
+      status: outcome.unidentified ? "No confirmed campaign reported" : "RevenueCat attributed outcome",
+      appleMetricsAvailable: false,
+      spend: null,
+      taps: null,
+      installs: null,
+    });
   });
+  return rows;
+}
 
-  const rows = campaignRows.map((campaign, index) => {
-    const metrics = summarizeLifecycle(eventsByCampaign[index]);
+function fallbackRows(campaigns, lifecycle, telemetryAvailable) {
+  const rows = campaignRowsFromApple(campaigns);
+  const eventsByCampaign = rows.map(() => []);
+  const unmatched = [];
+  const indexById = new Map();
+  const indexesByName = new Map();
+  rows.forEach((row, index) => {
+    if (row.id && !indexById.has(row.id)) indexById.set(row.id, index);
+    if (!row.normalizedName) return;
+    const indexes = indexesByName.get(row.normalizedName) || [];
+    indexes.push(index);
+    indexesByName.set(row.normalizedName, indexes);
+  });
+  lifecycle.forEach((event) => {
+    const campaignId = text(event.campaignId);
+    let index = campaignId ? indexById.get(campaignId) : undefined;
+    if (index === undefined && !campaignId) {
+      const matches = indexesByName.get(normalizedName(event.campaignName)) || [];
+      if (matches.length === 1) index = matches[0];
+    }
+    if (index === undefined) unmatched.push(event);
+    else eventsByCampaign[index].push(event);
+  });
+  const mapped = rows.map((row, index) => {
+    const summary = summarizeLifecycle(eventsByCampaign[index]);
     return {
-      ...campaign,
-      trials: metrics.trialStarts.length,
-      firstPaid: metrics.directPurchases.length + metrics.trialConversions.length,
+      ...row,
+      trialStarts: telemetryAvailable ? summary.trialStarts.length : null,
+      firstPaid: telemetryAvailable ? summary.directPurchases.length + summary.trialConversions.length : null,
+      directFirstPaid: telemetryAvailable ? summary.directPurchases.length : null,
+      trialConversions: telemetryAvailable ? summary.trialConversions.length : null,
+      introductoryFirstPaid: null,
+      cohortStarts: null,
+      cohortConversions: null,
+      pendingTrialOutcomes: null,
+      trialToPaidRate: null,
     };
   });
+  if (telemetryAvailable && unmatched.length) {
+    const summary = summarizeLifecycle(unmatched);
+    mapped.push({
+      ...emptyOutcome(),
+      id: "",
+      name: "Campaign not identified",
+      normalizedName: "campaign not identified",
+      rowKey: "webhook:unidentified",
+      status: "No confirmed campaign reported",
+      unidentified: true,
+      appleMetricsAvailable: false,
+      spend: null,
+      taps: null,
+      installs: null,
+      trialStarts: summary.trialStarts.length,
+      firstPaid: summary.directPurchases.length + summary.trialConversions.length,
+      directFirstPaid: summary.directPurchases.length,
+      trialConversions: summary.trialConversions.length,
+      trialToPaidRate: null,
+    });
+  }
+  return mapped;
+}
 
-  const confirmedTrials = rows.reduce((sum, row) => sum + row.trials, 0);
-  const confirmedPaid = rows.reduce((sum, row) => sum + row.firstPaid, 0);
-  const hasTrialTotal = ownerScopeMatches && Number.isFinite(totalTrialStarts);
-  const hasPaidTotal = ownerScopeMatches && Number.isFinite(totalFirstPaid);
-  const unidentifiedTrials = telemetryAvailable && hasTrialTotal
-    ? Math.max(0, totalTrialStarts - confirmedTrials)
+function metricCell(value, available = true, emphasized = false) {
+  return <span className={`pv-tabular${emphasized ? " font-semibold" : ""}`}>{available && finiteNumber(value) !== null ? formatCount(value) : "N/A"}</span>;
+}
+
+function firstPaidDetail(row) {
+  const pieces = [];
+  if (finiteNumber(row.trialConversions) > 0) pieces.push(`${formatCount(row.trialConversions)} after trial`);
+  const noTrial = (finiteNumber(row.directFirstPaid) || 0) + (finiteNumber(row.introductoryFirstPaid) || 0);
+  if (noTrial > 0) pieces.push(`${formatCount(noTrial)} without free trial`);
+  return pieces.join(" · ");
+}
+
+function CampaignTable({
+  campaigns,
+  campaignOutcomes,
+  historicalCampaignsAvailable,
+  lifecycle,
+  telemetryAvailable,
+  totalTrialStarts,
+  totalFirstPaid,
+  totalCohortStarts,
+  totalCohortConversions,
+  reportTotals,
+  costCoverageAligned,
+  periodLabel,
+}) {
+  const rows = historicalCampaignsAvailable
+    ? authoritativeRows(campaigns, campaignOutcomes)
+    : fallbackRows(campaigns, lifecycle, telemetryAvailable);
+  const totalSpend = finiteNumber(reportTotals?.spend);
+  const totalTaps = finiteNumber(reportTotals?.taps);
+  const totalInstalls = finiteNumber(reportTotals?.totalInstalls);
+  const displayTotalSpend = totalSpend ?? rows.reduce((sum, row) => sum + (finiteNumber(row.spend) || 0), 0);
+  const displayTotalTaps = totalTaps ?? rows.reduce((sum, row) => sum + (finiteNumber(row.taps) || 0), 0);
+  const displayTotalInstalls = totalInstalls ?? rows.reduce((sum, row) => sum + (finiteNumber(row.installs) || 0), 0);
+  const trialTotalAvailable = finiteNumber(totalTrialStarts) !== null;
+  const firstPaidTotalAvailable = finiteNumber(totalFirstPaid) !== null;
+  const cohortRate = finiteNumber(totalCohortStarts) > 0 && finiteNumber(totalCohortConversions) !== null
+    ? totalCohortConversions / totalCohortStarts
     : null;
-  const unidentifiedPaid = telemetryAvailable && hasPaidTotal
-    ? Math.max(0, totalFirstPaid - confirmedPaid)
-    : null;
-  const showUnidentified = (unidentifiedTrials || 0) > 0 || (unidentifiedPaid || 0) > 0;
-  const reconciliationMismatch = telemetryAvailable && (
-    (hasTrialTotal && confirmedTrials > totalTrialStarts)
-    || (hasPaidTotal && confirmedPaid > totalFirstPaid)
-  );
-  const totalSpend = Number(reportTotals?.spend);
-  const totalTaps = Number(reportTotals?.taps);
-  const totalInstalls = Number(reportTotals?.totalInstalls);
-  const displayTotalSpend = Number.isFinite(totalSpend)
-    ? totalSpend
-    : rows.reduce((sum, row) => sum + (Number(row.spend) || 0), 0);
-  const displayTotalTaps = Number.isFinite(totalTaps)
-    ? totalTaps
-    : rows.reduce((sum, row) => sum + (Number(row.taps) || 0), 0);
-  const displayTotalInstalls = Number.isFinite(totalInstalls)
-    ? totalInstalls
-    : rows.reduce((sum, row) => sum + (Number(row.installs) || 0), 0);
 
   return (
     <section>
-      <SectionHeader eyebrow="Campaign truth" title="Every campaign in one table" description={!telemetryAvailable ? "Spend and installs come from Apple. Trial and paid cells show unavailable because RevenueCat telemetry could not be read." : revenueCatCoverageComplete ? "Spend and installs come from Apple. Trials and paid conversions come from RevenueCat, never from an estimate." : "Named campaigns show only confirmed attribution. Any remaining trial or first payment appears as Campaign not identified so the table always reconciles with RevenueCat's complete totals."} />
+      <SectionHeader
+        eyebrow="Campaign truth"
+        title="Every campaign in one table"
+        description={historicalCampaignsAvailable
+          ? `RevenueCat receipt history supplies trial and first-paid outcomes by campaign for ${periodLabel}. Direct purchases are included, and missing attribution is never guessed.`
+          : "Apple supplies spend and installs. Campaign outcomes are limited to the recent RevenueCat webhook fallback until historical campaign charts return."}
+      />
       <Card flat className="overflow-hidden" style={{ background: "var(--pv-surface-solid)" }}>
         <div className="overflow-x-auto" tabIndex="0" aria-label="Apple Ads campaign performance table">
-          <table className="w-full min-w-[860px] text-left text-[13px]">
-            <caption className="sr-only">Apple Ads spend, installs, confirmed campaign outcomes, unidentified outcomes, and authoritative totals</caption>
-            <thead><tr style={{ borderBottom: "1px solid var(--pv-border)" }}>
-              {['Campaign','Spend','Taps','Installs','Trials','First paid','Cost / first paid'].map((label) => <th key={label} scope="col" className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--pv-ink-3)" }}>{label}</th>)}
-            </tr></thead>
+          <table className="w-full min-w-[1180px] text-left text-[13px]">
+            <caption className="sr-only">Apple Ads spend, installs, attributed trials, cohort conversion, first payments, and costs by campaign</caption>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--pv-border)" }}>
+                {["Campaign", "Spend", "Taps", "Installs", "Trials", "Cost / trial", "Trial to paid", "First paid", "Cost / first paid"].map((label) => (
+                  <th key={label} scope="col" className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--pv-ink-3)" }}>{label}</th>
+                ))}
+              </tr>
+            </thead>
             <tbody>
               {rows.map((row) => {
-                const spend = Number(row.spend) || 0;
-                return <tr key={row.rowKey} style={{ borderBottom: "1px solid var(--pv-border)" }}>
-                  <th scope="row" className="px-4 py-4 text-left"><p className="font-semibold" style={{ color: "var(--pv-ink)" }}>{row.name}</p><p className="mt-1 text-[11px] font-normal" style={{ color: "var(--pv-ink-3)" }}>{row.status || ""}</p></th>
-                  <td className="pv-tabular px-4 py-4">{formatMoneyExact(spend)}</td>
-                  <td className="pv-tabular px-4 py-4">{formatCount(Number(row.taps) || 0)}</td>
-                  <td className="pv-tabular px-4 py-4">{formatCount(Number(row.installs) || 0)}</td>
-                  <td className="pv-tabular px-4 py-4">{telemetryAvailable ? formatCount(row.trials) : "—"}</td>
-                  <td className="pv-tabular px-4 py-4 font-semibold">{telemetryAvailable ? formatCount(row.firstPaid) : "—"}</td>
-                  <td className="pv-tabular px-4 py-4">{telemetryAvailable && revenueCatCoverageComplete && row.firstPaid ? formatMoneyExact(spend / row.firstPaid) : "—"}</td>
-                </tr>;
+                const spend = finiteNumber(row.spend);
+                const trials = finiteNumber(row.trialStarts);
+                const paid = finiteNumber(row.firstPaid);
+                const rate = finiteNumber(row.trialToPaidRate);
+                const outcomeAvailable = historicalCampaignsAvailable || telemetryAvailable;
+                const breakdown = firstPaidDetail(row);
+                return (
+                  <tr key={row.rowKey} style={{ borderBottom: "1px solid var(--pv-border)", background: row.unidentified ? "color-mix(in srgb, var(--pv-warn) 6%, transparent)" : undefined }}>
+                    <th scope="row" className="px-4 py-4 text-left">
+                      <p className="font-semibold" style={{ color: "var(--pv-ink)" }}>{row.name}</p>
+                      <p className="mt-1 text-[11px] font-normal" style={{ color: row.unidentified ? "var(--pv-warn)" : "var(--pv-ink-3)" }}>{row.status || ""}</p>
+                    </th>
+                    <td className="px-4 py-4">{row.appleMetricsAvailable && spend !== null ? formatMoneyExact(spend) : "N/A"}</td>
+                    <td className="px-4 py-4">{metricCell(row.taps, row.appleMetricsAvailable)}</td>
+                    <td className="px-4 py-4">{metricCell(row.installs, row.appleMetricsAvailable)}</td>
+                    <td className="px-4 py-4">{metricCell(trials, outcomeAvailable)}</td>
+                    <td className="pv-tabular px-4 py-4">{costCoverageAligned && row.appleMetricsAvailable && spend !== null && trials > 0 ? formatMoneyExact(spend / trials) : "N/A"}</td>
+                    <td className="pv-tabular px-4 py-4">{rate !== null ? formatPercent(rate, 1) : "N/A"}</td>
+                    <td className="px-4 py-4">
+                      {metricCell(paid, outcomeAvailable, true)}
+                      {breakdown ? <p className="mt-1 text-[10px] leading-relaxed" style={{ color: "var(--pv-ink-3)" }}>{breakdown}</p> : null}
+                    </td>
+                    <td className="pv-tabular px-4 py-4">{costCoverageAligned && row.appleMetricsAvailable && spend !== null && paid > 0 ? formatMoneyExact(spend / paid) : "N/A"}</td>
+                  </tr>
+                );
               })}
-              {showUnidentified ? (
-                <tr style={{ borderBottom: "1px solid var(--pv-border)", background: "color-mix(in srgb, var(--pv-warn) 6%, transparent)" }}>
-                  <th scope="row" className="px-4 py-4 text-left">
-                    <p className="font-semibold" style={{ color: "var(--pv-ink)" }}>Campaign not identified</p>
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--pv-warn)" }}>No confirmed campaign reported</p>
-                  </th>
-                  <td className="pv-tabular px-4 py-4"><span aria-label="Not available">—</span></td>
-                  <td className="pv-tabular px-4 py-4"><span aria-label="Not available">—</span></td>
-                  <td className="pv-tabular px-4 py-4"><span aria-label="Not available">—</span></td>
-                  <td className="pv-tabular px-4 py-4">{hasTrialTotal ? formatCount(unidentifiedTrials) : "—"}</td>
-                  <td className="pv-tabular px-4 py-4 font-semibold">{hasPaidTotal ? formatCount(unidentifiedPaid) : "—"}</td>
-                  <td className="pv-tabular px-4 py-4"><span aria-label="Not available">—</span></td>
-                </tr>
-              ) : null}
-              {!rows.length ? <tr><td colSpan="7" className="px-5 py-12 text-center" style={{ color: "var(--pv-ink-2)" }}>No Apple Ads campaign rows were returned for this period.</td></tr> : null}
+              {!rows.length ? <tr><td colSpan="9" className="px-5 py-12 text-center" style={{ color: "var(--pv-ink-2)" }}>No Apple Ads campaigns or RevenueCat campaign outcomes were returned for this period.</td></tr> : null}
             </tbody>
             <tfoot>
               <tr style={{ borderTop: "1px solid var(--pv-border)", background: "color-mix(in srgb, var(--pv-violet) 7%, var(--pv-surface-solid))" }}>
                 <th scope="row" className="px-4 py-4 text-left">
                   <p className="font-semibold" style={{ color: "var(--pv-ink)" }}>Total</p>
-                  <p className="mt-1 text-[11px] font-normal uppercase tracking-[0.08em]" style={{ color: "var(--pv-ink-3)" }}>Apple Ads + RevenueCat</p>
+                  <p className="mt-1 text-[11px] font-normal uppercase tracking-[0.08em]" style={{ color: "var(--pv-ink-3)" }}>Apple Ads plus RevenueCat</p>
                 </th>
                 <td className="pv-tabular px-4 py-4 font-semibold">{formatMoneyExact(displayTotalSpend)}</td>
                 <td className="pv-tabular px-4 py-4 font-semibold">{formatCount(displayTotalTaps)}</td>
                 <td className="pv-tabular px-4 py-4 font-semibold">{formatCount(displayTotalInstalls)}</td>
-                <td className="pv-tabular px-4 py-4 font-semibold">{hasTrialTotal ? formatCount(totalTrialStarts) : "—"}</td>
-                <td className="pv-tabular px-4 py-4 font-semibold">{hasPaidTotal ? formatCount(totalFirstPaid) : "—"}</td>
-                <td className="pv-tabular px-4 py-4 font-semibold">{costCoverageAligned && totalFirstPaid > 0 ? formatMoneyExact(displayTotalSpend / totalFirstPaid) : "—"}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{trialTotalAvailable ? formatCount(totalTrialStarts) : "N/A"}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{costCoverageAligned && totalTrialStarts > 0 ? formatMoneyExact(displayTotalSpend / totalTrialStarts) : "N/A"}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{cohortRate !== null ? formatPercent(cohortRate, 1) : "N/A"}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{firstPaidTotalAvailable ? formatCount(totalFirstPaid) : "N/A"}</td>
+                <td className="pv-tabular px-4 py-4 font-semibold">{costCoverageAligned && totalFirstPaid > 0 ? formatMoneyExact(displayTotalSpend / totalFirstPaid) : "N/A"}</td>
               </tr>
             </tfoot>
           </table>
         </div>
       </Card>
-      {showUnidentified ? <p className="mt-3 text-[12px] leading-relaxed" style={{ color: "var(--pv-ink-3)" }}>Campaign not identified is the difference between RevenueCat's complete App Store outcomes and outcomes with a confirmed Apple campaign. It may be organic, privacy-limited, or still processing; if RevenueCat later confirms a campaign, the outcome moves into that campaign automatically.</p> : null}
-      {reconciliationMismatch ? <p className="mt-2 text-[12px] leading-relaxed" role="status" style={{ color: "var(--pv-warn)" }}>RevenueCat is still reconciling recent events: confirmed campaign rows temporarily exceed its current all-App-Store total. No negative remainder was shown.</p> : null}
+      <p className="mt-3 text-[12px] leading-relaxed" style={{ color: "var(--pv-ink-3)" }}>Trial to paid is RevenueCat’s matched cohort conversion, not first payments divided by trial starts in the same dates. Recent trials can remain pending. First paid counts the first successful payment whether the customer used a free trial or paid immediately.</p>
     </section>
   );
 }

@@ -10,12 +10,12 @@ function finite(value) {
 
 function formatCount(value) {
   const number = finite(value);
-  return number === null ? "—" : Math.round(number).toLocaleString("en-US");
+  return number === null ? "N/A" : Math.round(number).toLocaleString("en-US");
 }
 
 function formatMoney(value, currency) {
   const number = finite(value);
-  if (number === null) return "—";
+  if (number === null) return "N/A";
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -31,7 +31,7 @@ function formatMoney(value, currency) {
 function percent(value, total) {
   const numerator = finite(value);
   const denominator = finite(total);
-  if (numerator === null || denominator === null || denominator <= 0) return "—";
+  if (numerator === null || denominator === null || denominator <= 0) return "N/A";
   return `${((numerator / denominator) * 100).toLocaleString("en-US", { maximumFractionDigits: 1 })}%`;
 }
 
@@ -69,7 +69,7 @@ function CostCard({ label, value, note, tone = "violet" }) {
     <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: "var(--pv-surface-2)", border: "1px solid var(--pv-border)" }}>
       <span className="absolute -right-6 -top-8 h-20 w-20 rounded-full opacity-20 blur-2xl" style={{ background: color }} aria-hidden="true" />
       <p className="relative text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--pv-ink-3)" }}>{label}</p>
-      <p className="pv-figure relative mt-2 text-[30px] font-semibold" style={{ color: value === "—" ? "var(--pv-ink-3)" : "var(--pv-ink)" }}>{value}</p>
+      <p className="pv-figure relative mt-2 text-[30px] font-semibold" style={{ color: value === "N/A" ? "var(--pv-ink-3)" : "var(--pv-ink)" }}>{value}</p>
       <p className="relative mt-1 text-[11px] leading-relaxed" style={{ color: "var(--pv-ink-2)" }}>{note}</p>
     </div>
   );
@@ -82,6 +82,7 @@ function CostCard({ label, value, note, tone = "violet" }) {
  * the same window.
  */
 export default function TrialLifecycleFunnel({
+  mode = "lifecycle",
   trialStarts = null,
   activeTrials = null,
   canceledTrials = null,
@@ -89,6 +90,8 @@ export default function TrialLifecycleFunnel({
   cohortConversions = null,
   cohortTrialStarts = null,
   paidCustomers = null,
+  directPaidCustomers = null,
+  introductoryPaidCustomers = null,
   adSpend = null,
   costPerTrialStart = null,
   costPerPayer = null,
@@ -105,6 +108,11 @@ export default function TrialLifecycleFunnel({
   const cohortConverted = finite(cohortConversions);
   const cohortStarts = finite(cohortTrialStarts);
   const payers = finite(paidCustomers) ?? converted;
+  const directPaid = finite(directPaidCustomers);
+  const introductoryPaid = finite(introductoryPaidCustomers);
+  const paidWithoutTrial = directPaid !== null || introductoryPaid !== null
+    ? (directPaid || 0) + (introductoryPaid || 0)
+    : null;
   const currentTrialTotal = active !== null && canceled !== null ? active + canceled : null;
   const spend = finite(adSpend);
   const explicitTrialCost = finite(costPerTrialStart);
@@ -116,9 +124,11 @@ export default function TrialLifecycleFunnel({
     <section aria-labelledby="trial-lifecycle-heading">
       <SectionHeader
         id="trial-lifecycle-heading"
-        eyebrow="Trial lifecycle"
-        title="Every trial, from start to outcome"
-        description="Trial starts and first payments are separate event-period counts. Still in trial and canceled show today’s renewal status; the conversion rate uses RevenueCat’s matched trial cohort."
+        eyebrow={mode === "acquisition" ? "Attributed outcomes" : "Trial lifecycle"}
+        title={mode === "acquisition" ? "From trial to first payment" : "Every trial, from start to outcome"}
+        description={mode === "acquisition"
+          ? "RevenueCat attributes these outcomes to Apple Ads. First paid includes people who converted after a trial and people who paid immediately without a free trial."
+          : "Trial starts and first payments are separate event-period counts. Still in trial and canceled show today’s renewal status; the conversion rate uses RevenueCat’s matched trial cohort."}
         action={<Pill tone={coverageAligned ? "good" : "warn"}>{coverageAligned ? "Windows match" : "Partial coverage"}</Pill>}
       />
 
@@ -144,11 +154,32 @@ export default function TrialLifecycleFunnel({
               </div>
             </div>
 
-            <div className="mt-8 space-y-6">
-              <Outcome label="Still set to renew" value={active} total={currentTrialTotal} note="Current trials with renewal still turned on" color="var(--pv-violet)" />
-              <Outcome label="Canceled" value={canceled} total={currentTrialTotal} note="Current trials with renewal turned off before expiry" color="var(--pv-warn)" />
-              <Outcome label="Reached first payment" value={converted} total={null} showPercent={false} note="Trial subscriptions whose first paid renewal happened during these dates" color="var(--pv-good)" />
-            </div>
+            {mode === "acquisition" ? (
+              <div className="mt-8 space-y-6">
+                <Outcome label="Converted after a trial" value={converted} total={null} showPercent={false} note="First successful payments from subscriptions that began with a trial" color="var(--pv-good)" />
+                <Outcome label="Paid without a free trial" value={paidWithoutTrial} total={null} showPercent={false} note="Direct paid subscriptions and paid introductory offers" color="var(--pv-violet)" />
+                <Outcome label="All first paid" value={payers} total={null} showPercent={false} note="Every first successful subscription payment attributed to Apple Ads" color="linear-gradient(90deg,var(--pv-rose),var(--pv-good))" />
+                {currentTrialTotal !== null ? (
+                  <div className="grid grid-cols-2 gap-3 rounded-2xl p-4" style={{ background: "var(--pv-surface-2)", border: "1px solid var(--pv-border)" }}>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.11em]" style={{ color: "var(--pv-ink-3)" }}>Still set to renew</p>
+                      <p className="pv-tabular mt-1 text-[22px] font-semibold" style={{ color: "var(--pv-good)" }}>{formatCount(active)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.11em]" style={{ color: "var(--pv-ink-3)" }}>Canceled</p>
+                      <p className="pv-tabular mt-1 text-[22px] font-semibold" style={{ color: "var(--pv-warn)" }}>{formatCount(canceled)}</p>
+                    </div>
+                    <p className="col-span-2 text-[10px] leading-relaxed" style={{ color: "var(--pv-ink-3)" }}>Current App Store trial status across all campaigns. Canceled trials keep access until they expire.</p>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="mt-8 space-y-6">
+                <Outcome label="Still set to renew" value={active} total={currentTrialTotal} note="Current trials with renewal still turned on" color="var(--pv-violet)" />
+                <Outcome label="Canceled" value={canceled} total={currentTrialTotal} note="Current trials with renewal turned off before expiry" color="var(--pv-warn)" />
+                <Outcome label="Reached first payment" value={converted} total={null} showPercent={false} note="Trial subscriptions whose first paid renewal happened during these dates" color="var(--pv-good)" />
+              </div>
+            )}
           </Card>
 
           <Card className="p-6">
@@ -158,7 +189,7 @@ export default function TrialLifecycleFunnel({
               <CostCard
                 label="Cost per trial start"
                 value={formatMoney(calculatedTrialCost, currency)}
-                note={calculatedTrialCost === null ? "Unavailable until Apple spend and trial starts share one window" : `${formatMoney(spend, currency)} spend ÷ ${formatCount(starts)} App Store trial starts`}
+                note={calculatedTrialCost === null ? "Unavailable until Apple spend and trial starts share one window" : `${formatMoney(spend, currency)} spend ÷ ${formatCount(starts)} ${mode === "acquisition" ? "Apple Ads attributed" : "App Store"} trial starts`}
               />
               <CostCard
                 label="Cost per first-paid subscription"
