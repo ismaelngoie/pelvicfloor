@@ -54,11 +54,13 @@ export async function onRequestPost({ request, env }) {
       end: chunk.end,
     }));
     const mergedCampaigns = mergeCampaignReports(reports);
-    const appIds = [...new Set(mergedCampaigns.map((campaign) => campaign.appId).filter(Boolean))];
-    const appFilterApplied = appIds.length > 0;
-    const campaigns = appFilterApplied
-      ? mergedCampaigns.filter((campaign) => campaign.appId === PELVIC_FLOOR_ADAM_ID)
-      : mergedCampaigns;
+    const missingAppMetadata = mergedCampaigns.some((campaign) => !campaign.appId);
+    if (missingAppMetadata) {
+      return json(502, {
+        error: "Apple did not identify the promoted app for every campaign, so no cross-app totals were shown.",
+      });
+    }
+    const campaigns = mergedCampaigns.filter((campaign) => campaign.appId === PELVIC_FLOOR_ADAM_ID);
     const currencies = [...new Set(campaigns.map((row) => row.currency).filter(Boolean))];
     const currency = currencies.length === 1 ? currencies[0] : null;
     const totals = campaigns.reduce((sum, row) => ({
@@ -77,8 +79,7 @@ export async function onRequestPost({ request, env }) {
       range: { startDate: dates.start, endDate: dates.end },
       app: {
         adamId: PELVIC_FLOOR_ADAM_ID,
-        filterApplied: appFilterApplied,
-        ...(appFilterApplied ? {} : { warning: "Apple did not return app metadata, so the report could not verify its app scope." }),
+        filterApplied: true,
       },
       chunks: chunks.length,
       currency,
