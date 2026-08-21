@@ -1,7 +1,7 @@
 import { Inter } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import Clarity from "./Clarity";
+import GoogleAds from "./GoogleAds";
 import ServiceWorker from "./ServiceWorker";
 import { OPEN_PLAN_SCRIPT } from "@/lib/openPlanScript";
 
@@ -122,19 +122,12 @@ export default function RootLayout({ children }) {
             is fired once, server-confirmed, from the post-purchase screen with the
             real charged amount. Smart Bidding is blind without that value, so the
             fire lives next to the Stripe success, not on a button click. See
-            lib/analytics.js trackPurchase and components/postpurchase. */}
-        <Script
-          strategy="afterInteractive"
-          src="https://www.googletagmanager.com/gtag/js?id=AW-18382744409"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'AW-18382744409');
-          `}
-        </Script>
+            lib/analytics.js trackPurchase and components/postpurchase.
+
+            GoogleAds uses the same deny-by-default public-route gate as
+            Clarity. Provider keys, scripts and unpublished productions under
+            /video are therefore never sent to Google Ads. */}
+        <GoogleAds />
 
         {/* --- MICROSOFT CLARITY ---
             The tag used to be inlined here, unconditionally, which put session
@@ -148,9 +141,7 @@ export default function RootLayout({ children }) {
             it is deny-by-default: a route nobody has named there is private.
             Read the header of app/Clarity.jsx before moving this back inline.
 
-            Note for whoever owns the Google tag above: it is still on every
-            route, including /app and /admin. That is a separate decision and a
-            separate vendor, and it is deliberately not touched here. */}
+            Google Ads now follows that same private-route boundary. */}
         <Clarity />
 
         {/* Full-height frame; body locked; ONLY interior scrolls */}

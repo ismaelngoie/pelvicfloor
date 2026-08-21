@@ -86,6 +86,12 @@
   X-Robots-Tag: noindex, nofollow, nocache
 /admin.txt
   X-Robots-Tag: noindex, nofollow, nocache
+/video
+  X-Robots-Tag: noindex, nofollow, noarchive, nocache
+/video.txt
+  X-Robots-Tag: noindex, nofollow, noarchive, nocache
+/video/*
+  X-Robots-Tag: noindex, nofollow, noarchive, nocache
 /welcome
   X-Robots-Tag: noindex, nofollow
 /welcome.txt

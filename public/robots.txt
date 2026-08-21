@@ -72,6 +72,9 @@ Disallow: /app/
 Disallow: /admin$
 Disallow: /admin.txt$
 Disallow: /admin/
+Disallow: /video$
+Disallow: /video.txt$
+Disallow: /video/
 Disallow: /welcome$
 Disallow: /welcome.txt$
 Disallow: /*?plan=
@@ -92,6 +95,9 @@ Disallow: /app/
 Disallow: /admin$
 Disallow: /admin.txt$
 Disallow: /admin/
+Disallow: /video$
+Disallow: /video.txt$
+Disallow: /video/
 Disallow: /welcome$
 Disallow: /welcome.txt$
 Disallow: /*?plan=
@@ -117,6 +123,8 @@ Disallow: /app$
 Disallow: /app/
 Disallow: /admin$
 Disallow: /admin/
+Disallow: /video$
+Disallow: /video/
 Disallow: /welcome$
 # Next writes a React Server Component payload beside every exported route, so
 # /admin.html has a sibling /admin.txt serving the same screen as text/plain
@@ -126,6 +134,7 @@ Disallow: /welcome$
 # https://pelvi.health/admin.txt returned 200 text/plain.
 Disallow: /app.txt$
 Disallow: /admin.txt$
+Disallow: /video.txt$
 Disallow: /welcome.txt$
 # Query string that carries the selected plan through the funnel. Nothing to
 # index, and it splits the funnel page into as many URLs as there are plans.
