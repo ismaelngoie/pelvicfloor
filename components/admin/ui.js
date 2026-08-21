@@ -74,12 +74,12 @@ export function useTransientMessage(timeout = 4000) {
    Formatting (thin wrappers so every page formats identically)
    ------------------------------------------------------------------------- */
 
-export function money(value, currency = "USD", { compact = false, exact = false } = {}) {
+export function money(value, currency = "USD", { compact = false, exact = false, rounded = false } = {}) {
   if (!Number.isFinite(value)) return null;
   if (compact && Math.abs(value) >= 10000) {
     return new Intl.NumberFormat("en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 }).format(value);
   }
-  const digits = exact || Math.abs(value) < 1000 ? 2 : 0;
+  const digits = rounded ? 0 : exact || Math.abs(value) < 1000 ? 2 : 0;
   return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
 }
 export function count(value) {

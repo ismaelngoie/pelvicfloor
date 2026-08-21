@@ -20,12 +20,13 @@ import {
 // - "Set to cancel" is a current, still-active subscription/trial snapshot.
 // - Trial Conversion uses RevenueCat's matched trial cohort; event-period first
 //   payments remain a separate metric and are never divided by new-trial events.
-// - Refund Rate attributes a refund to the original paid transaction's date.
+// - Revenue is read from the same realtime metric that powers RevenueCat's
+//   Overview, so the selected inclusive UTC dates reconcile exactly.
 //
 // RevenueCat's Charts & Metrics API is limited to 25 requests/minute. A fresh
-// report uses at most 20 RevenueCat subrequests (including project discovery),
-// responses are cached for five minutes, and identical in-flight requests are
-// coalesced. A daily growth snapshot adds at most three Google subrequests
+// report plus its lightweight comparison uses at most 25 Charts & Metrics
+// subrequests, responses are cached for five minutes, and identical in-flight
+// requests are coalesced. A daily growth snapshot adds at most three Google subrequests
 // (token, write, read), still safely below Cloudflare's worker subrequest cap.
 const ADMIN_EMAIL = "ismael@ngoie.com";
 const REVENUECAT_API = "https://api.revenuecat.com";
@@ -33,7 +34,7 @@ const CACHE_MS = 5 * 60 * 1000;
 const UPSTREAM_COOLDOWN_MS = 60 * 1000;
 const MAX_RANGE_DAYS = 3660;
 const MAX_CACHE_ENTRIES = 24;
-const GROWTH_COLLECTION = "adminOwnerDailyMetrics";
+const GROWTH_COLLECTION = "adminOwnerDailyOverviewMetrics";
 const MAX_GROWTH_POINTS = 3660;
 const LIFETIME_REVENUE_START = "2020-01-01";
 const ACQUISITION_RELAUNCH_START = "2026-08-15";
@@ -91,7 +92,7 @@ export async function onRequestPost({ request, env }) {
   try {
     const projectId = first(env, ["REVENUECAT_PROJECT_ID"])
       || (await discoverProjectId(apiKey, env.REVENUECAT_PROJECT_NAME));
-    const cacheKey = `${projectId}:${range.startDate}:${range.endDate}:${currency}`;
+    const cacheKey = `full:${projectId}:${range.startDate}:${range.endDate}:${currency}`;
     const cached = reportCache.get(cacheKey);
     if (cached && Date.now() - cached.savedAt < CACHE_MS) {
       const previous = compareRange ? await comparisonReport({ apiKey, projectId, currency, range: compareRange, env }) : undefined;
@@ -149,23 +150,26 @@ export async function onRequestPost({ request, env }) {
  * degrades to `null` — the main numbers never depend on it.
  */
 async function comparisonReport({ apiKey, projectId, currency, range, env }) {
-  const key = `${projectId}:${range.startDate}:${range.endDate}:${currency}`;
-  const cached = reportCache.get(key);
+  const fullKey = `full:${projectId}:${range.startDate}:${range.endDate}:${currency}`;
+  const comparisonKey = `comparison:${projectId}:${range.startDate}:${range.endDate}:${currency}`;
+  const full = reportCache.get(fullKey);
+  if (full && Date.now() - full.savedAt < CACHE_MS) return full.value;
+  const cached = reportCache.get(comparisonKey);
   if (cached && Date.now() - cached.savedAt < CACHE_MS) return cached.value;
-  let pending = inFlightReports.get(key);
+  let pending = inFlightReports.get(comparisonKey);
   if (!pending) {
-    pending = buildOwnerReport({ apiKey, projectId, currency, range, env });
-    inFlightReports.set(key, pending);
+    pending = buildComparisonReport({ apiKey, projectId, currency, range });
+    inFlightReports.set(comparisonKey, pending);
   }
   try {
     const value = await pending;
-    reportCache.set(key, { savedAt: Date.now(), value });
+    reportCache.set(comparisonKey, { savedAt: Date.now(), value });
     return value;
   } catch (error) {
     console.error("RevenueCat comparison report failed", { message: error?.message || "unknown" });
     return null;
   } finally {
-    if (inFlightReports.get(key) === pending) inFlightReports.delete(key);
+    if (inFlightReports.get(comparisonKey) === pending) inFlightReports.delete(comparisonKey);
   }
 }
 
@@ -174,11 +178,14 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
   const errors = [];
 
   const tasks = await Promise.all([
+    capture("overview", () => loadOverviewMetrics(apiKey, projectId, currency, tracker), errors),
+    capture("range_revenue", () => loadRangeRevenue(apiKey, projectId, currency, range, tracker), errors),
     capture("revenue", () => loadChart(apiKey, projectId, "revenue", {
       currency,
       range,
       tracker,
       selectorIntent: "gross_revenue",
+      projectWide: true,
     }), errors),
     capture("subscription_status", () => loadSubscriptionStatus(apiKey, projectId, currency, tracker), errors),
     capture("trials_new", () => loadChart(apiKey, projectId, "trials_new", {
@@ -199,7 +206,8 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     }), errors),
   ]);
 
-  const [revenueResult, statusResult, trialsResult, conversionsResult, refundsResult, firstPaidResult] = tasks;
+  const [overviewResult, rangeRevenueResult, revenueResult, statusResult, trialsResult, conversionsResult, refundsResult, firstPaidResult] = tasks;
+  const overview = overviewResult || null;
   const revenue = revenueResult?.chart || null;
   const status = statusResult || null;
   const trials = trialsResult?.chart || null;
@@ -207,7 +215,23 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
   const refundRate = refundsResult?.chart || null;
   const firstPaid = firstPaidResult?.chart || null;
 
-  const revenueTotal = chartTotal(revenue, [/^revenue$/i, /gross revenue/i]);
+  const overviewActiveSubscriptions = overviewMetric(overview, ["active_subscriptions"]);
+  const overviewActiveTrials = overviewMetric(overview, ["active_trials"]);
+  const overviewMrr = overviewMetric(overview, ["mrr"]);
+  const overviewNewCustomers = overviewMetric(overview, ["new_customers", "customers_new"]);
+  const overviewActiveCustomers = overviewMetric(overview, ["active_customers", "active_users", "customers_active"]);
+  const activeSubscriptions = overviewActiveSubscriptions.available
+    ? overviewActiveSubscriptions.value
+    : status?.paid?.total;
+  const activeTrials = overviewActiveTrials.available
+    ? overviewActiveTrials.value
+    : status?.trials?.total;
+  const currentMrr = overviewMrr.available
+    ? overviewMrr.value
+    : monthlyFromAnnual(status?.arr?.total);
+  const authoritativeRevenue = rangeRevenueValue(rangeRevenueResult);
+  const chartRevenue = chartTotal(revenue, [/^revenue$/i, /gross revenue/i]);
+  const revenueTotal = Number.isFinite(authoritativeRevenue) ? authoritativeRevenue : chartRevenue;
   const trialsStarted = chartTotal(trials, [/^new trials$/i, /^trial starts$/i]);
   const cohortTrialStarts = chartTotal(conversions, [/^trial starts$/i]);
   const trialConversions = chartTotal(conversions, [/^conversions$/i, /converted/i]);
@@ -237,19 +261,39 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
 
   const metrics = {
     grossRevenue: valueMetric(revenueTotal, {
-      source: "RevenueCat Revenue chart (API v2)",
+      source: Number.isFinite(authoritativeRevenue)
+        ? "RevenueCat Revenue metric (API v2, realtime Charts v3)"
+        : "RevenueCat Revenue chart (API v2)",
       unit: "currency",
       currency,
-      definition: "Gross revenue charged to customers in the selected UTC date range, before estimated taxes and Apple commission, minus refunds tied to transactions from that range.",
+      definition: "Gross revenue across this RevenueCat project in the selected inclusive UTC date range, before taxes and store commission, with refunds deducted on the date RevenueCat processes them.",
       period: range,
     }),
-    activePremium: valueMetric(addAvailable(status?.paid?.setToRenew, status?.trials?.setToRenew), {
-      source: "RevenueCat Subscription Status chart (API v2)",
+    activeSubscriptions: valueMetric(activeSubscriptions, {
+      source: overviewActiveSubscriptions.available
+        ? "RevenueCat Overview metrics (API v2)"
+        : "RevenueCat Subscription Status chart (API v2 fallback)",
+      unit: "subscriptions",
+      definition: "Current active paid subscriptions in RevenueCat, including subscriptions set to cancel or in a grace period while they still provide access. Trials are counted separately.",
+      period: overviewActiveSubscriptions.period || "P0D",
+      asOf: overviewActiveSubscriptions.lastUpdatedAt || status?.paid?.asOf || null,
+    }),
+    activeTrials: valueMetric(activeTrials, {
+      source: overviewActiveTrials.available
+        ? "RevenueCat Overview metrics (API v2)"
+        : "RevenueCat Subscription Status chart (API v2 fallback)",
+      unit: "trials",
+      definition: "Current active trials in RevenueCat, including trials set to cancel or in a grace period while they still provide access.",
+      period: overviewActiveTrials.period || "P0D",
+      asOf: overviewActiveTrials.lastUpdatedAt || status?.trials?.asOf || null,
+    }),
+    activePremium: valueMetric(addAvailable(activeSubscriptions, activeTrials), {
+      source: "RevenueCat Overview metrics (API v2)",
       unit: "subscriptions_and_trials",
-      definition: "Current production App Store paid subscriptions and trials that are active and set to renew. Active-but-canceled members are deliberately excluded from this strict owner count.",
-      paid: finiteOrNull(status?.paid?.setToRenew),
-      trials: finiteOrNull(status?.trials?.setToRenew),
-      asOf: newestIso(status?.paid?.asOf, status?.trials?.asOf),
+      definition: "Current active paid subscriptions plus active trials. It represents subscription access, not only subscriptions set to renew.",
+      paid: finiteOrNull(activeSubscriptions),
+      trials: finiteOrNull(activeTrials),
+      asOf: newestIso(overviewActiveSubscriptions.lastUpdatedAt, overviewActiveTrials.lastUpdatedAt, status?.paid?.asOf, status?.trials?.asOf),
     }),
     paidSetToRenew: valueMetric(status?.paid?.setToRenew, {
       source: "RevenueCat Subscription Status chart (API v2)",
@@ -317,7 +361,7 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     refundedTransactions: valueMetric(refundTransactions, {
       source: "RevenueCat Refund Rate chart (API v2)",
       unit: "transactions",
-      definition: "Paid transactions originally made in the selected UTC date range that have since been refunded. RevenueCat attributes these refunds to the original transaction period, not the refund-processing date.",
+      definition: "Refunded transactions RevenueCat includes in its Refund Rate chart for the selected UTC date range.",
       period: range,
       paidTransactions: finiteOrNull(paidTransactions),
       refundRate: finiteOrNull(refundPercentage),
@@ -343,15 +387,19 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       resubscriptions: finiteOrNull(resubscriptions),
       allNewPaidSubscriptions: finiteOrNull(firstPaidTotal),
     }),
-    mrr: valueMetric(status?.mrr?.total, {
-      source: "RevenueCat Subscription Status chart (API v2)",
+    mrr: valueMetric(currentMrr, {
+      source: overviewMrr.available
+        ? "RevenueCat Overview metrics (API v2)"
+        : "RevenueCat ARR chart divided by 12 (API v2 fallback)",
       unit: "currency_per_month",
       currency,
       definition: "Current gross monthly recurring revenue before estimated taxes and store commission.",
-      setToRenew: finiteOrNull(status?.mrr?.setToRenew),
-      setToCancel: finiteOrNull(status?.mrr?.setToCancel),
-      billingIssue: finiteOrNull(status?.mrr?.billingIssue),
-      asOf: status?.mrr?.asOf || null,
+      setToRenew: monthlyFromAnnual(status?.arr?.setToRenew),
+      setToCancel: monthlyFromAnnual(status?.arr?.setToCancel),
+      billingIssue: monthlyFromAnnual(status?.arr?.billingIssue),
+      breakdownSource: "RevenueCat ARR status breakdown divided by 12",
+      period: overviewMrr.period || "P0D",
+      asOf: overviewMrr.lastUpdatedAt || status?.arr?.asOf || null,
     }),
     arr: valueMetric(status?.arr?.total, {
       source: "RevenueCat Subscription Status chart (API v2)",
@@ -362,6 +410,20 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       setToCancel: finiteOrNull(status?.arr?.setToCancel),
       billingIssue: finiteOrNull(status?.arr?.billingIssue),
       asOf: status?.arr?.asOf || null,
+    }),
+    newCustomers: valueMetric(overviewNewCustomers.value, {
+      source: "RevenueCat Overview metrics (API v2)",
+      unit: "customers",
+      definition: "Customers first seen by RevenueCat during the period shown by RevenueCat. This is not an install count or a paid-subscriber count.",
+      period: overviewNewCustomers.period || "P28D",
+      asOf: overviewNewCustomers.lastUpdatedAt || null,
+    }),
+    activeCustomers: valueMetric(overviewActiveCustomers.value, {
+      source: "RevenueCat Overview metrics (API v2)",
+      unit: "customers",
+      definition: "Customers who communicated with RevenueCat during the period shown by RevenueCat. This is not the number of active subscriptions.",
+      period: overviewActiveCustomers.period || "P28D",
+      asOf: overviewActiveCustomers.lastUpdatedAt || null,
     }),
   };
 
@@ -461,14 +523,16 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
 
   const growth = await persistAndReadGrowth({
     env,
-    paid: status?.paid?.setToRenew,
-    trials: status?.trials?.setToRenew,
-    mrr: status?.mrr?.total,
+    paid: activeSubscriptions,
+    trials: activeTrials,
+    mrr: currentMrr,
     arr: status?.arr?.total,
     currency,
   });
 
   const charts = {
+    overview: overviewCoverage(overviewResult),
+    rangeRevenue: rangeRevenueCoverage(rangeRevenueResult),
     revenue: chartCoverage(revenueResult),
     subscriptionStatus: statusResult?.coverage || chartCoverage(statusResult),
     newTrials: chartCoverage(trialsResult),
@@ -502,6 +566,13 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       timezone: "UTC",
       startDate: range.startDate,
       endDate: range.endDate,
+      overviewLastUpdatedAt: newestIso(
+        overviewActiveSubscriptions.lastUpdatedAt,
+        overviewActiveTrials.lastUpdatedAt,
+        overviewMrr.lastUpdatedAt,
+        overviewNewCustomers.lastUpdatedAt,
+        overviewActiveCustomers.lastUpdatedAt,
+      ),
       lifetimeRevenuePeriod: lifetimePeriod,
       includesPartialToday: range.endDate === utcDate(Date.now()),
       revenueDefinition: "gross_customer_price_before_estimated_tax_and_store_commission",
@@ -548,16 +619,128 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       charts,
       errors,
       limitations: [
-        "RevenueCat charts contain production receipt data and may revise historical periods after a refund or receipt update.",
+        "RevenueCat realtime metrics contain production receipt data and may revise historical periods after a refund or receipt update.",
         "Trial Conversion Rate uses RevenueCat's matched trial cohort, not the calendar day on which payment occurred; use firstPaidCustomers for event-period acquisition cost.",
         "The current public API does not expose the newer Refunds-by-processing-date chart, so refunded gross amount is unavailable instead of estimated.",
         "The current public API does not expose the historical Trial Cancellation chart; trialsCanceled is the exact current Set to cancel snapshot, not a historical range total.",
         "Country is RevenueCat subscription geography, not a precise GPS location. No personal address or device location is returned.",
         "Apple Search Ads attribution is the confirmed RevenueCat-attributed subset; it must not replace the all-App-Store outcome totals when measuring the whole business.",
-        "Renewing-premium growth records at most one snapshot on UTC days when the owner dashboard refreshes. Missed and historical days are not fabricated or backfilled.",
+        "Active-subscription growth records at most one RevenueCat Overview snapshot on UTC days when the owner dashboard refreshes. Missed and historical days are not fabricated or backfilled.",
       ],
     },
   };
+}
+
+// Previous-period deltas only need four range charts plus the authoritative
+// range-revenue metric. Keeping this path small
+// leaves the main Overview reconciliation inside RevenueCat's 25 request/minute
+// Charts & Metrics limit, even on the first uncached dashboard load.
+async function buildComparisonReport({ apiKey, projectId, currency, range }) {
+  const tracker = { attempted: 0, succeeded: 0 };
+  const errors = [];
+  const [rangeRevenueResult, revenueResult, trialsResult, conversionsResult, firstPaidResult] = await Promise.all([
+    capture("range_revenue", () => loadRangeRevenue(apiKey, projectId, currency, range, tracker), errors),
+    capture("revenue", () => loadChart(apiKey, projectId, "revenue", {
+      currency,
+      range,
+      tracker,
+      selectorIntent: "gross_revenue",
+      projectWide: true,
+    }), errors),
+    capture("trials_new", () => loadChart(apiKey, projectId, "trials_new", { range, tracker }), errors),
+    capture("trial_conversion_rate", () => loadChart(apiKey, projectId, "trial_conversion_rate", { range, tracker }), errors),
+    capture("actives_new", () => loadChart(apiKey, projectId, "actives_new", { range, tracker }), errors),
+  ]);
+  const revenue = revenueResult?.chart || null;
+  const trials = trialsResult?.chart || null;
+  const conversions = conversionsResult?.chart || null;
+  const firstPaid = firstPaidResult?.chart || null;
+  const paidTrialConversions = chartTotal(firstPaid, [/^trial conversions$/i]);
+  const directSubscriptions = chartTotal(firstPaid, [/^direct subscriptions$/i, /^direct$/i]);
+  const introOffers = chartTotal(firstPaid, [/^intro offers$/i, /introductory offers/i]);
+  const authoritativeRevenue = rangeRevenueValue(rangeRevenueResult);
+  const chartRevenue = chartTotal(revenue, [/^revenue$/i, /gross revenue/i]);
+
+  return {
+    source: "RevenueCat API v2 comparison",
+    fetchedAt: new Date().toISOString(),
+    projectId,
+    scope: {
+      environment: "production",
+      store: "app_store",
+      currency,
+      timezone: "UTC",
+      startDate: range.startDate,
+      endDate: range.endDate,
+    },
+    metrics: {
+      grossRevenue: valueMetric(Number.isFinite(authoritativeRevenue) ? authoritativeRevenue : chartRevenue, {
+        source: Number.isFinite(authoritativeRevenue)
+          ? "RevenueCat Revenue metric (API v2, realtime Charts v3)"
+          : "RevenueCat Revenue chart (API v2)",
+        unit: "currency",
+        currency,
+        period: range,
+        definition: "Gross RevenueCat revenue in the comparison UTC date range.",
+      }),
+      trialsStarted: valueMetric(chartTotal(trials, [/^new trials$/i, /^trial starts$/i]), {
+        source: "RevenueCat New Trials chart (API v2)",
+        unit: "trials",
+        period: range,
+        definition: "Trials started in the comparison UTC date range.",
+      }),
+      trialsConvertedToPaid: valueMetric(paidTrialConversions, {
+        source: "RevenueCat New Paid Subscriptions chart (API v2)",
+        unit: "trials",
+        period: range,
+        definition: "Trial subscriptions whose first payment occurred in the comparison UTC date range.",
+      }),
+      firstPaidCustomers: valueMetric(addAvailable(directSubscriptions, paidTrialConversions, introOffers), {
+        source: "RevenueCat New Paid Subscriptions chart (API v2)",
+        unit: "new_paid_subscriptions",
+        period: range,
+        definition: "Subscriptions with their first successful payment in the comparison UTC date range.",
+      }),
+      trialConversionRate: valueMetric(chartSummaryValue(conversions, [/trial conversion rate/i, /^conversion rate/i]), {
+        source: "RevenueCat Trial Conversion Rate chart (API v2)",
+        unit: "percent",
+        period: range,
+        definition: "RevenueCat matched-cohort trial conversion rate for the comparison range.",
+      }),
+    },
+    series: {
+      grossRevenueDaily: chartSeries(revenue, [/^revenue$/i, /gross revenue/i]),
+    },
+    coverage: {
+      complete: errors.length === 0,
+      requestsAttempted: tracker.attempted,
+      requestsSucceeded: tracker.succeeded,
+      errors,
+    },
+  };
+}
+
+async function loadOverviewMetrics(apiKey, projectId, currency, tracker) {
+  const params = new URLSearchParams({ currency });
+  return revenueCatGet(
+    apiKey,
+    `/v2/projects/${encodeURIComponent(projectId)}/metrics/overview?${params}`,
+    tracker,
+  );
+}
+
+async function loadRangeRevenue(apiKey, projectId, currency, range, tracker) {
+  const params = new URLSearchParams({
+    start_date: range.startDate,
+    end_date: range.endDate,
+    currency,
+    revenue_type: "revenue",
+  });
+  return revenueCatGet(
+    apiKey,
+    `/v2/projects/${encodeURIComponent(projectId)}/metrics/revenue?${params}`,
+    tracker,
+  );
 }
 
 async function loadSubscriptionStatus(apiKey, projectId, currency, tracker) {
@@ -584,16 +767,14 @@ async function loadSubscriptionStatus(apiKey, projectId, currency, tracker) {
     return revenueCatGet(apiKey, chartPath(projectId, chartName, `?${params}`), tracker);
   };
 
-  const [paidChart, trialChart, mrrChart, arrChart] = await Promise.all([
+  const [paidChart, trialChart, arrChart] = await Promise.all([
     fetchStatus("paid", { segmentCountry: true }),
     fetchStatus("trials", { segmentCountry: true }),
-    fetchStatus("mrr"),
     fetchStatus("arr"),
   ]);
 
   const paid = statusBreakdown(paidChart);
   const trials = statusBreakdown(trialChart);
-  const mrr = statusBreakdown(mrrChart);
   const arr = statusBreakdown(arrChart);
   const countries = countrySegment
     ? mergeCountries(countryRows(paidChart), countryRows(trialChart))
@@ -602,13 +783,12 @@ async function loadSubscriptionStatus(apiKey, projectId, currency, tracker) {
   return {
     paid,
     trials,
-    mrr,
     arr,
     countries,
     coverage: {
-      available: [paid, trials, mrr, arr].every((entry) => entry?.available),
+      available: [paid, trials, arr].every((entry) => entry?.available),
       source: "subscription_status",
-      lastComputedAt: newestIso(paid.asOf, trials.asOf, mrr.asOf, arr.asOf),
+      lastComputedAt: newestIso(paid.asOf, trials.asOf, arr.asOf),
       incompletePeriods: 0,
       countrySegmentation: countrySegment ? "available" : "unsupported",
     },
@@ -620,9 +800,10 @@ async function loadChart(apiKey, projectId, chartName, {
   range,
   tracker,
   selectorIntent,
+  projectWide = false,
 }) {
   const options = await loadChartOptions(apiKey, projectId, chartName, tracker);
-  const filter = appStoreFilter(options);
+  const filter = projectWide ? [] : appStoreFilter(options);
   const resolution = dayResolution(options);
   const selectors = {};
   if (selectorIntent === "gross_revenue") {
@@ -766,7 +947,7 @@ function appleSearchAdsCampaignSegment(options) {
 }
 
 async function persistAndReadGrowth({ env, paid, trials, mrr, arr, currency }) {
-  const source = "Daily RevenueCat strict-renewing snapshot stored in Cloud Firestore";
+  const source = "Daily RevenueCat Overview snapshot stored in Cloud Firestore";
   if (!env?.FIREBASE_SERVICE_ACCOUNT) {
     return {
       available: false,
@@ -784,7 +965,7 @@ async function persistAndReadGrowth({ env, paid, trials, mrr, arr, currency }) {
       available: false,
       source,
       points: [],
-      reason: "RevenueCat did not return both strict-renewing paid and trial counts, so an incomplete daily snapshot was not stored.",
+      reason: "RevenueCat did not return both active subscription and active trial counts, so an incomplete daily snapshot was not stored.",
     };
   }
 
@@ -803,7 +984,7 @@ async function persistAndReadGrowth({ env, paid, trials, mrr, arr, currency }) {
       arr: finiteOrNull(arr),
       currency,
       fetchedAt,
-      source: "RevenueCat Subscription Status chart (API v2)",
+      source: "RevenueCat Overview metrics (API v2)",
     };
     const fields = Object.fromEntries(Object.entries(snapshot).map(([key, value]) => [key, typedValue(value)]));
     await patchDocument({
@@ -817,7 +998,7 @@ async function persistAndReadGrowth({ env, paid, trials, mrr, arr, currency }) {
     return {
       available: true,
       source,
-      definition: "One exact UTC snapshot per day of paid subscriptions and active trials that are set to renew. The same day's document is refreshed; prior days are never fabricated.",
+      definition: "One exact UTC snapshot per day of active paid subscriptions and active trials from RevenueCat Overview. The same day's document is refreshed; prior days are never fabricated.",
       collection: GROWTH_COLLECTION,
       snapshotDate: date,
       points,
@@ -1383,6 +1564,69 @@ function matchesPatterns(values, patterns) {
   return text.some((value) => patterns.some((pattern) => pattern.test(value)));
 }
 
+function overviewMetric(payload, candidateIds) {
+  const candidates = new Set(candidateIds.map(normalizeMetricId));
+  const entry = (Array.isArray(payload?.metrics) ? payload.metrics : []).find((metric) =>
+    candidates.has(normalizeMetricId(metric?.id))
+      || candidates.has(normalizeMetricId(metric?.name))
+  );
+  const value = finiteOrNull(entry?.value);
+  return {
+    available: value !== null,
+    value,
+    id: typeof entry?.id === "string" ? entry.id : null,
+    name: typeof entry?.name === "string" ? entry.name : null,
+    unit: typeof entry?.unit === "string" ? entry.unit : null,
+    period: typeof entry?.period === "string" ? entry.period : null,
+    lastUpdatedAt: overviewUpdatedAt(entry),
+  };
+}
+
+function normalizeMetricId(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function overviewUpdatedAt(entry) {
+  const direct = typeof entry?.last_updated_at_iso8601 === "string"
+    ? entry.last_updated_at_iso8601.trim()
+    : "";
+  if (direct) {
+    const parsed = new Date(direct);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  return epochIso(entry?.last_updated_at);
+}
+
+function rangeRevenueValue(payload) {
+  if (!payload || payload?.revenue_type !== "revenue") return null;
+  return finiteOrNull(payload.value);
+}
+
+function overviewCoverage(payload) {
+  const metrics = Array.isArray(payload?.metrics) ? payload.metrics : [];
+  return {
+    available: metrics.length > 0,
+    source: "metrics/overview",
+    metricCount: metrics.length,
+    lastComputedAt: newestIso(...metrics.map(overviewUpdatedAt)),
+  };
+}
+
+function rangeRevenueCoverage(payload) {
+  const value = rangeRevenueValue(payload);
+  return {
+    available: value !== null,
+    source: "metrics/revenue",
+    startDate: validDate(payload?.start_date) ? payload.start_date : null,
+    endDate: validDate(payload?.end_date) ? payload.end_date : null,
+    revenueType: payload?.revenue_type || null,
+  };
+}
+
 function valueMetric(value, details) {
   const normalized = finiteOrNull(value);
   const available = normalized !== null;
@@ -1528,6 +1772,11 @@ function finiteOrNull(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function monthlyFromAnnual(value) {
+  const annual = finiteOrNull(value);
+  return annual === null ? null : annual / 12;
+}
+
 function addAvailable(...values) {
   const numbers = values.map(finiteOrNull).filter(Number.isFinite);
   return numbers.length === values.length ? numbers.reduce((sum, value) => sum + value, 0) : null;
@@ -1573,4 +1822,7 @@ export const __test = {
   buildAcquisitionPresets,
   buildAcquisitionWindow,
   campaignSegmentInfo,
+  monthlyFromAnnual,
+  overviewMetric,
+  rangeRevenueValue,
 };

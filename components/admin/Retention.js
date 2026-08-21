@@ -21,7 +21,7 @@ export default function Retention({ range, ownerMetrics, ownerPrevious, compare,
   const expired = metric(ownerMetrics, "trialExpirations");
   const conversion = metric(ownerMetrics, "trialConversionRate");
   const conversionPrev = metric(ownerPrevious, "trialConversionRate");
-  const trialsLive = metric(ownerMetrics, "trialsSetToRenew");
+  const trialsLive = metric(ownerMetrics, "activeTrials");
   const trialsCanceled = metric(ownerMetrics, "trialsCanceled");
   const cancels = metric(ownerMetrics, "activeCancellations");
 
@@ -75,7 +75,7 @@ export default function Retention({ range, ownerMetrics, ownerPrevious, compare,
         <KpiTile label="Trials started" value={count(trialsStarted)} current={trialsStarted} previous={compare ? trialsStartedPrev : null} compareLabel="vs prev" stripe="var(--pv-violet)" info={metricInfo(ownerMetrics, "trialsStarted")} />
         <KpiTile label="Converted to paid" value={count(converted)} current={converted} previous={compare ? convertedPrev : null} compareLabel="vs prev" stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "trialsConvertedToPaid")} />
         <KpiTile label="Trial → paid" value={percent(conversion)} current={conversion} previous={compare ? conversionPrev : null} compareLabel="vs prev" stripe="var(--pv-teal)" info={metricInfo(ownerMetrics, "trialConversionRate")} />
-        <KpiTile label="Trials live" value={count(trialsLive)} sub={Number.isFinite(trialsCanceled) ? `${count(trialsCanceled)} switched renewal off` : "set to renew"} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "trialsSetToRenew")} />
+        <KpiTile label="Active trials" value={count(trialsLive)} sub={Number.isFinite(trialsCanceled) ? `${count(trialsCanceled)} switched renewal off` : "currently give access"} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "activeTrials")} />
         <KpiTile label="Seen · 7 days" value={count(stats.seen7)} sub={`${ratio(stats.seen7, n) || "0%"} of ${count(n)} active · ${stats.seenToday} today`} stripe="var(--pv-good)" />
         <KpiTile label="Paid · silent 14d" value={count(stats.silent14)} sub="paying, not opened in 2 weeks" stripe={stats.silent14 > 0 ? "var(--pv-warn)" : "var(--pv-border-strong)"} onClick={() => onGo("members")} />
       </div>

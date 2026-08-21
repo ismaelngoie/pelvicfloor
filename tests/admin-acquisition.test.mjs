@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { __test as apple } from "../functions/api/app-analytics.js";
 import { __test as revenueCat } from "../functions/api/revenuecat-owner-metrics.js";
+import { __test as members } from "../functions/api/revenuecat-members.js";
 
 function epoch(date) {
   return Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
@@ -137,4 +138,72 @@ test("RevenueCat live option names resolve the campaign and exact app scope", ()
     { name: "store", values: ["app_store"] },
     { name: "app_id", values: ["appec71ecec7b"] },
   ]);
+});
+
+test("RevenueCat Overview metrics preserve the dashboard values, periods, and update time", () => {
+  const payload = {
+    object: "overview_metrics",
+    metrics: [
+      { id: "active_trials", name: "Active Trials", value: 8, period: "P0D", last_updated_at: 1787288640000 },
+      { id: "active_subscriptions", name: "Active Subscriptions", value: 35, period: "P0D", last_updated_at: 1787288640000 },
+      { id: "mrr", name: "MRR", value: 764.52, period: "P0D", last_updated_at: 1787288640000 },
+      { id: "new_customers", name: "New Customers", value: 235, period: "P28D", last_updated_at: 1787288640000 },
+      { id: "customers_active", name: "Active Customers", value: 389, period: "P28D", last_updated_at: 1787288640000 },
+    ],
+  };
+
+  assert.equal(revenueCat.overviewMetric(payload, ["active_subscriptions"]).value, 35);
+  assert.equal(revenueCat.overviewMetric(payload, ["active_trials"]).value, 8);
+  assert.equal(revenueCat.overviewMetric(payload, ["mrr"]).value, 764.52);
+  assert.equal(revenueCat.overviewMetric(payload, ["new_customers"]).period, "P28D");
+  assert.equal(revenueCat.overviewMetric(payload, ["active_customers", "customers_active"]).value, 389);
+  assert.equal(revenueCat.overviewMetric(payload, ["active_trials"]).lastUpdatedAt, "2026-08-21T05:04:00.000Z");
+});
+
+test("RevenueCat ARR fallback preserves the MRR status breakdown", () => {
+  assert.equal(revenueCat.monthlyFromAnnual(720), 60);
+  assert.equal(revenueCat.monthlyFromAnnual("120"), 10);
+  assert.equal(revenueCat.monthlyFromAnnual(null), null);
+});
+
+test("RevenueCat range revenue accepts only the authoritative gross revenue metric", () => {
+  assert.equal(revenueCat.rangeRevenueValue({
+    object: "revenue_metric",
+    start_date: "2026-07-25",
+    end_date: "2026-08-21",
+    currency: "USD",
+    value: 746.22,
+    revenue_type: "revenue",
+  }), 746.22);
+  assert.equal(revenueCat.rangeRevenueValue({ value: 600, revenue_type: "proceeds" }), null);
+});
+
+test("RevenueCat customer access includes canceled trials and grace periods until expiry", () => {
+  const canceledTrial = members.membershipFrom("trial_customer", [{
+    id: "sub_trial",
+    environment: "production",
+    store: "app_store",
+    status: "trialing",
+    gives_access: true,
+    auto_renewal_status: "will_not_renew",
+    current_period_ends_at: Date.parse("2026-08-28T00:00:00Z"),
+  }]);
+  assert.equal(canceledTrial.isActivePremium, true);
+  assert.equal(canceledTrial.isRenewing, false);
+  assert.equal(canceledTrial.phase, "trial");
+  assert.equal(canceledTrial.state, "canceled_with_access");
+
+  const gracePaid = members.membershipFrom("grace_customer", [{
+    id: "sub_paid",
+    environment: "production",
+    store: "app_store",
+    status: "in_grace_period",
+    gives_access: true,
+    auto_renewal_status: "will_renew",
+    current_period_ends_at: Date.parse("2026-08-23T00:00:00Z"),
+  }]);
+  assert.equal(gracePaid.isActivePremium, true);
+  assert.equal(gracePaid.isRenewing, true);
+  assert.equal(gracePaid.phase, "paid");
+  assert.equal(gracePaid.state, "paid");
 });

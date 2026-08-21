@@ -255,8 +255,10 @@ async function fixtureOwnerMetrics(range, factor = 1) {
       grossRevenue: { available: true, value: Math.round(total * 100) / 100, definition: "Gross revenue charged to customers in the selected UTC date range, before estimated taxes and Apple commission, minus refunds tied to transactions from that range.", source: "RevenueCat Revenue chart (API v2)" },
       lifetimeGrossRevenue: { available: true, value: 16222.59, definition: "Gross production App Store revenue since January 1, 2020.", source: "RevenueCat Revenue chart" },
       lifetimeTransactions: { available: true, value: 658 },
-      paidSetToRenew: { available: true, value: Math.round(20 * factor), definition: "Current production App Store paid subscriptions that are active and set to renew.", source: "RevenueCat Subscription Status chart" },
-      trialsSetToRenew: { available: true, value: Math.round(6 * factor), definition: "Current production App Store trials that are active and set to renew." },
+      activeSubscriptions: { available: true, value: Math.round(20 * factor), definition: "Current active paid subscriptions in RevenueCat.", source: "RevenueCat Overview metrics" },
+      activeTrials: { available: true, value: Math.round(6 * factor), definition: "Current active trials in RevenueCat.", source: "RevenueCat Overview metrics" },
+      paidSetToRenew: { available: true, value: Math.round(18 * factor), definition: "Current production App Store paid subscriptions that are active and set to renew.", source: "RevenueCat Subscription Status chart" },
+      trialsSetToRenew: { available: true, value: Math.round(5 * factor), definition: "Current production App Store trials that are active and set to renew." },
       activePremium: { available: true, value: Math.round(26 * factor) },
       trialsStarted: { available: true, value: Math.round(8 * factor), definition: "Trials whose trial start date falls inside the selected UTC date range." },
       trialsCanceled: { available: true, value: 2 },
@@ -268,8 +270,10 @@ async function fixtureOwnerMetrics(range, factor = 1) {
       firstPaidCustomers: { available: true, value: Math.round(5 * factor), direct: 2, trialConversions: 3, definition: "Subscriptions whose first successful payment occurred inside the selected UTC date range." },
       activeCancellations: { available: true, value: 4, paid: 2, trials: 2, definition: "Active subscriptions and trials that still provide access but are set to cancel." },
       refundedTransactions: { available: true, value: 0, paidTransactions: 16, refundRate: 0, definition: "Paid transactions from the selected range that have since been refunded." },
-      mrr: { available: true, value: 783.67 * factor, definition: "Current gross monthly recurring revenue before taxes and store commission." },
+      mrr: { available: true, value: 783.67 * factor, setToRenew: 650 * factor, setToCancel: 100 * factor, billingIssue: 33.67 * factor, definition: "Current gross monthly recurring revenue before taxes and store commission." },
       arr: { available: true, value: 9404.1 * factor, definition: "Current gross annual recurring revenue before taxes and store commission." },
+      newCustomers: { available: true, value: Math.round(132 * factor), definition: "Customers first seen by RevenueCat in its displayed period." },
+      activeCustomers: { available: true, value: Math.round(205 * factor), definition: "Customers active in RevenueCat during its displayed period." },
       appleAttributedTrialsStarted: { available: true, value: Math.round(5 * factor) },
       appleAttributedFirstPaidCustomers: { available: true, value: Math.round(4 * factor) },
     },
@@ -414,7 +418,7 @@ export default function AdminDashboard() {
           fetchRevenueCatOwnerMetrics(user, range.startDate, range.endDate, "USD", compare ? prev : null).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat business metrics did not load." })),
           fetchAppleAdsReport(user, range.startDate, range.endDate).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "Apple Ads reporting did not load." })),
         ]);
-        const membershipResult = await fetchRevenueCatMembers(user, memberRows.map((m) => m.id)).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat memberships did not load." }));
+        const membershipResult = await fetchRevenueCatMembers(user, memberRows.map((m) => m.id), ownerResult.value).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat memberships did not load." }));
         next = memberRows; nextTelemetry = appTelemetry; nextMembership = membershipResult.value; nextOwner = ownerResult.value; nextPrev = ownerResult.value?.previous || null; nextApple = appleResult.value;
         setMembershipError(membershipResult.error); setOwnerMetricsError(ownerResult.error); setAppleError(appleResult.error);
       }

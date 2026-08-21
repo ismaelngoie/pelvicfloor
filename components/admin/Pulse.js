@@ -56,14 +56,14 @@ export function buildAttention({ members, membership, telemetry, appleError, own
   return items;
 }
 
-function writeBrief({ revenue, revenuePrev, cpa, cpaPrev, trialsEnding, activePremium, activeDelta, conversion, range }) {
+function writeBrief({ revenue, revenuePrev, cpa, cpaPrev, trialsEnding, activeSubscriptions, activeDelta, conversion, range }) {
   const parts = [];
   if (Number.isFinite(revenue) && Number.isFinite(revenuePrev) && revenuePrev > 0) {
     const pct = ((revenue - revenuePrev) / revenuePrev) * 100;
     parts.push(`Revenue is ${pct >= 0 ? "up" : "down"} ${Math.abs(pct).toFixed(0)}% on the previous ${range.days === 1 ? "day" : `${range.days} days`}`);
   } else if (Number.isFinite(revenue)) parts.push(`${money(revenue)} of revenue in the range`);
   if (Number.isFinite(cpa)) parts.push(Number.isFinite(cpaPrev) ? `CPA ${cpa <= cpaPrev ? "fell" : "rose"} to ${money(cpa, "USD", { exact: true })}` : `CPA is ${money(cpa, "USD", { exact: true })}`);
-  if (Number.isFinite(activePremium)) parts.push(`${count(activePremium)} members renewing${Number.isFinite(activeDelta) && activeDelta !== 0 ? ` (${activeDelta > 0 ? "+" : ""}${activeDelta})` : ""}`);
+  if (Number.isFinite(activeSubscriptions)) parts.push(`${count(activeSubscriptions)} active subscriptions${Number.isFinite(activeDelta) && activeDelta !== 0 ? ` (${activeDelta > 0 ? "+" : ""}${activeDelta})` : ""}`);
   if (trialsEnding) parts.push(`${trialsEnding} trial${trialsEnding === 1 ? "" : "s"} end${trialsEnding === 1 ? "s" : ""} within 3 days`);
   if (!parts.length) return "Waiting on the first numbers.";
   const hour = new Date().getHours();
@@ -78,26 +78,27 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
   const mrr = metric(ownerMetrics, "mrr");
   const growth = Array.isArray(ownerMetrics?.growth?.points) ? ownerMetrics.growth.points : [];
   const mrrPrev = growthAt(growth, range.days, "mrr");
-  const active = metric(ownerMetrics, "activePremium") ?? (Number.isFinite(membership?.totals?.activePremium) ? membership.totals.activePremium : null);
-  const activePrev = growthAt(growth, range.days, "activePremium");
-  const trials = metric(ownerMetrics, "trialsSetToRenew");
+  const active = metric(ownerMetrics, "activeSubscriptions") ?? (Number.isFinite(membership?.totals?.paid) ? membership.totals.paid : null);
+  const activePrev = growthAt(growth, range.days, "paid");
+  const trials = metric(ownerMetrics, "activeTrials") ?? (Number.isFinite(membership?.totals?.trials) ? membership.totals.trials : null);
   const trialsPrev = growthAt(growth, range.days, "trials");
   const conversion = metric(ownerMetrics, "trialConversionRate");
   const conversionPrev = metric(ownerPrevious, "trialConversionRate");
   const firstPaid = metric(ownerMetrics, "firstPaidCustomers");
+  const appleFirstPaid = metric(ownerMetrics, "appleAttributedFirstPaidCustomers");
   const trialsStarted = metric(ownerMetrics, "trialsStarted");
   const spend = Number.isFinite(Number(appleReport?.totals?.spend)) ? Number(appleReport.totals.spend) : null;
   const installs = Number.isFinite(Number(appleReport?.totals?.totalInstalls)) ? Number(appleReport.totals.totalInstalls) : null;
   const appleCurrency = appleReport?.currency || appleReport?.totals?.currency || null;
   const costReady = spend !== null && appleCurrency === currency;
-  const cpa = costReady && firstPaid > 0 ? spend / firstPaid : null;
+  const cpa = costReady && appleFirstPaid > 0 ? spend / appleFirstPaid : null;
 
   const revenueSeries = useMemo(() => fillDaily(ownerMetrics?.series?.grossRevenueDaily, range), [ownerMetrics, range]);
   const prevSeries = useMemo(() => (compare && ownerPrevious ? fillDaily(ownerPrevious?.series?.grossRevenueDaily, { startDate: ownerPrevious.scope.startDate, endDate: ownerPrevious.scope.endDate, days: range.days }) : []), [compare, ownerPrevious, range.days]);
   const sparkRevenue = revenueSeries.map((p) => p.value);
-  const sparkTrials = useMemo(() => fillDaily(ownerMetrics?.series?.trialsStartedDaily, range).map((p) => p.value), [ownerMetrics, range]);
+  const sparkTrials = growth.slice(-Math.max(2, Math.min(growth.length, range.days))).map((p) => p.trials);
   const sparkPaid = useMemo(() => fillDaily(ownerMetrics?.series?.firstPaidCustomersDaily, range).map((p) => p.value), [ownerMetrics, range]);
-  const sparkActive = growth.slice(-Math.max(2, Math.min(growth.length, range.days))).map((p) => p.activePremium);
+  const sparkActive = growth.slice(-Math.max(2, Math.min(growth.length, range.days))).map((p) => p.paid);
   const sparkMrr = growth.slice(-Math.max(2, Math.min(growth.length, range.days))).map((p) => p.mrr).filter(Number.isFinite);
 
   const attention = useMemo(() => buildAttention({ members, membership, telemetry, appleError, ownerMetrics, now }), [members, membership, telemetry, appleError, ownerMetrics, now]);
@@ -109,8 +110,8 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
     return [...map.entries()].map(([label, value]) => ({ key: label, label, value, sub: ratio(value, members.length) ? `${ratio(value, members.length)} of active` : "" })).sort((a, b) => b.value - a.value).slice(0, 6);
   }, [members]);
 
-  const brief = writeBrief({ revenue, revenuePrev, cpa, cpaPrev: null, trialsEnding, activePremium: active, activeDelta: Number.isFinite(active) && Number.isFinite(activePrev) ? active - activePrev : null, conversion, range });
-  const growthSeries = growth.map((p) => ({ date: p.date, value: p.activePremium }));
+  const brief = writeBrief({ revenue, revenuePrev, cpa, cpaPrev: null, trialsEnding, activeSubscriptions: active, activeDelta: Number.isFinite(active) && Number.isFinite(activePrev) ? active - activePrev : null, conversion, range });
+  const growthSeries = growth.map((p) => ({ date: p.date, value: p.paid }));
 
   return (
     <div className="pv-rise" style={{ display: "grid", gap: 12 }}>
@@ -125,12 +126,12 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
       {ownerMetricsError ? <Unavailable reason={`RevenueCat business metrics: ${ownerMetricsError}`} onRetry={onRetry} /> : null}
 
       <div className="pv-kpis">
-        <KpiTile label={`Revenue · ${range.preset === "custom" ? "range" : range.preset}`} value={money(revenue, currency, { compact: true })} current={revenue} previous={compare ? revenuePrev : null} compareLabel={`vs prev ${range.days}d`} spark={sparkRevenue} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "grossRevenue")} onClick={() => onGo("revenue")} />
-        <KpiTile label="MRR" value={money(mrr, currency, { compact: true })} current={mrr} previous={compare ? mrrPrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkMrr.length > 1 ? sparkMrr : null} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "mrr")} onClick={() => onGo("revenue")} />
-        <KpiTile label="Active premium" value={count(active)} current={active} previous={compare ? activePrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkActive.length > 1 ? sparkActive : null} stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "activePremium") || "Paid subscriptions and trials that are active and set to renew, from RevenueCat."} onClick={() => onGo("members")} />
-        <KpiTile label="Trials live" value={count(trials)} current={trials} previous={compare ? trialsPrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkTrials.length > 1 ? sparkTrials : null} stripe="var(--pv-violet)" info={metricInfo(ownerMetrics, "trialsSetToRenew")} onClick={() => onGo("retention")} />
+        <KpiTile label={`Revenue · ${range.preset === "custom" ? "range" : range.preset}`} value={money(revenue, currency, { compact: true, rounded: true })} current={revenue} previous={compare ? revenuePrev : null} compareLabel={`vs prev ${range.days}d`} spark={sparkRevenue} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "grossRevenue")} onClick={() => onGo("revenue")} />
+        <KpiTile label="MRR" value={money(mrr, currency, { compact: true, rounded: true })} current={mrr} previous={compare ? mrrPrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkMrr.length > 1 ? sparkMrr : null} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "mrr")} onClick={() => onGo("revenue")} />
+        <KpiTile label="Active subscriptions" value={count(active)} current={active} previous={compare ? activePrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkActive.length > 1 ? sparkActive : null} stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "activeSubscriptions")} onClick={() => onGo("members")} />
+        <KpiTile label="Active trials" value={count(trials)} current={trials} previous={compare ? trialsPrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkTrials.length > 1 ? sparkTrials : null} stripe="var(--pv-violet)" info={metricInfo(ownerMetrics, "activeTrials")} onClick={() => onGo("retention")} />
         <KpiTile label="Trial → paid" value={percent(conversion)} current={conversion} previous={compare ? conversionPrev : null} compareLabel="vs prev" spark={sparkPaid.length > 1 ? sparkPaid : null} stripe="var(--pv-teal)" info={metricInfo(ownerMetrics, "trialConversionRate")} onClick={() => onGo("retention")} />
-        <KpiTile label="CPA · Apple Ads" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={spend === null ? (appleError ? "Apple unavailable" : "No spend reported") : !costReady ? "Currency mismatch" : firstPaid > 0 ? `${money(spend, currency)} spend · ${count(firstPaid)} first paid` : `${money(spend, currency)} spent · no first paid yet`} stripe="var(--pv-amber)" info="Apple Ads spend in the range divided by subscriptions with their first successful payment in the same range (RevenueCat). Shown only when both services report the same currency." onClick={() => onGo("acquisition")} />
+        <KpiTile label="CPA · Apple Ads" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={spend === null ? (appleError ? "Apple unavailable" : "No spend reported") : !costReady ? "Currency mismatch" : appleFirstPaid > 0 ? `${money(spend, currency)} spend · ${count(appleFirstPaid)} attributed first paid` : `${money(spend, currency)} spent · no attributed first paid yet`} stripe="var(--pv-amber)" info="Apple Ads spend in the range divided by first payments RevenueCat explicitly attributes to Apple Search Ads in the same range. Shown only when both services report the same currency." onClick={() => onGo("acquisition")} />
       </div>
 
       <div className="pv-bento">
@@ -154,9 +155,9 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
             </div>
           </Card>
           <Card>
-            <CardHead label="Renewing members · daily" info="A strict RevenueCat snapshot taken each UTC day this dashboard refreshes: paid subscriptions and trials set to renew. Tracking started when the dashboard first ran; earlier history is never invented." />
+            <CardHead label="Active subscriptions · daily" info="An exact RevenueCat Overview snapshot taken each UTC day this dashboard refreshes. Tracking starts with this corrected metric; earlier history is never invented." />
             <div className="pv-card-pad">
-              {growthSeries.length > 1 ? <LineChart series={growthSeries} height={120} yTicks={2} ariaLabel="Renewing members per day" color="var(--pv-good)" /> : <Unavailable reason={ownerMetrics?.growth?.reason || "Growth tracking starts with the first snapshot."} />}
+              {growthSeries.length > 1 ? <LineChart series={growthSeries} height={120} yTicks={2} ariaLabel="Active subscriptions per day" color="var(--pv-good)" /> : <Unavailable reason={ownerMetrics?.growth?.reason || "Growth tracking starts with the first snapshot."} />}
             </div>
           </Card>
         </div>

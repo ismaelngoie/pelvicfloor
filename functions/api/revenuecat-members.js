@@ -10,9 +10,9 @@ import {
 
 // RevenueCat answers two different questions here:
 //
-//  1. The Subscription Status chart is the authoritative business headline.
-//     It covers every historical customer in RevenueCat and, unlike customer
-//     lists, correctly separates "Set to renew" from canceled-but-unexpired.
+//  1. RevenueCat Overview is the authoritative business headline. Its active
+//     subscription and trial cards include every unexpired subscription that
+//     still provides access, including canceled and grace-period access.
 //  2. The subscriptions endpoint verifies individual Firestore profiles so
 //     support can see which synced app users belong in Active Members.
 //
@@ -64,7 +64,7 @@ export async function onRequestPost({ request, env }) {
     const cached = reportCache.get(cacheKey);
     if (cached && Date.now() - cached.savedAt < CACHE_MS) return json(200, { ...cached.value, cache: "hit" });
 
-    const headlinePromise = includeHeadline ? fetchRenewingHeadline(apiKey, projectId) : Promise.resolve(null);
+    const headlinePromise = includeHeadline ? fetchOverviewHeadline(apiKey, projectId) : Promise.resolve(null);
     const inspected = [];
     for (let index = 0; index < customerIds.length; index += 6) {
       const group = customerIds.slice(index, index + 6);
@@ -83,7 +83,7 @@ export async function onRequestPost({ request, env }) {
     const active = inspected.filter((customer) => customer.isActivePremium);
     const value = {
       source: "RevenueCat API v2",
-      definition: "Production App Store trial or paid subscription that gives access and is set to renew",
+      definition: "Production App Store trial or paid subscription that currently gives access",
       fetchedAt: Date.now(),
       projectId,
       headline,
@@ -111,83 +111,45 @@ export async function onRequestPost({ request, env }) {
       });
     }
     if (error?.code === "invalid_chart") {
-      return json(502, { error: "RevenueCat returned a Subscription Status chart that could not be read safely." });
+      return json(502, { error: "RevenueCat returned Overview metrics that could not be read safely." });
     }
     return json(502, { error: "RevenueCat membership could not be reached. Try again shortly." });
   }
 }
 
-async function fetchRenewingHeadline(apiKey, projectId) {
-  const base = `/v2/projects/${encodeURIComponent(projectId)}/charts/subscription_status`;
-  const options = await revenueCatGet(apiKey, `${base}/options?realtime=true`);
-  const selector = subscriptionMeasureSelector(options);
-  const filters = JSON.stringify([{ name: "store", values: ["app_store"] }]);
-  const fetchMeasure = (measure) => revenueCatGet(
+async function fetchOverviewHeadline(apiKey, projectId) {
+  const payload = await revenueCatGet(
     apiKey,
-    `${base}?filters=${encodeURIComponent(filters)}&selectors=${encodeURIComponent(JSON.stringify({ [selector.name]: measure }))}`
+    `/v2/projects/${encodeURIComponent(projectId)}/metrics/overview?currency=USD`,
   );
-  const [paidChart, trialChart] = await Promise.all([
-    fetchMeasure(selector.paid),
-    fetchMeasure(selector.trials),
-  ]);
-  const paid = setToRenewValue(paidChart);
-  const trials = setToRenewValue(trialChart);
-  return {
-    activePremium: paid + trials,
-    paid,
-    trials,
-    lastComputedAt: epochIso(Math.max(Number(paidChart?.last_computed_at) || 0, Number(trialChart?.last_computed_at) || 0)),
-  };
-}
-
-function subscriptionMeasureSelector(options) {
-  const selectors = options?.user_selectors && typeof options.user_selectors === "object" ? options.user_selectors : {};
-  for (const [name, selector] of Object.entries(selectors)) {
-    const choices = Array.isArray(selector?.options) ? selector.options : [];
-    const paid = choices.find((choice) => choice?.id === "active_subscriptions")
-      || choices.find((choice) => /paying|active subscriptions/i.test(String(choice?.display_name || "")));
-    const trials = choices.find((choice) => choice?.id === "active_trials")
-      || choices.find((choice) => /active trials|trials/i.test(String(choice?.display_name || "")));
-    if (paid?.id && trials?.id) return { name, paid: paid.id, trials: trials.id };
+  const paidMetric = overviewMetric(payload, ["active_subscriptions"]);
+  const trialMetric = overviewMetric(payload, ["active_trials"]);
+  if (!paidMetric || !trialMetric) {
+    const error = new Error("Active subscription totals were missing from RevenueCat Overview.");
+    error.code = "invalid_chart";
+    throw error;
   }
-  const error = new Error("Subscription Status selectors were not recognized.");
-  error.code = "invalid_chart";
-  throw error;
-}
-
-function setToRenewValue(chart) {
-  const values = Array.isArray(chart?.values) ? chart.values : [];
-  const metadata = [chart?.measures, chart?.segments, chart?.periods].find(Array.isArray) || [];
-  const metadataIndex = metadata.findIndex((item) => /set to renew/i.test(String(item?.display_name || item?.name || "")));
-  const measure = metadataIndex >= 0 ? metadataIndex : 1;
-
-  // The live Subscription Status response is an object list where `measure`
-  // indexes the chart metadata. RevenueCat currently reports Set to renew as
-  // measure 1; metadata wins whenever it is present so this remains resilient
-  // if the project schema changes.
-  const entry = values.find((value) => value && !Array.isArray(value) && Number(value.measure) === measure);
-  const number = Number(entry?.value);
-  if (Number.isFinite(number) && number >= 0) return Math.round(number);
-
-  const error = new Error("Set to renew was missing from the chart.");
-  error.code = "invalid_chart";
-  throw error;
+  return {
+    activePremium: paidMetric.value + trialMetric.value,
+    paid: paidMetric.value,
+    trials: trialMetric.value,
+    lastComputedAt: [paidMetric.lastUpdatedAt, trialMetric.lastUpdatedAt].filter(Boolean).sort().at(-1) || null,
+  };
 }
 
 function membershipFrom(customerId, subscriptions) {
   const appStore = subscriptions.filter((subscription) =>
     subscription?.environment === "production" && APPLE_STORES.has(subscription?.store)
   );
-  const accessible = appStore.filter((subscription) =>
-    subscription?.gives_access === true && (subscription?.status === "trialing" || subscription?.status === "active")
-  );
+  const accessible = appStore.filter((subscription) => subscription?.gives_access === true);
   const renewing = accessible.filter((subscription) => RENEWING.has(subscription?.auto_renewal_status));
   const chosen = newest(renewing) || newest(accessible) || newest(appStore);
-  const isActivePremium = renewing.length > 0;
-  const phase = isActivePremium && renewing.some((subscription) => subscription.status === "trialing")
-    ? "trial"
-    : isActivePremium ? "paid" : "inactive";
-  const state = isActivePremium ? phase : accessible.length ? "canceled_with_access" : "inactive";
+  const isActivePremium = accessible.length > 0;
+  const isRenewing = renewing.length > 0;
+  const phase = isActivePremium
+    ? chosen?.status === "trialing" ? "trial" : "paid"
+    : "inactive";
+  const state = isActivePremium ? (isRenewing ? phase : "canceled_with_access") : "inactive";
   const identityIds = new Set([customerId]);
   for (const subscription of appStore) {
     if (subscription?.customer_id) identityIds.add(subscription.customer_id);
@@ -197,6 +159,7 @@ function membershipFrom(customerId, subscriptions) {
     id: customerId,
     identityIds: [...identityIds].filter(Boolean),
     isActivePremium,
+    isRenewing,
     phase,
     state,
     subscription: chosen ? {
@@ -282,6 +245,33 @@ function safePath(value) {
   return typeof value === "string" && value.startsWith("/v2/") ? value : null;
 }
 
+function overviewMetric(payload, candidateIds) {
+  const candidates = new Set(candidateIds.map(normalizeMetricId));
+  const entry = (Array.isArray(payload?.metrics) ? payload.metrics : []).find((metric) =>
+    candidates.has(normalizeMetricId(metric?.id))
+      || candidates.has(normalizeMetricId(metric?.name))
+  );
+  const value = Number(entry?.value);
+  if (!Number.isFinite(value) || value < 0) return null;
+  const direct = typeof entry?.last_updated_at_iso8601 === "string"
+    ? new Date(entry.last_updated_at_iso8601)
+    : null;
+  return {
+    value,
+    lastUpdatedAt: direct && !Number.isNaN(direct.getTime())
+      ? direct.toISOString()
+      : epochIso(entry?.last_updated_at),
+  };
+}
+
+function normalizeMetricId(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 function newest(subscriptions) {
   return [...subscriptions].sort((a, b) => Number(b?.ends_at || b?.current_period_ends_at || 0) - Number(a?.ends_at || a?.current_period_ends_at || 0))[0] || null;
 }
@@ -294,3 +284,8 @@ function epochIso(value) {
   const date = new Date(milliseconds);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
+
+export const __test = {
+  membershipFrom,
+  overviewMetric,
+};
