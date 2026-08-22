@@ -231,10 +231,10 @@ export default function CoachInbox({ user, reloadToken, allPeople, onOpenMember 
                   <div className="pv-faint" style={{ fontSize: 11.5 }}>{selectedMember.email || selectedMember.goalTitle || selected.memberId}</div>
                 </div>
                 {people.has(selected.memberId) ? <Button size="sm" variant="ghost" onClick={() => onOpenMember(selectedMember)}>Open member</Button> : null}
-                <Pill tone={selected.needsReply ? "warn" : "good"}>{selected.needsReply ? `${selected.unansweredCount} waiting` : "Answered"}</Pill>
+                <Pill tone={selected.needsReply ? "warn" : selected.messages.length ? "good" : "neutral"}>{selected.needsReply ? `${selected.unansweredCount} waiting` : selected.messages.length ? "Answered" : "New conversation"}</Pill>
               </header>
               <div className="pv-scroll pv-coach-messages">
-                {selected.messages.map((row) => {
+                {!selected.messages.length ? <EmptyState title="No conversation yet" description="Write below to start a private Coach Mia conversation with this member." /> : selected.messages.map((row) => {
                   const hers = row.role === "user";
                   return (
                     <div key={row.id} style={{ display: "flex", justifyContent: hers ? "flex-end" : "flex-start" }}>

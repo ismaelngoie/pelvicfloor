@@ -141,27 +141,35 @@ function validRequestId(value) {
   return /^[a-zA-Z0-9_-]{8,100}$/.test(raw) ? raw : crypto.randomUUID();
 }
 
-export async function writeCoachReply(env, { memberId, text, requestId }) {
+export function buildCoachReply({ memberId, text, requestId }, now = new Date().toISOString()) {
   const safeMemberId = validMemberId(memberId);
   if (!safeMemberId) throw new Error("Choose a valid member conversation.");
   const body = typeof text === "string" ? text.trim() : "";
   if (!body) throw new Error("Type a reply first.");
   if (body.length > 2000) throw new Error("Keep the reply under 2000 characters.");
-  const { projectId, token } = await credentials(env);
   const id = `mia_${validRequestId(requestId)}`;
-  const now = new Date().toISOString();
   const fields = {
     role: typedValue("mia"),
     source: typedValue("admin"),
     text: typedValue(body),
     date: { timestampValue: now },
   };
+  return {
+    path: `users/${encodeURIComponent(safeMemberId)}/chat/${encodeURIComponent(id)}`,
+    fields,
+    message: { id, memberId: safeMemberId, role: "mia", source: "admin", text: body, date: now },
+  };
+}
+
+export async function writeCoachReply(env, payload) {
+  const prepared = buildCoachReply(payload);
+  const { projectId, token } = await credentials(env);
   await patchDocument({
     projectId,
     token,
-    path: `users/${encodeURIComponent(safeMemberId)}/chat/${encodeURIComponent(id)}`,
-    fields,
-    updateMask: Object.keys(fields),
+    path: prepared.path,
+    fields: prepared.fields,
+    updateMask: Object.keys(prepared.fields),
   });
-  return { id, memberId: safeMemberId, role: "mia", source: "admin", text: body, date: now };
+  return prepared.message;
 }
