@@ -26,7 +26,7 @@ import { fetchAllMembers, fetchRevenueCatMembers, fetchRevenueCatOwnerMetrics } 
 import { fetchAppTelemetry, fetchAppleAdsReport } from "@/lib/adminAppData";
 import { normalizeMember } from "@/lib/adminMetrics";
 import { FIXTURES_ON } from "@/lib/devFixtures";
-import { acquisitionRange } from "./Acquisition";
+import { ACQUISITION_RELAUNCH_DATE, acquisitionRange } from "./Acquisition";
 import { RANGE_PRESETS, customRange, previousRange, rangeForPreset, rangeLabel } from "@/lib/adminRange";
 import Pulse from "./Pulse";
 import Revenue from "./Revenue";
@@ -249,6 +249,7 @@ function fixtureSeries(range, base, jitter, seed = 1) {
 async function fixtureOwnerMetrics(range, factor = 1) {
   const rev = fixtureSeries(range, 16 * factor, 14, 3);
   const total = rev.reduce((s, p) => s + p.value, 0);
+  const fixtureTrials = rev.map((point) => ({ ...point, value: point.date >= ACQUISITION_RELAUNCH_DATE ? 1 : 0 }));
   return {
     source: "RevenueCat API v2 fixture",
     fetchedAt: new Date().toISOString(),
@@ -258,19 +259,20 @@ async function fixtureOwnerMetrics(range, factor = 1) {
       lifetimeGrossRevenue: { available: true, value: 16222.59, definition: "Gross production App Store revenue since January 1, 2020.", source: "RevenueCat Revenue chart" },
       lifetimeTransactions: { available: true, value: 658 },
       activeSubscriptions: { available: true, value: Math.round(20 * factor), definition: "Current active paid subscriptions in RevenueCat.", source: "RevenueCat Overview metrics" },
-      activeTrials: { available: true, value: Math.round(6 * factor), definition: "Current active trials in RevenueCat.", source: "RevenueCat Overview metrics" },
+      activeTrials: { available: true, value: Math.round(8 * factor), definition: "Current active trials in RevenueCat.", source: "RevenueCat Overview metrics" },
       paidSetToRenew: { available: true, value: Math.round(18 * factor), definition: "Current production App Store paid subscriptions that are active and set to renew.", source: "RevenueCat Subscription Status chart" },
-      trialsSetToRenew: { available: true, value: Math.round(5 * factor), definition: "Current production App Store trials that are active and set to renew." },
-      activePremium: { available: true, value: Math.round(26 * factor) },
+      trialsSetToRenew: { available: true, value: Math.round(4 * factor), definition: "Current production App Store trials that are active and set to renew." },
+      activePremium: { available: true, value: Math.round(28 * factor) },
       trialsStarted: { available: true, value: Math.round(8 * factor), definition: "Trials whose trial start date falls inside the selected UTC date range." },
-      trialsCanceled: { available: true, value: 2 },
+      trialsSinceRelaunch: { available: true, value: Math.round(8 * factor), definition: "Every trial started since free trials launched on August 15, 2026." },
+      trialsCanceled: { available: true, value: 4 },
       trialsConvertedToPaid: { available: true, value: Math.round(3 * factor) },
       cohortTrialConversions: { available: true, value: 3, cohortStarts: 8 },
       pendingTrialOutcomes: { available: true, value: 3 },
       trialExpirations: { available: true, value: 2 },
       trialConversionRate: { available: true, value: 37.5 * factor, definition: "Converted trials divided by trial starts in RevenueCat's matched conversion cohort." },
       firstPaidCustomers: { available: true, value: Math.round(5 * factor), direct: 2, trialConversions: 3, definition: "Subscriptions whose first successful payment occurred inside the selected UTC date range." },
-      activeCancellations: { available: true, value: 4, paid: 2, trials: 2, definition: "Active subscriptions and trials that still provide access but are set to cancel." },
+      activeCancellations: { available: true, value: 6, paid: 2, trials: 4, definition: "Active subscriptions and trials that still provide access but are set to cancel." },
       refundedTransactions: { available: true, value: 0, paidTransactions: 16, refundRate: 0, definition: "Paid transactions from the selected range that have since been refunded." },
       mrr: { available: true, value: 783.67 * factor, setToRenew: 650 * factor, setToCancel: 100 * factor, billingIssue: 33.67 * factor, definition: "Current gross monthly recurring revenue before taxes and store commission." },
       arr: { available: true, value: 9404.1 * factor, definition: "Current gross annual recurring revenue before taxes and store commission." },
@@ -281,7 +283,7 @@ async function fixtureOwnerMetrics(range, factor = 1) {
     },
     series: {
       grossRevenueDaily: rev,
-      trialsStartedDaily: fixtureSeries(range, 0.4 * factor, 0.6, 5).map((p) => ({ ...p, value: Math.round(p.value) })),
+      trialsStartedDaily: fixtureTrials,
       firstPaidCustomersDaily: fixtureSeries(range, 0.2 * factor, 0.4, 7).map((p) => ({ ...p, value: Math.round(p.value) })),
     },
     geography: { available: true, countries: [

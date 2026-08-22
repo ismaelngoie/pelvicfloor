@@ -22,7 +22,7 @@ import {
 
 const FILTERS = [
   { value: "needs", label: "Needs reply" },
-  { value: "all", label: "All conversations" },
+  { value: "all", label: "All members" },
 ];
 
 function memberIndex(allPeople) {
@@ -44,7 +44,19 @@ function conversationName(member) {
 
 function updateAfterReply(current, memberId, message) {
   if (!current) return current;
-  const conversations = current.conversations.map((conversation) => {
+  const existing = current.conversations.some((conversation) => conversation.memberId === memberId);
+  const source = existing ? current.conversations : [...current.conversations, {
+    memberId,
+    latestAt: "",
+    latestText: "",
+    latestRole: "",
+    needsReply: false,
+    unansweredCount: 0,
+    lastMemberAt: "",
+    lastMiaAt: "",
+    messages: [],
+  }];
+  const conversations = source.map((conversation) => {
     if (conversation.memberId !== memberId) return conversation;
     return {
       ...conversation,
@@ -105,16 +117,38 @@ export default function CoachInbox({ user, reloadToken, allPeople, onOpenMember 
     return () => clearInterval(timer);
   }, [load, reloadToken]);
 
+  const availableConversations = useMemo(() => {
+    const byMember = new Map((inbox?.conversations || []).map((conversation) => [conversation.memberId, conversation]));
+    for (const member of allPeople || []) {
+      if (!member?.id || byMember.has(member.id)) continue;
+      byMember.set(member.id, {
+        memberId: member.id,
+        latestAt: "",
+        latestText: "No conversation yet · start one",
+        latestRole: "",
+        needsReply: false,
+        unansweredCount: 0,
+        lastMemberAt: "",
+        lastMiaAt: "",
+        messages: [],
+      });
+    }
+    return [...byMember.values()].sort((left, right) => {
+      if (left.needsReply !== right.needsReply) return left.needsReply ? -1 : 1;
+      return new Date(right.latestAt || 0) - new Date(left.latestAt || 0);
+    });
+  }, [inbox?.conversations, allPeople]);
+
   const conversations = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
-    return (inbox?.conversations || []).filter((conversation) => {
+    return availableConversations.filter((conversation) => {
       if (filter === "needs" && !conversation.needsReply) return false;
       if (!needle) return true;
       const member = people.get(conversation.memberId) || unknownMember(conversation.memberId);
       return [member.name, member.email, member.goalTitle, conversation.memberId, conversation.latestText]
         .some((value) => String(value || "").toLocaleLowerCase().includes(needle));
     });
-  }, [inbox?.conversations, filter, query, people]);
+  }, [availableConversations, filter, query, people]);
 
   useEffect(() => {
     if (!conversations.length) { setSelectedId(""); return; }
@@ -123,7 +157,7 @@ export default function CoachInbox({ user, reloadToken, allPeople, onOpenMember 
 
   useEffect(() => { setDraft(""); showMessage(null); }, [selectedId, showMessage]);
 
-  const selected = (inbox?.conversations || []).find((row) => row.memberId === selectedId) || null;
+  const selected = availableConversations.find((row) => row.memberId === selectedId) || null;
   const selectedMember = selected ? people.get(selected.memberId) || unknownMember(selected.memberId) : null;
   useEffect(() => { endRef.current?.scrollIntoView?.({ block: "end" }); }, [selected?.messages?.length]);
 
@@ -150,6 +184,7 @@ export default function CoachInbox({ user, reloadToken, allPeople, onOpenMember 
 
   const needsReply = Number(inbox?.summary?.needsReply) || 0;
   const conversationCount = Number(inbox?.summary?.conversations) || 0;
+  const memberCount = availableConversations.length;
   return (
     <div className="pv-rise" style={{ display: "grid", gap: 12 }}>
       <PageHead
@@ -166,7 +201,7 @@ export default function CoachInbox({ user, reloadToken, allPeople, onOpenMember 
               <Icons.search style={{ width: 14, height: 14, color: "var(--pv-ink-3)" }} />
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search member or message" aria-label="Search Coach Mia conversations" style={{ border: 0, outline: 0, background: "transparent", width: "100%", minWidth: 0 }} />
             </label>
-            <div className="pv-faint" style={{ fontSize: 11.5 }}>{conversationCount} conversations · refreshed {inbox?.fetchedAt ? relativeTime(inbox.fetchedAt) : "just now"}</div>
+            <div className="pv-faint" style={{ fontSize: 11.5 }}>{memberCount} members · {conversationCount} conversations · refreshed {inbox?.fetchedAt ? relativeTime(inbox.fetchedAt) : "just now"}</div>
           </div>
           <div className="pv-scroll" style={{ minHeight: 0 }}>
             {state === "loading" ? <div style={{ padding: 14 }}><RowsSkeleton rows={7} /></div> : state === "error" ? <div style={{ padding: 14 }}><ErrorState title="Coach Mia inbox did not load" description={error} onRetry={() => load()} /></div> : conversations.length ? conversations.map((conversation) => {
@@ -179,10 +214,10 @@ export default function CoachInbox({ user, reloadToken, allPeople, onOpenMember 
                     <span className="pv-faint" style={{ fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{conversation.latestText}</span>
                     <span className="pv-faint pv-mono" style={{ fontSize: 10.5 }}>{conversation.latestAt ? relativeTime(conversation.latestAt) : "No timestamp"}</span>
                   </span>
-                  {conversation.needsReply ? <span className="pv-pill" data-tone="warn">{conversation.unansweredCount}</span> : <Icons.check style={{ width: 15, height: 15, color: "var(--pv-good)" }} />}
+                  {conversation.needsReply ? <span className="pv-pill" data-tone="warn">{conversation.unansweredCount}</span> : conversation.messages.length ? <Icons.check style={{ width: 15, height: 15, color: "var(--pv-good)" }} /> : <Icons.send style={{ width: 15, height: 15, color: "var(--pv-ink-3)" }} />}
                 </button>
               );
-            }) : <div style={{ padding: 18 }}><EmptyState title={filter === "needs" ? "Every question has an answer" : "No Coach Mia conversations yet"} description={filter === "needs" ? "New member questions will appear here automatically." : "A conversation appears after a member messages Coach Mia."} /></div>}
+            }) : <div style={{ padding: 18 }}><EmptyState title={filter === "needs" ? "Every question has an answer" : "No member matches"} description={filter === "needs" ? "New member questions will appear here automatically." : "Try a different name, email, member ID or goal."} /></div>}
           </div>
         </section>
 

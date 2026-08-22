@@ -7,6 +7,7 @@ import {
   acquisitionOutcomeCounts,
   buildTrialKeywordGroups,
   keywordsForCampaign,
+  sumCoveredDailySeries,
 } from "../lib/adminAcquisitionAccuracy.js";
 import { decodeCoachDocument, groupCoachConversations } from "../functions-lib/coachInbox.js";
 
@@ -131,6 +132,22 @@ test("RevenueCat selected dates exclude earlier campaign outcomes", () => {
   assert.equal(result.totals.firstPaid, 1);
 });
 
+test("RevenueCat authoritative trial total excludes pre-launch rows and raw webhook duplicates", () => {
+  const trials = chart(["New Trials"], [
+    ["2026-08-14", 0, 0, 13],
+    ["2026-08-15", 0, 0, 3],
+    ["2026-08-16", 0, 0, 5],
+  ]);
+  assert.equal(revenueCat.chartTotalInRange(trials, [/^new trials$/i], {
+    startDate: "2026-08-15",
+    endDate: "2026-08-16",
+  }), 8);
+  assert.equal(revenueCat.chartTotalInRange(trials, [/^missing measure$/i], {
+    startDate: "2026-08-15",
+    endDate: "2026-08-16",
+  }), null);
+});
+
 test("RevenueCat live option names resolve the campaign and exact app scope", () => {
   const options = {
     segments: [{ id: "attribution_campaign", display_name: "Attribution campaign" }],
@@ -228,6 +245,19 @@ test("Acquisition reconciles all trial starts without lowering Apple cost per tr
     attributedFirstPaid: 0,
     unattributedFirstPaid: 1,
   });
+});
+
+test("Acquisition totals use only authoritative daily chart dates covered by RevenueCat", () => {
+  const series = [
+    { date: "2026-08-14", value: 7 },
+    { date: "2026-08-15", value: 2 },
+    { date: "2026-08-16", value: 1 },
+    { date: "2026-08-17", value: 0 },
+  ];
+  const scope = { startDate: "2026-08-14", endDate: "2026-08-17" };
+  assert.equal(sumCoveredDailySeries(series, scope, { startDate: "2024-01-01", endDate: "2026-08-17" }, { notBefore: "2026-08-15" }), 3);
+  assert.equal(sumCoveredDailySeries(series, scope, { startDate: "2026-08-13", endDate: "2026-08-17" }), null);
+  assert.equal(sumCoveredDailySeries(series, scope, { startDate: "2026-08-17", endDate: "2026-08-17" }), 0);
 });
 
 test("Keyword attribution keeps exact trial terms on the correct campaign", () => {

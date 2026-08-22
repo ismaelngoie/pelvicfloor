@@ -183,7 +183,9 @@ export default function MemberInspector({ member, onClose, onPatched }) {
     catch (reason) { setError(reason?.message || "The app history did not load."); setStatus("error"); }
   }, [member.id]);
   useEffect(() => { setTab("overview"); load(); }, [load]);
-  const onSent = (written) => setDetail((current) => (current ? { ...current, chat: [...current.chat, written] } : current));
+  const onSent = (written) => setDetail((current) => current
+    ? { ...current, chat: [...(current.chat || []), written] }
+    : { completions: [], events: [], checkins: [], commands: [], chat: [written] });
   const counts = useMemo(() => ({ timeline: (detail?.completions?.length || 0) + (detail?.events?.length || 0), checkins: detail?.checkins?.length || 0, chat: detail?.chat?.length || 0 }), [detail]);
 
   return (
@@ -196,6 +198,7 @@ export default function MemberInspector({ member, onClose, onPatched }) {
             <div className="pv-muted" style={{ fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{member.email || "Anonymous iPhone member"}</div>
             <div className="pv-faint pv-mono" style={{ fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{member.id}</div>
           </div>
+          <Button size="sm" variant="ghost" onClick={() => setTab("chat")}><Icons.send style={{ width: 14, height: 14 }} />Message</Button>
           <IconButton label="Close member details" onClick={onClose}><Icons.close /></IconButton>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
@@ -209,11 +212,11 @@ export default function MemberInspector({ member, onClose, onPatched }) {
         </div>
       </div>
       <div className="pv-scroll" style={{ padding: 16 }}>
-        {status === "loading" ? <RowsSkeleton rows={6} /> : status === "error" ? <ErrorState title="Her app history did not load" description={error} onRetry={load} />
+        {tab === "chat" ? <Chat member={member} rows={detail?.chat || []} onSent={onSent} />
+          : status === "loading" ? <RowsSkeleton rows={6} /> : status === "error" ? <ErrorState title="Her app history did not load" description={error} onRetry={load} />
           : tab === "overview" ? <Overview member={member} detail={detail} onPatched={onPatched} onReload={load} />
           : tab === "timeline" ? <Timeline detail={detail} />
-          : tab === "checkins" ? <Checkins rows={detail.checkins} />
-          : <Chat member={member} rows={detail.chat} onSent={onSent} />}
+          : <Checkins rows={detail.checkins} />}
       </div>
     </aside>
   );

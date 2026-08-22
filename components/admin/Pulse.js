@@ -96,6 +96,7 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
   const firstPaid = metric(ownerMetrics, "firstPaidCustomers");
   const appleFirstPaid = metric(ownerMetrics, "appleAttributedFirstPaidCustomers");
   const trialsStarted = metric(ownerMetrics, "trialsStarted");
+  const trialsSinceRelaunch = metric(ownerMetrics, "trialsSinceRelaunch");
   const spend = Number.isFinite(Number(appleReport?.totals?.spend)) ? Number(appleReport.totals.spend) : null;
   const installs = Number.isFinite(Number(appleReport?.totals?.totalInstalls)) ? Number(appleReport.totals.totalInstalls) : null;
   const appleCurrency = appleReport?.currency || appleReport?.totals?.currency || null;
@@ -229,6 +230,20 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
           </div>
         </Card>
       </div>
+
+      <Card>
+        <CardHead
+          label="Trial launch total"
+          info={{ body: "The cumulative trial starts never comes from raw webhook rows. RevenueCat's New Trials chart counts the authoritative production App Store starts from launch day through today. The other three values are today's current trial state.", source: "RevenueCat New Trials + Overview + Subscription Status" }}
+          right={<span className="pv-pill" data-tone="accent">Since Aug 15, 2026</span>}
+        />
+        <div className="pv-card-pad" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+          <MiniStat label="Total trial starts" value={count(trialsSinceRelaunch)} note="Cumulative since launch" />
+          <MiniStat label="Still set to renew" value={count(trialsRenewing)} note="Auto-renew remains on" />
+          <MiniStat label="Canceled renewal" value={count(trialsCanceled)} note="Access remains until expiry" />
+          <MiniStat label="Trial access active" value={count(trials)} note="All unexpired trials today" />
+        </div>
+      </Card>
     </div>
   );
 }
