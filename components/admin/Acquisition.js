@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchAppleAdsReport } from "@/lib/adminAppData";
 import { FIXTURES_ON } from "@/lib/devFixtures";
-import { formatCount, formatMoneyExact } from "@/lib/adminMetrics";
+import { formatCount } from "@/lib/adminMetrics";
+import { acquisitionOutcomeCounts, buildTrialKeywordGroups, keywordsForCampaign } from "@/lib/adminAcquisitionAccuracy";
 import { Card, CardHead, KpiTile, PageHead, Ribbon, RowsSkeleton, Segmented, Unavailable, money, count, ratio } from "./ui";
 
 const DAY_MS = 86400000;
@@ -186,7 +187,7 @@ function attributionKey(event) {
   return originalTransactionId ? `subscription:${originalTransactionId}` : event._identity;
 }
 
-export function prepareLifecycle(events, range) {
+export function prepareLifecycle(events, range, { attributedOnly = true } = {}) {
   const sorted = [...events].sort((left, right) => eventTime(left) - eventTime(right));
   const identityFor = buildIdentityResolver(sorted);
   const deduped = new Map();
@@ -220,7 +221,7 @@ export function prepareLifecycle(events, range) {
     const attributedToAppleAds = source === "apple_search_ads" || source === "apple_ads"
       || Boolean(text(event.campaignId) || text(event.campaignName));
     const occurredAt = eventTime(event);
-    return attributedToAppleAds
+    return (!attributedOnly || attributedToAppleAds)
       && occurredAt >= range.start.getTime()
       && occurredAt < range.endExclusive.getTime();
   });
@@ -285,8 +286,11 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
     return () => { active = false; };
   }, [user, range.startDate, range.endDate, reloadToken]);
 
-  const lifecycle = useMemo(() => prepareLifecycle(Array.isArray(telemetry?.lifecycle) ? telemetry.lifecycle : [], range), [telemetry?.lifecycle, range]);
+  const lifecycleEvents = Array.isArray(telemetry?.lifecycle) ? telemetry.lifecycle : [];
+  const lifecycle = useMemo(() => prepareLifecycle(lifecycleEvents, range), [lifecycleEvents, range]);
+  const allLifecycle = useMemo(() => prepareLifecycle(lifecycleEvents, range, { attributedOnly: false }), [lifecycleEvents, range]);
   const fallback = useMemo(() => summarizeLifecycle(lifecycle), [lifecycle]);
+  const allFallback = useMemo(() => summarizeLifecycle(allLifecycle), [allLifecycle]);
   const selectedOutcomes = selectedCampaignOutcomes(ownerMetrics, preset);
   const historicalCampaignsAvailable = selectedOutcomes?.available === true;
   const outcomeScopeMatches = selectedOutcomes?.scope?.startDate === range.startDate && selectedOutcomes?.scope?.endDate === range.endDate;
@@ -301,22 +305,36 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
   const appleAvailable = state === "ready";
   const appleAppScopeVerified = report?.app?.filterApplied !== false;
   const outcomeTotals = selectedOutcomes?.totals || {};
-  const trialStarts = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.trialStarts) : telemetryAvailable ? fallback.trialStarts.length : null;
-  const firstPaid = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.firstPaid) : telemetryAvailable ? fallback.directPurchases.length + fallback.trialConversions.length : null;
+  const attributedTrialStarts = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.trialStarts) : telemetryAvailable ? fallback.trialStarts.length : null;
+  const attributedFirstPaid = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.firstPaid) : telemetryAvailable ? fallback.directPurchases.length + fallback.trialConversions.length : null;
+  const storeWideCoverageComplete = range.start.getTime() >= REVENUECAT_COVERAGE_START_MS;
+  const outcomeCounts = acquisitionOutcomeCounts({
+    totalTrialStarts: telemetryAvailable && storeWideCoverageComplete ? allFallback.trialStarts.length : null,
+    attributedTrialStarts,
+    totalFirstPaid: telemetryAvailable && storeWideCoverageComplete ? allFallback.directPurchases.length + allFallback.trialConversions.length : null,
+    attributedFirstPaid,
+  });
+  const trialStarts = outcomeCounts.totalTrialStarts;
+  const firstPaid = outcomeCounts.totalFirstPaid;
   const directFirstPaid = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.directFirstPaid) : telemetryAvailable ? fallback.directPurchases.length : null;
   const convertedTrials = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.trialConversions) : telemetryAvailable ? fallback.trialConversions.length : null;
   const cohortStarts = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.cohortStarts) : null;
   const cohortConversions = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.cohortConversions) : null;
   const ownerCurrency = ownerMetrics?.scope?.currency || null;
   const appleCurrency = report?.currency || report?.totals?.currency || null;
-  const costCoverageAligned = appleAvailable && appleAppScopeVerified && historicalCampaignsAvailable && outcomeScopeMatches && Boolean(ownerCurrency) && ownerCurrency === appleCurrency && trialStarts !== null && firstPaid !== null;
+  const costCoverageAligned = appleAvailable && appleAppScopeVerified && historicalCampaignsAvailable && outcomeScopeMatches && Boolean(ownerCurrency) && ownerCurrency === appleCurrency && attributedTrialStarts !== null && attributedFirstPaid !== null;
   const periodLabel = `${range.startDate} → ${range.endDate} UTC`;
   const isToday = preset === "today";
   const currency = ownerCurrency || appleCurrency || "USD";
-  const cpt = costCoverageAligned && trialStarts > 0 ? spend / trialStarts : null;
-  const cpa = costCoverageAligned && firstPaid > 0 ? spend / firstPaid : null;
+  const cpt = costCoverageAligned && attributedTrialStarts > 0 ? spend / attributedTrialStarts : null;
+  const cpa = costCoverageAligned && attributedFirstPaid > 0 ? spend / attributedFirstPaid : null;
   const cpi = appleAvailable && installs > 0 ? spend / installs : null;
-  const sourceDetail = historicalCampaignsAvailable ? "RevenueCat receipt history, segmented by Apple Search Ads campaign" : telemetryAvailable ? "Recent RevenueCat webhook fallback; historical campaign charts temporarily unavailable" : "RevenueCat campaign outcomes unavailable";
+  const sourceDetail = historicalCampaignsAvailable ? "RevenueCat receipt history segmented by Apple Search Ads campaign, reconciled with every webhook trial since August 15" : telemetryAvailable ? "Recent RevenueCat webhook fallback; historical campaign charts temporarily unavailable" : "RevenueCat campaign outcomes unavailable";
+  const attributionCaption = Number.isFinite(trialStarts) && Number.isFinite(attributedTrialStarts)
+    ? `${count(attributedTrialStarts)} Apple-attributed · ${count(outcomeCounts.unattributedTrialStarts)} organic, pending or unavailable`
+    : storeWideCoverageComplete
+      ? "Store-wide trial total unavailable"
+      : "Store-wide webhook history begins Aug 15";
   const coverageNote = costCoverageAligned
     ? `Apple spend and RevenueCat campaign outcomes cover the same dates and currency. ${isToday ? "Today is still in progress and both services can revise recent numbers." : "No outcome is assigned to a campaign unless RevenueCat reports it."}`
     : ownerMetricsError || selectedOutcomes?.reason || "Cost per result is hidden until Apple and RevenueCat return matching dates and currency.";
@@ -338,21 +356,22 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
       </div>
 
       <Card>
-        <CardHead label="Spend → members" info={{ body: "Spend from Apple Ads; installs, taps and impressions from Apple; trial starts and first payments only where RevenueCat explicitly attributes the receipt to Apple Search Ads. Each edge is the conversion between two stages.", source: "Apple Ads Campaign Management API 5 · RevenueCat Charts API v2" }} right={<span className="pv-pill" data-tone={costCoverageAligned ? "good" : "warn"}>{costCoverageAligned ? "Dates & currency aligned" : "Cost per result hidden"}</span>} />
+        <CardHead label="Spend → members" info={{ body: "Spend, taps and installs come from Apple. Total trial starts and first payments come from every production RevenueCat webhook since August 15. Cost per result uses only the subset RevenueCat explicitly attributes to Apple Search Ads, so organic or pending outcomes never make ads look cheaper.", source: "Apple Ads API · RevenueCat Charts + webhooks" }} right={<span className="pv-pill" data-tone={costCoverageAligned ? "good" : "warn"}>{costCoverageAligned ? "Dates & currency aligned" : "Cost per result hidden"}</span>} />
         <Ribbon stages={[
           { key: "spend", label: "Spend", value: appleAvailable ? money(spend, currency, { exact: true }) : null, flow: appleAvailable ? spend : null, color: "var(--pv-amber)", caption: appleAvailable ? `${count(impressions)} impressions` : state === "loading" ? "Loading from Apple" : "Apple unavailable", edge: appleAvailable && impressions > 0 ? `${ratio(taps, impressions, 1)} TTR` : null },
           { key: "taps", label: "Taps", value: appleAvailable ? count(taps) : null, flow: appleAvailable ? taps : null, color: "var(--pv-violet)", edge: appleAvailable ? ratio(installs, taps) : null },
-          { key: "installs", label: "Installs", value: appleAvailable ? count(installs) : null, flow: appleAvailable ? installs : null, color: "var(--pv-violet)", caption: appleAvailable && newDownloads !== null ? `${count(newDownloads)} new · ${count(redownloads || 0)} re-downloads${cpi !== null ? ` · ${money(cpi, currency, { exact: true })} CPI` : ""}` : null, edge: ratio(trialStarts, installs) },
-          { key: "trials", label: "Attributed trials", value: count(trialStarts), flow: trialStarts, color: "var(--pv-accent)", caption: cpt !== null ? `${money(cpt, currency, { exact: true })} per trial` : "cost hidden", edge: ratio(firstPaid, trialStarts) ? `${ratio(firstPaid, trialStarts)} to paid` : null },
-          { key: "paid", label: "First paid", value: count(firstPaid), flow: firstPaid, color: "var(--pv-good)", caption: cpa !== null ? `${money(cpa, currency, { exact: true })} per first paid` : directFirstPaid ? `${count(directFirstPaid)} without trial` : "cost hidden" },
+          { key: "installs", label: "Installs", value: appleAvailable ? count(installs) : null, flow: appleAvailable ? installs : null, color: "var(--pv-violet)", caption: appleAvailable && newDownloads !== null ? `${count(newDownloads)} new · ${count(redownloads || 0)} re-downloads${cpi !== null ? ` · ${money(cpi, currency, { exact: true })} CPI` : ""}` : null, edge: Number.isFinite(attributedTrialStarts) ? `${count(attributedTrialStarts)} attributed` : null },
+          { key: "trials", label: "All trial starts", value: count(trialStarts), flow: trialStarts, color: "var(--pv-accent)", caption: attributionCaption, edge: ratio(firstPaid, trialStarts) ? `${ratio(firstPaid, trialStarts)} to paid` : null },
+          { key: "paid", label: "All first paid", value: count(firstPaid), flow: firstPaid, color: "var(--pv-good)", caption: cpa !== null ? `${money(cpa, currency, { exact: true })} per Apple-attributed payment` : directFirstPaid ? `${count(directFirstPaid)} Apple-attributed without trial` : "cost hidden" },
         ]} />
         <div className="pv-faint" style={{ padding: "10px 16px", fontSize: 12, borderTop: "1px solid var(--pv-border)" }}>{coverageNote}</div>
       </Card>
 
       <div className="pv-kpis">
         <KpiTile label="Cost per install" value={cpi !== null ? money(cpi, currency, { exact: true }) : null} sub={appleAvailable ? `${money(spend, currency)} ÷ ${count(installs)} installs` : "Apple unavailable"} stripe="var(--pv-violet)" />
-        <KpiTile label="Cost per trial" value={cpt !== null ? money(cpt, currency, { exact: true }) : null} sub={cpt === null ? "needs matching dates & currency" : `${count(trialStarts)} attributed trials`} stripe="var(--pv-accent)" />
-        <KpiTile label="Cost per first paid" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={cpa === null ? "needs matching dates & currency" : `${count(firstPaid)} first payments`} stripe="var(--pv-good)" />
+        <KpiTile label="Cost per attributed trial" value={cpt !== null ? money(cpt, currency, { exact: true }) : null} sub={cpt === null ? costCoverageAligned ? "No Apple-attributed trial yet" : "needs matching dates & currency" : `${count(attributedTrialStarts)} Apple-attributed of ${count(trialStarts)} total`} stripe="var(--pv-accent)" />
+        <KpiTile label="Cost per attributed first paid" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={cpa === null ? costCoverageAligned ? "No Apple-attributed first payment yet" : "needs matching dates & currency" : `${count(attributedFirstPaid)} Apple-attributed of ${count(firstPaid)} total`} stripe="var(--pv-good)" />
+        <KpiTile label="Trial attribution" value={Number.isFinite(attributedTrialStarts) && Number.isFinite(trialStarts) ? `${count(attributedTrialStarts)} / ${count(trialStarts)}` : null} sub="Apple-attributed / all starts" stripe="var(--pv-violet)" />
         <KpiTile label="Trial → paid · cohort" value={Number.isFinite(cohortConversions) && cohortStarts > 0 ? ratio(cohortConversions, cohortStarts, 1) : null} sub={Number.isFinite(cohortStarts) ? `${count(cohortConversions)} of ${count(cohortStarts)} matched trials` : "RevenueCat cohort unavailable"} stripe="var(--pv-teal)" />
         <KpiTile label="Converted after trial" value={count(convertedTrials)} sub="first payment after a free trial" />
         <KpiTile label="Paid without trial" value={count(directFirstPaid)} sub="direct purchases" />
@@ -366,7 +385,11 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
           lifecycle={lifecycle}
           telemetryAvailable={telemetryAvailable}
           totalTrialStarts={trialStarts}
+          attributedTrialStarts={attributedTrialStarts}
+          unattributedTrialStarts={outcomeCounts.unattributedTrialStarts}
           totalFirstPaid={firstPaid}
+          attributedFirstPaid={attributedFirstPaid}
+          unattributedFirstPaid={outcomeCounts.unattributedFirstPaid}
           reportTotals={appleTotals}
           costCoverageAligned={costCoverageAligned}
           currency={currency}
@@ -525,17 +548,40 @@ function firstPaidDetail(row) {
   return pieces.join(" · ");
 }
 
-function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailable, lifecycle, telemetryAvailable, totalTrialStarts, totalFirstPaid, reportTotals, costCoverageAligned, currency, periodLabel }) {
+function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailable, lifecycle, telemetryAvailable, totalTrialStarts, attributedTrialStarts, unattributedTrialStarts, totalFirstPaid, attributedFirstPaid, unattributedFirstPaid, reportTotals, costCoverageAligned, currency, periodLabel }) {
   const [sort, setSort] = useState({ key: "spend", dir: "desc" });
+  const keywordGroups = useMemo(() => buildTrialKeywordGroups(summarizeLifecycle(lifecycle).trialStarts), [lifecycle]);
   const rows = useMemo(() => {
-    const built = historicalCampaignsAvailable ? authoritativeRows(campaigns, campaignOutcomes) : fallbackRows(campaigns, lifecycle, telemetryAvailable);
+    const attributedRows = historicalCampaignsAvailable ? authoritativeRows(campaigns, campaignOutcomes) : fallbackRows(campaigns, lifecycle, telemetryAvailable);
+    const built = attributedRows.map((row) => ({ ...row, keywordGroup: keywordsForCampaign(keywordGroups, row) }));
+    if (Number.isFinite(unattributedTrialStarts) && unattributedTrialStarts > 0) {
+      built.push({
+        ...emptyOutcome(),
+        id: "",
+        name: "Not Apple-attributed",
+        normalizedName: "not apple attributed",
+        rowKey: "store-wide:unattributed",
+        status: "Organic, pending, or attribution unavailable",
+        sourceKind: "store-wide",
+        appleMetricsAvailable: false,
+        spend: null,
+        taps: null,
+        installs: null,
+        trialStarts: unattributedTrialStarts,
+        firstPaid: Number.isFinite(unattributedFirstPaid) ? unattributedFirstPaid : null,
+        directFirstPaid: null,
+        trialConversions: null,
+        trialToPaidRate: null,
+        keywordGroup: null,
+      });
+    }
     const val = (r) => { const v = r[sort.key]; return finiteNumber(v) ?? (sort.key === "name" ? r.name : -Infinity); };
     return [...built].sort((a, b) => {
       const av = val(a); const bv = val(b);
       if (typeof av === "string" || typeof bv === "string") return sort.dir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
       return sort.dir === "asc" ? av - bv : bv - av;
     });
-  }, [campaigns, campaignOutcomes, historicalCampaignsAvailable, lifecycle, telemetryAvailable, sort]);
+  }, [campaigns, campaignOutcomes, historicalCampaignsAvailable, lifecycle, telemetryAvailable, keywordGroups, unattributedTrialStarts, unattributedFirstPaid, sort]);
   const spendTotal = finiteNumber(reportTotals.spend) || 0;
   const tapsTotal = finiteNumber(reportTotals.taps) || 0;
   const installsTotal = finiteNumber(reportTotals.totalInstalls) || 0;
@@ -548,14 +594,14 @@ function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailab
   const cell = (v, fmt = count) => (finiteNumber(v) !== null ? fmt(v) : <span className="pv-faint">—</span>);
   return (
     <Card>
-      <CardHead label="Every campaign" info={{ body: "Apple supplies spend, taps and installs per campaign. Trial starts and first payments come from RevenueCat receipts segmented by Apple Search Ads campaign; when that chart is unavailable, recent webhook events fill in and costs stay hidden.", source: periodLabel }} right={<span className="pv-faint" style={{ fontSize: 12 }}>{rows.length} campaign{rows.length === 1 ? "" : "s"}</span>} />
+      <CardHead label="Every campaign and trial" info={{ body: "Apple supplies spend, taps and installs. RevenueCat supplies campaign-attributed outcomes. The final unassigned row reconciles the table to every store-wide trial start without guessing which ad caused it. Keywords appear only when Apple attribution reported the exact term.", source: periodLabel }} right={<span className="pv-faint" style={{ fontSize: 12 }}>{rows.length} row{rows.length === 1 ? "" : "s"}</span>} />
       <div className="pv-table-wrap">
         <table className="pv-table">
           <thead>
-            <tr>{th("name", "Campaign")}<th>Status</th>{th("spend", "Spend", "num")}{th("taps", "Taps", "num")}{th("installs", "Installs", "num")}{th("trialStarts", "Trials", "num")}<th className="num">CPT</th>{th("firstPaid", "First paid", "num")}<th className="num">CPA</th><th className="num">Trial → paid</th></tr>
+            <tr>{th("name", "Campaign")}<th>Keyword that started a trial</th><th>Status</th>{th("spend", "Spend", "num")}{th("taps", "Taps", "num")}{th("installs", "Installs", "num")}{th("trialStarts", "Trials", "num")}<th className="num">CPT · attributed</th>{th("firstPaid", "First paid", "num")}<th className="num">CPA · attributed</th><th className="num">Trial → paid</th></tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? <tr><td colSpan="10" style={{ textAlign: "center", color: "var(--pv-ink-3)", height: 80 }}>No Apple Ads campaigns or RevenueCat campaign outcomes were returned for this period.</td></tr> : null}
+            {rows.length === 0 ? <tr><td colSpan="11" style={{ textAlign: "center", color: "var(--pv-ink-3)", height: 80 }}>No Apple Ads campaigns or RevenueCat campaign outcomes were returned for this period.</td></tr> : null}
             {rows.map((row) => {
               const s = finiteNumber(row.spend); const t = finiteNumber(row.trialStarts); const p = finiteNumber(row.firstPaid);
               const cpt = costCoverageAligned && s !== null && t > 0 ? s / t : null;
@@ -571,7 +617,8 @@ function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailab
                     </div>
                     {s !== null ? <div className="pv-bar" style={{ height: 3, marginTop: 4, maxWidth: 160 }}><i style={{ width: `${(s / maxSpend) * 100}%`, background: "var(--pv-amber)" }} /></div> : null}
                   </td>
-                  <td>{row.appleMetricsAvailable ? <span className="pv-pill" data-tone={/ENABLED|RUNNING/i.test(row.status || "") ? "good" : "neutral"}>{(row.status || "—").toLowerCase()}</span> : <span className="pv-pill" data-tone="violet">RevenueCat</span>}</td>
+                  <td style={{ minWidth: 180 }}><KeywordCell group={row.keywordGroup} hasTrials={t > 0} /></td>
+                  <td>{row.appleMetricsAvailable ? <span className="pv-pill" data-tone={/ENABLED|RUNNING/i.test(row.status || "") ? "good" : "neutral"}>{(row.status || "—").toLowerCase()}</span> : row.sourceKind === "store-wide" ? <span className="pv-pill" data-tone="neutral">Store-wide</span> : <span className="pv-pill" data-tone="violet">RevenueCat</span>}</td>
                   <td className="num">{cell(s, (v) => money(v, currency, { exact: true }))}</td>
                   <td className="num">{cell(row.taps)}</td>
                   <td className="num">{cell(row.installs)}</td>
@@ -586,19 +633,32 @@ function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailab
           </tbody>
           <tfoot>
             <tr>
-              <td>Total</td><td />
+              <td>Total</td><td /><td />
               <td className="num">{money(spendTotal, currency, { exact: true })}</td>
               <td className="num">{count(tapsTotal)}</td>
               <td className="num">{count(installsTotal)}</td>
               <td className="num">{cell(totalTrialStarts)}</td>
-              <td className="num">{costCoverageAligned && totalTrialStarts > 0 ? money(spendTotal / totalTrialStarts, currency, { exact: true }) : "—"}</td>
+              <td className="num">{costCoverageAligned && attributedTrialStarts > 0 ? money(spendTotal / attributedTrialStarts, currency, { exact: true }) : "—"}</td>
               <td className="num">{cell(totalFirstPaid)}</td>
-              <td className="num">{costCoverageAligned && totalFirstPaid > 0 ? money(spendTotal / totalFirstPaid, currency, { exact: true }) : "—"}</td>
+              <td className="num">{costCoverageAligned && attributedFirstPaid > 0 ? money(spendTotal / attributedFirstPaid, currency, { exact: true }) : "—"}</td>
               <td className="num">{ratio(totalFirstPaid, totalTrialStarts) ?? "—"}</td>
             </tr>
           </tfoot>
         </table>
       </div>
     </Card>
+  );
+}
+
+function KeywordCell({ group, hasTrials }) {
+  if (!hasTrials) return <span className="pv-faint">—</span>;
+  if (!group) return <span className="pv-faint" title="Organic, Search Match, attribution pending, or unavailable">Not reported</span>;
+  const pieces = group.keywords.map(({ keyword, trials }) => ({ key: keyword, text: trials > 1 ? `${keyword} · ${trials}` : keyword }));
+  if (group.unreported > 0) pieces.push({ key: "unreported", text: group.unreported > 1 ? `Not reported · ${group.unreported}` : "Not reported" });
+  if (!pieces.length) return <span className="pv-faint">Not reported</span>;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+      {pieces.map((piece) => <span key={piece.key} className="pv-pill" data-tone={piece.key === "unreported" ? "neutral" : "accent"}>{piece.text}</span>)}
+    </div>
   );
 }

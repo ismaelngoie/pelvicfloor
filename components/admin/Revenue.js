@@ -34,12 +34,13 @@ export default function Revenue({ range, compare, ownerMetrics, ownerPrevious, o
   const monthly = useMemo(() => (Array.isArray(ownerMetrics?.series?.lifetimeGrossRevenueMonthly) ? ownerMetrics.series.lifetimeGrossRevenueMonthly.slice(-24) : []), [ownerMetrics]);
   const mrrSeries = growth.filter((p) => Number.isFinite(p.mrr)).map((p) => ({ date: p.date, value: p.mrr }));
 
-  // Upcoming renewals: every active member whose current period ends in the next 30 days.
+  // Upcoming renewals: only active members RevenueCat says will renew. Members
+  // who canceled keep access until expiration, but are not an upcoming charge.
   const renewals = useMemo(() => {
     const horizon = now.getTime() + 30 * 86400000;
     const rows = members
       .map((m) => ({ m, at: m.revenueCat?.subscription?.currentPeriodEndsAt ? new Date(m.revenueCat.subscription.currentPeriodEndsAt) : null }))
-      .filter((r) => r.at && r.at.getTime() >= now.getTime() - 86400000 && r.at.getTime() <= horizon)
+      .filter((r) => r.m.revenueCat?.isRenewing === true && r.at && r.at.getTime() >= now.getTime() - 86400000 && r.at.getTime() <= horizon)
       .sort((a, b) => a.at - b.at);
     const weeks = [0, 1, 2, 3].map((w) => ({ key: w, label: w === 0 ? "This week" : `Week +${w}`, paid: 0, trial: 0 }));
     for (const r of rows) {

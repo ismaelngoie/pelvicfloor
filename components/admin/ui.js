@@ -120,6 +120,7 @@ export const Icons = {
   pulse: (p) => <I {...p}><path d="M3 12h4l3-8 4 16 3-8h4"/></I>,
   revenue: (p) => <I {...p}><path d="M4 19V5M4 19h16M8 15l4-5 3 3 5-7"/></I>,
   acquisition: (p) => <I {...p}><path d="M4 6h16l-6 7v5l-4 2v-7z"/></I>,
+  coach: (p) => <I {...p}><path d="M4 5.5h16v11H9l-5 4z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></I>,
   members: (p) => <I {...p}><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 4.5a3.2 3.2 0 0 1 0 6.4M21 19c0-2.6-1.6-4.4-4-5"/></I>,
   retention: (p) => <I {...p}><path d="M4 4v16h16"/><path d="M8 14l3-3 3 2 5-6"/></I>,
   programs: (p) => <I {...p}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></I>,
