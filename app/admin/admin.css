@@ -404,8 +404,8 @@
 .pv-inspector-backdrop { display: none; }
 
 /* Coach Mia inbox */
-.pv-coach-inbox { min-height: min(720px, calc(100vh - 190px)); display: grid; grid-template-columns: minmax(270px, 34%) minmax(0, 1fr); overflow: hidden; }
-.pv-coach-list { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); border-right: 1px solid var(--pv-border); }
+.pv-coach-inbox { height: min(720px, calc(100dvh - 190px)); min-height: 500px; display: grid; grid-template-columns: minmax(270px, 34%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.pv-coach-list { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); border-right: 1px solid var(--pv-border); }
 .pv-coach-thread { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: center; padding: 11px 12px; border-bottom: 1px solid var(--pv-border) !important; }
 .pv-coach-thread:hover { background: var(--pv-raised); }
 .pv-coach-thread[aria-current="true"] { background: var(--pv-accent-soft); box-shadow: inset 3px 0 0 var(--pv-accent); }
@@ -448,7 +448,7 @@
   .pv-ribbon-edge { display: none; }
   .pv-inspector { width: 100vw; }
   .pv-span-6.pv-half, .pv-span-4.pv-half, .pv-span-3.pv-half { grid-column: span 12; }
-  .pv-coach-inbox { min-height: auto; grid-template-columns: 1fr; overflow: visible; }
+  .pv-coach-inbox { height: auto; min-height: auto; grid-template-columns: 1fr; grid-template-rows: auto auto; overflow: visible; }
   .pv-coach-list { max-height: 360px; border-right: 0; border-bottom: 1px solid var(--pv-border); }
   .pv-coach-conversation { min-height: 620px; }
 }

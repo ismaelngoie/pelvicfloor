@@ -9,7 +9,7 @@ import {
   keywordsForCampaign,
   sumCoveredDailySeries,
 } from "../lib/adminAcquisitionAccuracy.js";
-import { decodeCoachDocument, groupCoachConversations } from "../functions-lib/coachInbox.js";
+import { buildCoachReply, decodeCoachDocument, groupCoachConversations } from "../functions-lib/coachInbox.js";
 
 function epoch(date) {
   return Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
@@ -312,5 +312,29 @@ test("Coach inbox decodes Firestore timestamps and preserves admin reply source"
     source: "admin",
     text: "A personal answer",
     date: "2026-08-21T14:00:00.000Z",
+  });
+});
+
+test("Coach inbox can create the first message for any valid member", () => {
+  const prepared = buildCoachReply({
+    memberId: "member-with-no-chat",
+    text: "  A first private reply.  ",
+    requestId: "request_12345678",
+  }, "2026-08-21T18:00:00.000Z");
+
+  assert.equal(prepared.path, "users/member-with-no-chat/chat/mia_request_12345678");
+  assert.deepEqual(prepared.message, {
+    id: "mia_request_12345678",
+    memberId: "member-with-no-chat",
+    role: "mia",
+    source: "admin",
+    text: "A first private reply.",
+    date: "2026-08-21T18:00:00.000Z",
+  });
+  assert.deepEqual(prepared.fields, {
+    role: { stringValue: "mia" },
+    source: { stringValue: "admin" },
+    text: { stringValue: "A first private reply." },
+    date: { timestampValue: "2026-08-21T18:00:00.000Z" },
   });
 });

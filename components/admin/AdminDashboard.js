@@ -520,7 +520,7 @@ export default function AdminDashboard() {
             {inspected ? (
               <>
                 <div className="pv-inspector-backdrop" onClick={() => setInspected(null)} aria-hidden="true" />
-                <MemberInspector member={inspected} onClose={() => setInspected(null)} onPatched={(patch) => patchMember(inspected.id, patch)} />
+                <MemberInspector user={user} member={inspected} onClose={() => setInspected(null)} onPatched={(patch) => patchMember(inspected.id, patch)} />
               </>
             ) : null}
           </div>

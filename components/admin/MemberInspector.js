@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { displayName, formatCount, formatDate, formatDateTime, formatRelativeDay, memberInitials, PROGRAM_LENGTH_DAYS } from "@/lib/adminMetrics";
-import { fetchMemberDetail, grantMemberStreakRestore, resetMemberProgram, sendCoachMiaMessage, updateMemberProgramDay } from "@/lib/adminData";
+import { fetchMemberDetail, grantMemberStreakRestore, resetMemberProgram, sendCoachInboxReply, updateMemberProgramDay } from "@/lib/adminData";
 import { FIXTURES_ON } from "@/lib/devFixtures";
 import { Button, EmptyState, ErrorState, Feedback, Field, IconButton, Icons, Input, Pill, RowsSkeleton, Segmented, Textarea, shortDate, useTransientMessage } from "./ui";
 
@@ -123,15 +123,26 @@ function Checkins({ rows }) {
   );
 }
 
-function Chat({ member, rows, onSent }) {
+function Chat({ user, member, rows, onSent }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [message, showMessage] = useTransientMessage(6000);
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView?.({ block: "end" }); }, [rows?.length]);
   const send = async () => {
+    if (!text.trim() || sending) return;
+    const requestId = typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
     setSending(true); showMessage(null);
-    try { const written = await sendCoachMiaMessage(member.id, text); onSent(written); setText(""); showMessage({ tone: "ok", text: "Sent to her iPhone as Coach Mia." }); }
+    try {
+      const result = process.env.NODE_ENV !== "production" && FIXTURES_ON
+        ? { message: { id: `mia_${requestId}`, memberId: member.id, role: "mia", source: "admin", text: text.trim(), date: new Date().toISOString() } }
+        : await sendCoachInboxReply(user, member.id, text, requestId);
+      onSent(result.message);
+      setText("");
+      showMessage({ tone: "ok", text: "Sent to her iPhone as Coach Mia." });
+    }
     catch (error) { showMessage({ tone: "error", text: error?.message || "The message was not sent." }); }
     finally { setSending(false); }
   };
@@ -163,7 +174,7 @@ function Chat({ member, rows, onSent }) {
   );
 }
 
-export default function MemberInspector({ member, onClose, onPatched }) {
+export default function MemberInspector({ user, member, onClose, onPatched }) {
   const [tab, setTab] = useState("overview");
   const [detail, setDetail] = useState(null);
   const [status, setStatus] = useState("loading");
@@ -212,7 +223,7 @@ export default function MemberInspector({ member, onClose, onPatched }) {
         </div>
       </div>
       <div className="pv-scroll" style={{ padding: 16 }}>
-        {tab === "chat" ? <Chat member={member} rows={detail?.chat || []} onSent={onSent} />
+        {tab === "chat" ? <Chat user={user} member={member} rows={detail?.chat || []} onSent={onSent} />
           : status === "loading" ? <RowsSkeleton rows={6} /> : status === "error" ? <ErrorState title="Her app history did not load" description={error} onRetry={load} />
           : tab === "overview" ? <Overview member={member} detail={detail} onPatched={onPatched} onReload={load} />
           : tab === "timeline" ? <Timeline detail={detail} />
