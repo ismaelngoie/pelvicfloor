@@ -3,6 +3,12 @@ import test from "node:test";
 import { __test as apple } from "../functions/api/app-analytics.js";
 import { __test as revenueCat } from "../functions/api/revenuecat-owner-metrics.js";
 import { __test as members } from "../functions/api/revenuecat-members.js";
+import {
+  acquisitionOutcomeCounts,
+  buildTrialKeywordGroups,
+  keywordsForCampaign,
+} from "../lib/adminAcquisitionAccuracy.js";
+import { decodeCoachDocument, groupCoachConversations } from "../functions-lib/coachInbox.js";
 
 function epoch(date) {
   return Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
@@ -206,4 +212,75 @@ test("RevenueCat customer access includes canceled trials and grace periods unti
   assert.equal(gracePaid.isRenewing, true);
   assert.equal(gracePaid.phase, "paid");
   assert.equal(gracePaid.state, "paid");
+});
+
+test("Acquisition reconciles all trial starts without lowering Apple cost per trial", () => {
+  assert.deepEqual(acquisitionOutcomeCounts({
+    totalTrialStarts: 8,
+    attributedTrialStarts: 4,
+    totalFirstPaid: 1,
+    attributedFirstPaid: 0,
+  }), {
+    totalTrialStarts: 8,
+    attributedTrialStarts: 4,
+    unattributedTrialStarts: 4,
+    totalFirstPaid: 1,
+    attributedFirstPaid: 0,
+    unattributedFirstPaid: 1,
+  });
+});
+
+test("Keyword attribution keeps exact trial terms on the correct campaign", () => {
+  const groups = buildTrialKeywordGroups([
+    { campaignId: "42", campaignName: "Category Exact", keyword: "pelvic floor exercises" },
+    { campaignId: "42", campaignName: "Category Exact", keyword: "pelvic floor exercises" },
+    { campaignId: "42", campaignName: "Category Exact", keyword: "kegel app" },
+    { campaignId: "99", campaignName: "Discovery", keyword: "" },
+  ]);
+  const exact = keywordsForCampaign(groups, { id: "42", name: "Category Exact" });
+  assert.deepEqual(exact.keywords, [
+    { keyword: "pelvic floor exercises", trials: 2 },
+    { keyword: "kegel app", trials: 1 },
+  ]);
+  assert.equal(exact.unreported, 0);
+  assert.equal(keywordsForCampaign(groups, { id: "99", name: "Discovery" }).unreported, 1);
+});
+
+test("Coach inbox puts unanswered member questions first and keeps the full thread", () => {
+  const rows = [
+    { id: "a", memberId: "member-a", role: "mia", source: "ai", text: "Earlier answer", date: "2026-08-20T10:00:00.000Z" },
+    { id: "b", memberId: "member-a", role: "user", source: "", text: "First question", date: "2026-08-21T10:00:00.000Z" },
+    { id: "c", memberId: "member-a", role: "user", source: "", text: "Follow-up", date: "2026-08-21T10:01:00.000Z" },
+    { id: "d", memberId: "member-b", role: "user", source: "", text: "Answered question", date: "2026-08-21T11:00:00.000Z" },
+    { id: "e", memberId: "member-b", role: "mia", source: "admin", text: "Owner answer", date: "2026-08-21T11:01:00.000Z" },
+  ];
+  const result = groupCoachConversations(rows);
+  assert.equal(result.summary.needsReply, 1);
+  assert.equal(result.summary.unansweredMessages, 2);
+  assert.equal(result.conversations[0].memberId, "member-a");
+  assert.equal(result.conversations[0].needsReply, true);
+  assert.equal(result.conversations[0].unansweredCount, 2);
+  assert.deepEqual(result.conversations[0].messages.map((row) => row.id), ["a", "b", "c"]);
+  assert.equal(result.conversations[1].needsReply, false);
+});
+
+test("Coach inbox decodes Firestore timestamps and preserves admin reply source", () => {
+  const row = decodeCoachDocument({
+    name: "projects/p/databases/(default)/documents/users/member-1/chat/mia_reply-1",
+    updateTime: "2026-08-21T14:01:00.000Z",
+    fields: {
+      role: { stringValue: "mia" },
+      source: { stringValue: "admin" },
+      text: { stringValue: "A personal answer" },
+      date: { timestampValue: "2026-08-21T14:00:00.000Z" },
+    },
+  });
+  assert.deepEqual(row, {
+    id: "mia_reply-1",
+    memberId: "member-1",
+    role: "mia",
+    source: "admin",
+    text: "A personal answer",
+    date: "2026-08-21T14:00:00.000Z",
+  });
 });

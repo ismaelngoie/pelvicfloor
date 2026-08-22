@@ -31,6 +31,7 @@ import { RANGE_PRESETS, customRange, previousRange, rangeForPreset, rangeLabel }
 import Pulse from "./Pulse";
 import Revenue from "./Revenue";
 import Acquisition from "./Acquisition";
+import CoachInbox from "./CoachInbox";
 import Members from "./Members";
 import Retention from "./Retention";
 import Programs from "./Programs";
@@ -43,6 +44,7 @@ export const PAGES = [
   { id: "pulse", label: "Pulse", hint: "Is everything okay?", key: "p", icon: Icons.pulse },
   { id: "revenue", label: "Revenue", hint: "Money, renewals, refunds", key: "r", icon: Icons.revenue },
   { id: "acquisition", label: "Acquisition", hint: "Apple Ads → members", key: "a", icon: Icons.acquisition },
+  { id: "coach", label: "Coach Mia", hint: "Inbox and owner replies", key: "c", icon: Icons.coach },
   { id: "members", label: "Members", hint: "Every person, live", key: "m", icon: Icons.members },
   { id: "retention", label: "Retention", hint: "Who stays, who drifts", key: "t", icon: Icons.retention },
   { id: "programs", label: "Programs", hint: "Edit the app's content", key: "g", icon: Icons.programs },
@@ -291,12 +293,12 @@ async function fixtureOwnerMetrics(range, factor = 1) {
     growth: { available: true, points: Array.from({ length: 14 }, (_, i) => ({ date: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10), activePremium: 13 + i, paid: 10 + Math.round(i * 0.7), trials: 3 + Math.round(i * 0.3), mrr: 600 + i * 14, arr: 7200 + i * 168 })) },
     acquisition: { available: true, historyRange: { startDate: "2024-08-15", endDate: range.endDate }, presets: Object.fromEntries(["today", "sinceRelaunch", "allTime"].map((preset) => {
       const r = acquisitionRange(preset, "2024-08-15");
-      const k = preset === "today" ? 0.15 : preset === "allTime" ? 6 : 1;
-      const mk = (ts, fp) => ({ trialStarts: Math.round(ts * k), firstPaid: Math.round(fp * k), directFirstPaid: Math.round(fp * k * 0.4), trialConversions: Math.round(fp * k * 0.6), introductoryFirstPaid: 0, cohortStarts: Math.round(ts * k), cohortConversions: Math.round(fp * k * 0.6), pendingTrialOutcomes: Math.round(ts * k * 0.3), trialToPaidRate: null });
-      return [preset, { available: true, scope: { startDate: r.startDate, endDate: r.endDate }, totals: mk(38, 14), campaigns: [
-        { campaignId: "1", campaignName: "US | Competitor | Exact", ...mk(24, 10) },
-        { campaignId: "2", campaignName: "US | Category | Exact", ...mk(10, 3) },
-        { campaignId: "3", campaignName: "US | Discovery | Search Match", ...mk(4, 1) },
+      const attributedTrials = preset === "today" ? 1 : 4;
+      const mk = (trialStarts) => ({ trialStarts, firstPaid: 0, directFirstPaid: 0, trialConversions: 0, introductoryFirstPaid: 0, cohortStarts: trialStarts, cohortConversions: 0, pendingTrialOutcomes: trialStarts, trialToPaidRate: null });
+      return [preset, { available: true, scope: { startDate: r.startDate, endDate: r.endDate }, totals: mk(attributedTrials), campaigns: [
+        { campaignId: "1", campaignName: "US | Competitor | Exact", ...mk(0) },
+        { campaignId: "2", campaignName: "US | Category | Exact", ...mk(attributedTrials) },
+        { campaignId: "3", campaignName: "US | Discovery | Search Match", ...mk(0) },
       ] }];
     })) },
   };
@@ -400,7 +402,7 @@ export default function AdminDashboard() {
       if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
         const f = await import("@/lib/devFixtureData");
         next = f.fixtureMembers().map((row) => normalizeMember(row));
-        nextTelemetry = { completions: f.fixtureCompletions ? f.fixtureCompletions() : [], events: [], checkins: [], commands: [], lifecycle: [], lifecycleAvailable: false };
+        nextTelemetry = { completions: f.fixtureCompletions ? f.fixtureCompletions() : [], events: [], checkins: [], commands: [], lifecycle: f.fixtureLifecycle ? f.fixtureLifecycle() : [], lifecycleAvailable: true };
         const fixtureActive = next.slice(0, 26).map((member, index) => ({
           id: member.id, identityIds: [member.id], email: member.email, displayName: member.name,
           lastSeenAt: member.lastSeenAt?.toISOString() || null, isActivePremium: true,
@@ -484,6 +486,7 @@ export default function AdminDashboard() {
     else if (page === "pulse") content = <Pulse {...shared} />;
     else if (page === "revenue") content = <Revenue {...shared} />;
     else if (page === "acquisition") content = <Acquisition {...shared} />;
+    else if (page === "coach") content = <CoachInbox {...shared} />;
     else if (page === "members") content = <Members {...shared} activeTotal={membership?.totals?.activePremium} onPatched={patchMember} inspectedId={inspected?.id} />;
     else if (page === "retention") content = <Retention {...shared} />;
     else if (page === "programs") content = <Programs />;

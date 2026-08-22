@@ -40,7 +40,10 @@ export function buildAttention({ members, membership, telemetry, appleError, own
     const silent = ending.filter((m) => !m.lastSeenAt || now - m.lastSeenAt > 3 * 86400000).length;
     items.push({ tone: "warn", text: <><b>{ending.length} trial{ending.length === 1 ? "" : "s"} end within 3 days</b>{silent ? ` — ${silent} ${silent === 1 ? "has" : "have"} not opened the app in 3 days` : ""}.</>, page: "members" });
   }
-  const canceled = Number(membership?.totals?.canceledWithAccess) || 0;
+  const revenueCatCanceled = metric(ownerMetrics, "activeCancellations");
+  const canceled = Number.isFinite(revenueCatCanceled)
+    ? revenueCatCanceled
+    : Number(membership?.totals?.canceledWithAccess) || 0;
   if (canceled) items.push({ tone: "warn", text: <><b>{canceled} member{canceled === 1 ? "" : "s"}</b> still {canceled === 1 ? "has" : "have"} access but switched renewal off.</>, page: "members" });
   const refunds = metric(ownerMetrics, "refundedTransactions");
   if (refunds > 0) items.push({ tone: "bad", text: <><b>{refunds} refund{refunds === 1 ? "" : "s"}</b> in this range.</>, page: "revenue" });
@@ -81,6 +84,12 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
   const active = metric(ownerMetrics, "activeSubscriptions") ?? (Number.isFinite(membership?.totals?.paid) ? membership.totals.paid : null);
   const activePrev = growthAt(growth, range.days, "paid");
   const trials = metric(ownerMetrics, "activeTrials") ?? (Number.isFinite(membership?.totals?.trials) ? membership.totals.trials : null);
+  const trialsRenewing = metric(ownerMetrics, "trialsSetToRenew");
+  const trialsCanceled = Number.isFinite(trials) && Number.isFinite(trialsRenewing)
+    ? Math.max(0, trials - trialsRenewing)
+    : Number.isFinite(ownerMetrics?.metrics?.activeCancellations?.trials)
+      ? Number(ownerMetrics.metrics.activeCancellations.trials)
+      : null;
   const trialsPrev = growthAt(growth, range.days, "trials");
   const conversion = metric(ownerMetrics, "trialConversionRate");
   const conversionPrev = metric(ownerPrevious, "trialConversionRate");
@@ -129,7 +138,15 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
         <KpiTile label={`Revenue · ${range.preset === "custom" ? "range" : range.preset}`} value={money(revenue, currency, { compact: true, rounded: true })} current={revenue} previous={compare ? revenuePrev : null} compareLabel={`vs prev ${range.days}d`} spark={sparkRevenue} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "grossRevenue")} onClick={() => onGo("revenue")} />
         <KpiTile label="MRR" value={money(mrr, currency, { compact: true, rounded: true })} current={mrr} previous={compare ? mrrPrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkMrr.length > 1 ? sparkMrr : null} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "mrr")} onClick={() => onGo("revenue")} />
         <KpiTile label="Active subscriptions" value={count(active)} current={active} previous={compare ? activePrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkActive.length > 1 ? sparkActive : null} stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "activeSubscriptions")} onClick={() => onGo("members")} />
-        <KpiTile label="Active trials" value={count(trials)} current={trials} previous={compare ? trialsPrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkTrials.length > 1 ? sparkTrials : null} stripe="var(--pv-violet)" info={metricInfo(ownerMetrics, "activeTrials")} onClick={() => onGo("retention")} />
+        <KpiTile
+          label="Trials renewing / active"
+          value={Number.isFinite(trialsRenewing) && Number.isFinite(trials) ? `${count(trialsRenewing)} / ${count(trials)}` : count(trials)}
+          sub={Number.isFinite(trialsRenewing) && Number.isFinite(trialsCanceled) ? `${count(trialsRenewing)} set to renew · ${count(trialsCanceled)} canceled with access` : "RevenueCat active trials"}
+          spark={sparkTrials.length > 1 ? sparkTrials : null}
+          stripe="var(--pv-violet)"
+          info={{ body: "The first number is active trials still set to renew. The second is every unexpired active trial, including people who canceled but keep access until the trial ends.", source: "RevenueCat Overview + Subscription Status" }}
+          onClick={() => onGo("retention")}
+        />
         <KpiTile label="Trial → paid" value={percent(conversion)} current={conversion} previous={compare ? conversionPrev : null} compareLabel="vs prev" spark={sparkPaid.length > 1 ? sparkPaid : null} stripe="var(--pv-teal)" info={metricInfo(ownerMetrics, "trialConversionRate")} onClick={() => onGo("retention")} />
         <KpiTile label="CPA · Apple Ads" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={spend === null ? (appleError ? "Apple unavailable" : "No spend reported") : !costReady ? "Currency mismatch" : appleFirstPaid > 0 ? `${money(spend, currency)} spend · ${count(appleFirstPaid)} attributed first paid` : `${money(spend, currency)} spent · no attributed first paid yet`} stripe="var(--pv-amber)" info="Apple Ads spend in the range divided by first payments RevenueCat explicitly attributes to Apple Search Ads in the same range. Shown only when both services report the same currency." onClick={() => onGo("acquisition")} />
       </div>
