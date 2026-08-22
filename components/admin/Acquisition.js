@@ -4,11 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchAppleAdsReport } from "@/lib/adminAppData";
 import { FIXTURES_ON } from "@/lib/devFixtures";
 import { formatCount } from "@/lib/adminMetrics";
-import { acquisitionOutcomeCounts, buildTrialKeywordGroups, keywordsForCampaign } from "@/lib/adminAcquisitionAccuracy";
+import { acquisitionOutcomeCounts, buildTrialKeywordGroups, keywordsForCampaign, sumCoveredDailySeries } from "@/lib/adminAcquisitionAccuracy";
 import { Card, CardHead, KpiTile, PageHead, Ribbon, RowsSkeleton, Segmented, Unavailable, money, count, ratio } from "./ui";
 
 const DAY_MS = 86400000;
-export const REVENUECAT_COVERAGE_START_MS = Date.UTC(2026, 7, 15);
 export const ACQUISITION_RELAUNCH_DATE = "2026-08-15";
 const RANGE_OPTIONS = [
   { value: "today", label: "Today" },
@@ -286,11 +285,9 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
     return () => { active = false; };
   }, [user, range.startDate, range.endDate, reloadToken]);
 
-  const lifecycleEvents = Array.isArray(telemetry?.lifecycle) ? telemetry.lifecycle : [];
+  const lifecycleEvents = useMemo(() => (Array.isArray(telemetry?.lifecycle) ? telemetry.lifecycle : []), [telemetry?.lifecycle]);
   const lifecycle = useMemo(() => prepareLifecycle(lifecycleEvents, range), [lifecycleEvents, range]);
-  const allLifecycle = useMemo(() => prepareLifecycle(lifecycleEvents, range, { attributedOnly: false }), [lifecycleEvents, range]);
   const fallback = useMemo(() => summarizeLifecycle(lifecycle), [lifecycle]);
-  const allFallback = useMemo(() => summarizeLifecycle(allLifecycle), [allLifecycle]);
   const selectedOutcomes = selectedCampaignOutcomes(ownerMetrics, preset);
   const historicalCampaignsAvailable = selectedOutcomes?.available === true;
   const outcomeScopeMatches = selectedOutcomes?.scope?.startDate === range.startDate && selectedOutcomes?.scope?.endDate === range.endDate;
@@ -307,11 +304,13 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
   const outcomeTotals = selectedOutcomes?.totals || {};
   const attributedTrialStarts = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.trialStarts) : telemetryAvailable ? fallback.trialStarts.length : null;
   const attributedFirstPaid = historicalCampaignsAvailable ? finiteNumber(outcomeTotals.firstPaid) : telemetryAvailable ? fallback.directPurchases.length + fallback.trialConversions.length : null;
-  const storeWideCoverageComplete = range.start.getTime() >= REVENUECAT_COVERAGE_START_MS;
+  const trialSeriesScope = ownerMetrics?.metrics?.trialsSinceRelaunch?.period || ownerMetrics?.scope;
+  const storeWideTrialStarts = sumCoveredDailySeries(ownerMetrics?.series?.trialsStartedDaily, trialSeriesScope, range, { notBefore: ACQUISITION_RELAUNCH_DATE });
+  const storeWideFirstPaid = sumCoveredDailySeries(ownerMetrics?.series?.firstPaidCustomersDaily, ownerMetrics?.scope, range);
   const outcomeCounts = acquisitionOutcomeCounts({
-    totalTrialStarts: telemetryAvailable && storeWideCoverageComplete ? allFallback.trialStarts.length : null,
+    totalTrialStarts: storeWideTrialStarts,
     attributedTrialStarts,
-    totalFirstPaid: telemetryAvailable && storeWideCoverageComplete ? allFallback.directPurchases.length + allFallback.trialConversions.length : null,
+    totalFirstPaid: storeWideFirstPaid,
     attributedFirstPaid,
   });
   const trialStarts = outcomeCounts.totalTrialStarts;
@@ -329,12 +328,12 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
   const cpt = costCoverageAligned && attributedTrialStarts > 0 ? spend / attributedTrialStarts : null;
   const cpa = costCoverageAligned && attributedFirstPaid > 0 ? spend / attributedFirstPaid : null;
   const cpi = appleAvailable && installs > 0 ? spend / installs : null;
-  const sourceDetail = historicalCampaignsAvailable ? "RevenueCat receipt history segmented by Apple Search Ads campaign, reconciled with every webhook trial since August 15" : telemetryAvailable ? "Recent RevenueCat webhook fallback; historical campaign charts temporarily unavailable" : "RevenueCat campaign outcomes unavailable";
+  const sourceDetail = historicalCampaignsAvailable ? "RevenueCat New Trials totals with receipt-level Apple Search Ads campaign and keyword attribution" : telemetryAvailable ? "Recent RevenueCat webhook fallback; historical campaign charts temporarily unavailable" : "RevenueCat campaign outcomes unavailable";
   const attributionCaption = Number.isFinite(trialStarts) && Number.isFinite(attributedTrialStarts)
     ? `${count(attributedTrialStarts)} Apple-attributed · ${count(outcomeCounts.unattributedTrialStarts)} organic, pending or unavailable`
-    : storeWideCoverageComplete
+    : storeWideTrialStarts !== null
       ? "Store-wide trial total unavailable"
-      : "Store-wide webhook history begins Aug 15";
+      : "RevenueCat total does not cover every selected date";
   const coverageNote = costCoverageAligned
     ? `Apple spend and RevenueCat campaign outcomes cover the same dates and currency. ${isToday ? "Today is still in progress and both services can revise recent numbers." : "No outcome is assigned to a campaign unless RevenueCat reports it."}`
     : ownerMetricsError || selectedOutcomes?.reason || "Cost per result is hidden until Apple and RevenueCat return matching dates and currency.";
@@ -356,7 +355,7 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
       </div>
 
       <Card>
-        <CardHead label="Spend → members" info={{ body: "Spend, taps and installs come from Apple. Total trial starts and first payments come from every production RevenueCat webhook since August 15. Cost per result uses only the subset RevenueCat explicitly attributes to Apple Search Ads, so organic or pending outcomes never make ads look cheaper.", source: "Apple Ads API · RevenueCat Charts + webhooks" }} right={<span className="pv-pill" data-tone={costCoverageAligned ? "good" : "warn"}>{costCoverageAligned ? "Dates & currency aligned" : "Cost per result hidden"}</span>} />
+        <CardHead label="Spend → members" info={{ body: "Spend, taps and installs come from Apple. Store-wide trial and payment totals come from RevenueCat's authoritative daily charts. Cost per result uses only the subset RevenueCat explicitly attributes to Apple Search Ads, so organic or pending outcomes never make ads look cheaper.", source: "Apple Ads API · RevenueCat Charts + receipt attribution" }} right={<span className="pv-pill" data-tone={costCoverageAligned ? "good" : "warn"}>{costCoverageAligned ? "Dates & currency aligned" : "Cost per result hidden"}</span>} />
         <Ribbon stages={[
           { key: "spend", label: "Spend", value: appleAvailable ? money(spend, currency, { exact: true }) : null, flow: appleAvailable ? spend : null, color: "var(--pv-amber)", caption: appleAvailable ? `${count(impressions)} impressions` : state === "loading" ? "Loading from Apple" : "Apple unavailable", edge: appleAvailable && impressions > 0 ? `${ratio(taps, impressions, 1)} TTR` : null },
           { key: "taps", label: "Taps", value: appleAvailable ? count(taps) : null, flow: appleAvailable ? taps : null, color: "var(--pv-violet)", edge: appleAvailable ? ratio(installs, taps) : null },
@@ -373,8 +372,8 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
         <KpiTile label="Cost per attributed first paid" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={cpa === null ? costCoverageAligned ? "No Apple-attributed first payment yet" : "needs matching dates & currency" : `${count(attributedFirstPaid)} Apple-attributed of ${count(firstPaid)} total`} stripe="var(--pv-good)" />
         <KpiTile label="Trial attribution" value={Number.isFinite(attributedTrialStarts) && Number.isFinite(trialStarts) ? `${count(attributedTrialStarts)} / ${count(trialStarts)}` : null} sub="Apple-attributed / all starts" stripe="var(--pv-violet)" />
         <KpiTile label="Trial → paid · cohort" value={Number.isFinite(cohortConversions) && cohortStarts > 0 ? ratio(cohortConversions, cohortStarts, 1) : null} sub={Number.isFinite(cohortStarts) ? `${count(cohortConversions)} of ${count(cohortStarts)} matched trials` : "RevenueCat cohort unavailable"} stripe="var(--pv-teal)" />
-        <KpiTile label="Converted after trial" value={count(convertedTrials)} sub="first payment after a free trial" />
-        <KpiTile label="Paid without trial" value={count(directFirstPaid)} sub="direct purchases" />
+        <KpiTile label="Attributed after trial" value={count(convertedTrials)} sub="Apple-attributed first payment after trial" />
+        <KpiTile label="Attributed without trial" value={count(directFirstPaid)} sub="Apple-attributed direct purchases" />
       </div>
 
       {state === "loading" ? <Card pad><RowsSkeleton rows={5} /></Card> : (

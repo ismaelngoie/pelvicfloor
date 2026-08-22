@@ -176,6 +176,15 @@ async function comparisonReport({ apiKey, projectId, currency, range, env }) {
 async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
   const tracker = { attempted: 0, succeeded: 0 };
   const errors = [];
+  // Free trials launched on August 15. Keep this one chart wide enough to
+  // answer both the selected dashboard range and the cumulative launch total
+  // without spending another RevenueCat request.
+  const trialHistoryRange = {
+    startDate: range.endDate >= ACQUISITION_RELAUNCH_START && range.startDate > ACQUISITION_RELAUNCH_START
+      ? ACQUISITION_RELAUNCH_START
+      : range.startDate,
+    endDate: range.endDate,
+  };
 
   const tasks = await Promise.all([
     capture("overview", () => loadOverviewMetrics(apiKey, projectId, currency, tracker), errors),
@@ -189,7 +198,7 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     }), errors),
     capture("subscription_status", () => loadSubscriptionStatus(apiKey, projectId, currency, tracker), errors),
     capture("trials_new", () => loadChart(apiKey, projectId, "trials_new", {
-      range,
+      range: trialHistoryRange,
       tracker,
     }), errors),
     capture("trial_conversion_rate", () => loadChart(apiKey, projectId, "trial_conversion_rate", {
@@ -232,7 +241,13 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
   const authoritativeRevenue = rangeRevenueValue(rangeRevenueResult);
   const chartRevenue = chartTotal(revenue, [/^revenue$/i, /gross revenue/i]);
   const revenueTotal = Number.isFinite(authoritativeRevenue) ? authoritativeRevenue : chartRevenue;
-  const trialsStarted = chartTotal(trials, [/^new trials$/i, /^trial starts$/i]);
+  const trialsStarted = chartTotalInRange(trials, [/^new trials$/i, /^trial starts$/i], range);
+  const trialsSinceRelaunch = range.endDate >= ACQUISITION_RELAUNCH_START
+    ? chartTotalInRange(trials, [/^new trials$/i, /^trial starts$/i], {
+        startDate: ACQUISITION_RELAUNCH_START,
+        endDate: range.endDate,
+      })
+    : 0;
   const cohortTrialStarts = chartTotal(conversions, [/^trial starts$/i]);
   const trialConversions = chartTotal(conversions, [/^conversions$/i, /converted/i]);
   const trialExpirations = chartTotal(conversions, [/^expirations$/i, /expired/i]);
@@ -312,6 +327,12 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       unit: "trials",
       definition: "Trials whose trial start date falls inside the selected UTC date range.",
       period: range,
+    }),
+    trialsSinceRelaunch: valueMetric(trialsSinceRelaunch, {
+      source: "RevenueCat New Trials chart (API v2)",
+      unit: "trials",
+      definition: "Every production App Store trial started since free trials launched on August 15, 2026, through the selected UTC end date.",
+      period: { startDate: ACQUISITION_RELAUNCH_START, endDate: range.endDate },
     }),
     trialsCanceled: valueMetric(trialCancelCurrent, {
       source: "RevenueCat Subscription Status chart (API v2)",
@@ -1157,6 +1178,14 @@ function chartTotal(chart, patterns) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) : null;
 }
 
+function chartTotalInRange(chart, patterns, range) {
+  if (!chart || !range?.startDate || !range?.endDate) return null;
+  if (measureIndex(chart, patterns) < 0) return null;
+  return chartSeries(chart, patterns)
+    .filter((point) => point.date >= range.startDate && point.date <= range.endDate)
+    .reduce((sum, point) => sum + point.value, 0);
+}
+
 function buildAcquisitionPresets({ trialsChart, firstPaidChart, conversionChart, historyRange }) {
   const sinceStart = historyRange.startDate > ACQUISITION_RELAUNCH_START
     ? historyRange.startDate
@@ -1822,6 +1851,7 @@ export const __test = {
   buildAcquisitionPresets,
   buildAcquisitionWindow,
   campaignSegmentInfo,
+  chartTotalInRange,
   monthlyFromAnnual,
   overviewMetric,
   rangeRevenueValue,
