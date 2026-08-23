@@ -424,12 +424,17 @@ function authoritativeRows(campaigns, outcomes) {
   }));
   outcomes.forEach((outcome, index) => {
     if (used.has(index)) return;
+    const outcomePayments = finiteNumber(outcome?.payments);
+    // Keep historical RevenueCat-only campaigns when they actually converted
+    // in this period. Empty legacy campaign rows only add noise to current
+    // reporting and can make the table look like it contains missing data.
+    if (outcomePayments === null || outcomePayments <= 0) return;
     const id = text(String(outcome.campaignId || ""));
     const name = outcome.unidentified
       ? "Campaign not identified"
       : text(outcome.campaignName) || (id ? `Campaign ${id}` : "Campaign not identified");
     rows.push({
-      payments: 0,
+      payments: outcomePayments,
       ...outcome,
       id,
       name,
