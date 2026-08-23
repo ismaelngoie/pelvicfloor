@@ -4,8 +4,8 @@ import { __test as apple } from "../functions/api/app-analytics.js";
 import { __test as revenueCat } from "../functions/api/revenuecat-owner-metrics.js";
 import { __test as members } from "../functions/api/revenuecat-members.js";
 import {
-  acquisitionOutcomeCounts,
-  buildTrialKeywordGroups,
+  acquisitionPaymentCounts,
+  buildPaymentKeywordGroups,
   keywordsForCampaign,
   sumCoveredDailySeries,
 } from "../lib/adminAcquisitionAccuracy.js";
@@ -58,12 +58,8 @@ test("Apple chunk reports merge one campaign without double-counting metadata", 
   );
 });
 
-test("RevenueCat campaign totals include direct first payments without trials", () => {
-  const trials = chart(["New Trials"], [
-    ["2026-08-15", 0, 0, 2],
-    ["2026-08-16", 0, 1, 1],
-  ]);
-  const firstPaid = chart(
+test("RevenueCat campaign totals include every historical first charge", () => {
+  const attributed = chart(
     ["Total Paid Subscriptions", "Direct Subscriptions", "Trial Conversions", "Intro Offers", "Product Changes", "Resubscriptions"],
     [
       ["2026-08-16", 0, 0, 5],
@@ -80,72 +76,71 @@ test("RevenueCat campaign totals include direct first payments without trials", 
       ["2026-08-16", 5, 1, 0],
     ]
   );
-  const conversion = chart(["Trial Starts", "Conversions", "Pending"], [
-    ["2026-08-15", 0, 0, 2],
-    ["2026-08-15", 1, 0, 1],
-    ["2026-08-15", 2, 0, 1],
-  ]);
+  const storeWide = chart(
+    ["Total Paid Subscriptions", "Direct Subscriptions", "Trial Conversions", "Intro Offers", "Product Changes", "Resubscriptions"],
+    [
+      ["2026-08-16", 0, 0, 8],
+      ["2026-08-16", 1, 0, 4],
+      ["2026-08-16", 2, 0, 1],
+      ["2026-08-16", 3, 0, 1],
+      ["2026-08-16", 4, 0, 1],
+      ["2026-08-16", 5, 0, 1],
+    ]
+  );
   const result = revenueCat.buildAcquisitionWindow({
-    trialsChart: trials,
-    firstPaidChart: firstPaid,
-    conversionChart: conversion,
+    attributedPaymentsChart: attributed,
+    storeWidePaymentsChart: storeWide,
     range: { startDate: "2026-08-15", endDate: "2026-08-18" },
   });
 
   assert.equal(result.available, true);
-  assert.equal(result.totals.trialStarts, 3);
-  assert.equal(result.totals.firstPaid, 4);
-  assert.equal(result.totals.productChanges, 1);
-  assert.equal(result.totals.resubscriptions, 1);
-  assert.equal(result.totals.directFirstPaid, 3);
-  assert.equal(result.totals.trialConversions, 1);
-  assert.equal(result.totals.trialToPaidRate, 0.5);
+  assert.equal(result.totals.payments, 6);
+  assert.equal(result.totals.attributedPayments, 4);
+  assert.equal(result.totals.unattributedPayments, 2);
   const discover = result.campaigns.find((row) => row.campaignId === "123456");
-  assert.equal(discover.firstPaid, 3);
-  assert.equal(discover.allNewPaidSubscriptions, 5);
-  assert.equal(discover.directFirstPaid, 2);
-  assert.equal(discover.trialConversions, 1);
-  assert.equal(discover.trialToPaidRate, 0.5);
-  assert.equal(result.campaigns.find((row) => row.unidentified).firstPaid, 1);
+  assert.equal(discover.payments, 3);
+  assert.equal(result.campaigns.find((row) => row.unidentified).payments, 1);
 });
 
-test("RevenueCat selected dates exclude earlier campaign outcomes", () => {
+test("RevenueCat selected dates keep older direct-payment campaign history available", () => {
+  const payments = chart(["Total Paid Subscriptions", "Direct Subscriptions", "Trial Conversions", "Intro Offers"], [
+    ["2026-08-14", 0, 0, 8],
+    ["2026-08-14", 1, 0, 8],
+    ["2026-08-14", 2, 0, 0],
+    ["2026-08-14", 3, 0, 0],
+    ["2026-08-15", 0, 0, 1],
+    ["2026-08-15", 1, 0, 1],
+    ["2026-08-15", 2, 0, 0],
+    ["2026-08-15", 3, 0, 0],
+  ]);
   const result = revenueCat.buildAcquisitionWindow({
-    trialsChart: chart(["New Trials"], [
-      ["2026-08-14", 0, 0, 9],
-      ["2026-08-15", 0, 0, 2],
-    ]),
-    firstPaidChart: chart(["Total Paid Subscriptions", "Direct Subscriptions", "Trial Conversions", "Intro Offers"], [
-      ["2026-08-14", 0, 0, 8],
-      ["2026-08-14", 1, 0, 8],
-      ["2026-08-14", 2, 0, 0],
-      ["2026-08-14", 3, 0, 0],
-      ["2026-08-15", 0, 0, 1],
-      ["2026-08-15", 1, 0, 1],
-      ["2026-08-15", 2, 0, 0],
-      ["2026-08-15", 3, 0, 0],
-    ]),
-    conversionChart: null,
+    attributedPaymentsChart: payments,
+    storeWidePaymentsChart: payments,
     range: { startDate: "2026-08-15", endDate: "2026-08-18" },
   });
-  assert.equal(result.totals.trialStarts, 2);
-  assert.equal(result.totals.firstPaid, 1);
+  assert.equal(result.totals.payments, 1);
+  assert.equal(result.totals.attributedPayments, 1);
+
+  const allTime = revenueCat.buildAcquisitionWindow({
+    attributedPaymentsChart: payments,
+    storeWidePaymentsChart: payments,
+    range: { startDate: "2026-08-14", endDate: "2026-08-18" },
+  });
+  assert.equal(allTime.totals.payments, 9);
+  assert.equal(allTime.totals.attributedPayments, 9);
 });
 
-test("RevenueCat authoritative trial total excludes pre-launch rows and raw webhook duplicates", () => {
-  const trials = chart(["New Trials"], [
+test("RevenueCat first-payment total excludes subscription movements", () => {
+  const payments = chart(["Total Paid Subscriptions", "Direct Subscriptions", "Trial Conversions", "Intro Offers", "Product Changes", "Resubscriptions"], [
     ["2026-08-14", 0, 0, 13],
-    ["2026-08-15", 0, 0, 3],
-    ["2026-08-16", 0, 0, 5],
+    ["2026-08-14", 1, 0, 9],
+    ["2026-08-14", 2, 0, 1],
+    ["2026-08-14", 3, 0, 1],
+    ["2026-08-14", 4, 0, 1],
+    ["2026-08-14", 5, 0, 1],
   ]);
-  assert.equal(revenueCat.chartTotalInRange(trials, [/^new trials$/i], {
-    startDate: "2026-08-15",
-    endDate: "2026-08-16",
-  }), 8);
-  assert.equal(revenueCat.chartTotalInRange(trials, [/^missing measure$/i], {
-    startDate: "2026-08-15",
-    endDate: "2026-08-16",
-  }), null);
+  assert.equal(revenueCat.firstPaymentTotalInRange(payments, { startDate: "2026-08-14", endDate: "2026-08-14" }), 11);
+  assert.equal(revenueCat.firstPaymentTotalInRange(payments, { startDate: "2026-08-15", endDate: "2026-08-16" }), 0);
 });
 
 test("RevenueCat live option names resolve the campaign and exact app scope", () => {
@@ -167,7 +162,6 @@ test("RevenueCat Overview metrics preserve the dashboard values, periods, and up
   const payload = {
     object: "overview_metrics",
     metrics: [
-      { id: "active_trials", name: "Active Trials", value: 8, period: "P0D", last_updated_at: 1787288640000 },
       { id: "active_subscriptions", name: "Active Subscriptions", value: 35, period: "P0D", last_updated_at: 1787288640000 },
       { id: "mrr", name: "MRR", value: 764.52, period: "P0D", last_updated_at: 1787288640000 },
       { id: "new_customers", name: "New Customers", value: 235, period: "P28D", last_updated_at: 1787288640000 },
@@ -176,11 +170,10 @@ test("RevenueCat Overview metrics preserve the dashboard values, periods, and up
   };
 
   assert.equal(revenueCat.overviewMetric(payload, ["active_subscriptions"]).value, 35);
-  assert.equal(revenueCat.overviewMetric(payload, ["active_trials"]).value, 8);
   assert.equal(revenueCat.overviewMetric(payload, ["mrr"]).value, 764.52);
   assert.equal(revenueCat.overviewMetric(payload, ["new_customers"]).period, "P28D");
   assert.equal(revenueCat.overviewMetric(payload, ["active_customers", "customers_active"]).value, 389);
-  assert.equal(revenueCat.overviewMetric(payload, ["active_trials"]).lastUpdatedAt, "2026-08-21T05:04:00.000Z");
+  assert.equal(revenueCat.overviewMetric(payload, ["active_subscriptions"]).lastUpdatedAt, "2026-08-21T05:04:00.000Z");
 });
 
 test("RevenueCat ARR fallback preserves the MRR status breakdown", () => {
@@ -231,19 +224,14 @@ test("RevenueCat customer access includes canceled trials and grace periods unti
   assert.equal(gracePaid.state, "paid");
 });
 
-test("Acquisition reconciles all trial starts without lowering Apple cost per trial", () => {
-  assert.deepEqual(acquisitionOutcomeCounts({
-    totalTrialStarts: 8,
-    attributedTrialStarts: 4,
-    totalFirstPaid: 1,
-    attributedFirstPaid: 0,
+test("Acquisition reconciles store-wide and attributed payments without lowering CPA", () => {
+  assert.deepEqual(acquisitionPaymentCounts({
+    totalPayments: 8,
+    attributedPayments: 4,
   }), {
-    totalTrialStarts: 8,
-    attributedTrialStarts: 4,
-    unattributedTrialStarts: 4,
-    totalFirstPaid: 1,
-    attributedFirstPaid: 0,
-    unattributedFirstPaid: 1,
+    totalPayments: 8,
+    attributedPayments: 4,
+    unattributedPayments: 4,
   });
 });
 
@@ -260,8 +248,8 @@ test("Acquisition totals use only authoritative daily chart dates covered by Rev
   assert.equal(sumCoveredDailySeries(series, scope, { startDate: "2026-08-17", endDate: "2026-08-17" }), 0);
 });
 
-test("Keyword attribution keeps exact trial terms on the correct campaign", () => {
-  const groups = buildTrialKeywordGroups([
+test("Keyword attribution keeps exact payment terms on the correct campaign", () => {
+  const groups = buildPaymentKeywordGroups([
     { campaignId: "42", campaignName: "Category Exact", keyword: "pelvic floor exercises" },
     { campaignId: "42", campaignName: "Category Exact", keyword: "pelvic floor exercises" },
     { campaignId: "42", campaignName: "Category Exact", keyword: "kegel app" },
@@ -269,8 +257,8 @@ test("Keyword attribution keeps exact trial terms on the correct campaign", () =
   ]);
   const exact = keywordsForCampaign(groups, { id: "42", name: "Category Exact" });
   assert.deepEqual(exact.keywords, [
-    { keyword: "pelvic floor exercises", trials: 2 },
-    { keyword: "kegel app", trials: 1 },
+    { keyword: "pelvic floor exercises", payments: 2 },
+    { keyword: "kegel app", payments: 1 },
   ]);
   assert.equal(exact.unreported, 0);
   assert.equal(keywordsForCampaign(groups, { id: "99", name: "Discovery" }).unreported, 1);

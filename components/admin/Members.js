@@ -9,17 +9,16 @@ import { displayName, memberInitials, formatRelativeDay } from "@/lib/adminMetri
 import { Card, CardHead, Chip, Input, PageHead, RankedBars, Segmented, Unavailable, count, ratio, shortDate } from "./ui";
 
 const VIEWS = [
-  { id: "active", label: "Active premium", filter: (m) => m.isActivePremium },
-  { id: "trials-ending", label: "Trials ending · 7d", filter: (m, now) => m.premiumPhase === "trial" && m.revenueCat?.subscription?.currentPeriodEndsAt && new Date(m.revenueCat.subscription.currentPeriodEndsAt) <= new Date(now.getTime() + 7 * 86400000) },
+  { id: "paid", label: "Paid members", filter: (m) => m.premiumPhase === "paid" && m.isActivePremium },
   { id: "silent", label: "Paid · silent 14d", filter: (m, now) => m.premiumPhase === "paid" && (!m.lastSeenAt || now - m.lastSeenAt > 14 * 86400000) },
-  { id: "streaks", label: "Top streaks", filter: (m) => m.isActivePremium && (m.streak || 0) >= 3 },
-  { id: "canceling", label: "Set to cancel", filter: (m) => m.revenueCat?.subscription?.autoRenewalStatus && !/will_renew/i.test(m.revenueCat.subscription.autoRenewalStatus) },
+  { id: "streaks", label: "Top streaks", filter: (m) => m.premiumPhase === "paid" && m.isActivePremium && (m.streak || 0) >= 3 },
+  { id: "canceling", label: "Renewal off", filter: (m) => m.premiumPhase === "paid" && m.isActivePremium && m.revenueCat?.isRenewing === false },
   { id: "all", label: "All people", filter: () => true },
 ];
 
 const COLUMNS = [
   { id: "name", label: "Member", sort: (m) => displayName(m).toLowerCase() },
-  { id: "access", label: "Access", sort: (m) => (m.premiumPhase === "paid" ? 2 : m.premiumPhase === "trial" ? 1 : 0) },
+  { id: "payment", label: "Payment", sort: (m) => (m.premiumPhase === "paid" ? 2 : m.isActivePremium ? 1 : 0) },
   { id: "goal", label: "Goal", sort: (m) => m.goalTitle || "" },
   { id: "day", label: "Day", num: true, sort: (m) => m.programDay || 0 },
   { id: "streak", label: "Streak", num: true, sort: (m) => m.streak || 0 },
@@ -34,7 +33,7 @@ function flag(code) {
 }
 
 export default function Members({ members, allPeople, activeTotal, membershipError, onRetry, onOpenMember, inspectedId, now, ownerMetrics }) {
-  const [view, setView] = useState("active");
+  const [view, setView] = useState("paid");
   const [term, setTerm] = useState("");
   const [sort, setSort] = useState({ key: "lastSeenAt", dir: "desc" });
   const [density, setDensity] = useState("comfortable");
@@ -62,7 +61,7 @@ export default function Members({ members, allPeople, activeTotal, membershipErr
   }, [rows, cursor, onOpenMember]);
 
   const counts = useMemo(() => Object.fromEntries(VIEWS.map((v) => [v.id, (v.id === "all" ? allPeople : members).filter((m) => v.filter(m, now)).length])), [members, allPeople, now]);
-  const countries = useMemo(() => (Array.isArray(ownerMetrics?.geography?.countries) ? ownerMetrics.geography.countries : []).map((c) => ({ key: c.code, label: `${flag(c.code)}  ${c.name}`, sub: `${c.paid || 0} paid · ${c.trials || 0} trial`, value: c.activePremium || 0 })).sort((a, b) => b.value - a.value), [ownerMetrics]);
+  const countries = useMemo(() => (Array.isArray(ownerMetrics?.geography?.countries) ? ownerMetrics.geography.countries : []).map((country) => ({ key: country.code, label: `${flag(country.code)}  ${country.name}`, sub: `${country.paid || 0} paid`, value: country.paid || 0 })).sort((left, right) => right.value - left.value), [ownerMetrics]);
   const th = (c) => (
     <th key={c.id} className={c.num ? "num" : ""} aria-sort={sort.key === c.id ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}>
       <button type="button" onClick={() => setSort((s) => ({ key: c.id, dir: s.key === c.id && s.dir === "desc" ? "asc" : "desc" }))}>{c.label}{sort.key === c.id ? (sort.dir === "asc" ? " ↑" : " ↓") : ""}</button>
@@ -71,7 +70,7 @@ export default function Members({ members, allPeople, activeTotal, membershipErr
 
   return (
     <div className="pv-rise" style={{ display: "grid", gap: 12 }}>
-      <PageHead title="Members" description={`${count(activeTotal ?? members.length)} active premium verified by RevenueCat · ${count(allPeople.length)} iPhone profiles in total`} right={<Segmented label="Row density" value={density} onChange={setDensity} options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />} />
+      <PageHead title="Members" description={`${count(activeTotal ?? members.length)} active paid subscriptions verified by RevenueCat · ${count(allPeople.length)} iPhone profiles in total`} right={<Segmented label="Row density" value={density} onChange={setDensity} options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />} />
       {membershipError ? <Unavailable reason={`Live RevenueCat membership: ${membershipError}`} onRetry={onRetry} /> : null}
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -90,7 +89,7 @@ export default function Members({ members, allPeople, activeTotal, membershipErr
                 {rows.map((m, i) => (
                   <tr key={m.id} aria-selected={m.id === inspectedId || i === cursor} onClick={() => onOpenMember(m)} onMouseEnter={() => setCursor(i)}>
                     <td className="ink"><span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0 }}><span className="pv-avatar">{memberInitials(m)}</span><span style={{ minWidth: 0 }}><span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 220 }}>{displayName(m)}</span><span className="pv-faint" style={{ fontSize: 11, display: "block", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 220 }}>{m.email || m.id}</span></span></span></td>
-                    <td><span className="pv-pill" data-tone={m.premiumPhase === "paid" ? "good" : m.premiumPhase === "trial" ? "accent" : m.premiumState === "canceled_with_access" ? "warn" : "neutral"}>{m.premiumPhase === "paid" ? "Paid" : m.premiumPhase === "trial" ? "Trial" : m.premiumState === "canceled_with_access" ? "Canceled" : "No access"}</span></td>
+                    <td><span className="pv-pill" data-tone={m.premiumPhase === "paid" ? m.revenueCat?.isRenewing === false ? "warn" : "good" : m.isActivePremium ? "accent" : "neutral"}>{m.premiumPhase === "paid" ? m.revenueCat?.isRenewing === false ? "Paid · renewal off" : "Paid" : m.isActivePremium ? "Access only" : "No payment"}</span></td>
                     <td>{m.goalTitle || <span className="pv-faint">—</span>}</td>
                     <td className="num">{Number.isFinite(m.programDay) ? `${m.programDay}` : <span className="pv-faint">—</span>}</td>
                     <td className="num">{m.streak || 0}</td>
@@ -106,7 +105,7 @@ export default function Members({ members, allPeople, activeTotal, membershipErr
         </Card>
         {countries.length ? (
           <Card className="pv-span-4 pv-half">
-            <CardHead label="Where renewing members are" info={{ body: "Country attached to current production App Store paid subscriptions and trials that are set to renew. Real aggregate countries from RevenueCat, not GPS.", source: ownerMetrics?.geography?.source }} />
+            <CardHead label="Where renewing paid members are" info={{ body: "Country attached to current production App Store paid subscriptions that are set to renew. These are RevenueCat aggregates, not GPS.", source: ownerMetrics?.geography?.source }} />
             <div className="pv-card-pad"><RankedBars rows={countries} color="var(--pv-accent)" /></div>
             <div className="pv-faint" style={{ padding: "0 16px 12px", fontSize: 11 }}>{countries.length} countr{countries.length === 1 ? "y" : "ies"} · {ratio(countries[0]?.value, countries.reduce((s, c) => s + c.value, 0))} in {countries[0]?.label.replace(/^\S+\s+/, "")}</div>
           </Card>

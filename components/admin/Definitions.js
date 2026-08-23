@@ -9,19 +9,17 @@ import { Card, CardHead, PageHead } from "./ui";
 
 const LABELS = {
   grossRevenue: "Revenue (range)", lifetimeGrossRevenue: "Lifetime gross revenue", lifetimeTransactions: "Lifetime transactions",
-  mrr: "MRR", arr: "ARR", activeSubscriptions: "Active subscriptions", activeTrials: "Active trials", activePremium: "Active access", paidSetToRenew: "Paid and renewing", trialsSetToRenew: "Trials renewing",
-  trialsStarted: "Trials started", trialsCanceled: "Trials set to cancel", trialsConvertedToPaid: "Converted to paid", cohortTrialConversions: "Cohort conversions",
-  pendingTrialOutcomes: "Pending trial outcomes", trialExpirations: "Trial expirations", trialConversionRate: "Trial → paid rate", activeCancellations: "Set to cancel",
-  refundedTransactions: "Refunded transactions", refundedRevenue: "Refunded revenue", firstPaidCustomers: "First paid", newCustomers: "New customers", activeCustomers: "Active customers", appleAttributedTrialsStarted: "Apple-attributed trials", appleAttributedFirstPaidCustomers: "Apple-attributed first paid",
+  mrr: "MRR", arr: "ARR", activeSubscriptions: "Active paid subscriptions", paidSetToRenew: "Paid and renewing", activeCancellations: "Renewal off",
+  refundedTransactions: "Refunded transactions", refundedRevenue: "Refunded revenue", firstPayments: "First payments", newCustomers: "New customers", activeCustomers: "Active customers", appleAttributedPayments: "Apple-attributed payments",
 };
 
 const EXTRA = [
   { id: "cpa", label: "CPA (Apple Ads)", body: "Apple Ads spend in the range divided by first payments RevenueCat explicitly attributes to Apple Search Ads in the same range. Only shown when Apple and RevenueCat report the same currency and dates.", source: "Apple Ads Campaign Management API 5 · RevenueCat Charts API v2" },
-  { id: "cpt", label: "Cost per trial", body: "Apple Ads spend divided by trial starts RevenueCat explicitly attributes to Apple Search Ads.", source: "Apple Ads · RevenueCat attribution" },
   { id: "cpi", label: "Cost per install", body: "Apple Ads spend divided by Apple-reported installs (new downloads plus re-downloads).", source: "Apple Ads" },
-  { id: "seen", label: "Seen today / 7 days", body: "Active premium profiles whose latest iPhone app launch stored in Firebase falls in the window. Membership itself is verified by RevenueCat.", source: "Firestore profiles" },
-  { id: "journey", label: "The 90-day journey", body: "Program day stored on each active profile: started (day 1+), past the first week (day 8+), finished (day 90).", source: "Firestore profiles" },
-  { id: "cohorts", label: "Cohorts by join week", body: "Profiles grouped by creation week; each column is the share of that cohort that is premium now, reached day 2 or day 8, or opened the app in the last 7 days. Current state, not a historical replay.", source: "Firestore profiles joined to RevenueCat" },
+  { id: "install-paid", label: "Install to payment", body: "First payments RevenueCat explicitly attributes to Apple Ads divided by Apple-reported installs for the same UTC dates.", source: "Apple Ads · RevenueCat attribution" },
+  { id: "seen", label: "Seen today / 7 days", body: "Paid profiles whose latest iPhone app launch stored in Firebase falls in the window. Payment status is verified by RevenueCat.", source: "Firestore profiles" },
+  { id: "journey", label: "The 90-day journey", body: "Program day stored on each paid profile: started (day 1+), past the first week (day 8+), finished (day 90).", source: "Firestore profiles" },
+  { id: "cohorts", label: "Cohorts by join week", body: "Profiles grouped by creation week; each column is the share of that cohort that is paid now, reached day 2 or day 8, or opened the app in the last 7 days. Current state, not a historical replay.", source: "Firestore profiles joined to RevenueCat" },
   { id: "growth", label: "Active subscriptions (daily)", body: "An exact RevenueCat Overview snapshot taken each UTC day the dashboard refreshes. Missed days and earlier history are never invented.", source: "RevenueCat Overview metrics, stored by this dashboard" },
 ];
 

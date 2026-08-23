@@ -26,7 +26,7 @@ import { fetchAllMembers, fetchRevenueCatMembers, fetchRevenueCatOwnerMetrics } 
 import { fetchAppTelemetry, fetchAppleAdsReport } from "@/lib/adminAppData";
 import { normalizeMember } from "@/lib/adminMetrics";
 import { FIXTURES_ON } from "@/lib/devFixtures";
-import { ACQUISITION_RELAUNCH_DATE, acquisitionRange } from "./Acquisition";
+import { acquisitionRange } from "./Acquisition";
 import { RANGE_PRESETS, customRange, previousRange, rangeForPreset, rangeLabel } from "@/lib/adminRange";
 import Pulse from "./Pulse";
 import Revenue from "./Revenue";
@@ -43,7 +43,7 @@ import { Button, Card, Chip, ErrorState, IconButton, Icons, Segmented, relativeT
 export const PAGES = [
   { id: "pulse", label: "Pulse", hint: "Is everything okay?", key: "p", icon: Icons.pulse },
   { id: "revenue", label: "Revenue", hint: "Money, renewals, refunds", key: "r", icon: Icons.revenue },
-  { id: "acquisition", label: "Acquisition", hint: "Apple Ads → members", key: "a", icon: Icons.acquisition },
+  { id: "acquisition", label: "Acquisition", hint: "Apple Ads → payments", key: "a", icon: Icons.acquisition },
   { id: "coach", label: "Coach Mia", hint: "Inbox and owner replies", key: "c", icon: Icons.coach },
   { id: "members", label: "Members", hint: "Every person, live", key: "m", icon: Icons.members },
   { id: "retention", label: "Retention", hint: "Who stays, who drifts", key: "t", icon: Icons.retention },
@@ -249,7 +249,6 @@ function fixtureSeries(range, base, jitter, seed = 1) {
 async function fixtureOwnerMetrics(range, factor = 1) {
   const rev = fixtureSeries(range, 16 * factor, 14, 3);
   const total = rev.reduce((s, p) => s + p.value, 0);
-  const fixtureTrials = rev.map((point) => ({ ...point, value: point.date >= ACQUISITION_RELAUNCH_DATE ? 1 : 0 }));
   return {
     source: "RevenueCat API v2 fixture",
     fetchedAt: new Date().toISOString(),
@@ -259,48 +258,34 @@ async function fixtureOwnerMetrics(range, factor = 1) {
       lifetimeGrossRevenue: { available: true, value: 16222.59, definition: "Gross production App Store revenue since January 1, 2020.", source: "RevenueCat Revenue chart" },
       lifetimeTransactions: { available: true, value: 658 },
       activeSubscriptions: { available: true, value: Math.round(20 * factor), definition: "Current active paid subscriptions in RevenueCat.", source: "RevenueCat Overview metrics" },
-      activeTrials: { available: true, value: Math.round(8 * factor), definition: "Current active trials in RevenueCat.", source: "RevenueCat Overview metrics" },
       paidSetToRenew: { available: true, value: Math.round(18 * factor), definition: "Current production App Store paid subscriptions that are active and set to renew.", source: "RevenueCat Subscription Status chart" },
-      trialsSetToRenew: { available: true, value: Math.round(4 * factor), definition: "Current production App Store trials that are active and set to renew." },
-      activePremium: { available: true, value: Math.round(28 * factor) },
-      trialsStarted: { available: true, value: Math.round(8 * factor), definition: "Trials whose trial start date falls inside the selected UTC date range." },
-      trialsSinceRelaunch: { available: true, value: Math.round(8 * factor), definition: "Every trial started since free trials launched on August 15, 2026." },
-      trialsCanceled: { available: true, value: 4 },
-      trialsConvertedToPaid: { available: true, value: Math.round(3 * factor) },
-      cohortTrialConversions: { available: true, value: 3, cohortStarts: 8 },
-      pendingTrialOutcomes: { available: true, value: 3 },
-      trialExpirations: { available: true, value: 2 },
-      trialConversionRate: { available: true, value: 37.5 * factor, definition: "Converted trials divided by trial starts in RevenueCat's matched conversion cohort." },
-      firstPaidCustomers: { available: true, value: Math.round(5 * factor), direct: 2, trialConversions: 3, definition: "Subscriptions whose first successful payment occurred inside the selected UTC date range." },
-      activeCancellations: { available: true, value: 6, paid: 2, trials: 4, definition: "Active subscriptions and trials that still provide access but are set to cancel." },
+      firstPayments: { available: true, value: Math.round(5 * factor), definition: "Subscriptions whose first successful charge occurred inside the selected UTC date range." },
+      activeCancellations: { available: true, value: 2, definition: "Active paid subscriptions that still provide access but have renewal switched off." },
       refundedTransactions: { available: true, value: 0, paidTransactions: 16, refundRate: 0, definition: "Paid transactions from the selected range that have since been refunded." },
       mrr: { available: true, value: 783.67 * factor, setToRenew: 650 * factor, setToCancel: 100 * factor, billingIssue: 33.67 * factor, definition: "Current gross monthly recurring revenue before taxes and store commission." },
       arr: { available: true, value: 9404.1 * factor, definition: "Current gross annual recurring revenue before taxes and store commission." },
       newCustomers: { available: true, value: Math.round(132 * factor), definition: "Customers first seen by RevenueCat in its displayed period." },
       activeCustomers: { available: true, value: Math.round(205 * factor), definition: "Customers active in RevenueCat during its displayed period." },
-      appleAttributedTrialsStarted: { available: true, value: Math.round(5 * factor) },
-      appleAttributedFirstPaidCustomers: { available: true, value: Math.round(4 * factor) },
+      appleAttributedPayments: { available: true, value: Math.round(4 * factor) },
     },
     series: {
       grossRevenueDaily: rev,
-      trialsStartedDaily: fixtureTrials,
-      firstPaidCustomersDaily: fixtureSeries(range, 0.2 * factor, 0.4, 7).map((p) => ({ ...p, value: Math.round(p.value) })),
+      firstPaymentsDaily: fixtureSeries(range, 0.2 * factor, 0.4, 7).map((p) => ({ ...p, value: Math.round(p.value) })),
     },
     geography: { available: true, countries: [
-      { code: "US", name: "United States", paid: 18, trials: 4, activePremium: 22 },
-      { code: "AE", name: "United Arab Emirates", paid: 1, trials: 0, activePremium: 1 },
-      { code: "AL", name: "Albania", paid: 1, trials: 0, activePremium: 1 },
-      { code: "AU", name: "Australia", paid: 0, trials: 2, activePremium: 2 },
+      { code: "US", name: "United States", paid: 18, activeSubscriptions: 18 },
+      { code: "AE", name: "United Arab Emirates", paid: 1, activeSubscriptions: 1 },
+      { code: "AL", name: "Albania", paid: 1, activeSubscriptions: 1 },
     ] },
-    growth: { available: true, points: Array.from({ length: 14 }, (_, i) => ({ date: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10), activePremium: 13 + i, paid: 10 + Math.round(i * 0.7), trials: 3 + Math.round(i * 0.3), mrr: 600 + i * 14, arr: 7200 + i * 168 })) },
+    growth: { available: true, points: Array.from({ length: 14 }, (_, i) => ({ date: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10), activeSubscriptions: 10 + Math.round(i * 0.7), paid: 10 + Math.round(i * 0.7), mrr: 600 + i * 14, arr: 7200 + i * 168 })) },
     acquisition: { available: true, historyRange: { startDate: "2024-08-15", endDate: range.endDate }, presets: Object.fromEntries(["today", "sinceRelaunch", "allTime"].map((preset) => {
       const r = acquisitionRange(preset, "2024-08-15");
-      const attributedTrials = preset === "today" ? 1 : 4;
-      const mk = (trialStarts) => ({ trialStarts, firstPaid: 0, directFirstPaid: 0, trialConversions: 0, introductoryFirstPaid: 0, cohortStarts: trialStarts, cohortConversions: 0, pendingTrialOutcomes: trialStarts, trialToPaidRate: null });
-      return [preset, { available: true, scope: { startDate: r.startDate, endDate: r.endDate }, totals: mk(attributedTrials), campaigns: [
-        { campaignId: "1", campaignName: "US | Competitor | Exact", ...mk(0) },
-        { campaignId: "2", campaignName: "US | Category | Exact", ...mk(attributedTrials) },
-        { campaignId: "3", campaignName: "US | Discovery | Search Match", ...mk(0) },
+      const attributed = preset === "today" ? 1 : preset === "allTime" ? 7 : 4;
+      const payments = preset === "today" ? 1 : preset === "allTime" ? 10 : 5;
+      return [preset, { available: true, scope: { startDate: r.startDate, endDate: r.endDate }, totals: { payments, attributedPayments: attributed, unattributedPayments: payments - attributed }, campaigns: [
+        { campaignId: "1", campaignName: "US | Competitor | Exact", payments: 1 },
+        { campaignId: "2", campaignName: "US | Category | Exact", payments: Math.max(0, attributed - 2) },
+        { campaignId: "3", campaignName: "US | Discovery | Search Match", payments: 1 },
       ] }];
     })) },
   };
@@ -408,10 +393,10 @@ export default function AdminDashboard() {
         const fixtureActive = next.slice(0, 26).map((member, index) => ({
           id: member.id, identityIds: [member.id], email: member.email, displayName: member.name,
           lastSeenAt: member.lastSeenAt?.toISOString() || null, isActivePremium: true,
-          phase: index < 20 ? "paid" : "trial", state: index < 20 ? "paid" : "trial",
-          subscription: { autoRenewalStatus: "will_renew", status: index < 20 ? "active" : "trialing", productId: "product.PelvicFloor.Yearly", currentPeriodEndsAt: new Date(Date.now() + (index * 11 + 3) * 86400000).toISOString() },
+          phase: "paid", state: "paid",
+          subscription: { autoRenewalStatus: "will_renew", status: "active", productId: "product.PelvicFloor.MonthlySub", currentPeriodEndsAt: new Date(Date.now() + (index * 11 + 3) * 86400000).toISOString() },
         }));
-        nextMembership = { source: "fixture", fetchedAt: Date.now(), customers: fixtureActive, totals: { activePremium: 26, paid: 20, trials: 6, syncedActivePremium: 26, syncedPaid: 20, syncedTrials: 6, canceledWithAccess: 1, openedToday: 3, opened7Days: 10 } };
+        nextMembership = { source: "fixture", fetchedAt: Date.now(), customers: fixtureActive, totals: { paid: 26, syncedPaid: 26, activeAccess: 26, legacyAccess: 0, canceledPaidWithAccess: 1, openedToday: 3, opened7Days: 10 } };
         nextOwner = await fixtureOwnerMetrics(range, 1);
         nextPrev = compare ? await fixtureOwnerMetrics(prev, 0.88) : null;
         nextApple = f.fixtureAppleReport(range);
@@ -482,14 +467,14 @@ export default function AdminDashboard() {
   } else if (!isAdmin) {
     body = <Gate title="This account does not have access" description={`You are signed in as ${user?.email || "an account"}, which is not the owner account.`} footnote={`Only ${ADMIN_EMAIL} can open this dashboard.`}><Button variant="ghost" onClick={endSession}>Sign out</Button></Gate>;
   } else {
-    const shared = { range, compare, ownerMetrics, ownerPrevious, ownerMetricsError, appleReport, appleError, membership, membershipError, telemetry, now, user, reloadToken, members: memberViews.activeMembers, allPeople: memberViews.allPeople, onOpenMember: openMember, onGo: goTo, onRetry: load, dataState };
+    const shared = { range, compare, ownerMetrics, ownerPrevious, ownerMetricsError, appleReport, appleError, membership, membershipError, telemetry, now, user, reloadToken, members: memberViews.paidMembers, allPeople: memberViews.allPeople, onOpenMember: openMember, onGo: goTo, onRetry: load, dataState };
     let content;
     if (dataState === "error") content = <Card pad><ErrorState title="The member list did not load" description={dataError} onRetry={load} /></Card>;
     else if (page === "pulse") content = <Pulse {...shared} />;
     else if (page === "revenue") content = <Revenue {...shared} />;
     else if (page === "acquisition") content = <Acquisition {...shared} />;
     else if (page === "coach") content = <CoachInbox {...shared} />;
-    else if (page === "members") content = <Members {...shared} activeTotal={membership?.totals?.activePremium} onPatched={patchMember} inspectedId={inspected?.id} />;
+    else if (page === "members") content = <Members {...shared} activeTotal={membership?.totals?.paid} onPatched={patchMember} inspectedId={inspected?.id} />;
     else if (page === "retention") content = <Retention {...shared} />;
     else if (page === "programs") content = <Programs />;
     else if (page === "definitions") content = <Definitions ownerMetrics={ownerMetrics} />;
@@ -541,7 +526,7 @@ export default function AdminDashboard() {
 }
 
 /* -------------------------------------------------------------------------
-   Joining the app profile to the RevenueCat customer (unchanged logic)
+   Joining the app profile to the RevenueCat customer
    ------------------------------------------------------------------------- */
 
 function joinMembership(appMembers, report) {
@@ -578,13 +563,13 @@ function joinMembership(appMembers, report) {
     };
   };
   const allPeople = appMembers.map((member) => merge(member, customerFor(member)));
-  const activeMembers = customers.filter((customer) => customer.isActivePremium === true).map((customer) => {
+  const paidMembers = customers.filter((customer) => customer.isActivePremium === true && customer.phase === "paid").map((customer) => {
     const profile = profileFor(customer);
     if (profile) return merge(profile, customer);
     const synthetic = normalizeMember({ id: customer.id, name: customer.displayName, email: customer.email, platform: "ios", lastActiveAt: customer.lastSeenAt, appVersion: customer.appVersion });
     return { ...merge(synthetic, customer), isRevenueCatOnly: true };
   });
-  return { activeMembers, allPeople };
+  return { paidMembers, allPeople };
 }
 
 function describeAuthError(error) {

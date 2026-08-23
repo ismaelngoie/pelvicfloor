@@ -10,9 +10,7 @@ import {
 
 // RevenueCat answers two different questions here:
 //
-//  1. RevenueCat Overview is the authoritative business headline. Its active
-//     subscription and trial cards include every unexpired subscription that
-//     still provides access, including canceled and grace-period access.
+//  1. RevenueCat Overview is the authoritative paid-subscription headline.
 //  2. The subscriptions endpoint verifies individual Firestore profiles so
 //     support can see which synced app users belong in Active Members.
 //
@@ -83,16 +81,16 @@ export async function onRequestPost({ request, env }) {
     const active = inspected.filter((customer) => customer.isActivePremium);
     const value = {
       source: "RevenueCat API v2",
-      definition: "Production App Store trial or paid subscription that currently gives access",
+      definition: "Production App Store subscription access verified for support, with paid membership reported separately",
       fetchedAt: Date.now(),
       projectId,
       headline,
       customers: inspected,
       batchTotals: {
         profilesChecked: inspected.length,
-        activePremium: active.length,
+        activeAccess: active.length,
         paid: active.filter((customer) => customer.phase === "paid").length,
-        trials: active.filter((customer) => customer.phase === "trial").length,
+        legacyAccess: active.filter((customer) => customer.phase !== "paid").length,
         canceledWithAccess: inspected.filter((customer) => customer.state === "canceled_with_access").length,
       },
     };
@@ -123,17 +121,14 @@ async function fetchOverviewHeadline(apiKey, projectId) {
     `/v2/projects/${encodeURIComponent(projectId)}/metrics/overview?currency=USD`,
   );
   const paidMetric = overviewMetric(payload, ["active_subscriptions"]);
-  const trialMetric = overviewMetric(payload, ["active_trials"]);
-  if (!paidMetric || !trialMetric) {
+  if (!paidMetric) {
     const error = new Error("Active subscription totals were missing from RevenueCat Overview.");
     error.code = "invalid_chart";
     throw error;
   }
   return {
-    activePremium: paidMetric.value + trialMetric.value,
     paid: paidMetric.value,
-    trials: trialMetric.value,
-    lastComputedAt: [paidMetric.lastUpdatedAt, trialMetric.lastUpdatedAt].filter(Boolean).sort().at(-1) || null,
+    lastComputedAt: paidMetric.lastUpdatedAt || null,
   };
 }
 

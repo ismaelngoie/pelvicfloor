@@ -50,7 +50,7 @@ function Overview({ member, detail, onPatched, onReload }) {
         <Fact label="Last open" value={formatRelativeDay(member.lastSeenAt)} />
         <Fact label="Joined" value={formatDate(member.joinedAt, "—")} />
         <Fact label="App" value={member.appVersion || "—"} />
-        <Fact label={sub?.status === "trialing" || member.premiumPhase === "trial" ? "Trial ends" : "Renews"} value={sub?.currentPeriodEndsAt ? shortDate(sub.currentPeriodEndsAt.slice(0, 10)) : "—"} />
+        <Fact label={member.revenueCat?.isRenewing === true ? "Renews" : "Current access ends"} value={sub?.currentPeriodEndsAt ? shortDate(sub.currentPeriodEndsAt.slice(0, 10)) : "—"} />
         <Fact label="Product" value={sub?.productId ? sub.productId.replace(/^product\./i, "") : "—"} />
         <Fact label="Renewal" value={sub?.autoRenewalStatus ? sub.autoRenewalStatus.replace(/_/g, " ") : "—"} />
       </div>
@@ -213,7 +213,7 @@ export default function MemberInspector({ user, member, onClose, onPatched }) {
           <IconButton label="Close member details" onClick={onClose}><Icons.close /></IconButton>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-          <Pill tone={member.premiumPhase === "paid" ? "good" : member.premiumPhase === "trial" ? "accent" : "neutral"} dot>{member.premiumPhase === "paid" ? "Paid" : member.premiumPhase === "trial" ? "Trial" : member.premiumState === "canceled_with_access" ? "Canceled · access" : "No access"}</Pill>
+          <Pill tone={member.premiumPhase === "paid" ? member.revenueCat?.isRenewing === false ? "warn" : "good" : member.isActivePremium ? "accent" : "neutral"} dot>{member.premiumPhase === "paid" ? member.revenueCat?.isRenewing === false ? "Paid · renewal off" : "Paid" : member.isActivePremium ? "Access only" : "No payment"}</Pill>
           {member.goalTitle ? <Pill>{member.goalTitle}</Pill> : null}
           <Pill>{Number.isFinite(member.programDay) ? `Day ${member.programDay}` : "Not started"}</Pill>
           <Pill>{formatCount(member.streak)}-day streak</Pill>

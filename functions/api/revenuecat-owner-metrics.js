@@ -17,9 +17,9 @@ import {
 //
 // Every number keeps its RevenueCat definition attached. In particular:
 // - Revenue is gross customer spend before estimated tax/store commission.
-// - "Set to cancel" is a current, still-active subscription/trial snapshot.
-// - Trial Conversion uses RevenueCat's matched trial cohort; event-period first
-//   payments remain a separate metric and are never divided by new-trial events.
+// - "Set to cancel" is a current, still-active paid-subscription snapshot.
+// - First payments come from RevenueCat's New Paid Subscriptions chart. They
+//   are not inferred from installs, customer profiles, or webhook row counts.
 // - Revenue is read from the same realtime metric that powers RevenueCat's
 //   Overview, so the selected inclusive UTC dates reconcile exactly.
 //
@@ -37,7 +37,7 @@ const MAX_CACHE_ENTRIES = 24;
 const GROWTH_COLLECTION = "adminOwnerDailyOverviewMetrics";
 const MAX_GROWTH_POINTS = 3660;
 const LIFETIME_REVENUE_START = "2020-01-01";
-const ACQUISITION_RELAUNCH_START = "2026-08-15";
+const ACQUISITION_BASELINE_START = "2026-08-15";
 const CHART_OPTIONS_CACHE_MS = 10 * 60 * 1000;
 const SUPPORTED_CURRENCIES = new Set([
   "USD", "EUR", "GBP", "AUD", "CAD", "JPY", "BRL", "KRW", "CNY", "MXN", "INR", "IDR", "SGD", "PHP", "RUB",
@@ -176,14 +176,17 @@ async function comparisonReport({ apiKey, projectId, currency, range, env }) {
 async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
   const tracker = { attempted: 0, succeeded: 0 };
   const errors = [];
-  // Free trials launched on August 15. Keep this one chart wide enough to
-  // answer both the selected dashboard range and the cumulative launch total
-  // without spending another RevenueCat request.
-  const trialHistoryRange = {
-    startDate: range.endDate >= ACQUISITION_RELAUNCH_START && range.startDate > ACQUISITION_RELAUNCH_START
-      ? ACQUISITION_RELAUNCH_START
-      : range.startDate,
-    endDate: range.endDate,
+  // Load the payment chart wide enough to serve the selected dashboard range
+  // and every acquisition preset. This is what keeps older direct-payment
+  // campaign conversions visible after the product switched billing models.
+  // Acquisition presets always end today, even when the owner is comparing a
+  // historical revenue window elsewhere in the admin. Otherwise the page
+  // could label an old date as "Today" and silently pair it with current Apple
+  // Ads data.
+  const acquisitionHistory = acquisitionHistoryRange(utcDate(Date.now()));
+  const paymentHistoryRange = {
+    startDate: range.startDate < acquisitionHistory.startDate ? range.startDate : acquisitionHistory.startDate,
+    endDate: acquisitionHistory.endDate,
   };
 
   const tasks = await Promise.all([
@@ -197,82 +200,48 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       projectWide: true,
     }), errors),
     capture("subscription_status", () => loadSubscriptionStatus(apiKey, projectId, currency, tracker), errors),
-    capture("trials_new", () => loadChart(apiKey, projectId, "trials_new", {
-      range: trialHistoryRange,
-      tracker,
-    }), errors),
-    capture("trial_conversion_rate", () => loadChart(apiKey, projectId, "trial_conversion_rate", {
-      range,
-      tracker,
-    }), errors),
     capture("refund_rate", () => loadChart(apiKey, projectId, "refund_rate", {
       range,
       tracker,
     }), errors),
     capture("actives_new", () => loadChart(apiKey, projectId, "actives_new", {
-      range,
+      range: paymentHistoryRange,
       tracker,
     }), errors),
   ]);
 
-  const [overviewResult, rangeRevenueResult, revenueResult, statusResult, trialsResult, conversionsResult, refundsResult, firstPaidResult] = tasks;
+  const [overviewResult, rangeRevenueResult, revenueResult, statusResult, refundsResult, firstPaidResult] = tasks;
   const overview = overviewResult || null;
   const revenue = revenueResult?.chart || null;
   const status = statusResult || null;
-  const trials = trialsResult?.chart || null;
-  const conversions = conversionsResult?.chart || null;
   const refundRate = refundsResult?.chart || null;
   const firstPaid = firstPaidResult?.chart || null;
 
   const overviewActiveSubscriptions = overviewMetric(overview, ["active_subscriptions"]);
-  const overviewActiveTrials = overviewMetric(overview, ["active_trials"]);
   const overviewMrr = overviewMetric(overview, ["mrr"]);
   const overviewNewCustomers = overviewMetric(overview, ["new_customers", "customers_new"]);
   const overviewActiveCustomers = overviewMetric(overview, ["active_customers", "active_users", "customers_active"]);
   const activeSubscriptions = overviewActiveSubscriptions.available
     ? overviewActiveSubscriptions.value
     : status?.paid?.total;
-  const activeTrials = overviewActiveTrials.available
-    ? overviewActiveTrials.value
-    : status?.trials?.total;
   const currentMrr = overviewMrr.available
     ? overviewMrr.value
     : monthlyFromAnnual(status?.arr?.total);
   const authoritativeRevenue = rangeRevenueValue(rangeRevenueResult);
   const chartRevenue = chartTotal(revenue, [/^revenue$/i, /gross revenue/i]);
   const revenueTotal = Number.isFinite(authoritativeRevenue) ? authoritativeRevenue : chartRevenue;
-  const trialsStarted = chartTotalInRange(trials, [/^new trials$/i, /^trial starts$/i], range);
-  const trialsSinceRelaunch = range.endDate >= ACQUISITION_RELAUNCH_START
-    ? chartTotalInRange(trials, [/^new trials$/i, /^trial starts$/i], {
-        startDate: ACQUISITION_RELAUNCH_START,
-        endDate: range.endDate,
-      })
-    : 0;
-  const cohortTrialStarts = chartTotal(conversions, [/^trial starts$/i]);
-  const trialConversions = chartTotal(conversions, [/^conversions$/i, /converted/i]);
-  const trialExpirations = chartTotal(conversions, [/^expirations$/i, /expired/i]);
-  const pendingTrials = chartTotal(conversions, [/^pending$/i]);
-  const conversionRate = chartSummaryValue(conversions, [/trial conversion rate/i, /^conversion rate/i]);
   const refundTransactions = chartTotal(refundRate, [/^refunded transactions$/i]);
   const paidTransactions = chartTotal(refundRate, [/^transactions$/i]);
   const refundPercentage = chartSummaryValue(refundRate, [/^refund rate$/i]);
-  const firstPaidTotal = chartTotal(firstPaid, [
+  const firstPaidTotal = chartTotalInRange(firstPaid, [
     /^total paid subscriptions$/i,
     /^total new paid subscriptions$/i,
     /^new paid subscriptions$/i,
     /^new actives$/i,
     /^total$/i,
-  ]);
-  const directSubscriptions = chartTotal(firstPaid, [/^direct subscriptions$/i, /^direct$/i]);
-  const paidTrialConversions = chartTotal(firstPaid, [/^trial conversions$/i]);
-  const introOffers = chartTotal(firstPaid, [/^intro offers$/i, /introductory offers/i]);
-  const productChanges = chartTotal(firstPaid, [/^product changes$/i]);
-  const resubscriptions = chartTotal(firstPaid, [/^resubscriptions$/i]);
-  const firstSuccessfulPayments = addAvailable(directSubscriptions, paidTrialConversions, introOffers);
-
-  const trialCancelCurrent = status?.trials?.setToCancel ?? null;
+  ], range);
+  const firstSuccessfulPayments = firstPaymentTotalInRange(firstPaid, range);
   const paidCancelCurrent = status?.paid?.setToCancel ?? null;
-  const activeCancelTotal = addAvailable(paidCancelCurrent, trialCancelCurrent);
 
   const metrics = {
     grossRevenue: valueMetric(revenueTotal, {
@@ -289,26 +258,9 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
         ? "RevenueCat Overview metrics (API v2)"
         : "RevenueCat Subscription Status chart (API v2 fallback)",
       unit: "subscriptions",
-      definition: "Current active paid subscriptions in RevenueCat, including subscriptions set to cancel or in a grace period while they still provide access. Trials are counted separately.",
+      definition: "Current active paid subscriptions in RevenueCat, including paid subscriptions set to cancel or in a billing grace period while access remains active.",
       period: overviewActiveSubscriptions.period || "P0D",
       asOf: overviewActiveSubscriptions.lastUpdatedAt || status?.paid?.asOf || null,
-    }),
-    activeTrials: valueMetric(activeTrials, {
-      source: overviewActiveTrials.available
-        ? "RevenueCat Overview metrics (API v2)"
-        : "RevenueCat Subscription Status chart (API v2 fallback)",
-      unit: "trials",
-      definition: "Current active trials in RevenueCat, including trials set to cancel or in a grace period while they still provide access.",
-      period: overviewActiveTrials.period || "P0D",
-      asOf: overviewActiveTrials.lastUpdatedAt || status?.trials?.asOf || null,
-    }),
-    activePremium: valueMetric(addAvailable(activeSubscriptions, activeTrials), {
-      source: "RevenueCat Overview metrics (API v2)",
-      unit: "subscriptions_and_trials",
-      definition: "Current active paid subscriptions plus active trials. It represents subscription access, not only subscriptions set to renew.",
-      paid: finiteOrNull(activeSubscriptions),
-      trials: finiteOrNull(activeTrials),
-      asOf: newestIso(overviewActiveSubscriptions.lastUpdatedAt, overviewActiveTrials.lastUpdatedAt, status?.paid?.asOf, status?.trials?.asOf),
     }),
     paidSetToRenew: valueMetric(status?.paid?.setToRenew, {
       source: "RevenueCat Subscription Status chart (API v2)",
@@ -316,68 +268,11 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       definition: "Current production App Store paid subscriptions that are active and set to renew.",
       asOf: status?.paid?.asOf || null,
     }),
-    trialsSetToRenew: valueMetric(status?.trials?.setToRenew, {
+    activeCancellations: valueMetric(paidCancelCurrent, {
       source: "RevenueCat Subscription Status chart (API v2)",
-      unit: "trials",
-      definition: "Current production App Store trials that are active and set to renew.",
-      asOf: status?.trials?.asOf || null,
-    }),
-    trialsStarted: valueMetric(trialsStarted, {
-      source: "RevenueCat New Trials chart (API v2)",
-      unit: "trials",
-      definition: "Trials whose trial start date falls inside the selected UTC date range.",
-      period: range,
-    }),
-    trialsSinceRelaunch: valueMetric(trialsSinceRelaunch, {
-      source: "RevenueCat New Trials chart (API v2)",
-      unit: "trials",
-      definition: "Every production App Store trial started since free trials launched on August 15, 2026, through the selected UTC end date.",
-      period: { startDate: ACQUISITION_RELAUNCH_START, endDate: range.endDate },
-    }),
-    trialsCanceled: valueMetric(trialCancelCurrent, {
-      source: "RevenueCat Subscription Status chart (API v2)",
-      unit: "trials",
-      definition: "Current unexpired production App Store trials with auto-renew disabled (Set to cancel). This is a current snapshot, not a historical cancellation count for the selected range.",
-      asOf: status?.trials?.asOf || null,
-    }),
-    trialsConvertedToPaid: valueMetric(paidTrialConversions, {
-      source: "RevenueCat New Paid Subscriptions chart (API v2, actives_new)",
-      unit: "trials",
-      definition: "Trial subscriptions whose first successful paid renewal occurred inside the selected UTC date range, regardless of when the customer was first seen.",
-      period: range,
-    }),
-    cohortTrialConversions: valueMetric(trialConversions, {
-      source: "RevenueCat Trial Conversion Rate chart (API v2)",
-      unit: "trials",
-      definition: "Matched trials in RevenueCat's selected conversion cohort that later converted to paid; recent cohorts can still be pending and can change later.",
-      period: range,
-      cohortStarts: finiteOrNull(cohortTrialStarts),
-    }),
-    pendingTrialOutcomes: valueMetric(pendingTrials, {
-      source: "RevenueCat Trial Conversion Rate chart (API v2)",
-      unit: "trials",
-      definition: "Trial starts in RevenueCat's selected conversion cohort that have not reached a final conversion or expiration outcome.",
-      period: range,
-    }),
-    trialExpirations: valueMetric(trialExpirations, {
-      source: "RevenueCat Trial Conversion Rate chart (API v2)",
-      unit: "trials",
-      definition: "Trial starts in RevenueCat's selected conversion cohort that expired without converting. This does not mean every expiration was an explicit user cancellation.",
-      period: range,
-    }),
-    trialConversionRate: valueMetric(conversionRate, {
-      source: "RevenueCat Trial Conversion Rate chart (API v2)",
-      unit: "percent",
-      definition: "Converted trials divided by trial starts in RevenueCat's matched conversion cohort; recent cohorts may still be pending.",
-      period: range,
-    }),
-    activeCancellations: valueMetric(activeCancelTotal, {
-      source: "RevenueCat Subscription Status chart (API v2)",
-      unit: "subscriptions_and_trials",
-      definition: "Current active production App Store paid subscriptions and trials that still provide access but are set to cancel.",
-      paid: finiteOrNull(paidCancelCurrent),
-      trials: finiteOrNull(trialCancelCurrent),
-      asOf: newestIso(status?.paid?.asOf, status?.trials?.asOf),
+      unit: "subscriptions",
+      definition: "Current active production App Store paid subscriptions that still provide access but have renewal switched off.",
+      asOf: status?.paid?.asOf || null,
     }),
     refundedTransactions: valueMetric(refundTransactions, {
       source: "RevenueCat Refund Rate chart (API v2)",
@@ -395,17 +290,11 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       reason: "RevenueCat's Refunds chart is visible in the dashboard but is not yet exposed by the public Charts API v2. No amount is inferred from refund counts.",
       period: range,
     }),
-    firstPaidCustomers: valueMetric(firstSuccessfulPayments, {
+    firstPayments: valueMetric(firstSuccessfulPayments, {
       source: "RevenueCat New Paid Subscriptions chart (API v2, actives_new)",
       unit: "new_paid_subscriptions",
-      definition: "Subscriptions whose first successful payment occurred inside the selected UTC date range. This is the exact event-period first-payment measure for acquisition cost and can differ from unique people if one person starts more than one subscription.",
+      definition: "Subscriptions whose first successful charge occurred inside the selected UTC date range. This is RevenueCat's exact event-period payment measure and can differ from unique people if one person starts more than one subscription.",
       period: range,
-      direct: finiteOrNull(directSubscriptions),
-      directSubscriptions: finiteOrNull(directSubscriptions),
-      trialConversions: finiteOrNull(paidTrialConversions),
-      introductoryOffers: finiteOrNull(introOffers),
-      productChanges: finiteOrNull(productChanges),
-      resubscriptions: finiteOrNull(resubscriptions),
       allNewPaidSubscriptions: finiteOrNull(firstPaidTotal),
     }),
     mrr: valueMetric(currentMrr, {
@@ -448,28 +337,12 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     }),
   };
 
-  const acquisitionRange = acquisitionHistoryRange(range.endDate);
-  const [adsTrialsResult, adsFirstPaidResult, adsConversionsResult, lifetimeRevenueResult] = await Promise.all([
-    capture("apple_search_ads_trials", () => loadAppleSearchAdsChart({
-      apiKey,
-      projectId,
-      loaded: trialsResult,
-      range: acquisitionRange,
-      tracker,
-      segmentCampaign: true,
-    }), errors),
+  const acquisitionRange = acquisitionHistory;
+  const [adsFirstPaidResult, lifetimeRevenueResult] = await Promise.all([
     capture("apple_search_ads_first_paid", () => loadAppleSearchAdsChart({
       apiKey,
       projectId,
       loaded: firstPaidResult,
-      range: acquisitionRange,
-      tracker,
-      segmentCampaign: true,
-    }), errors),
-    capture("apple_search_ads_trial_conversion", () => loadAppleSearchAdsChart({
-      apiKey,
-      projectId,
-      loaded: conversionsResult,
       range: acquisitionRange,
       tracker,
       segmentCampaign: true,
@@ -483,49 +356,27 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       tracker,
     }), errors),
   ]);
-  const adsTrials = adsTrialsResult?.chart || null;
   const adsFirstPaid = adsFirstPaidResult?.chart || null;
-  const adsConversions = adsConversionsResult?.chart || null;
   const lifetimeRevenue = lifetimeRevenueResult?.chart || null;
   const lifetimePeriod = { startDate: LIFETIME_REVENUE_START, endDate: range.endDate };
   const lifetimeRevenueTotal = chartTotal(lifetimeRevenue, [/^revenue$/i, /gross revenue/i]);
   const lifetimeTransactions = chartTotal(lifetimeRevenue, [/^transactions$/i]);
   const acquisition = buildAcquisitionPresets({
-    trialsChart: adsTrials,
-    firstPaidChart: adsFirstPaid,
-    conversionChart: adsConversions,
+    attributedPaymentsChart: adsFirstPaid,
+    storeWidePaymentsChart: firstPaid,
     historyRange: acquisitionRange,
   });
   const selectedAcquisition = buildAcquisitionWindow({
-    trialsChart: adsTrials,
-    firstPaidChart: adsFirstPaid,
-    conversionChart: adsConversions,
+    attributedPaymentsChart: adsFirstPaid,
+    storeWidePaymentsChart: firstPaid,
     range,
   });
-  const adsTrialsStarted = selectedAcquisition.totals.trialStarts;
-  const adsDirect = selectedAcquisition.totals.directFirstPaid;
-  const adsTrialConversions = selectedAcquisition.totals.trialConversions;
-  const adsIntroOffers = selectedAcquisition.totals.introductoryFirstPaid;
-  const adsProductChanges = selectedAcquisition.totals.productChanges;
-  const adsResubscriptions = selectedAcquisition.totals.resubscriptions;
-  const adsFirstPaidTotal = selectedAcquisition.totals.firstPaid;
-  metrics.appleAttributedTrialsStarted = valueMetric(adsTrialsStarted, {
-    source: "RevenueCat New Trials chart (Apple Search Ads attribution filter)",
-    unit: "trials",
-    period: range,
-    definition: "Trials started in the selected UTC date range and explicitly attributed by RevenueCat to Apple Search Ads.",
-  });
-  metrics.appleAttributedFirstPaidCustomers = valueMetric(adsFirstPaidTotal, {
+  const adsPaymentTotal = selectedAcquisition.totals.attributedPayments;
+  metrics.appleAttributedPayments = valueMetric(adsPaymentTotal, {
     source: "RevenueCat New Paid Subscriptions chart (Apple Search Ads attribution filter)",
     unit: "new_paid_subscriptions",
     period: range,
-    definition: "Subscriptions with their first successful payment in the selected UTC date range and explicit RevenueCat Apple Search Ads attribution.",
-    direct: finiteOrNull(adsDirect),
-    directSubscriptions: finiteOrNull(adsDirect),
-    trialConversions: finiteOrNull(adsTrialConversions),
-    introductoryOffers: finiteOrNull(adsIntroOffers),
-    productChanges: finiteOrNull(adsProductChanges),
-    resubscriptions: finiteOrNull(adsResubscriptions),
+    definition: "First successful subscription charges in the selected UTC date range that RevenueCat explicitly attributes to Apple Ads.",
   });
   metrics.lifetimeGrossRevenue = valueMetric(lifetimeRevenueTotal, {
     source: "RevenueCat Revenue chart (API v2, monthly lifetime view)",
@@ -545,7 +396,6 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
   const growth = await persistAndReadGrowth({
     env,
     paid: activeSubscriptions,
-    trials: activeTrials,
     mrr: currentMrr,
     arr: status?.arr?.total,
     currency,
@@ -556,13 +406,9 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     rangeRevenue: rangeRevenueCoverage(rangeRevenueResult),
     revenue: chartCoverage(revenueResult),
     subscriptionStatus: statusResult?.coverage || chartCoverage(statusResult),
-    newTrials: chartCoverage(trialsResult),
-    trialConversionRate: chartCoverage(conversionsResult),
     refundRate: chartCoverage(refundsResult),
     newPaidSubscriptions: chartCoverage(firstPaidResult),
-    appleSearchAdsTrials: chartCoverage(adsTrialsResult),
     appleSearchAdsNewPaidSubscriptions: chartCoverage(adsFirstPaidResult),
-    appleSearchAdsTrialConversion: chartCoverage(adsConversionsResult),
     lifetimeRevenue: chartCoverage(lifetimeRevenueResult),
   };
   const availableChartCount = Object.values(charts).filter((entry) => entry?.available).length;
@@ -589,7 +435,6 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       endDate: range.endDate,
       overviewLastUpdatedAt: newestIso(
         overviewActiveSubscriptions.lastUpdatedAt,
-        overviewActiveTrials.lastUpdatedAt,
         overviewMrr.lastUpdatedAt,
         overviewNewCustomers.lastUpdatedAt,
         overviewActiveCustomers.lastUpdatedAt,
@@ -602,29 +447,25 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     series: {
       grossRevenueDaily: chartSeries(revenue, [/^revenue$/i, /gross revenue/i]),
       lifetimeGrossRevenueMonthly: chartSeries(lifetimeRevenue, [/^revenue$/i, /gross revenue/i]),
-      trialsStartedDaily: chartSeries(trials, [/^new trials$/i, /^trial starts$/i]),
-      trialConversionsDaily: chartSeries(firstPaid, [/^trial conversions$/i]),
-      trialCohortConversionsDaily: chartSeries(conversions, [/^conversions$/i, /converted/i]),
-      pendingTrialOutcomesDaily: chartSeries(conversions, [/^pending$/i]),
-      firstPaidCustomersDaily: newPaidSeries(firstPaid),
+      firstPaymentsDaily: newPaidSeries(firstPaid)
+        .filter((point) => point.date >= range.startDate && point.date <= range.endDate),
     },
     growth,
     attribution: {
       appleSearchAds: {
         source: "RevenueCat Charts API v2 filtered by Attribution Source = Apple Search Ads",
-        definition: "Receipt outcomes RevenueCat explicitly attributed to Apple Search Ads. This is a confirmed-attribution subset of the all-App-Store totals and can exclude ad-driven outcomes when attribution data is unavailable.",
-        trialsStarted: metrics.appleAttributedTrialsStarted,
-        firstPaidCustomers: metrics.appleAttributedFirstPaidCustomers,
-        available: finiteOrNull(adsTrialsStarted) !== null && finiteOrNull(adsFirstPaidTotal) !== null,
+        definition: "First-payment receipts RevenueCat explicitly attributed to Apple Ads. This confirmed subset can exclude ad-driven payments when attribution data is unavailable.",
+        payments: metrics.appleAttributedPayments,
+        available: finiteOrNull(adsPaymentTotal) !== null,
       },
     },
     acquisition,
     geography: {
       source: "RevenueCat Subscription Status chart segmented by country (API v2)",
-      definition: "Country attached to current production App Store paid subscriptions and trials that are set to renew.",
+      definition: "Country attached to current production App Store paid subscriptions that are set to renew.",
       countries: status?.countries || [],
       available: Array.isArray(status?.countries),
-      asOf: newestIso(status?.paid?.asOf, status?.trials?.asOf),
+      asOf: status?.paid?.asOf || null,
       ...(Array.isArray(status?.countries) ? {} : {
         reason: "RevenueCat did not advertise or return country segmentation; no locations were inferred.",
       }),
@@ -641,25 +482,23 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
       errors,
       limitations: [
         "RevenueCat realtime metrics contain production receipt data and may revise historical periods after a refund or receipt update.",
-        "Trial Conversion Rate uses RevenueCat's matched trial cohort, not the calendar day on which payment occurred; use firstPaidCustomers for event-period acquisition cost.",
         "The current public API does not expose the newer Refunds-by-processing-date chart, so refunded gross amount is unavailable instead of estimated.",
-        "The current public API does not expose the historical Trial Cancellation chart; trialsCanceled is the exact current Set to cancel snapshot, not a historical range total.",
         "Country is RevenueCat subscription geography, not a precise GPS location. No personal address or device location is returned.",
-        "Apple Search Ads attribution is the confirmed RevenueCat-attributed subset; it must not replace the all-App-Store outcome totals when measuring the whole business.",
+        "Apple Ads attribution is the confirmed RevenueCat-attributed subset; it must not replace the all-App-Store payment total when measuring the whole business.",
         "Active-subscription growth records at most one RevenueCat Overview snapshot on UTC days when the owner dashboard refreshes. Missed and historical days are not fabricated or backfilled.",
       ],
     },
   };
 }
 
-// Previous-period deltas only need four range charts plus the authoritative
+// Previous-period deltas only need the revenue and first-payment charts plus
 // range-revenue metric. Keeping this path small
 // leaves the main Overview reconciliation inside RevenueCat's 25 request/minute
 // Charts & Metrics limit, even on the first uncached dashboard load.
 async function buildComparisonReport({ apiKey, projectId, currency, range }) {
   const tracker = { attempted: 0, succeeded: 0 };
   const errors = [];
-  const [rangeRevenueResult, revenueResult, trialsResult, conversionsResult, firstPaidResult] = await Promise.all([
+  const [rangeRevenueResult, revenueResult, firstPaidResult] = await Promise.all([
     capture("range_revenue", () => loadRangeRevenue(apiKey, projectId, currency, range, tracker), errors),
     capture("revenue", () => loadChart(apiKey, projectId, "revenue", {
       currency,
@@ -668,17 +507,10 @@ async function buildComparisonReport({ apiKey, projectId, currency, range }) {
       selectorIntent: "gross_revenue",
       projectWide: true,
     }), errors),
-    capture("trials_new", () => loadChart(apiKey, projectId, "trials_new", { range, tracker }), errors),
-    capture("trial_conversion_rate", () => loadChart(apiKey, projectId, "trial_conversion_rate", { range, tracker }), errors),
     capture("actives_new", () => loadChart(apiKey, projectId, "actives_new", { range, tracker }), errors),
   ]);
   const revenue = revenueResult?.chart || null;
-  const trials = trialsResult?.chart || null;
-  const conversions = conversionsResult?.chart || null;
   const firstPaid = firstPaidResult?.chart || null;
-  const paidTrialConversions = chartTotal(firstPaid, [/^trial conversions$/i]);
-  const directSubscriptions = chartTotal(firstPaid, [/^direct subscriptions$/i, /^direct$/i]);
-  const introOffers = chartTotal(firstPaid, [/^intro offers$/i, /introductory offers/i]);
   const authoritativeRevenue = rangeRevenueValue(rangeRevenueResult);
   const chartRevenue = chartTotal(revenue, [/^revenue$/i, /gross revenue/i]);
 
@@ -704,29 +536,11 @@ async function buildComparisonReport({ apiKey, projectId, currency, range }) {
         period: range,
         definition: "Gross RevenueCat revenue in the comparison UTC date range.",
       }),
-      trialsStarted: valueMetric(chartTotal(trials, [/^new trials$/i, /^trial starts$/i]), {
-        source: "RevenueCat New Trials chart (API v2)",
-        unit: "trials",
-        period: range,
-        definition: "Trials started in the comparison UTC date range.",
-      }),
-      trialsConvertedToPaid: valueMetric(paidTrialConversions, {
-        source: "RevenueCat New Paid Subscriptions chart (API v2)",
-        unit: "trials",
-        period: range,
-        definition: "Trial subscriptions whose first payment occurred in the comparison UTC date range.",
-      }),
-      firstPaidCustomers: valueMetric(addAvailable(directSubscriptions, paidTrialConversions, introOffers), {
+      firstPayments: valueMetric(firstPaymentTotalInRange(firstPaid, range), {
         source: "RevenueCat New Paid Subscriptions chart (API v2)",
         unit: "new_paid_subscriptions",
         period: range,
-        definition: "Subscriptions with their first successful payment in the comparison UTC date range.",
-      }),
-      trialConversionRate: valueMetric(chartSummaryValue(conversions, [/trial conversion rate/i, /^conversion rate/i]), {
-        source: "RevenueCat Trial Conversion Rate chart (API v2)",
-        unit: "percent",
-        period: range,
-        definition: "RevenueCat matched-cohort trial conversion rate for the comparison range.",
+        definition: "Subscriptions with their first successful charge in the comparison UTC date range.",
       }),
     },
     series: {
@@ -788,28 +602,25 @@ async function loadSubscriptionStatus(apiKey, projectId, currency, tracker) {
     return revenueCatGet(apiKey, chartPath(projectId, chartName, `?${params}`), tracker);
   };
 
-  const [paidChart, trialChart, arrChart] = await Promise.all([
+  const [paidChart, arrChart] = await Promise.all([
     fetchStatus("paid", { segmentCountry: true }),
-    fetchStatus("trials", { segmentCountry: true }),
     fetchStatus("arr"),
   ]);
 
   const paid = statusBreakdown(paidChart);
-  const trials = statusBreakdown(trialChart);
   const arr = statusBreakdown(arrChart);
   const countries = countrySegment
-    ? mergeCountries(countryRows(paidChart), countryRows(trialChart))
+    ? paidCountries(countryRows(paidChart))
     : null;
 
   return {
     paid,
-    trials,
     arr,
     countries,
     coverage: {
-      available: [paid, trials, arr].every((entry) => entry?.available),
+      available: [paid, arr].every((entry) => entry?.available),
       source: "subscription_status",
-      lastComputedAt: newestIso(paid.asOf, trials.asOf, arr.asOf),
+      lastComputedAt: newestIso(paid.asOf, arr.asOf),
       incompletePeriods: 0,
       countrySegmentation: countrySegment ? "available" : "unsupported",
     },
@@ -967,7 +778,7 @@ function appleSearchAdsCampaignSegment(options) {
   return String(id);
 }
 
-async function persistAndReadGrowth({ env, paid, trials, mrr, arr, currency }) {
+async function persistAndReadGrowth({ env, paid, mrr, arr, currency }) {
   const source = "Daily RevenueCat Overview snapshot stored in Cloud Firestore";
   if (!env?.FIREBASE_SERVICE_ACCOUNT) {
     return {
@@ -979,14 +790,12 @@ async function persistAndReadGrowth({ env, paid, trials, mrr, arr, currency }) {
   }
 
   const paidValue = finiteOrNull(paid);
-  const trialValue = finiteOrNull(trials);
-  const activePremium = addAvailable(paidValue, trialValue);
-  if (!Number.isFinite(activePremium)) {
+  if (!Number.isFinite(paidValue)) {
     return {
       available: false,
       source,
       points: [],
-      reason: "RevenueCat did not return both active subscription and active trial counts, so an incomplete daily snapshot was not stored.",
+      reason: "RevenueCat did not return the active paid-subscription count, so an incomplete daily snapshot was not stored.",
     };
   }
 
@@ -998,9 +807,8 @@ async function persistAndReadGrowth({ env, paid, trials, mrr, arr, currency }) {
     const token = await accessToken(account);
     const snapshot = {
       date,
-      activePremium,
+      activeSubscriptions: paidValue,
       paid: paidValue,
-      trials: trialValue,
       mrr: finiteOrNull(mrr),
       arr: finiteOrNull(arr),
       currency,
@@ -1019,7 +827,7 @@ async function persistAndReadGrowth({ env, paid, trials, mrr, arr, currency }) {
     return {
       available: true,
       source,
-      definition: "One exact UTC snapshot per day of active paid subscriptions and active trials from RevenueCat Overview. The same day's document is refreshed; prior days are never fabricated.",
+      definition: "One exact UTC snapshot per day of active paid subscriptions from RevenueCat Overview. The same day's document is refreshed; prior days are never fabricated.",
       collection: GROWTH_COLLECTION,
       snapshotDate: date,
       points,
@@ -1065,15 +873,13 @@ async function readGrowthSnapshots({ projectId, token }) {
 function growthPoint(fields) {
   if (!fields || typeof fields !== "object") return null;
   const date = firestoreValue(fields.date);
-  const activePremium = firestoreValue(fields.activePremium);
-  const paid = firestoreValue(fields.paid);
-  const trials = firestoreValue(fields.trials);
-  if (!validDate(date) || ![activePremium, paid, trials].every(Number.isFinite)) return null;
+  const paid = finiteOrNull(firestoreValue(fields.paid))
+    ?? finiteOrNull(firestoreValue(fields.activeSubscriptions));
+  if (!validDate(date) || !Number.isFinite(paid)) return null;
   return {
     date,
-    activePremium,
+    activeSubscriptions: paid,
     paid,
-    trials,
     mrr: finiteOrNull(firestoreValue(fields.mrr)),
     arr: finiteOrNull(firestoreValue(fields.arr)),
     currency: stringOrNullValue(firestoreValue(fields.currency)),
@@ -1140,28 +946,17 @@ function countryRows(chart) {
   return [...totals.values()];
 }
 
-function mergeCountries(paidRows, trialRows) {
-  if (!Array.isArray(paidRows) || !Array.isArray(trialRows)) return null;
-  const countries = new Map();
-  const add = (rows, key) => {
-    for (const row of rows) {
-      const current = countries.get(row.code) || {
-        code: row.code,
-        name: row.name,
-        paid: 0,
-        trials: 0,
-        activePremium: 0,
-      };
-      current[key] += row.value;
-      current.activePremium += row.value;
-      countries.set(row.code, current);
-    }
-  };
-  add(paidRows, "paid");
-  add(trialRows, "trials");
-  return [...countries.values()]
-    .filter((entry) => entry.activePremium > 0)
-    .sort((a, b) => b.activePremium - a.activePremium || a.name.localeCompare(b.name));
+function paidCountries(rows) {
+  if (!Array.isArray(rows)) return null;
+  return rows
+    .map((row) => ({
+      code: row.code,
+      name: row.name,
+      paid: row.value,
+      activeSubscriptions: row.value,
+    }))
+    .filter((entry) => entry.paid > 0)
+    .sort((a, b) => b.paid - a.paid || a.name.localeCompare(b.name));
 }
 
 function chartTotal(chart, patterns) {
@@ -1186,10 +981,33 @@ function chartTotalInRange(chart, patterns, range) {
     .reduce((sum, point) => sum + point.value, 0);
 }
 
-function buildAcquisitionPresets({ trialsChart, firstPaidChart, conversionChart, historyRange }) {
-  const sinceStart = historyRange.startDate > ACQUISITION_RELAUNCH_START
+function firstPaymentTotalInRange(chart, range) {
+  if (!chart || !range?.startDate || !range?.endDate) return null;
+  const direct = chartTotalInRange(chart, [/^direct subscriptions$/i, /^direct$/i], range);
+  const legacyFirstCharges = chartTotalInRange(chart, [/^trial conversions$/i], range);
+  const introductory = chartTotalInRange(chart, [/^intro offers$/i, /introductory offers/i], range);
+  const components = addAvailable(direct, legacyFirstCharges, introductory);
+  if (Number.isFinite(components)) return components;
+
+  const allNewPaid = chartTotalInRange(chart, [
+    /^total paid subscriptions$/i,
+    /^total new paid subscriptions$/i,
+    /^new paid subscriptions$/i,
+    /^new actives$/i,
+    /^total$/i,
+  ], range);
+  const productChanges = chartTotalInRange(chart, [/^product changes$/i], range);
+  const resubscriptions = chartTotalInRange(chart, [/^resubscriptions$/i], range);
+  if ([allNewPaid, productChanges, resubscriptions].every(Number.isFinite)) {
+    return Math.max(0, allNewPaid - productChanges - resubscriptions);
+  }
+  return allNewPaid;
+}
+
+function buildAcquisitionPresets({ attributedPaymentsChart, storeWidePaymentsChart, historyRange }) {
+  const sinceStart = historyRange.startDate > ACQUISITION_BASELINE_START
     ? historyRange.startDate
-    : ACQUISITION_RELAUNCH_START;
+    : ACQUISITION_BASELINE_START;
   const ranges = {
     today: { startDate: historyRange.endDate, endDate: historyRange.endDate },
     sinceRelaunch: { startDate: sinceStart, endDate: historyRange.endDate },
@@ -1198,97 +1016,75 @@ function buildAcquisitionPresets({ trialsChart, firstPaidChart, conversionChart,
   const presets = Object.fromEntries(Object.entries(ranges).map(([key, selectedRange]) => [
     key,
     buildAcquisitionWindow({
-      trialsChart,
-      firstPaidChart,
-      conversionChart,
+      attributedPaymentsChart,
+      storeWidePaymentsChart,
       range: selectedRange,
     }),
   ]));
   return {
     available: Object.values(presets).some((preset) => preset.available),
     source: "RevenueCat Charts API v2 filtered by Apple Search Ads and segmented by Apple Search Ads Campaign",
-    definition: "Campaign outcomes come from RevenueCat receipt history. First paid includes direct subscriptions without a trial, paid introductory offers, and trial conversions. Missing attribution is never assigned to a campaign.",
+    definition: "Campaign payments come from RevenueCat receipt history. Every subscription is counted when its first successful charge occurs. Missing attribution is never assigned to a campaign.",
     defaultPreset: "sinceRelaunch",
     historyRange,
     presets,
   };
 }
 
-function buildAcquisitionWindow({ trialsChart, firstPaidChart, conversionChart, range }) {
-  const trialStarts = segmentedMeasureTotals(trialsChart, [/^new trials$/i, /^trial starts$/i], range);
-  const firstPaid = segmentedMeasureTotals(firstPaidChart, [
+function buildAcquisitionWindow({ attributedPaymentsChart, storeWidePaymentsChart, range }) {
+  const allNewPaid = segmentedMeasureTotals(attributedPaymentsChart, [
     /^total paid subscriptions$/i,
     /^total new paid subscriptions$/i,
     /^new paid subscriptions$/i,
     /^new actives$/i,
     /^total$/i,
   ], range);
-  const directFirstPaid = segmentedMeasureTotals(firstPaidChart, [/^direct subscriptions$/i, /^direct$/i], range);
-  const trialConversions = segmentedMeasureTotals(firstPaidChart, [/^trial conversions$/i], range);
-  const introductoryFirstPaid = segmentedMeasureTotals(firstPaidChart, [/^intro offers$/i, /introductory offers/i], range);
-  const productChanges = segmentedMeasureTotals(firstPaidChart, [/^product changes$/i], range);
-  const resubscriptions = segmentedMeasureTotals(firstPaidChart, [/^resubscriptions$/i], range);
-  const cohortStarts = segmentedMeasureTotals(conversionChart, [/^trial starts$/i], range);
-  const cohortConversions = segmentedMeasureTotals(conversionChart, [/^conversions$/i, /converted/i], range);
-  const pendingTrialOutcomes = segmentedMeasureTotals(conversionChart, [/^pending$/i], range);
+  const directPayments = segmentedMeasureTotals(attributedPaymentsChart, [/^direct subscriptions$/i, /^direct$/i], range);
+  // RevenueCat includes first charges from older subscription configurations
+  // in this measure. It is intentionally folded into one payment total.
+  const legacyFirstCharges = segmentedMeasureTotals(attributedPaymentsChart, [/^trial conversions$/i], range);
+  const introductoryPayments = segmentedMeasureTotals(attributedPaymentsChart, [/^intro offers$/i, /introductory offers/i], range);
+  const productChanges = segmentedMeasureTotals(attributedPaymentsChart, [/^product changes$/i], range);
+  const resubscriptions = segmentedMeasureTotals(attributedPaymentsChart, [/^resubscriptions$/i], range);
 
   const rows = [];
-  applySegmentMetric(rows, trialStarts, "trialStarts");
-  applySegmentMetric(rows, firstPaid, "firstPaid");
-  applySegmentMetric(rows, directFirstPaid, "directFirstPaid");
-  applySegmentMetric(rows, trialConversions, "trialConversions");
-  applySegmentMetric(rows, introductoryFirstPaid, "introductoryFirstPaid");
+  applySegmentMetric(rows, allNewPaid, "allNewPaid");
+  applySegmentMetric(rows, directPayments, "directPayments");
+  applySegmentMetric(rows, legacyFirstCharges, "legacyFirstCharges");
+  applySegmentMetric(rows, introductoryPayments, "introductoryPayments");
   applySegmentMetric(rows, productChanges, "productChanges");
   applySegmentMetric(rows, resubscriptions, "resubscriptions");
-  applySegmentMetric(rows, cohortStarts, "cohortStarts");
-  applySegmentMetric(rows, cohortConversions, "cohortConversions");
-  applySegmentMetric(rows, pendingTrialOutcomes, "pendingTrialOutcomes");
 
-  const trialStartsAvailable = trialStarts !== null;
-  const firstPaidComponentsAvailable = [directFirstPaid, trialConversions, introductoryFirstPaid]
+  const paymentComponentsAvailable = [directPayments, legacyFirstCharges, introductoryPayments]
     .every((value) => value !== null);
-  const firstPaidCanSubtractMovements = firstPaid !== null && productChanges !== null && resubscriptions !== null;
-  const firstPaidAvailable = firstPaidComponentsAvailable || firstPaidCanSubtractMovements;
-  const conversionAvailable = cohortStarts !== null && cohortConversions !== null;
+  const paymentsCanSubtractMovements = allNewPaid !== null && productChanges !== null && resubscriptions !== null;
+  const attributedAvailable = paymentComponentsAvailable || paymentsCanSubtractMovements;
 
   const campaigns = rows.map((row) => {
-    const totalFirstPaid = firstPaidComponentsAvailable
-      ? metricOrZero(row.directFirstPaid) + metricOrZero(row.trialConversions) + metricOrZero(row.introductoryFirstPaid)
-      : Math.max(0, metricOrZero(row.firstPaid) - metricOrZero(row.productChanges) - metricOrZero(row.resubscriptions));
-    const starts = trialStartsAvailable ? metricOrZero(row.trialStarts) : null;
-    const matchedStarts = conversionAvailable ? metricOrZero(row.cohortStarts) : null;
-    const matchedConversions = conversionAvailable ? metricOrZero(row.cohortConversions) : null;
+    const payments = paymentComponentsAvailable
+      ? metricOrZero(row.directPayments) + metricOrZero(row.legacyFirstCharges) + metricOrZero(row.introductoryPayments)
+      : Math.max(0, metricOrZero(row.allNewPaid) - metricOrZero(row.productChanges) - metricOrZero(row.resubscriptions));
     return {
       campaignId: row.campaignId,
       campaignName: row.campaignName,
       unidentified: row.unidentified,
-      trialStarts: starts,
-      firstPaid: firstPaidAvailable ? totalFirstPaid : null,
-      allNewPaidSubscriptions: firstPaid !== null ? metricOrZero(row.firstPaid) : null,
-      directFirstPaid: directFirstPaid !== null ? metricOrZero(row.directFirstPaid) : null,
-      trialConversions: trialConversions !== null ? metricOrZero(row.trialConversions) : null,
-      introductoryFirstPaid: introductoryFirstPaid !== null ? metricOrZero(row.introductoryFirstPaid) : null,
-      productChanges: productChanges !== null ? metricOrZero(row.productChanges) : null,
-      resubscriptions: resubscriptions !== null ? metricOrZero(row.resubscriptions) : null,
-      cohortStarts: matchedStarts,
-      cohortConversions: matchedConversions,
-      pendingTrialOutcomes: pendingTrialOutcomes !== null ? metricOrZero(row.pendingTrialOutcomes) : null,
-      trialToPaidRate: matchedStarts > 0 ? matchedConversions / matchedStarts : null,
+      payments: attributedAvailable ? payments : null,
     };
   }).sort((left, right) => (
     Number(left.unidentified) - Number(right.unidentified)
-    || metricOrZero(right.firstPaid) - metricOrZero(left.firstPaid)
-    || metricOrZero(right.trialStarts) - metricOrZero(left.trialStarts)
+    || metricOrZero(right.payments) - metricOrZero(left.payments)
     || left.campaignName.localeCompare(right.campaignName)
   ));
 
-  const total = (field, available) => available
-    ? campaigns.reduce((sum, campaign) => sum + metricOrZero(campaign[field]), 0)
+  const attributedPayments = attributedAvailable
+    ? campaigns.reduce((sum, campaign) => sum + metricOrZero(campaign.payments), 0)
     : null;
-  const totalCohortStarts = total("cohortStarts", conversionAvailable);
-  const totalCohortConversions = total("cohortConversions", conversionAvailable);
+  const observedStoreWide = firstPaymentTotalInRange(storeWidePaymentsChart, range);
+  const totalPayments = Number.isFinite(observedStoreWide) && Number.isFinite(attributedPayments)
+    ? Math.max(observedStoreWide, attributedPayments)
+    : observedStoreWide;
   return {
-    available: trialStartsAvailable && firstPaidAvailable,
+    available: Number.isFinite(totalPayments) && Number.isFinite(attributedPayments),
     scope: {
       startDate: range.startDate,
       endDate: range.endDate,
@@ -1298,21 +1094,15 @@ function buildAcquisitionWindow({ trialsChart, firstPaidChart, conversionChart, 
       includesPartialToday: range.endDate === utcDate(Date.now()),
     },
     totals: {
-      trialStarts: total("trialStarts", trialStartsAvailable),
-      firstPaid: total("firstPaid", firstPaidAvailable),
-      directFirstPaid: total("directFirstPaid", directFirstPaid !== null),
-      trialConversions: total("trialConversions", trialConversions !== null),
-      introductoryFirstPaid: total("introductoryFirstPaid", introductoryFirstPaid !== null),
-      productChanges: total("productChanges", productChanges !== null),
-      resubscriptions: total("resubscriptions", resubscriptions !== null),
-      cohortStarts: totalCohortStarts,
-      cohortConversions: totalCohortConversions,
-      pendingTrialOutcomes: total("pendingTrialOutcomes", pendingTrialOutcomes !== null),
-      trialToPaidRate: totalCohortStarts > 0 ? totalCohortConversions / totalCohortStarts : null,
+      payments: totalPayments,
+      attributedPayments,
+      unattributedPayments: Number.isFinite(totalPayments) && Number.isFinite(attributedPayments)
+        ? Math.max(0, totalPayments - attributedPayments)
+        : null,
     },
     campaigns,
-    ...(trialStartsAvailable && firstPaidAvailable ? {} : {
-      reason: "RevenueCat did not return both campaign-segmented trial starts and first-paid subscriptions. No missing value was treated as zero.",
+    ...(Number.isFinite(totalPayments) && Number.isFinite(attributedPayments) ? {} : {
+      reason: "RevenueCat did not return both the store-wide first-payment total and the Apple-attributed campaign subset. No missing value was treated as zero.",
     }),
   };
 }
@@ -1501,13 +1291,12 @@ function subscriptionMeasureSelector(options) {
     const choices = selectorChoices(selector);
     const values = {
       paid: choiceId(choices, [/^active subscriptions$/i, /^paid subscriptions$/i], ["active_subscriptions"]),
-      trials: choiceId(choices, [/^active trials$/i], ["active_trials"]),
       mrr: choiceId(choices, [/^mrr$/i, /monthly recurring revenue/i], ["mrr"]),
       arr: choiceId(choices, [/^arr$/i, /annual recurring revenue/i], ["arr"]),
     };
     if (Object.values(values).every(Boolean)) return { name, values };
   }
-  throw schemaError("subscription_status", "RevenueCat did not advertise paid, trial, MRR, and ARR selectors.");
+  throw schemaError("subscription_status", "RevenueCat did not advertise paid-subscription, MRR, and ARR selectors.");
 }
 
 function selectorFor(options, patterns, excludedNames = new Set()) {
@@ -1852,6 +1641,7 @@ export const __test = {
   buildAcquisitionWindow,
   campaignSegmentInfo,
   chartTotalInRange,
+  firstPaymentTotalInRange,
   monthlyFromAnnual,
   overviewMetric,
   rangeRevenueValue,
