@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Card, CardHead, KpiTile, LineChart, RankedBars, Unavailable, Icons, money, count, ratio, shortDate } from "./ui";
 import { ANNOTATIONS } from "@/lib/adminAnnotations";
+import { paymentCampaignSpendCoverage } from "@/lib/adminAcquisitionAccuracy";
 import { fillDaily, rangeLabel } from "@/lib/adminRange";
 import { displayName, startOfDay } from "@/lib/adminMetrics";
 
@@ -80,10 +81,22 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
   const appleCurrency = appleReport?.currency || appleReport?.totals?.currency || null;
   const appleMoneyCurrency = appleCurrency || currency;
   const appScopeVerified = appleReport?.app?.filterApplied !== false;
-  const costReady = spend !== null && appScopeVerified && appleCurrency === currency;
+  const selectedAcquisition = ownerMetrics?.acquisition?.selected || null;
+  const selectedAttributed = Number.isFinite(Number(selectedAcquisition?.totals?.attributedPayments))
+    ? Number(selectedAcquisition.totals.attributedPayments)
+    : null;
+  const selectedScopeMatches = selectedAcquisition?.scope?.startDate === range.startDate
+    && selectedAcquisition?.scope?.endDate === range.endDate;
+  const campaignSpendCoverage = paymentCampaignSpendCoverage(appleReport?.campaigns, selectedAcquisition?.campaigns);
+  const costReady = spend !== null && appScopeVerified && appleCurrency === currency
+    && selectedAcquisition?.available === true && selectedScopeMatches
+    && selectedAttributed === attributedPayments && campaignSpendCoverage.complete;
   const cpa = costReady && attributedPayments > 0 ? spend / attributedPayments : null;
-  const cpi = spend !== null && installs > 0 ? spend / installs : null;
-  const installToPaid = attributedPayments !== null && installs > 0 ? attributedPayments / installs : null;
+  const cpi = costReady && installs > 0 ? spend / installs : null;
+  const installToPaid = costReady && installs > 0 ? attributedPayments / installs : null;
+  const costCoverageReason = !campaignSpendCoverage.complete
+    ? `${count(campaignSpendCoverage.unmatchedPayments)} attributed payment${campaignSpendCoverage.unmatchedPayments === 1 ? "" : "s"} lack Apple campaign history`
+    : "Source coverage does not align";
 
   const revenueSeries = useMemo(() => fillDaily(ownerMetrics?.series?.grossRevenueDaily, range), [ownerMetrics, range]);
   const prevSeries = useMemo(() => (compare && ownerPrevious ? fillDaily(ownerPrevious?.series?.grossRevenueDaily, { startDate: ownerPrevious.scope.startDate, endDate: ownerPrevious.scope.endDate, days: range.days }) : []), [compare, ownerPrevious, range.days]);
@@ -135,8 +148,8 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
         <KpiTile label="MRR" value={money(mrr, currency, { compact: true, rounded: true })} current={mrr} previous={compare ? mrrPrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkMrr.length > 1 ? sparkMrr : null} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "mrr")} onClick={() => onGo("revenue")} />
         <KpiTile label="Active paid subscriptions" value={count(active)} current={active} previous={compare ? activePrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkActive.length > 1 ? sparkActive : null} stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "activeSubscriptions")} onClick={() => onGo("members")} />
         <KpiTile label="First payments" value={count(payments)} current={payments} previous={compare ? paymentsPrev : null} compareLabel="vs previous" spark={sparkPayments.length > 1 ? sparkPayments : null} stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "firstPayments")} onClick={() => onGo("acquisition")} />
-        <KpiTile label="Install to payment" value={installToPaid !== null ? ratio(attributedPayments, installs, 1) : null} sub={installs === null ? "Apple unavailable" : `${count(attributedPayments)} attributed payments ÷ ${count(installs)} installs`} stripe="var(--pv-teal)" onClick={() => onGo("acquisition")} />
-        <KpiTile label="CPA · Apple Ads" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={spend === null ? (appleError ? "Apple unavailable" : "No spend reported") : !costReady ? "Source coverage does not align" : attributedPayments > 0 ? `${money(spend, currency)} spend · ${count(attributedPayments)} attributed payments` : `${money(spend, currency)} spent · no attributed payment yet`} stripe="var(--pv-amber)" info="Apple Ads spend divided only by first payments RevenueCat explicitly attributes to Apple Ads in the same UTC range." onClick={() => onGo("acquisition")} />
+        <KpiTile label="Install to payment" value={installToPaid !== null ? ratio(attributedPayments, installs, 1) : null} sub={installs === null ? "Apple unavailable" : !costReady ? costCoverageReason : `${count(attributedPayments)} attributed payments ÷ ${count(installs)} installs`} stripe="var(--pv-teal)" onClick={() => onGo("acquisition")} />
+        <KpiTile label="CPA · Apple Ads" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={spend === null ? (appleError ? "Apple unavailable" : "No spend reported") : !costReady ? costCoverageReason : attributedPayments > 0 ? `${money(spend, currency)} spend · ${count(attributedPayments)} attributed payments` : `${money(spend, currency)} spent · no attributed payment yet`} stripe="var(--pv-amber)" info="Apple Ads spend divided only by first payments RevenueCat explicitly attributes to Apple Ads in the same UTC range. It is hidden when a paid RevenueCat campaign has no matching Apple spend row." onClick={() => onGo("acquisition")} />
       </div>
 
       <div className="pv-bento">
@@ -150,7 +163,7 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
             <CardHead label="Paid acquisition · this range" info="Installs come from Apple Ads. First payments come from RevenueCat. The conversion rate uses only payments RevenueCat attributes to Apple Ads." />
             <div className="pv-card-pad" style={{ display: "grid", gap: 10 }}>
               <Stage label="Apple Ads installs" value={installs} max={installs} color="var(--pv-violet)" opacity={.55} note={installs === null ? (appleError ? "Apple unavailable" : "—") : cpi !== null ? `${money(cpi, appleMoneyCurrency, { exact: true })} each` : null} />
-              <Stage label="Attributed payments" value={attributedPayments} max={installs ?? attributedPayments} color="var(--pv-good)" opacity={1} note={ratio(attributedPayments, installs, 1) ? `${ratio(attributedPayments, installs, 1)} of installs` : null} />
+              <Stage label="Attributed payments" value={attributedPayments} max={installs ?? attributedPayments} color="var(--pv-good)" opacity={1} note={!costReady && installs !== null ? costCoverageReason : ratio(attributedPayments, installs, 1) ? `${ratio(attributedPayments, installs, 1)} of installs` : null} />
               <div className="pv-faint" style={{ fontSize: 12, borderTop: "1px solid var(--pv-border)", paddingTop: 8 }}>Store-wide first payments: <b className="pv-ink pv-mono">{count(payments) ?? "—"}</b>. Campaign attribution: <b className="pv-ink pv-mono">{count(attributedPayments) ?? "—"}</b>.</div>
             </div>
           </Card>
@@ -181,8 +194,8 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
           <CardHead label="Acquisition · this range" right={<button type="button" className="pv-chip" onClick={() => onGo("acquisition")}>Open</button>} />
           <div className="pv-card-pad" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <MiniStat label="Spend" value={spend !== null ? money(spend, appleMoneyCurrency) : null} note={spend === null ? (appleError ? "Apple unavailable" : "—") : `${count(installs)} installs`} />
-            <MiniStat label="Cost / install" value={cpi !== null ? money(cpi, appleMoneyCurrency, { exact: true }) : null} note={ratio(installs, taps) ? `${ratio(installs, taps)} of taps` : "—"} />
-            <MiniStat label="Attributed payments" value={count(attributedPayments)} note={ratio(attributedPayments, installs, 1) ? `${ratio(attributedPayments, installs, 1)} of installs` : "RevenueCat"} />
+            <MiniStat label="Cost / install" value={cpi !== null ? money(cpi, appleMoneyCurrency, { exact: true }) : null} note={!costReady && installs !== null ? costCoverageReason : ratio(installs, taps) ? `${ratio(installs, taps)} of taps` : "—"} />
+            <MiniStat label="Attributed payments" value={count(attributedPayments)} note={!costReady && installs !== null ? "rate hidden until source coverage aligns" : ratio(attributedPayments, installs, 1) ? `${ratio(attributedPayments, installs, 1)} of installs` : "RevenueCat"} />
             <MiniStat label="Cost / payment" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} note={`${count(payments) ?? "—"} store-wide payments`} />
           </div>
         </Card>

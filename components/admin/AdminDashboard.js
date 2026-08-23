@@ -278,7 +278,16 @@ async function fixtureOwnerMetrics(range, factor = 1) {
       { code: "AL", name: "Albania", paid: 1, activeSubscriptions: 1 },
     ] },
     growth: { available: true, points: Array.from({ length: 14 }, (_, i) => ({ date: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10), activeSubscriptions: 10 + Math.round(i * 0.7), paid: 10 + Math.round(i * 0.7), mrr: 600 + i * 14, arr: 7200 + i * 168 })) },
-    acquisition: { available: true, historyRange: { startDate: "2024-08-15", endDate: range.endDate }, presets: Object.fromEntries(["today", "sinceRelaunch", "allTime"].map((preset) => {
+    acquisition: { available: true, historyRange: { startDate: "2024-08-15", endDate: range.endDate }, selected: {
+      available: true,
+      scope: { startDate: range.startDate, endDate: range.endDate },
+      totals: { payments: Math.round(5 * factor), attributedPayments: Math.round(4 * factor), unattributedPayments: Math.max(0, Math.round(5 * factor) - Math.round(4 * factor)) },
+      campaigns: [
+        { campaignId: "1", campaignName: "US | Competitor | Exact", payments: 1 },
+        { campaignId: "2", campaignName: "US | Category | Exact", payments: Math.max(0, Math.round(4 * factor) - 2) },
+        { campaignId: "3", campaignName: "US | Discovery | Search Match", payments: 1 },
+      ],
+    }, presets: Object.fromEntries(["today", "sinceRelaunch", "allTime"].map((preset) => {
       const r = acquisitionRange(preset, "2024-08-15");
       const attributed = preset === "today" ? 1 : preset === "allTime" ? 7 : 4;
       const payments = preset === "today" ? 1 : preset === "allTime" ? 10 : 5;

@@ -7,6 +7,7 @@ import {
   acquisitionPaymentCounts,
   buildPaymentKeywordGroups,
   keywordsForCampaign,
+  paymentCampaignSpendCoverage,
   sumCoveredDailySeries,
 } from "../lib/adminAcquisitionAccuracy.js";
 import { buildCoachReply, decodeCoachDocument, groupCoachConversations } from "../functions-lib/coachInbox.js";
@@ -233,6 +234,36 @@ test("Acquisition reconciles store-wide and attributed payments without lowering
     attributedPayments: 4,
     unattributedPayments: 4,
   });
+  assert.deepEqual(acquisitionPaymentCounts({
+    totalPayments: null,
+    attributedPayments: null,
+  }), {
+    totalPayments: null,
+    attributedPayments: null,
+    unattributedPayments: null,
+  });
+});
+
+test("Acquisition hides blended cost when Apple omits a paid historical campaign", () => {
+  const partial = paymentCampaignSpendCoverage([
+    { id: "1", name: "Current campaign" },
+  ], [
+    { campaignId: "1", campaignName: "Current campaign", payments: 2 },
+    { campaignId: "2", campaignName: "Deleted historical campaign", payments: 5 },
+    { unidentified: true, campaignName: "Campaign not identified", payments: 1 },
+    { campaignId: "3", campaignName: "No paid outcome", payments: 0 },
+  ]);
+  assert.equal(partial.complete, false);
+  assert.equal(partial.matchedPayments, 2);
+  assert.equal(partial.unmatchedPayments, 6);
+  assert.deepEqual(partial.unmatchedCampaigns.map((row) => row.payments), [5, 1]);
+
+  assert.equal(paymentCampaignSpendCoverage([
+    { id: "1", name: "Current campaign" },
+  ], [
+    { campaignId: "1", campaignName: "Current campaign", payments: 2 },
+    { campaignId: "2", campaignName: "Old campaign", payments: 0 },
+  ]).complete, true);
 });
 
 test("Acquisition totals use only authoritative daily chart dates covered by RevenueCat", () => {

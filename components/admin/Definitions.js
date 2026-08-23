@@ -15,8 +15,8 @@ const LABELS = {
 
 const EXTRA = [
   { id: "cpa", label: "CPA (Apple Ads)", body: "Apple Ads spend in the range divided by first payments RevenueCat explicitly attributes to Apple Search Ads in the same range. Only shown when Apple and RevenueCat report the same currency and dates.", source: "Apple Ads Campaign Management API 5 · RevenueCat Charts API v2" },
-  { id: "cpi", label: "Cost per install", body: "Apple Ads spend divided by Apple-reported installs (new downloads plus re-downloads).", source: "Apple Ads" },
-  { id: "install-paid", label: "Install to payment", body: "First payments RevenueCat explicitly attributes to Apple Ads divided by Apple-reported installs for the same UTC dates.", source: "Apple Ads · RevenueCat attribution" },
+  { id: "cpi", label: "Cost per install", body: "Apple Ads spend divided by Apple-reported installs (new downloads plus re-downloads). Hidden when a RevenueCat-attributed paid campaign is absent from Apple's campaign report, because that would leave historical spend incomplete.", source: "Apple Ads · RevenueCat attribution coverage" },
+  { id: "install-paid", label: "Install to payment", body: "First payments RevenueCat explicitly attributes to Apple Ads divided by Apple-reported installs for the same UTC dates. Hidden when Apple campaign history is incomplete.", source: "Apple Ads · RevenueCat attribution" },
   { id: "seen", label: "Seen today / 7 days", body: "Paid profiles whose latest iPhone app launch stored in Firebase falls in the window. Payment status is verified by RevenueCat.", source: "Firestore profiles" },
   { id: "journey", label: "The 90-day journey", body: "Program day stored on each paid profile: started (day 1+), past the first week (day 8+), finished (day 90).", source: "Firestore profiles" },
   { id: "cohorts", label: "Cohorts by join week", body: "Profiles grouped by creation week; each column is the share of that cohort that is paid now, reached day 2 or day 8, or opened the app in the last 7 days. Current state, not a historical replay.", source: "Firestore profiles joined to RevenueCat" },

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchAppleAdsReport } from "@/lib/adminAppData";
 import { FIXTURES_ON } from "@/lib/devFixtures";
-import { acquisitionPaymentCounts, buildPaymentKeywordGroups, keywordsForCampaign, sumCoveredDailySeries } from "@/lib/adminAcquisitionAccuracy";
+import { acquisitionPaymentCounts, buildPaymentKeywordGroups, keywordsForCampaign, paymentCampaignSpendCoverage, sumCoveredDailySeries } from "@/lib/adminAcquisitionAccuracy";
 import { Card, CardHead, KpiTile, PageHead, Ribbon, RowsSkeleton, Segmented, Unavailable, money, count, ratio } from "./ui";
 
 const DAY_MS = 86400000;
@@ -290,9 +290,11 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
   const totalPayments = paymentCounts.totalPayments;
   const ownerCurrency = ownerMetrics?.scope?.currency || null;
   const appleCurrency = report?.currency || report?.totals?.currency || null;
-  const costCoverageAligned = appleAvailable && appleAppScopeVerified && historicalCampaignsAvailable
+  const campaignSpendCoverage = paymentCampaignSpendCoverage(report?.campaigns, selectedOutcomes?.campaigns);
+  const baseCostCoverageAligned = appleAvailable && appleAppScopeVerified && historicalCampaignsAvailable
     && outcomeScopeMatches && Boolean(ownerCurrency) && ownerCurrency === appleCurrency
     && attributedPayments !== null;
+  const costCoverageAligned = baseCostCoverageAligned && campaignSpendCoverage.complete;
   const periodLabel = `${range.startDate} to ${range.endDate} UTC`;
   const isToday = preset === "today";
   // Every spend-only value belongs to Apple's reporting currency. CPA is
@@ -300,7 +302,7 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
   // correct even if the owner changes the RevenueCat display currency later.
   const currency = appleCurrency || ownerCurrency || "USD";
   const cpa = costCoverageAligned && attributedPayments > 0 ? spend / attributedPayments : null;
-  const cpi = appleAvailable && installs > 0 ? spend / installs : null;
+  const cpi = costCoverageAligned && installs > 0 ? spend / installs : null;
   const paidRate = costCoverageAligned && installs > 0 ? attributedPayments / installs : null;
   const sourceDetail = historicalCampaignsAvailable
     ? "RevenueCat first-payment receipts segmented by Apple Ads campaign"
@@ -310,9 +312,16 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
   const attributionCaption = Number.isFinite(totalPayments) && Number.isFinite(attributedPayments)
     ? `${count(attributedPayments)} Apple-attributed, ${count(paymentCounts.unattributedPayments)} organic or unavailable`
     : "RevenueCat payment total unavailable";
-  const coverageNote = costCoverageAligned
+  const coverageNote = baseCostCoverageAligned && !campaignSpendCoverage.complete
+    ? `Historical payments remain visible, but cost and install rates are hidden because Apple did not return campaign rows for ${count(campaignSpendCoverage.unmatchedPayments)} RevenueCat-attributed payment${campaignSpendCoverage.unmatchedPayments === 1 ? "" : "s"}. Missing spend is never treated as zero.`
+    : costCoverageAligned
     ? `Apple spend and RevenueCat payment outcomes cover the same dates and currency. ${isToday ? "Today is still in progress and both services can revise recent numbers." : "No payment is assigned to a campaign unless RevenueCat reports it."}`
     : ownerMetricsError || selectedOutcomes?.reason || "CPA is hidden until Apple and RevenueCat return matching dates, currency, and app scope.";
+  const coverageBadge = costCoverageAligned
+    ? "Dates and currency aligned"
+    : baseCostCoverageAligned && !campaignSpendCoverage.complete
+      ? "Partial Apple history"
+      : "CPA hidden";
 
   return (
     <div className="pv-rise" style={{ display: "grid", gap: 12 }}>
@@ -331,7 +340,7 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
       </div>
 
       <Card>
-        <CardHead label="Spend to payment" info={{ body: "Apple Ads supplies spend, taps and installs. RevenueCat supplies every first successful subscription charge and the smaller subset explicitly attributed to Apple Ads. CPA uses only that attributed subset.", source: "Apple Ads Campaign Management API · RevenueCat Charts API v2" }} right={<span className="pv-pill" data-tone={costCoverageAligned ? "good" : "warn"}>{costCoverageAligned ? "Dates and currency aligned" : "CPA hidden"}</span>} />
+        <CardHead label="Spend to payment" info={{ body: "Apple Ads supplies spend, taps and installs. RevenueCat supplies every first successful subscription charge and the smaller subset explicitly attributed to Apple Ads. CPA is shown only when Apple returns campaign rows for every attributed payment.", source: "Apple Ads Campaign Management API · RevenueCat Charts API v2" }} right={<span className="pv-pill" data-tone={costCoverageAligned ? "good" : "warn"}>{coverageBadge}</span>} />
         <Ribbon stages={[
           { key: "spend", label: "Spend", value: appleAvailable ? money(spend, currency, { exact: true }) : null, flow: appleAvailable ? spend : null, color: "var(--pv-amber)", caption: appleAvailable ? `${count(impressions)} impressions` : state === "loading" ? "Loading from Apple" : "Apple unavailable", edge: appleAvailable && impressions > 0 ? `${ratio(taps, impressions, 1)} TTR` : null },
           { key: "taps", label: "Taps", value: appleAvailable ? count(taps) : null, flow: appleAvailable ? taps : null, color: "var(--pv-violet)", edge: appleAvailable ? ratio(installs, taps) : null },
@@ -342,8 +351,8 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
       </Card>
 
       <div className="pv-kpis">
-        <KpiTile label="Cost per install" value={cpi !== null ? money(cpi, currency, { exact: true }) : null} sub={appleAvailable ? `${money(spend, currency)} spend ÷ ${count(installs)} installs` : "Apple unavailable"} stripe="var(--pv-violet)" />
-        <KpiTile label="Cost per payment" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={cpa === null ? costCoverageAligned ? "No Apple-attributed payment yet" : "needs matching source coverage" : `${count(attributedPayments)} attributed of ${count(totalPayments)} total`} stripe="var(--pv-good)" />
+        <KpiTile label="Cost per install" value={cpi !== null ? money(cpi, currency, { exact: true }) : null} sub={!appleAvailable ? "Apple unavailable" : !campaignSpendCoverage.complete ? "hidden because Apple campaign history is partial" : installs > 0 ? `${money(spend, currency)} spend ÷ ${count(installs)} installs` : "No installs reported"} stripe="var(--pv-violet)" />
+        <KpiTile label="Cost per payment" value={cpa !== null ? money(cpa, currency, { exact: true }) : null} sub={cpa === null ? !campaignSpendCoverage.complete ? `${count(campaignSpendCoverage.unmatchedPayments)} payments lack Apple campaign spend` : costCoverageAligned ? "No Apple-attributed payment yet" : "needs matching source coverage" : `${count(attributedPayments)} attributed of ${count(totalPayments)} total`} stripe="var(--pv-good)" />
         <KpiTile label="Install to payment" value={paidRate !== null ? ratio(attributedPayments, installs, 1) : null} sub="Apple-attributed payments ÷ Apple installs" stripe="var(--pv-teal)" />
         <KpiTile label="All first payments" value={count(totalPayments)} sub="RevenueCat, store-wide" stripe="var(--pv-accent)" />
         <KpiTile label="Apple-attributed" value={Number.isFinite(attributedPayments) && Number.isFinite(totalPayments) ? `${count(attributedPayments)} / ${count(totalPayments)}` : null} sub="confirmed campaign attribution" stripe="var(--pv-violet)" />
@@ -361,7 +370,9 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
           attributedPayments={attributedPayments}
           unattributedPayments={paymentCounts.unattributedPayments}
           reportTotals={appleTotals}
-          costCoverageAligned={costCoverageAligned}
+          campaignCostAligned={baseCostCoverageAligned}
+          blendedCostAligned={costCoverageAligned}
+          spendCoverageComplete={campaignSpendCoverage.complete}
           currency={currency}
           periodLabel={periodLabel}
         />
@@ -479,7 +490,7 @@ function fallbackRows(campaigns, lifecycle, telemetryAvailable) {
   return mapped;
 }
 
-function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailable, lifecycle, telemetryAvailable, totalPayments, attributedPayments, unattributedPayments, reportTotals, costCoverageAligned, currency, periodLabel }) {
+function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailable, lifecycle, telemetryAvailable, totalPayments, attributedPayments, unattributedPayments, reportTotals, campaignCostAligned, blendedCostAligned, spendCoverageComplete, currency, periodLabel }) {
   const [sort, setSort] = useState({ key: "spend", dir: "desc" });
   const paymentEvents = useMemo(() => summarizePayments(lifecycle).payments, [lifecycle]);
   const keywordGroups = useMemo(() => buildPaymentKeywordGroups(paymentEvents), [paymentEvents]);
@@ -529,7 +540,7 @@ function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailab
   const cell = (value, format = count) => (finiteNumber(value) !== null ? format(value) : <span className="pv-faint">—</span>);
   return (
     <Card>
-      <CardHead label="Campaign payment performance" info={{ body: "Apple supplies campaign spend, taps and installs. RevenueCat supplies first payments. The final unassigned row reconciles the campaign subset to the store-wide payment total without guessing attribution. A keyword appears only when the payment receipt history carries the exact Apple term.", source: periodLabel }} right={<span className="pv-faint" style={{ fontSize: 12 }}>{rows.length} row{rows.length === 1 ? "" : "s"}</span>} />
+      <CardHead label="Campaign payment performance" info={{ body: "Apple supplies campaign spend, taps and installs. RevenueCat supplies first payments. The final unassigned row reconciles the campaign subset to the store-wide payment total without guessing attribution. A keyword appears only when the payment receipt history carries the exact Apple term.", source: periodLabel }} right={<span className="pv-faint" style={{ fontSize: 12 }}>{spendCoverageComplete ? "" : "Partial Apple history · "}{rows.length} row{rows.length === 1 ? "" : "s"}</span>} />
       <div className="pv-table-wrap">
         <table className="pv-table">
           <thead>
@@ -541,7 +552,7 @@ function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailab
               const spendValue = finiteNumber(row.spend);
               const installsValue = finiteNumber(row.installs);
               const paymentsValue = finiteNumber(row.payments);
-              const cpa = costCoverageAligned && spendValue !== null && paymentsValue > 0 ? spendValue / paymentsValue : null;
+              const cpa = campaignCostAligned && row.appleMetricsAvailable && spendValue !== null && paymentsValue > 0 ? spendValue / paymentsValue : null;
               return (
                 <tr key={row.rowKey} style={{ cursor: "default" }}>
                   <td className="ink" style={{ maxWidth: 260 }}>
@@ -565,13 +576,13 @@ function CampaignTable({ campaigns, campaignOutcomes, historicalCampaignsAvailab
           </tbody>
           <tfoot>
             <tr>
-              <td>Total</td><td /><td />
+              <td>{spendCoverageComplete ? "Total" : "Apple returned"}</td><td /><td />
               <td className="num">{money(spendTotal, currency, { exact: true })}</td>
               <td className="num">{count(tapsTotal)}</td>
               <td className="num">{count(installsTotal)}</td>
               <td className="num">{cell(totalPayments)}</td>
-              <td className="num">{costCoverageAligned && attributedPayments > 0 ? money(spendTotal / attributedPayments, currency, { exact: true }) : "—"}</td>
-              <td className="num">{ratio(attributedPayments, installsTotal, 1) ?? "—"}</td>
+              <td className="num">{blendedCostAligned && attributedPayments > 0 ? money(spendTotal / attributedPayments, currency, { exact: true }) : "—"}</td>
+              <td className="num">{blendedCostAligned ? ratio(attributedPayments, installsTotal, 1) ?? "—" : "—"}</td>
             </tr>
           </tfoot>
         </table>

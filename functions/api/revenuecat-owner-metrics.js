@@ -371,6 +371,9 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     storeWidePaymentsChart: firstPaid,
     range,
   });
+  // Pulse uses this exact same-window campaign set to prove that Apple spend
+  // covers every RevenueCat-attributed payment before it exposes CPA.
+  acquisition.selected = selectedAcquisition;
   const adsPaymentTotal = selectedAcquisition.totals.attributedPayments;
   metrics.appleAttributedPayments = valueMetric(adsPaymentTotal, {
     source: "RevenueCat New Paid Subscriptions chart (Apple Search Ads attribution filter)",
