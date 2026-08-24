@@ -60,14 +60,15 @@ test("Apple chunk reports merge one campaign without double-counting metadata", 
   );
 });
 
-test("Apple reporting includes only campaigns that are currently running", () => {
-  const campaigns = apple.currentAppleCampaigns([
+test("Apple reporting keeps running and in-range campaigns without old zero-activity rows", () => {
+  const campaigns = apple.reportingAppleCampaigns([
     { id: "new", status: "ENABLED" },
     { id: "active", status: "active" },
-    { id: "paused", status: "PAUSED" },
+    { id: "completed", status: "PAUSED", spend: 12, installs: 3 },
+    { id: "paused", status: "PAUSED", spend: 0, installs: 0 },
     { id: "ended", status: "ENDED" },
   ]);
-  assert.deepEqual(campaigns.map((campaign) => campaign.id), ["new", "active"]);
+  assert.deepEqual(campaigns.map((campaign) => campaign.id), ["new", "active", "completed"]);
 });
 
 test("owner reporting cannot request data before the August 24 baseline", () => {

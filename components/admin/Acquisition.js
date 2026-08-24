@@ -252,7 +252,7 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
         source: "Apple Ads Campaign Management API 5",
         fetchedAt: Date.now(),
         range: { startDate: range.startDate, endDate: range.endDate },
-        app: { filterApplied: true, campaignFilterApplied: true, campaignScope: "currently_enabled" },
+        app: { filterApplied: true, campaignFilterApplied: true, campaignScope: "running_or_active_in_range" },
         currency: "USD",
         totals: { impressions: 0, taps: 0, totalInstalls: 0, newDownloads: 0, redownloads: 0, spend: 0, currency: "USD" },
         campaigns: [],

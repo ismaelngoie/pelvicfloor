@@ -9,7 +9,7 @@ import {
   originAllowed,
   readJson,
 } from "../../functions-lib/stripeSync.js";
-import { REPORTING_START_DATE, currentAppleCampaigns } from "../../lib/adminReporting.js";
+import { REPORTING_START_DATE, reportingAppleCampaigns } from "../../lib/adminReporting.js";
 
 const ADMIN_EMAIL = "ismael@ngoie.com";
 const APPLE_API = "https://api.searchads.apple.com/api/v5";
@@ -62,10 +62,10 @@ export async function onRequestPost({ request, env }) {
       });
     }
     const appCampaigns = mergedCampaigns.filter((campaign) => campaign.appId === PELVIC_FLOOR_ADAM_ID);
-    // The August 24 experiment intentionally follows only the campaign(s)
-    // that are enabled now. Paused legacy campaigns remain untouched in Apple
-    // Ads but cannot leak spend or installs into this clean reporting window.
-    const campaigns = currentAppleCampaigns(appCampaigns);
+    // Keep campaigns that are running now or recorded activity in this range.
+    // A completed experiment therefore remains visible after it is paused,
+    // while old paused campaigns with no post-baseline activity stay hidden.
+    const campaigns = reportingAppleCampaigns(appCampaigns);
     const currencies = [...new Set(campaigns.map((row) => row.currency).filter(Boolean))];
     const currency = currencies.length === 1 ? currencies[0] : null;
     const totals = campaigns.reduce((sum, row) => ({
@@ -86,7 +86,7 @@ export async function onRequestPost({ request, env }) {
         adamId: PELVIC_FLOOR_ADAM_ID,
         filterApplied: true,
         campaignFilterApplied: true,
-        campaignScope: "currently_enabled",
+        campaignScope: "running_or_active_in_range",
       },
       chunks: chunks.length,
       currency,
@@ -311,7 +311,7 @@ async function importAppleKey(pem) {
 }
 
 export const __test = {
-  currentAppleCampaigns,
+  reportingAppleCampaigns,
   mergeCampaignReports,
   reportChunks,
   reportDates,
