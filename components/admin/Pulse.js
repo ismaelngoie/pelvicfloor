@@ -6,6 +6,7 @@ import { ANNOTATIONS } from "@/lib/adminAnnotations";
 import { paymentCampaignSpendCoverage } from "@/lib/adminAcquisitionAccuracy";
 import { fillDaily, rangeLabel } from "@/lib/adminRange";
 import { displayName, startOfDay } from "@/lib/adminMetrics";
+import { REPORTING_START_LABEL } from "@/lib/adminReporting";
 
 export function metric(report, key) {
   const entry = report?.metrics?.[key];
@@ -144,7 +145,7 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
       {ownerMetricsError ? <Unavailable reason={`RevenueCat business metrics: ${ownerMetricsError}`} onRetry={onRetry} /> : null}
 
       <div className="pv-kpis">
-        <KpiTile label={`Revenue · ${range.preset === "custom" ? "range" : range.preset}`} value={money(revenue, currency, { compact: true, rounded: true })} current={revenue} previous={compare ? revenuePrev : null} compareLabel={`vs prev ${range.days}d`} spark={sparkRevenue} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "grossRevenue")} onClick={() => onGo("revenue")} />
+        <KpiTile label={`Revenue · ${range.preset === "sinceRelaunch" ? `since ${REPORTING_START_LABEL}` : range.preset === "custom" ? "range" : range.preset}`} value={money(revenue, currency, { compact: true, rounded: true })} current={revenue} previous={compare ? revenuePrev : null} compareLabel={`vs prev ${range.days}d`} spark={sparkRevenue} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "grossRevenue")} onClick={() => onGo("revenue")} />
         <KpiTile label="MRR" value={money(mrr, currency, { compact: true, rounded: true })} current={mrr} previous={compare ? mrrPrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkMrr.length > 1 ? sparkMrr : null} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "mrr")} onClick={() => onGo("revenue")} />
         <KpiTile label="Active paid subscriptions" value={count(active)} current={active} previous={compare ? activePrev : null} compareLabel={`vs ${range.days}d ago`} spark={sparkActive.length > 1 ? sparkActive : null} stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "activeSubscriptions")} onClick={() => onGo("members")} />
         <KpiTile label="First payments" value={count(payments)} current={payments} previous={compare ? paymentsPrev : null} compareLabel="vs previous" spark={sparkPayments.length > 1 ? sparkPayments : null} stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "firstPayments")} onClick={() => onGo("acquisition")} />
@@ -225,7 +226,7 @@ export default function Pulse({ range, compare, ownerMetrics, ownerPrevious, own
       </div>
 
       <Card>
-        <CardHead label="Payment total since Aug 15" info={{ body: "RevenueCat counts every subscription at its first successful charge. Apple-attributed is the confirmed campaign subset. The remainder stays separate instead of being guessed into an ad campaign.", source: "RevenueCat New Paid Subscriptions chart" }} right={<button type="button" className="pv-chip" onClick={() => onGo("acquisition")}>Open full history</button>} />
+        <CardHead label={`Payments since ${REPORTING_START_LABEL}`} info={{ body: "RevenueCat counts every subscription at its first successful charge. Apple-attributed is the confirmed campaign subset. The remainder stays separate instead of being guessed into an ad campaign.", source: "RevenueCat New Paid Subscriptions chart" }} right={<button type="button" className="pv-chip" onClick={() => onGo("acquisition")}>Open acquisition</button>} />
         <div className="pv-card-pad" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
           <MiniStat label="First payments" value={count(baselinePayments)} note="Store-wide" />
           <MiniStat label="Apple-attributed" value={count(baselineAttributed)} note="Confirmed by RevenueCat" />

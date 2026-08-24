@@ -9,6 +9,7 @@ import {
   originAllowed,
   readJson,
 } from "../../functions-lib/stripeSync.js";
+import { REPORTING_START_DATE, currentAppleCampaigns } from "../../lib/adminReporting.js";
 
 const ADMIN_EMAIL = "ismael@ngoie.com";
 const APPLE_API = "https://api.searchads.apple.com/api/v5";
@@ -60,7 +61,11 @@ export async function onRequestPost({ request, env }) {
         error: "Apple did not identify the promoted app for every campaign, so no cross-app totals were shown.",
       });
     }
-    const campaigns = mergedCampaigns.filter((campaign) => campaign.appId === PELVIC_FLOOR_ADAM_ID);
+    const appCampaigns = mergedCampaigns.filter((campaign) => campaign.appId === PELVIC_FLOOR_ADAM_ID);
+    // The August 24 experiment intentionally follows only the campaign(s)
+    // that are enabled now. Paused legacy campaigns remain untouched in Apple
+    // Ads but cannot leak spend or installs into this clean reporting window.
+    const campaigns = currentAppleCampaigns(appCampaigns);
     const currencies = [...new Set(campaigns.map((row) => row.currency).filter(Boolean))];
     const currency = currencies.length === 1 ? currencies[0] : null;
     const totals = campaigns.reduce((sum, row) => ({
@@ -80,6 +85,8 @@ export async function onRequestPost({ request, env }) {
       app: {
         adamId: PELVIC_FLOOR_ADAM_ID,
         filterApplied: true,
+        campaignFilterApplied: true,
+        campaignScope: "currently_enabled",
       },
       chunks: chunks.length,
       currency,
@@ -210,6 +217,9 @@ function reportDates(start, end) {
   }
   const startDate = new Date(`${start}T00:00:00Z`);
   const endDate = new Date(`${end}T00:00:00Z`);
+  if (start < REPORTING_START_DATE) {
+    return { ok: false, error: `Reporting starts on ${REPORTING_START_DATE}.` };
+  }
   const days = (endDate - startDate) / 86400000;
   if (!Number.isFinite(days) || days < 0 || days > APPLE_HISTORY_DAYS) {
     return { ok: false, error: "Apple Ads history can cover up to the latest 24 months." };
@@ -301,6 +311,7 @@ async function importAppleKey(pem) {
 }
 
 export const __test = {
+  currentAppleCampaigns,
   mergeCampaignReports,
   reportChunks,
   reportDates,

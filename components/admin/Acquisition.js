@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchAppleAdsReport } from "@/lib/adminAppData";
 import { FIXTURES_ON } from "@/lib/devFixtures";
 import { acquisitionPaymentCounts, buildPaymentKeywordGroups, keywordsForCampaign, paymentCampaignSpendCoverage, sumCoveredDailySeries } from "@/lib/adminAcquisitionAccuracy";
+import { REPORTING_START_DATE, REPORTING_START_LABEL } from "@/lib/adminReporting";
 import { Card, CardHead, KpiTile, PageHead, Ribbon, RowsSkeleton, Segmented, Unavailable, money, count, ratio } from "./ui";
 
 const DAY_MS = 86400000;
-export const ACQUISITION_BASELINE_DATE = "2026-08-15";
+export const ACQUISITION_BASELINE_DATE = REPORTING_START_DATE;
 const RANGE_OPTIONS = [
   { value: "today", label: "Today" },
-  { value: "sinceRelaunch", label: "Since Aug 15" },
-  { value: "allTime", label: "All time" },
+  { value: "sinceRelaunch", label: `Since ${REPORTING_START_LABEL}` },
 ];
 const ATTRIBUTION_FIELDS = [
   "mediaSource", "campaignId", "campaignName", "adGroupId", "adGroupName", "keyword",
@@ -26,25 +26,22 @@ function utcToday() {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-function twoYearsBefore(date) {
-  const targetYear = date.getUTCFullYear() - 2;
-  const month = date.getUTCMonth();
-  const maximumDay = new Date(Date.UTC(targetYear, month + 1, 0)).getUTCDate();
-  return new Date(Date.UTC(targetYear, month, Math.min(date.getUTCDate(), maximumDay)));
-}
-
-export function acquisitionRange(preset, historyStartDate) {
-  const today = utcToday();
+export function acquisitionRange(preset, todayValue = utcToday()) {
+  const today = new Date(todayValue);
+  const baseline = new Date(`${ACQUISITION_BASELINE_DATE}T00:00:00Z`);
+  if (today < baseline) {
+    return {
+      start: baseline,
+      endExclusive: new Date(baseline.getTime() + DAY_MS),
+      startDate: ACQUISITION_BASELINE_DATE,
+      endDate: ACQUISITION_BASELINE_DATE,
+      pending: true,
+    };
+  }
   const endExclusive = new Date(today.getTime() + DAY_MS);
-  const fallbackHistoryStart = iso(twoYearsBefore(today));
-  const historyStart = /^\d{4}-\d{2}-\d{2}$/.test(historyStartDate || "")
-    ? historyStartDate
-    : fallbackHistoryStart;
   const startDate = preset === "today"
     ? iso(today)
-    : preset === "allTime"
-      ? historyStart
-      : ACQUISITION_BASELINE_DATE;
+    : ACQUISITION_BASELINE_DATE;
   return {
     start: new Date(`${startDate}T00:00:00Z`),
     endExclusive,
@@ -244,13 +241,25 @@ export default function Acquisition({ user, telemetry, reloadToken, ownerMetrics
   const [state, setState] = useState("loading");
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
-  const historyStartDate = ownerMetrics?.acquisition?.historyRange?.startDate || "";
-  const range = useMemo(() => acquisitionRange(preset, historyStartDate), [preset, historyStartDate]);
+  const range = useMemo(() => acquisitionRange(preset), [preset]);
 
   useEffect(() => {
     let active = true;
     setState("loading");
     setError("");
+    if (range.pending) {
+      setReport({
+        source: "Apple Ads Campaign Management API 5",
+        fetchedAt: Date.now(),
+        range: { startDate: range.startDate, endDate: range.endDate },
+        app: { filterApplied: true, campaignFilterApplied: true, campaignScope: "currently_enabled" },
+        currency: "USD",
+        totals: { impressions: 0, taps: 0, totalInstalls: 0, newDownloads: 0, redownloads: 0, spend: 0, currency: "USD" },
+        campaigns: [],
+      });
+      setState("ready");
+      return () => { active = false; };
+    }
     const request = process.env.NODE_ENV !== "production" && FIXTURES_ON
       ? import("@/lib/devFixtureData").then((f) => f.fixtureAppleReport({ startDate: range.startDate, endDate: range.endDate, days: 1 }))
       : fetchAppleAdsReport(user, range.startDate, range.endDate);

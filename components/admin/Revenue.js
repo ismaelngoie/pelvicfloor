@@ -5,14 +5,13 @@ import { Card, CardHead, KpiTile, LineChart, PageHead, Unavailable, money, count
 import { ANNOTATIONS } from "@/lib/adminAnnotations";
 import { fillDaily, rangeLabel } from "@/lib/adminRange";
 import { displayName } from "@/lib/adminMetrics";
+import { REPORTING_START_LABEL } from "@/lib/adminReporting";
 import { metric, metricInfo } from "./Pulse";
 
 export default function Revenue({ range, compare, ownerMetrics, ownerPrevious, ownerMetricsError, members, now, onRetry, onOpenMember }) {
   const currency = ownerMetrics?.scope?.currency || "USD";
   const revenue = metric(ownerMetrics, "grossRevenue");
   const revenuePrev = metric(ownerPrevious, "grossRevenue");
-  const lifetime = metric(ownerMetrics, "lifetimeGrossRevenue");
-  const lifetimeTx = metric(ownerMetrics, "lifetimeTransactions");
   const mrr = metric(ownerMetrics, "mrr");
   const arr = metric(ownerMetrics, "arr");
   const renewing = metric(ownerMetrics, "paidSetToRenew");
@@ -27,7 +26,6 @@ export default function Revenue({ range, compare, ownerMetrics, ownerPrevious, o
   const series = useMemo(() => fillDaily(ownerMetrics?.series?.grossRevenueDaily, range), [ownerMetrics, range]);
   const previousSeries = useMemo(() => (compare && ownerPrevious ? fillDaily(ownerPrevious?.series?.grossRevenueDaily, { startDate: ownerPrevious.scope.startDate, endDate: ownerPrevious.scope.endDate, days: range.days }) : []), [compare, ownerPrevious, range.days]);
   const paymentSeries = useMemo(() => fillDaily(ownerMetrics?.series?.firstPaymentsDaily, range), [ownerMetrics, range]);
-  const monthly = useMemo(() => (Array.isArray(ownerMetrics?.series?.lifetimeGrossRevenueMonthly) ? ownerMetrics.series.lifetimeGrossRevenueMonthly.slice(-24) : []), [ownerMetrics]);
   const mrrSeries = growth.filter((point) => Number.isFinite(point.mrr)).map((point) => ({ date: point.date, value: point.mrr }));
 
   const renewals = useMemo(() => {
@@ -47,13 +45,12 @@ export default function Revenue({ range, compare, ownerMetrics, ownerPrevious, o
 
   return (
     <div className="pv-rise" style={{ display: "grid", gap: 12 }}>
-      <PageHead title="Revenue" description={`Payments and recurring revenue from RevenueCat · ${rangeLabel(range)} · UTC`} />
+      <PageHead title="Revenue" description={`Direct-pay reporting from ${REPORTING_START_LABEL} · ${rangeLabel(range)} · UTC`} />
       {ownerMetricsError ? <Unavailable reason={`RevenueCat business metrics: ${ownerMetricsError}`} onRetry={onRetry} /> : null}
 
       <div className="pv-kpis">
         <KpiTile label="Revenue · range" value={money(revenue, currency, { compact: true })} current={revenue} previous={compare ? revenuePrev : null} compareLabel={`vs prev ${range.days}d`} spark={series.map((point) => point.value)} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "grossRevenue")} size="lg" />
         <KpiTile label="First payments" value={count(firstPayments)} current={firstPayments} previous={compare ? firstPaymentsPrev : null} compareLabel="vs previous" spark={paymentSeries.map((point) => point.value)} stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "firstPayments")} />
-        <KpiTile label="Lifetime gross" value={money(lifetime, currency, { compact: true })} sub={Number.isFinite(lifetimeTx) ? `${count(lifetimeTx)} transactions since 2020` : "since Jan 2020"} info={metricInfo(ownerMetrics, "lifetimeGrossRevenue")} />
         <KpiTile label="MRR" value={money(mrr, currency)} sub={Number.isFinite(mrrDetail.setToCancel) ? `${money(mrrDetail.setToCancel, currency)} set to cancel` : "current run rate"} spark={mrrSeries.length > 1 ? mrrSeries.map((point) => point.value) : null} stripe="var(--pv-accent)" info={metricInfo(ownerMetrics, "mrr")} />
         <KpiTile label="Paid and renewing" value={count(renewing)} sub="active subscriptions with renewal on" stripe="var(--pv-good)" info={metricInfo(ownerMetrics, "paidSetToRenew")} />
         <KpiTile label="Set to cancel" value={count(cancels)} sub="paid access remains until period end" stripe={cancels > 0 ? "var(--pv-warn)" : "var(--pv-border-strong)"} info={metricInfo(ownerMetrics, "activeCancellations")} />
@@ -114,12 +111,8 @@ export default function Revenue({ range, compare, ownerMetrics, ownerPrevious, o
           </div>
         </Card>
 
-        <Card className="pv-span-12">
-          <CardHead label="Lifetime · monthly gross revenue" info={metricInfo(ownerMetrics, "lifetimeGrossRevenue")} />
-          <div className="pv-card-pad">{monthly.length > 1 ? <LineChart series={monthly} height={200} yTicks={3} format={(value) => money(value, currency, { compact: true })} color="var(--pv-violet)" ariaLabel="Monthly gross revenue since 2020" /> : <Unavailable reason="RevenueCat did not return the monthly lifetime series." />}</div>
-        </Card>
       </div>
-      <div className="pv-faint" style={{ fontSize: 12 }}>All figures come from RevenueCat API v2 for the production App Store in UTC. Future charges are never estimated.</div>
+      <div className="pv-faint" style={{ fontSize: 12 }}>Revenue, first payments and refunds begin {REPORTING_START_LABEL}. MRR, ARR and renewal cards are current subscription snapshots. Future charges are never estimated.</div>
     </div>
   );
 }

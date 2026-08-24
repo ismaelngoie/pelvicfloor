@@ -28,6 +28,7 @@ import { normalizeMember } from "@/lib/adminMetrics";
 import { FIXTURES_ON } from "@/lib/devFixtures";
 import { acquisitionRange } from "./Acquisition";
 import { RANGE_PRESETS, customRange, previousRange, rangeForPreset, rangeLabel } from "@/lib/adminRange";
+import { REPORTING_START_DATE, REPORTING_START_LABEL } from "@/lib/adminReporting";
 import Pulse from "./Pulse";
 import Revenue from "./Revenue";
 import Acquisition from "./Acquisition";
@@ -53,7 +54,7 @@ const UTILITY_PAGES = [{ id: "definitions", label: "Definitions", hint: "What ev
 
 const THEME_KEY = "pelvi_admin_theme";
 const RAIL_KEY = "pelvi_admin_rail";
-const RANGE_KEY = "pelvi_admin_range";
+const RANGE_KEY = "pelvi_admin_range_aug24";
 
 /* -------------------------------------------------------------------------
    Chrome pieces
@@ -182,8 +183,8 @@ function RangePicker({ range, onPreset, onCustom, compare, onCompare }) {
           <div className="pv-menu" style={{ top: "calc(100% + 6px)", right: 0, width: 280, padding: 12 }}>
             <div className="pv-menu-head" style={{ padding: "0 0 8px" }}>Custom range (UTC)</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <input className="pv-input" type="date" value={start} max={end} onChange={(e) => setStart(e.target.value)} aria-label="Start date" />
-              <input className="pv-input" type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} aria-label="End date" />
+              <input className="pv-input" type="date" value={start} min={REPORTING_START_DATE} max={end} onChange={(e) => setStart(e.target.value)} aria-label="Start date" />
+              <input className="pv-input" type="date" value={end} min={start < REPORTING_START_DATE ? REPORTING_START_DATE : start} onChange={(e) => setEnd(e.target.value)} aria-label="End date" />
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
               <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
@@ -255,8 +256,6 @@ async function fixtureOwnerMetrics(range, factor = 1) {
     scope: { ...range, currency: "USD", timezone: "UTC" },
     metrics: {
       grossRevenue: { available: true, value: Math.round(total * 100) / 100, definition: "Gross revenue charged to customers in the selected UTC date range, before estimated taxes and Apple commission, minus refunds tied to transactions from that range.", source: "RevenueCat Revenue chart (API v2)" },
-      lifetimeGrossRevenue: { available: true, value: 16222.59, definition: "Gross production App Store revenue since January 1, 2020.", source: "RevenueCat Revenue chart" },
-      lifetimeTransactions: { available: true, value: 658 },
       activeSubscriptions: { available: true, value: Math.round(20 * factor), definition: "Current active paid subscriptions in RevenueCat.", source: "RevenueCat Overview metrics" },
       paidSetToRenew: { available: true, value: Math.round(18 * factor), definition: "Current production App Store paid subscriptions that are active and set to renew.", source: "RevenueCat Subscription Status chart" },
       firstPayments: { available: true, value: Math.round(5 * factor), definition: "Subscriptions whose first successful charge occurred inside the selected UTC date range." },
@@ -277,8 +276,8 @@ async function fixtureOwnerMetrics(range, factor = 1) {
       { code: "AE", name: "United Arab Emirates", paid: 1, activeSubscriptions: 1 },
       { code: "AL", name: "Albania", paid: 1, activeSubscriptions: 1 },
     ] },
-    growth: { available: true, points: Array.from({ length: 14 }, (_, i) => ({ date: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10), activeSubscriptions: 10 + Math.round(i * 0.7), paid: 10 + Math.round(i * 0.7), mrr: 600 + i * 14, arr: 7200 + i * 168 })) },
-    acquisition: { available: true, historyRange: { startDate: "2024-08-15", endDate: range.endDate }, selected: {
+    growth: { available: true, points: Array.from({ length: 14 }, (_, i) => ({ date: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10), activeSubscriptions: 10 + Math.round(i * 0.7), paid: 10 + Math.round(i * 0.7), mrr: 600 + i * 14, arr: 7200 + i * 168 })).filter((point) => point.date >= REPORTING_START_DATE) },
+    acquisition: { available: true, historyRange: { startDate: REPORTING_START_DATE, endDate: range.endDate }, selected: {
       available: true,
       scope: { startDate: range.startDate, endDate: range.endDate },
       totals: { payments: Math.round(5 * factor), attributedPayments: Math.round(4 * factor), unattributedPayments: Math.max(0, Math.round(5 * factor) - Math.round(4 * factor)) },
@@ -287,16 +286,60 @@ async function fixtureOwnerMetrics(range, factor = 1) {
         { campaignId: "2", campaignName: "US | Category | Exact", payments: Math.max(0, Math.round(4 * factor) - 2) },
         { campaignId: "3", campaignName: "US | Discovery | Search Match", payments: 1 },
       ],
-    }, presets: Object.fromEntries(["today", "sinceRelaunch", "allTime"].map((preset) => {
-      const r = acquisitionRange(preset, "2024-08-15");
-      const attributed = preset === "today" ? 1 : preset === "allTime" ? 7 : 4;
-      const payments = preset === "today" ? 1 : preset === "allTime" ? 10 : 5;
+    }, presets: Object.fromEntries(["today", "sinceRelaunch"].map((preset) => {
+      const r = acquisitionRange(preset);
+      const attributed = preset === "today" ? 1 : 4;
+      const payments = preset === "today" ? 1 : 5;
       return [preset, { available: true, scope: { startDate: r.startDate, endDate: r.endDate }, totals: { payments, attributedPayments: attributed, unattributedPayments: payments - attributed }, campaigns: [
         { campaignId: "1", campaignName: "US | Competitor | Exact", payments: 1 },
         { campaignId: "2", campaignName: "US | Category | Exact", payments: Math.max(0, attributed - 2) },
         { campaignId: "3", campaignName: "US | Discovery | Search Match", payments: 1 },
       ] }];
     })) },
+  };
+}
+
+function emptyOwnerMetrics(range) {
+  const zeroMetric = (definition, source = "RevenueCat") => ({ available: true, value: 0, definition, source });
+  const acquisitionWindow = {
+    available: true,
+    scope: { startDate: range.startDate, endDate: range.endDate },
+    totals: { payments: 0, attributedPayments: 0, unattributedPayments: 0 },
+    campaigns: [],
+  };
+  return {
+    source: `Reporting begins ${REPORTING_START_LABEL}`,
+    fetchedAt: new Date().toISOString(),
+    scope: { ...range, currency: "USD", timezone: "UTC" },
+    metrics: {
+      grossRevenue: zeroMetric("Gross revenue charged from the August 24 reporting baseline through the selected UTC end date."),
+      firstPayments: zeroMetric("First successful subscription charges from the August 24 reporting baseline through the selected UTC end date."),
+      appleAttributedPayments: zeroMetric("First payments RevenueCat explicitly attributes to Apple Ads inside the reporting window."),
+      refundedTransactions: { ...zeroMetric("Paid transactions in the reporting window that were later refunded."), paidTransactions: 0, refundRate: 0 },
+    },
+    series: {
+      grossRevenueDaily: [{ date: range.startDate, value: 0 }],
+      firstPaymentsDaily: [{ date: range.startDate, value: 0 }],
+    },
+    growth: { available: false, points: [], reason: `Daily snapshots begin ${REPORTING_START_LABEL}.` },
+    acquisition: {
+      available: true,
+      historyRange: { startDate: REPORTING_START_DATE, endDate: range.endDate },
+      selected: acquisitionWindow,
+      presets: { today: acquisitionWindow, sinceRelaunch: acquisitionWindow },
+    },
+  };
+}
+
+function emptyAppleReport(range) {
+  return {
+    source: "Apple Ads Campaign Management API 5",
+    fetchedAt: Date.now(),
+    range: { startDate: range.startDate, endDate: range.endDate },
+    app: { filterApplied: true, campaignFilterApplied: true, campaignScope: "currently_enabled" },
+    currency: "USD",
+    totals: { impressions: 0, taps: 0, totalInstalls: 0, newDownloads: 0, redownloads: 0, spend: 0, currency: "USD" },
+    campaigns: [],
   };
 }
 
@@ -313,8 +356,8 @@ export default function AdminDashboard() {
   const [signingIn, setSigningIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  const [range, setRange] = useState(() => rangeForPreset("28d"));
-  const [compare, setCompare] = useState(true);
+  const [range, setRange] = useState(() => rangeForPreset("sinceRelaunch"));
+  const [compare, setCompare] = useState(false);
   const [members, setMembers] = useState([]);
   const [telemetry, setTelemetry] = useState({ completions: [], events: [], checkins: [], commands: [], lifecycle: [], lifecycleAvailable: false });
   const [membership, setMembership] = useState(null);
@@ -392,7 +435,7 @@ export default function AdminDashboard() {
   const load = useCallback(async () => {
     setDataState((current) => (current === "ready" ? "refreshing" : "loading"));
     setDataError(""); setMembershipError(""); setOwnerMetricsError(""); setAppleError("");
-    const prev = previousRange(range);
+    const prev = compare ? previousRange(range) : null;
     try {
       let next; let nextTelemetry; let nextMembership; let nextOwner; let nextPrev = null; let nextApple = null;
       if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
@@ -406,19 +449,27 @@ export default function AdminDashboard() {
           subscription: { autoRenewalStatus: "will_renew", status: "active", productId: "product.PelvicFloor.MonthlySub", currentPeriodEndsAt: new Date(Date.now() + (index * 11 + 3) * 86400000).toISOString() },
         }));
         nextMembership = { source: "fixture", fetchedAt: Date.now(), customers: fixtureActive, totals: { paid: 26, syncedPaid: 26, activeAccess: 26, legacyAccess: 0, canceledPaidWithAccess: 1, openedToday: 3, opened7Days: 10 } };
-        nextOwner = await fixtureOwnerMetrics(range, 1);
-        nextPrev = compare ? await fixtureOwnerMetrics(prev, 0.88) : null;
-        nextApple = f.fixtureAppleReport(range);
+        nextOwner = range.pending ? emptyOwnerMetrics(range) : await fixtureOwnerMetrics(range, 1);
+        nextPrev = prev ? await fixtureOwnerMetrics(prev, 0.88) : null;
+        nextApple = range.pending ? emptyAppleReport(range) : f.fixtureAppleReport(range);
       } else {
-        const [memberRows, appTelemetry, ownerResult, appleResult] = await Promise.all([
-          fetchAllMembers(),
-          fetchAppTelemetry(),
-          fetchRevenueCatOwnerMetrics(user, range.startDate, range.endDate, "USD", compare ? prev : null).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat business metrics did not load." })),
-          fetchAppleAdsReport(user, range.startDate, range.endDate).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "Apple Ads reporting did not load." })),
-        ]);
-        const membershipResult = await fetchRevenueCatMembers(user, memberRows.map((m) => m.id), ownerResult.value).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat memberships did not load." }));
-        next = memberRows; nextTelemetry = appTelemetry; nextMembership = membershipResult.value; nextOwner = ownerResult.value; nextPrev = ownerResult.value?.previous || null; nextApple = appleResult.value;
-        setMembershipError(membershipResult.error); setOwnerMetricsError(ownerResult.error); setAppleError(appleResult.error);
+        if (range.pending) {
+          const [memberRows, appTelemetry] = await Promise.all([fetchAllMembers(), fetchAppTelemetry()]);
+          const membershipResult = await fetchRevenueCatMembers(user, memberRows.map((m) => m.id), null).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat memberships did not load." }));
+          next = memberRows; nextTelemetry = appTelemetry; nextMembership = membershipResult.value;
+          nextOwner = emptyOwnerMetrics(range); nextPrev = null; nextApple = emptyAppleReport(range);
+          setMembershipError(membershipResult.error);
+        } else {
+          const [memberRows, appTelemetry, ownerResult, appleResult] = await Promise.all([
+            fetchAllMembers(),
+            fetchAppTelemetry(),
+            fetchRevenueCatOwnerMetrics(user, range.startDate, range.endDate, "USD", prev).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat business metrics did not load." })),
+            fetchAppleAdsReport(user, range.startDate, range.endDate).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "Apple Ads reporting did not load." })),
+          ]);
+          const membershipResult = await fetchRevenueCatMembers(user, memberRows.map((m) => m.id), ownerResult.value).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error?.message || "RevenueCat memberships did not load." }));
+          next = memberRows; nextTelemetry = appTelemetry; nextMembership = membershipResult.value; nextOwner = ownerResult.value; nextPrev = ownerResult.value?.previous || null; nextApple = appleResult.value;
+          setMembershipError(membershipResult.error); setOwnerMetricsError(ownerResult.error); setAppleError(appleResult.error);
+        }
       }
       setMembers(next); setTelemetry(nextTelemetry); setMembership(nextMembership); setOwnerMetrics(nextOwner); setOwnerPrevious(nextPrev); setAppleReport(nextApple);
       setCountedAt(new Date()); setDataState("ready"); setReloadToken((n) => n + 1);

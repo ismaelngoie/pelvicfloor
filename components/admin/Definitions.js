@@ -6,16 +6,18 @@
 
 import { useMemo } from "react";
 import { Card, CardHead, PageHead } from "./ui";
+import { REPORTING_START_LABEL } from "@/lib/adminReporting";
 
 const LABELS = {
-  grossRevenue: "Revenue (range)", lifetimeGrossRevenue: "Lifetime gross revenue", lifetimeTransactions: "Lifetime transactions",
+  grossRevenue: "Revenue (range)",
   mrr: "MRR", arr: "ARR", activeSubscriptions: "Active paid subscriptions", paidSetToRenew: "Paid and renewing", activeCancellations: "Renewal off",
   refundedTransactions: "Refunded transactions", refundedRevenue: "Refunded revenue", firstPayments: "First payments", newCustomers: "New customers", activeCustomers: "Active customers", appleAttributedPayments: "Apple-attributed payments",
 };
 
 const EXTRA = [
+  { id: "baseline", label: "Reporting baseline", body: `Spend, installs, first payments, refunds, CPA and conversion reporting begin ${REPORTING_START_LABEL} UTC. Earlier source records remain intact but are excluded from this operational dashboard.`, source: "Pelvi Ops reporting policy" },
   { id: "cpa", label: "CPA (Apple Ads)", body: "Apple Ads spend in the range divided by first payments RevenueCat explicitly attributes to Apple Search Ads in the same range. Only shown when Apple and RevenueCat report the same currency and dates.", source: "Apple Ads Campaign Management API 5 · RevenueCat Charts API v2" },
-  { id: "cpi", label: "Cost per install", body: "Apple Ads spend divided by Apple-reported installs (new downloads plus re-downloads). Hidden when a RevenueCat-attributed paid campaign is absent from Apple's campaign report, because that would leave historical spend incomplete.", source: "Apple Ads · RevenueCat attribution coverage" },
+  { id: "cpi", label: "Cost per install", body: "Apple Ads spend divided by Apple-reported installs (new downloads plus re-downloads) from the reporting baseline. Hidden when a RevenueCat-attributed paid campaign is absent from Apple's campaign report.", source: "Apple Ads · RevenueCat attribution coverage" },
   { id: "install-paid", label: "Install to payment", body: "First payments RevenueCat explicitly attributes to Apple Ads divided by Apple-reported installs for the same UTC dates. Hidden when Apple campaign history is incomplete.", source: "Apple Ads · RevenueCat attribution" },
   { id: "seen", label: "Seen today / 7 days", body: "Paid profiles whose latest iPhone app launch stored in Firebase falls in the window. Payment status is verified by RevenueCat.", source: "Firestore profiles" },
   { id: "journey", label: "The 90-day journey", body: "Program day stored on each paid profile: started (day 1+), past the first week (day 8+), finished (day 90).", source: "Firestore profiles" },

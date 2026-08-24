@@ -12,6 +12,7 @@ import {
   readJson,
   typedValue,
 } from "../../functions-lib/stripeSync.js";
+import { REPORTING_START_DATE } from "../../lib/adminReporting.js";
 
 // Owner-only RevenueCat reporting for the Pelvi admin.
 //
@@ -36,8 +37,7 @@ const MAX_RANGE_DAYS = 3660;
 const MAX_CACHE_ENTRIES = 24;
 const GROWTH_COLLECTION = "adminOwnerDailyOverviewMetrics";
 const MAX_GROWTH_POINTS = 3660;
-const LIFETIME_REVENUE_START = "2020-01-01";
-const ACQUISITION_BASELINE_START = "2026-08-15";
+const ACQUISITION_BASELINE_START = REPORTING_START_DATE;
 const CHART_OPTIONS_CACHE_MS = 10 * 60 * 1000;
 const SUPPORTED_CURRENCIES = new Set([
   "USD", "EUR", "GBP", "AUD", "CAD", "JPY", "BRL", "KRW", "CNY", "MXN", "INR", "IDR", "SGD", "PHP", "RUB",
@@ -338,29 +338,15 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
   };
 
   const acquisitionRange = acquisitionHistory;
-  const [adsFirstPaidResult, lifetimeRevenueResult] = await Promise.all([
-    capture("apple_search_ads_first_paid", () => loadAppleSearchAdsChart({
-      apiKey,
-      projectId,
-      loaded: firstPaidResult,
-      range: acquisitionRange,
-      tracker,
-      segmentCampaign: true,
-    }), errors),
-    capture("lifetime_revenue", () => loadLifetimeRevenueChart({
-      apiKey,
-      projectId,
-      loaded: revenueResult,
-      endDate: range.endDate,
-      currency,
-      tracker,
-    }), errors),
-  ]);
+  const adsFirstPaidResult = await capture("apple_search_ads_first_paid", () => loadAppleSearchAdsChart({
+    apiKey,
+    projectId,
+    loaded: firstPaidResult,
+    range: acquisitionRange,
+    tracker,
+    segmentCampaign: true,
+  }), errors);
   const adsFirstPaid = adsFirstPaidResult?.chart || null;
-  const lifetimeRevenue = lifetimeRevenueResult?.chart || null;
-  const lifetimePeriod = { startDate: LIFETIME_REVENUE_START, endDate: range.endDate };
-  const lifetimeRevenueTotal = chartTotal(lifetimeRevenue, [/^revenue$/i, /gross revenue/i]);
-  const lifetimeTransactions = chartTotal(lifetimeRevenue, [/^transactions$/i]);
   const acquisition = buildAcquisitionPresets({
     attributedPaymentsChart: adsFirstPaid,
     storeWidePaymentsChart: firstPaid,
@@ -381,21 +367,6 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     period: range,
     definition: "First successful subscription charges in the selected UTC date range that RevenueCat explicitly attributes to Apple Ads.",
   });
-  metrics.lifetimeGrossRevenue = valueMetric(lifetimeRevenueTotal, {
-    source: "RevenueCat Revenue chart (API v2, monthly lifetime view)",
-    unit: "currency",
-    currency,
-    period: lifetimePeriod,
-    transactions: finiteOrNull(lifetimeTransactions),
-    definition: "Gross production App Store revenue charged to customers from January 1, 2020 through the selected UTC end date, before estimated taxes and Apple commission, minus refunds RevenueCat attributes to transactions in that period.",
-  });
-  metrics.lifetimeTransactions = valueMetric(lifetimeTransactions, {
-    source: "RevenueCat Revenue chart (API v2, monthly lifetime view)",
-    unit: "transactions",
-    period: lifetimePeriod,
-    definition: "Production App Store transactions included alongside lifetime gross revenue for the same January 1, 2020 through selected-end-date UTC period.",
-  });
-
   const growth = await persistAndReadGrowth({
     env,
     paid: activeSubscriptions,
@@ -412,7 +383,6 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
     refundRate: chartCoverage(refundsResult),
     newPaidSubscriptions: chartCoverage(firstPaidResult),
     appleSearchAdsNewPaidSubscriptions: chartCoverage(adsFirstPaidResult),
-    lifetimeRevenue: chartCoverage(lifetimeRevenueResult),
   };
   const availableChartCount = Object.values(charts).filter((entry) => entry?.available).length;
   if (!availableChartCount) {
@@ -442,14 +412,12 @@ async function buildOwnerReport({ apiKey, projectId, currency, range, env }) {
         overviewNewCustomers.lastUpdatedAt,
         overviewActiveCustomers.lastUpdatedAt,
       ),
-      lifetimeRevenuePeriod: lifetimePeriod,
       includesPartialToday: range.endDate === utcDate(Date.now()),
       revenueDefinition: "gross_customer_price_before_estimated_tax_and_store_commission",
     },
     metrics,
     series: {
       grossRevenueDaily: chartSeries(revenue, [/^revenue$/i, /gross revenue/i]),
-      lifetimeGrossRevenueMonthly: chartSeries(lifetimeRevenue, [/^revenue$/i, /gross revenue/i]),
       firstPaymentsDaily: newPaidSeries(firstPaid)
         .filter((point) => point.date >= range.startDate && point.date <= range.endDate),
     },
@@ -698,39 +666,6 @@ async function loadAppleSearchAdsChart({ apiKey, projectId, loaded, range, track
   return { chart, options, chartName: `${chartName}:apple_search_ads${segmentCampaign ? ":campaign" : ""}` };
 }
 
-async function loadLifetimeRevenueChart({ apiKey, projectId, loaded, endDate, currency, tracker }) {
-  const options = loaded?.options;
-  if (!options) {
-    throw schemaError("lifetime_revenue", "The base Revenue chart was unavailable, so its gross-revenue options could not be reused.");
-  }
-  if (endDate < LIFETIME_REVENUE_START) {
-    throw schemaError("lifetime_revenue", "The requested end date is earlier than the lifetime reporting start date.");
-  }
-  const gross = selectorFor(options, [/^revenue$/i, /gross revenue/i]);
-  if (!gross) {
-    throw schemaError("lifetime_revenue", "RevenueCat did not advertise the gross-revenue selector for lifetime reporting.");
-  }
-  const params = new URLSearchParams({
-    realtime: "true",
-    start_date: LIFETIME_REVENUE_START,
-    end_date: endDate,
-    resolution: monthResolution(options),
-    filters: JSON.stringify(appStoreFilter(options)),
-    selectors: JSON.stringify({ [gross.name]: gross.value }),
-    currency,
-  });
-  const chart = await revenueCatGet(apiKey, chartPath(projectId, "revenue", `?${params}`), tracker);
-  if (!Array.isArray(chart?.values) || !Array.isArray(chart?.measures)) {
-    throw schemaError("lifetime_revenue", "RevenueCat returned a lifetime Revenue chart shape that could not be read safely.");
-  }
-  return {
-    chart,
-    options,
-    chartName: "revenue:lifetime",
-    resolution: "month",
-  };
-}
-
 function appleSearchAdsAttributionFilter(options) {
   const filters = Array.isArray(options?.filters) ? options.filters : [];
   const source = filters.find((filter) => matchesPatterns([
@@ -826,7 +761,8 @@ async function persistAndReadGrowth({ env, paid, mrr, arr, currency }) {
       fields,
       updateMask: Object.keys(fields),
     });
-    const points = await readGrowthSnapshots({ projectId: firebaseProject, token });
+    const points = (await readGrowthSnapshots({ projectId: firebaseProject, token }))
+      .filter((point) => point.date >= REPORTING_START_DATE);
     return {
       available: true,
       source,
@@ -1014,7 +950,6 @@ function buildAcquisitionPresets({ attributedPaymentsChart, storeWidePaymentsCha
   const ranges = {
     today: { startDate: historyRange.endDate, endDate: historyRange.endDate },
     sinceRelaunch: { startDate: sinceStart, endDate: historyRange.endDate },
-    allTime: { startDate: historyRange.startDate, endDate: historyRange.endDate },
   };
   const presets = Object.fromEntries(Object.entries(ranges).map(([key, selectedRange]) => [
     key,
@@ -1357,10 +1292,6 @@ function dayResolution(options) {
   return namedResolution(options, [/^day$/i, /^daily$/i], "daily");
 }
 
-function monthResolution(options) {
-  return namedResolution(options, [/^month$/i, /^monthly$/i], "monthly");
-}
-
 function namedResolution(options, patterns, label) {
   const resolutions = Array.isArray(options?.resolutions) ? options.resolutions : [];
   const resolution = resolutions.find((option) => matchesPatterns([
@@ -1551,10 +1482,7 @@ function safePath(value) {
 
 function acquisitionHistoryRange(endDate) {
   const end = new Date(`${endDate}T00:00:00Z`);
-  const targetYear = end.getUTCFullYear() - 2;
-  const month = end.getUTCMonth();
-  const maximumDay = new Date(Date.UTC(targetYear, month + 1, 0)).getUTCDate();
-  const start = new Date(Date.UTC(targetYear, month, Math.min(end.getUTCDate(), maximumDay)));
+  const start = new Date(`${REPORTING_START_DATE}T00:00:00Z`);
   return {
     startDate: utcDate(start.getTime()),
     endDate,
@@ -1564,6 +1492,7 @@ function acquisitionHistoryRange(endDate) {
 
 function reportRange(start, end) {
   if (!validDate(start) || !validDate(end)) return { ok: false, error: "Choose a valid UTC reporting date range." };
+  if (start < REPORTING_START_DATE) return { ok: false, error: `Reporting starts on ${REPORTING_START_DATE}.` };
   const startDate = new Date(`${start}T00:00:00Z`);
   const endDate = new Date(`${end}T00:00:00Z`);
   const days = (endDate - startDate) / 86400000;
@@ -1647,5 +1576,6 @@ export const __test = {
   firstPaymentTotalInRange,
   monthlyFromAnnual,
   overviewMetric,
+  reportRange,
   rangeRevenueValue,
 };

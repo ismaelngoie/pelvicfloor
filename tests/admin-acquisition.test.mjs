@@ -11,6 +11,7 @@ import {
   sumCoveredDailySeries,
 } from "../lib/adminAcquisitionAccuracy.js";
 import { buildCoachReply, decodeCoachDocument, groupCoachConversations } from "../functions-lib/coachInbox.js";
+import { customRange, previousRange, rangeForPreset } from "../lib/adminRange.js";
 
 function epoch(date) {
   return Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
@@ -57,6 +58,49 @@ test("Apple chunk reports merge one campaign without double-counting metadata", 
     Object.fromEntries(["impressions", "taps", "installs", "newDownloads", "redownloads", "spend"].map((key) => [key, merged[0][key]])),
     { impressions: 30, taps: 10, installs: 6, newDownloads: 5, redownloads: 1, spend: 10 }
   );
+});
+
+test("Apple reporting includes only campaigns that are currently running", () => {
+  const campaigns = apple.currentAppleCampaigns([
+    { id: "new", status: "ENABLED" },
+    { id: "active", status: "active" },
+    { id: "paused", status: "PAUSED" },
+    { id: "ended", status: "ENDED" },
+  ]);
+  assert.deepEqual(campaigns.map((campaign) => campaign.id), ["new", "active"]);
+});
+
+test("owner reporting cannot request data before the August 24 baseline", () => {
+  assert.equal(apple.reportDates("2026-08-23", "2026-08-23").ok, false);
+  assert.equal(revenueCat.reportRange("2026-08-23", "2026-08-23").ok, false);
+  assert.deepEqual(revenueCat.acquisitionHistoryRange("2026-08-30"), {
+    startDate: "2026-08-24",
+    endDate: "2026-08-30",
+    days: 7,
+  });
+});
+
+test("dashboard ranges clamp every preset and custom date to August 24", () => {
+  const august30 = Date.parse("2026-08-30T00:00:00Z");
+  assert.deepEqual(rangeForPreset("28d", august30), {
+    preset: "28d",
+    startDate: "2026-08-24",
+    endDate: "2026-08-30",
+    days: 7,
+  });
+  assert.deepEqual(rangeForPreset("sinceRelaunch", august30), {
+    preset: "sinceRelaunch",
+    startDate: "2026-08-24",
+    endDate: "2026-08-30",
+    days: 7,
+  });
+  assert.deepEqual(customRange("2026-08-01", "2026-08-26", august30), {
+    preset: "custom",
+    startDate: "2026-08-24",
+    endDate: "2026-08-26",
+    days: 3,
+  });
+  assert.equal(previousRange(rangeForPreset("sinceRelaunch", august30)), null);
 });
 
 test("RevenueCat campaign totals include every historical first charge", () => {
