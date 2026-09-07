@@ -47,7 +47,7 @@ export function CredentialsSheet({ open, onClose }) {
           the crop starts just above her hair so no shelf sits over her head. */}
       <DrReedVideo
         src={DR_REED.credentials}
-        objectPosition="50% 18%"
+        objectPosition="50% 9%"
         onPlayed={() => track("reviewer_video_played")}
         className="w-full"
         style={{ aspectRatio: "1 / 1", maxHeight: "46dvh" }}

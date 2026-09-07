@@ -14,7 +14,7 @@
 
 import {
   Accessibility, Activity, Armchair, ArrowDownCircle, ArrowLeftRight, ArrowUpDown,
-  AudioLines, Baby, BadgeCheck, Bandage, BedDouble, Briefcase, CalendarCheck,
+  AudioLines, AudioWaveform, ChevronDown, LayoutGrid, MessageCircle, Star, Baby, BadgeCheck, Bandage, BedDouble, Briefcase, CalendarCheck,
   CalendarClock, Car, ChevronLeft, CircleCheck, Clock, Crosshair, Droplet, Droplets,
   Dumbbell, Flower2, FoldHorizontal, Footprints, GraduationCap, Grip, Heart,
   HeartHandshake, HeartPulse, Hexagon, Info, Leaf, Link, MapPin, MessagesSquare,
@@ -24,6 +24,12 @@ import {
 } from "lucide-react";
 
 const MAP = {
+  // The video paywall's showcase and plan list.
+  "message.fill": MessageCircle,
+  "waveform.circle.fill": AudioWaveform,
+  "square.grid.2x2.fill": LayoutGrid,
+  "star.fill": Star,
+  "chevron.down": ChevronDown,
   "figure.run.circle.fill": Footprints,
   "play.rectangle.on.rectangle.fill": SquarePlay,
   "play.rectangle.fill": Play,
@@ -106,7 +112,7 @@ const MAP = {
  * one already carries the meaning in adjacent text, so the glyph is hidden from
  * screen readers rather than read out as a second, worse label.
  */
-export default function SFIcon({ name, size = 24, className = "", strokeWidth = 2 }) {
+export default function SFIcon({ name, size = 24, className = "", strokeWidth = 2, style }) {
   const Glyph = MAP[name] || Sparkles;
   return (
     <Glyph
@@ -116,6 +122,7 @@ export default function SFIcon({ name, size = 24, className = "", strokeWidth = 
       height={size}
       strokeWidth={strokeWidth}
       className={className}
+      style={style}
     />
   );
 }

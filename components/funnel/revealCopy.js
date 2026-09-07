@@ -238,7 +238,7 @@ export const PAYWALL = {
   guarantee: "7-day improvement guarantee or full refund",
   subtext: "Your first 5-minute session is ready",
   stars: "★★★★★",
-  legal: { restore: "Restore", privacy: "Privacy", terms: "Terms" },
+  legal: { restore: "Restore Purchase", privacy: "Privacy Policy", terms: "Terms of Use" },
   priceLabel: DEFAULT_PRICE_LABEL,
   pricePeriod: DEFAULT_PRICE_PERIOD,
   pricePeriodShort: DEFAULT_PRICE_PERIOD === "year" ? "yr" : "mo",
