@@ -1,91 +1,51 @@
 "use client";
 
-// Screen 4. Four questions, asked by Coach Mia rather than printed on a form.
-//
-// Two things carried over deliberately from the old funnel: the chat framing,
-// because it is why women answer a weight question at all, and the scroll wheel
-// itself. One thing added, because its absence was a real gap: units. The phone
-// has always offered lbs/kg and feet/cm. The web asked everyone for pounds and
-// inches, which quietly told most of the world this app was not for them.
+// Coach Mia's intake (PersonalIntakeViewController): name, age, height,
+// weight, in her own words and in that order, then the 5-minute clinical
+// profile card and one member's story before the health check-in.
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { X } from "lucide-react";
 import {
-  MIA_NAME_QUESTION, miaAgeQuestion, miaHeightQuestion, miaWeightQuestion,
-} from "./copy";
+  INTAKE_SCREEN, frequencyData, goalData, memberPortrait, memberStory, miaQuestion, profileContext, situationData,
+  triedData,
+} from "./appCopy";
 import {
-  AGE_RANGE, HEIGHT_RANGE, WEIGHT_RANGE, clamp, cmToInches, feetInchesLabel,
+  AGE_RANGE, HEIGHT_RANGE, INTAKE_STEPS, WEIGHT_RANGE, clamp, cmToInches, feetInchesLabel, feetInchesPrime,
   inchesToCm, kgToLbs, lbsToKg,
 } from "./funnelState";
 import WheelPicker, { buildRange } from "./WheelPicker";
 import { trackIntakeStep } from "@/lib/analytics";
-import {
-  PrimaryButton, ScreenHeader, Typewriter, useKeyboardInset, useReducedMotion,
-} from "./ui";
+import { Body, Button, Card, Eyebrow, Face, Footer, Header, Screen } from "./atelier";
+import { Typewriter, useKeyboardInset } from "./ui";
 
-const SUB_STEPS = ["name", "age", "weight", "height"];
-
-function TypingDots() {
-  return (
-    <span className="flex items-center gap-[5px] py-1" aria-label="Coach Mia is typing">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="h-2 w-2 animate-pulse rounded-full bg-ios-gray4 motion-reduce:animate-none"
-          style={{ animationDelay: `${i * 0.16}s` }}
-        />
-      ))}
-    </span>
-  );
-}
-
-function MiaBubble({ text, showTyping }) {
+function MiaBubble({ text, onDone }) {
   return (
     <div className="flex items-start gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/coachMiaAvatar.png"
-        alt="Coach Mia"
-        width={64}
-        height={64}
-        className="h-16 w-16 shrink-0 rounded-full border-2 border-ios-pink/25 object-cover"
-      />
-      <div className="min-w-0 flex-1 rounded-[24px] rounded-tl-none bg-white px-[18px] py-4 shadow-[0_6px_16px_rgba(0,0,0,0.06)]">
-        {showTyping ? (
-          <TypingDots />
-        ) : (
-          <Typewriter
-            key={text}
-            text={text}
-            className="block text-[16px] leading-[1.25] text-app-textPrimary sm:text-[17px]"
-          />
-        )}
+      <img src="/coachMiaAvatar.png" alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full bg-atelier-rose/[0.12] object-cover" />
+      <div className="min-w-0 flex-1 rounded-[18px] rounded-tl-[6px] border border-atelier-line bg-atelier-card px-4 py-3">
+        <p className="text-[15px] leading-[1.45] text-atelier-ink" aria-live="polite">
+          <Typewriter key={text} text={text} tailClassName="text-transparent" onDone={onDone} />
+        </p>
       </div>
     </div>
   );
 }
 
-/** lbs | kg, feet | cm. Two options, so a real radio group beats a select. */
-function UnitToggle({ label, options, value, onChange }) {
+function UnitToggle({ options, value, onChange, label }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      className="mx-auto flex w-[168px] rounded-full bg-app-borderIdle p-1"
-    >
+    <div className="mx-auto flex w-fit rounded-full border border-atelier-line bg-atelier-card p-1" role="radiogroup" aria-label={label}>
       {options.map((option) => {
-        const active = option.id === value;
+        const active = option.value === value;
         return (
           <button
-            key={option.id}
+            key={option.value}
             type="button"
             role="radio"
             aria-checked={active}
-            onClick={() => onChange(option.id)}
-            className={`h-9 flex-1 rounded-full text-[14px] transition-colors duration-150 motion-reduce:transition-none ${
-              active
-                ? "bg-ios-pink font-semibold text-white"
-                : "font-medium text-app-textSecondary"
+            onClick={() => onChange(option.value)}
+            className={`min-w-[64px] rounded-full px-4 py-1.5 text-[13.5px] font-semibold transition-colors ${
+              active ? "bg-atelier-ink text-white" : "text-atelier-ink2"
             }`}
           >
             {option.label}
@@ -96,303 +56,231 @@ function UnitToggle({ label, options, value, onChange }) {
   );
 }
 
-function NameField({ value, onChange, onSubmit }) {
-  const inputRef = useRef(null);
-  const [focused, setFocused] = useState(false);
-
+function MetricCard({ value, label, detail }) {
   return (
-    <div className="mx-auto w-full max-w-[20rem]">
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="text"
-          // Clarity masks input values by default, and this says so out loud so
-          // that flipping the project to a looser masking mode in the Clarity
-          // dashboard cannot quietly start recording first names. What analytics
-          // gets from this screen is which question she was on, never her answer.
-          data-clarity-mask="true"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") onSubmit();
-          }}
-          placeholder="Your first name"
-          aria-label="Your first name"
-          autoComplete="given-name"
-          autoCapitalize="words"
-          autoCorrect="off"
-          spellCheck={false}
-          enterKeyHint="next"
-          className="w-full bg-transparent px-9 pb-2 text-center text-[24px] font-medium text-app-textPrimary caret-ios-pink outline-none placeholder:text-app-textSecondary/45 sm:text-[28px]"
-        />
-        {value ? (
-          <button
-            type="button"
-            onClick={() => {
-              onChange("");
-              inputRef.current?.focus();
-            }}
-            aria-label="Clear your name"
-            className="absolute bottom-2 right-0 flex h-9 w-9 items-center justify-center rounded-full text-app-textSecondary/60 transition-colors active:bg-black/5"
-          >
-            <X aria-hidden="true" size={18} strokeWidth={2.4} />
-          </button>
-        ) : null}
-      </div>
-      <div
-        aria-hidden="true"
-        className={`h-[2px] w-full rounded-full transition-colors duration-200 motion-reduce:transition-none ${
-          focused ? "bg-ios-pink" : "bg-app-borderIdle"
-        }`}
-      />
+    <div className="flex-1 rounded-[16px] border border-atelier-line bg-atelier-card px-2 py-3 text-center">
+      <p className="text-[20px] font-bold leading-none text-atelier-ink">{value}</p>
+      <p className="mt-1.5 text-[10.5px] font-semibold tracking-[0.12em] text-atelier-rose">{label}</p>
+      <p className="text-[11px] text-atelier-ink3">{detail}</p>
     </div>
   );
 }
 
 export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack }) {
-  const reduced = useReducedMotion();
+  const { pathway, goalId } = profile;
+  const goal = goalData(pathway, goalId);
+  const step = INTAKE_STEPS.includes(profile.intakeStep) ? profile.intakeStep : "name";
+  const index = INTAKE_STEPS.indexOf(step);
   const keyboardInset = useKeyboardInset();
-  // Which of the four questions she is on is part of "where she was". Coming
-  // back to the name field when she had already answered three questions is a
-  // resume in name only.
-  const [subStep, setSubStep] = useState(
-    SUB_STEPS.includes(profile.intakeStep) ? profile.intakeStep : "name"
+  const [typed, setTyped] = useState(false);
+  const inputRef = useRef(null);
+
+  const situation = situationData(pathway, goalId, profile.situationId);
+  const frequency = frequencyData(pathway, goalId, profile.frequencyId);
+  const tried = triedData(pathway, goalId, profile.triedId);
+
+  useEffect(() => {
+    trackIntakeStep(step);
+    setTyped(false);
+  }, [step]);
+
+  const question = useMemo(
+    () =>
+      miaQuestion({
+        step,
+        goalId,
+        pathway,
+        name: profile.name,
+        age: profile.age,
+        situationTitle: situation?.title?.toLowerCase() || null,
+        triedId: profile.triedId,
+      }),
+    [step, goalId, pathway, profile.name, profile.age, profile.triedId, situation]
   );
-  const [greeting, setGreeting] = useState(!reduced);
-  const [name, setName] = useState(profile.name || "");
 
-  // --- Clarity: the four questions are four rungs, not one --------------------
-  //
-  // The funnel's step id for this whole screen is "intake", and Funnel.js
-  // deliberately records nothing for it, because "she left somewhere in the
-  // intake" is not an answer anybody can act on. Recorded per sub-step, the
-  // wheel pickers are separable from the name field and from each other, which
-  // is how "they leave on the height picker" becomes a number instead of a
-  // hunch. Nothing she typed or scrolled to is sent, only which question she
-  // was looking at.
-  useEffect(() => {
-    trackIntakeStep(subStep);
-  }, [subStep]);
-
-  // One typing indicator, on the very first question only. After that Mia is
-  // already "in the room" and a second pause just costs 800ms.
-  useEffect(() => {
-    if (!greeting) return undefined;
-    const timer = setTimeout(() => setGreeting(false), 800);
-    return () => clearTimeout(timer);
-  }, [greeting]);
+  const go = (next) => onPatch({ intakeStep: next });
+  const goBack = () => {
+    if (index === 0) onBack();
+    else go(INTAKE_STEPS[index - 1]);
+  };
+  const advance = () => {
+    if (index >= INTAKE_STEPS.length - 1) onNext();
+    else go(INTAKE_STEPS[index + 1]);
+  };
 
   const ageRange = useMemo(() => buildRange(AGE_RANGE.min, AGE_RANGE.max), []);
   const weightRange = useMemo(
-    () =>
-      profile.weightUnit === "kg"
-        ? buildRange(WEIGHT_RANGE.kg.min, WEIGHT_RANGE.kg.max)
-        : buildRange(WEIGHT_RANGE.lbs.min, WEIGHT_RANGE.lbs.max),
+    () => (profile.weightUnit === "kg" ? buildRange(WEIGHT_RANGE.kg.min, WEIGHT_RANGE.kg.max) : buildRange(WEIGHT_RANGE.lbs.min, WEIGHT_RANGE.lbs.max)),
     [profile.weightUnit]
   );
   const heightRange = useMemo(
-    () =>
-      profile.heightUnit === "cm"
-        ? buildRange(HEIGHT_RANGE.cm.min, HEIGHT_RANGE.cm.max)
-        : buildRange(HEIGHT_RANGE.ft.min, HEIGHT_RANGE.ft.max),
+    () => (profile.heightUnit === "cm" ? buildRange(HEIGHT_RANGE.cm.min, HEIGHT_RANGE.cm.max) : buildRange(HEIGHT_RANGE.ft.min, HEIGHT_RANGE.ft.max)),
     [profile.heightUnit]
   );
+  const weightValue = profile.weightUnit === "kg" ? lbsToKg(profile.weightLbs) : profile.weightLbs;
+  const heightValue = profile.heightUnit === "cm" ? inchesToCm(profile.heightInches) : profile.heightInches;
 
-  const weightValue =
-    profile.weightUnit === "kg"
-      ? clamp(lbsToKg(profile.weightLbs), WEIGHT_RANGE.kg.min, WEIGHT_RANGE.kg.max)
-      : clamp(profile.weightLbs, WEIGHT_RANGE.lbs.min, WEIGHT_RANGE.lbs.max);
+  if (!goal) return null;
 
-  const heightValue =
-    profile.heightUnit === "cm"
-      ? clamp(inchesToCm(profile.heightInches), HEIGHT_RANGE.cm.min, HEIGHT_RANGE.cm.max)
-      : clamp(profile.heightInches, HEIGHT_RANGE.ft.min, HEIGHT_RANGE.ft.max);
+  const heightText = profile.heightUnit === "cm" ? `${inchesToCm(profile.heightInches)} cm` : feetInchesPrime(profile.heightInches);
+  const weightText = profile.weightUnit === "kg" ? `${lbsToKg(profile.weightLbs)} kg` : `${profile.weightLbs} lb`;
+  const name = (profile.name || "").trim();
+  const story = memberStory(goalId, pathway);
+  const canContinue =
+    step === "name" ? name.length > 0 : true;
 
-  const trimmedName = name.trim();
-  const nameValid = trimmedName.length >= 2;
-
-  const question = {
-    name: MIA_NAME_QUESTION,
-    age: miaAgeQuestion(profile.goalId, trimmedName),
-    weight: miaWeightQuestion(profile.goalId, profile.age),
-    height: miaHeightQuestion(profile.goalId),
-  }[subStep];
-
-  const index = SUB_STEPS.indexOf(subStep);
-  const canAdvance = subStep === "name" ? nameValid : true;
-
-  const moveTo = (next) => {
-    setSubStep(next);
-    onPatch({ intakeStep: next });
-  };
-
-  const goBack = () => {
-    if (index === 0) {
-      onBack();
-      return;
-    }
-    moveTo(SUB_STEPS[index - 1]);
-  };
-
-  const goForward = () => {
-    if (!canAdvance) return;
-    if (subStep === "name") onPatch({ name: trimmedName });
-    if (index === SUB_STEPS.length - 1) {
-      onPatch({ intakeStep: "name" });
-      onNext();
-      return;
-    }
-    moveTo(SUB_STEPS[index + 1]);
-  };
-
-  const conversion = {
-    name: null,
-    age: `${profile.age} years old`,
-    weight:
-      profile.weightUnit === "kg"
-        ? `${kgToLbs(weightValue)} lbs`
-        : `${lbsToKg(weightValue)} kg`,
-    height:
-      profile.heightUnit === "cm"
-        ? feetInchesLabel(cmToInches(heightValue))
-        : `${inchesToCm(heightValue)} cm`,
-  }[subStep];
+  const isQuestion = index <= 3;
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col bg-app-background">
-      <div className="shrink-0 px-5 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
-        <ScreenHeader onBack={goBack} railStep={3} railFraction={(index + 1) / 4} />
-      </div>
+    <Screen>
+      <Header onBack={goBack} railStep={3} railFraction={0.2 + ((index + 1) / INTAKE_STEPS.length) * 0.8} />
+      <Body>
+        {isQuestion ? (
+          <div key={step} className="funnel-rise space-y-5 pb-4 pt-2" style={{ animationDelay: "40ms" }}>
+            <MiaBubble text={question} onDone={() => setTyped(true)} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar px-5 pb-4 pt-6">
-        <div className="flex min-h-full flex-col">
-          <MiaBubble text={question} showTyping={greeting && subStep === "name"} />
-
-          {/* The answer sits centred between what Mia said and the button, so
-              the eye travels question, answer, next, with nothing in between.
-              py-4, not py-8: the five-row wheel is 108px taller than the
-              three-row one was, and on a 667px phone the weight step (unit
-              toggle + wheel + captions) overflowed the scroll area by ~20px,
-              clipping the "Scroll to choose" line. On tall phones the flex
-              centring absorbs the difference and nothing moves.
-
-              my-auto, not flex-1 justify-center: they centre identically when
-              there is room, but justify-center pushes overflow out through
-              BOTH ends of a scroll container, and whatever leaves through the
-              top cannot be scrolled back to. Auto margins collapse to zero
-              under pressure instead, so on a 568px phone every line stays
-              reachable. */}
-          <div className="my-auto flex flex-col py-4">
-            {subStep === "name" ? (
-              <NameField value={name} onChange={setName} onSubmit={goForward} />
+            {step === "name" ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (canContinue) advance();
+                }}
+              >
+                <label className="sr-only" htmlFor="intake-name">Your first name</label>
+                <input
+                  id="intake-name"
+                  ref={inputRef}
+                  type="text"
+                  autoComplete="given-name"
+                  autoCapitalize="words"
+                  enterKeyHint="next"
+                  placeholder={INTAKE_SCREEN.namePlaceholder}
+                  value={profile.name}
+                  onChange={(e) => onPatch({ name: e.target.value })}
+                  className="h-14 w-full rounded-[18px] border border-atelier-line bg-atelier-card px-5 text-[18px] font-semibold text-atelier-ink outline-none placeholder:font-normal placeholder:text-atelier-ink3 focus:border-atelier-rose"
+                />
+              </form>
             ) : null}
 
-            {subStep === "age" ? (
-              <div className="space-y-3">
-                <WheelPicker
-                  range={ageRange}
-                  value={clamp(profile.age, AGE_RANGE.min, AGE_RANGE.max)}
-                  onChange={(age) => onPatch({ age })}
-                  label="Your age in years"
-                  valueText={`${profile.age} years old`}
-                />
-                <p className="text-center text-[14px] text-app-textSecondary">{conversion}</p>
+            {step === "age" ? (
+              <div className="space-y-2">
+                <WheelPicker range={ageRange} value={clamp(profile.age, AGE_RANGE.min, AGE_RANGE.max)} onChange={(age) => onPatch({ age })} label="Your age in years" valueText={`${profile.age} years old`} />
+                <p className="text-center text-[14px] text-atelier-ink2">years old</p>
               </div>
             ) : null}
 
-            {subStep === "weight" ? (
+            {step === "height" ? (
               <div className="space-y-3">
                 <UnitToggle
-                  label="Weight units"
-                  value={profile.weightUnit}
-                  onChange={(weightUnit) => onPatch({ weightUnit })}
-                  options={[
-                    { id: "lbs", label: "lbs" },
-                    { id: "kg", label: "kg" },
-                  ]}
-                />
-                <WheelPicker
-                  range={weightRange}
-                  value={weightValue}
-                  onChange={(next) =>
-                    onPatch({
-                      weightLbs: profile.weightUnit === "kg" ? kgToLbs(next) : next,
-                    })
-                  }
-                  unit={profile.weightUnit}
-                  label={`Your weight in ${profile.weightUnit === "kg" ? "kilograms" : "pounds"}`}
-                  valueText={`${weightValue} ${profile.weightUnit}`}
-                  // The reason rides WITH the ask. Weight is the one question
-                  // in this funnel that can read as nosy, and Mia's own
-                  // explanation ("I'll set the pressure and impact...") only
-                  // arrives after she has already answered. The hint takes
-                  // over the wheel's caption slot: "Scroll to choose" earned
-                  // its keep on the age wheel, her first; by this one she
-                  // knows how wheels work, and the slot is better spent on
-                  // why. Goal-neutral on purpose, this screen serves all
-                  // eight goals, and pressure is the honest reason for every
-                  // one of them.
-                  hint="Weight sets the pressure on your pelvic floor."
-                />
-                <p className="text-center text-[14px] text-app-textSecondary">{conversion}</p>
-              </div>
-            ) : null}
-
-            {subStep === "height" ? (
-              <div className="space-y-3">
-                <UnitToggle
-                  label="Height units"
+                  label="Height unit"
                   value={profile.heightUnit}
                   onChange={(heightUnit) => onPatch({ heightUnit })}
-                  options={[
-                    { id: "ft", label: "feet" },
-                    { id: "cm", label: "cm" },
-                  ]}
+                  options={[{ value: "ft", label: "feet" }, { value: "cm", label: "cm" }]}
                 />
                 <WheelPicker
                   range={heightRange}
                   value={heightValue}
-                  onChange={(next) =>
-                    onPatch({
-                      heightInches: profile.heightUnit === "cm" ? cmToInches(next) : next,
-                    })
-                  }
+                  onChange={(next) => onPatch({ heightInches: profile.heightUnit === "cm" ? cmToInches(next) : next })}
                   unit={profile.heightUnit === "cm" ? "cm" : undefined}
                   formatLabel={profile.heightUnit === "cm" ? undefined : feetInchesLabel}
-                  label={`Your height in ${profile.heightUnit === "cm" ? "centimetres" : "feet and inches"}`}
-                  valueText={
-                    profile.heightUnit === "cm"
-                      ? `${heightValue} centimetres`
-                      : feetInchesLabel(heightValue)
-                  }
-                  // Same treatment as weight: the last question before her
-                  // plan gets its reason stated up front, in the caption slot.
-                  hint="Height fits the plan to your body, not an average."
+                  label={`Your height in ${profile.heightUnit === "cm" ? "centimeters" : "feet and inches"}`}
+                  valueText={profile.heightUnit === "cm" ? `${heightValue} centimeters` : `${Math.floor(profile.heightInches / 12)} feet ${profile.heightInches % 12} inches`}
                 />
-                <p className="text-center text-[14px] text-app-textSecondary">{conversion}</p>
+                <p className="text-center text-[14px] text-atelier-ink2">
+                  {profile.heightUnit === "cm" ? feetInchesLabel(profile.heightInches) : `${inchesToCm(profile.heightInches)} cm`}
+                </p>
+              </div>
+            ) : null}
+
+            {step === "weight" ? (
+              <div className="space-y-3">
+                <UnitToggle
+                  label="Weight unit"
+                  value={profile.weightUnit}
+                  onChange={(weightUnit) => onPatch({ weightUnit })}
+                  options={[{ value: "lbs", label: "lbs" }, { value: "kg", label: "kg" }]}
+                />
+                <WheelPicker
+                  range={weightRange}
+                  value={weightValue}
+                  onChange={(next) => onPatch({ weightLbs: profile.weightUnit === "kg" ? kgToLbs(next) : next })}
+                  unit={profile.weightUnit}
+                  label={`Your weight in ${profile.weightUnit === "kg" ? "kilograms" : "pounds"}`}
+                  valueText={`${weightValue} ${profile.weightUnit}`}
+                  hint={INTAKE_SCREEN.weightCaption}
+                />
+                <p className="text-center text-[14px] text-atelier-ink2">
+                  {profile.weightUnit === "kg" ? `${profile.weightLbs} lbs` : `${lbsToKg(profile.weightLbs)} kg`}
+                </p>
               </div>
             ) : null}
           </div>
-        </div>
-      </div>
+        ) : null}
 
-      <div
-        className="shrink-0 px-6 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 tab:pb-5"
-        style={keyboardInset ? { paddingBottom: keyboardInset + 16 } : undefined}
-      >
-        {/* Only the name step can be blocked, and when it is the button says so
-            rather than sitting there looking broken. The three wheel steps are
-            never blocked: they always hold a sensible value. */}
-        <PrimaryButton onClick={goForward} disabled={!canAdvance}>
-          {!canAdvance
-            ? "Enter your first name"
-            : subStep === "height"
-              ? "Continue"
-              : "Next"}
-        </PrimaryButton>
-      </div>
-    </div>
+        {step === "profile" ? (
+          <div className="funnel-rise pb-4 pt-2" style={{ animationDelay: "40ms" }}>
+            <Card emphasized>
+              <Eyebrow>{INTAKE_SCREEN.profile.eyebrow}</Eyebrow>
+              <h1 className="mt-2 font-serif text-[28px] leading-[1.08] text-atelier-ink">{INTAKE_SCREEN.profile.title(name)}</h1>
+              <p className="mt-2 text-[14px] leading-snug text-atelier-ink2">
+                {profileContext({
+                  situationTitle: situation?.title?.toLowerCase() || null,
+                  frequencyTitle: frequency?.title?.toLowerCase() || null,
+                  tried,
+                  memberSentencePhrase: goal.memberSentencePhrase,
+                })}
+              </p>
+              <div className="mt-4 flex gap-2">
+                <MetricCard value={String(profile.age)} label="AGE" detail="pace" />
+                <MetricCard value={heightText} label="HEIGHT" detail="range" />
+                <MetricCard value={weightText} label="WEIGHT" detail="effort" />
+              </div>
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <span className="flex h-[76px] w-[76px] flex-col items-center justify-center rounded-full border-[3px] border-atelier-rose bg-atelier-card">
+                  <span className="font-serif text-[26px] leading-none text-atelier-ink">5</span>
+                  <span className="text-[10px] font-bold tracking-[0.12em] text-atelier-rose">MIN</span>
+                </span>
+                <ul className="grid grid-cols-2 gap-x-3 gap-y-1">
+                  {INTAKE_SCREEN.profile.labels.map((label) => (
+                    <li key={label} className="text-[10.5px] font-semibold tracking-[0.12em] text-atelier-ink2">{label}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-4 rounded-[16px] bg-atelier-rose/[0.07] p-3.5">
+                <p className="text-[13px] font-semibold text-atelier-ink">{INTAKE_SCREEN.profile.howTitle}</p>
+                <p className="mt-1 text-[13px] leading-snug text-atelier-ink2">{INTAKE_SCREEN.profile.howBody}</p>
+              </div>
+            </Card>
+          </div>
+        ) : null}
+
+        {step === "story" ? (
+          <div className="funnel-rise flex min-h-full flex-col justify-center pb-4 pt-2" style={{ animationDelay: "40ms" }}>
+            <Card>
+              <Eyebrow>{INTAKE_SCREEN.story.eyebrow}</Eyebrow>
+              <div className="mt-4 flex justify-center">
+                <Face src={memberPortrait(story.name)} name={story.name} size={72} />
+              </div>
+              <p className="mt-4 text-center font-serif text-[22px] italic leading-snug text-atelier-ink">“{story.quote}”</p>
+              <p className="mt-3 text-center text-[13px] tracking-[0.14em] text-atelier-rose" aria-label="Five stars">{INTAKE_SCREEN.story.stars}</p>
+              <p className="mt-1 text-center text-[13.5px] font-semibold text-atelier-ink2">{story.name}</p>
+            </Card>
+          </div>
+        ) : null}
+      </Body>
+      <Footer className="transition-[padding] duration-150" >
+        <div style={keyboardInset ? { paddingBottom: keyboardInset } : undefined}>
+          {step === "profile" ? (
+            <Button onClick={advance} variant="rose" id="onboarding.intake.profile.continue">{INTAKE_SCREEN.profile.cta}</Button>
+          ) : step === "story" ? (
+            <Button onClick={advance} variant="rose" id="onboarding.intake.story.continue">{INTAKE_SCREEN.story.cta}</Button>
+          ) : (
+            <Button onClick={advance} disabled={!canContinue} variant="ink" id="onboarding.intake.continue">
+              {step === "weight" ? INTAKE_SCREEN.buildProfile : INTAKE_SCREEN.next}
+            </Button>
+          )}
+        </div>
+      </Footer>
+    </Screen>
   );
 }

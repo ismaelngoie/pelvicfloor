@@ -123,13 +123,12 @@ export default function HomeClient() {
   // the absolute half is only meaningful inside a positioned card.
   if (paywallProfile) {
     return (
-      // tone="dark" because the paywall is #0A0A10 edge to edge, and a black
-      // card on a pink page reads as a rendering fault. The pane beside it
-      // carries quotes and nothing else: everything else it could say, the
-      // paywall is already saying two inches to the right.
+      // The 3.1.8 paywall is atelier paper, so the frame stays light. The pane
+      // beside it carries quotes and nothing else: everything else it could
+      // say, the paywall is already saying two inches to the right.
       <FunnelFrame
-        tone="dark"
-        aside={<FunnelAside variant="proof" profile={paywallProfile} tone="dark" />}
+        tone="light"
+        aside={<FunnelAside variant="proof" profile={paywallProfile} tone="light" />}
       >
         <div ref={paywallRef} tabIndex={-1} className="h-full w-full">
           <PaywallScreen profile={paywallProfile} onBack={handleLeavePaywall} />

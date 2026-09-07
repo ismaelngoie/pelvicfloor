@@ -7,56 +7,87 @@
 // of persisting at all is resume: ad traffic gets interrupted, and a woman who
 // answered four questions and then took a phone call should not have to answer
 // them again.
+//
+// The step list mirrors the iOS 3.1.8 onboarding one for one:
+//
+//   welcome -> pathway -> goal -> focus -> calibration (5 questions, with the
+//   prevalence beat after the second) -> method -> howItHelps (constellation)
+//   -> intake (Coach Mia: name, age, height, weight, profile, story) -> health
+//   -> personalizing -> planReveal -> bridge (Dr Reed) -> paywall
 
-import { ACTIVITY_LEVELS, HEALTH_CONDITIONS } from "./copy";
-import { GOALS } from "@/lib/program";
+import { goalData } from "./appCopy";
 
-export const FUNNEL_STORAGE_KEY = "pelvi.funnel.v1";
+export const FUNNEL_STORAGE_KEY = "pelvi.funnel.v2";
 const MAX_RESUME_AGE_MS = 30 * 24 * 60 * 60 * 1000; // a month, then start fresh
 
 export const STEP = {
   welcome: "welcome",
+  pathway: "pathway",
   goal: "goal",
+  focus: "focus",
+  calibration: "calibration",
+  method: "method",
   howItHelps: "howItHelps",
   intake: "intake",
   health: "health",
   personalizing: "personalizing",
   planReveal: "planReveal",
+  bridge: "bridge",
   paywall: "paywall",
 };
 
-// The plan-building animation runs straight into the timeline, and the timeline
-// into the paywall, with nothing between. There is no longer an email step in
-// the funnel: the address is collected at checkout, where the card needs one
-// anyway, and an already-subscribed member is recognised there. See the header
-// of components/funnel/CheckoutSheet.jsx.
 export const FORWARD = {
-  welcome: STEP.goal,
-  goal: STEP.howItHelps,
+  welcome: STEP.pathway,
+  pathway: STEP.goal,
+  goal: STEP.focus,
+  focus: STEP.calibration,
+  calibration: STEP.method,
+  method: STEP.howItHelps,
   howItHelps: STEP.intake,
   intake: STEP.health,
   health: STEP.personalizing,
   personalizing: STEP.planReveal,
-  planReveal: STEP.paywall,
+  planReveal: STEP.bridge,
+  bridge: STEP.paywall,
 };
 
 // Back skips the screens that are not questions. Sending her back through a
 // seven second animation to change one answer is a punishment, not navigation.
 export const BACKWARD = {
-  goal: STEP.welcome,
-  howItHelps: STEP.goal,
+  pathway: STEP.welcome,
+  goal: STEP.pathway,
+  focus: STEP.goal,
+  calibration: STEP.focus,
+  method: STEP.calibration,
+  howItHelps: STEP.method,
   intake: STEP.howItHelps,
   health: STEP.intake,
   personalizing: STEP.health,
   planReveal: STEP.health,
+  bridge: STEP.planReveal,
   paywall: STEP.planReveal,
 };
 
-// iOS defaults. Not the web's old 30/140/65: a default is a suggestion, and
-// 45 is the middle of who actually buys this.
+export const PATHWAY = {
+  women: "womensPelvicHealth",
+  men: "mensPelvicHealth",
+};
+
+export const INTAKE_STEPS = ["name", "age", "height", "weight", "profile", "story"];
+
+// iOS defaults. 45 is the middle of who actually buys this.
 export function emptyProfile() {
   return {
+    pathway: null,
     goalId: null,
+    focusId: null,
+    situationId: null,
+    frequencyId: null,
+    triedId: null,
+    impactIds: [],
+    meaningId: null,
+    calibrationStep: 0,
+    prevalenceSeen: false,
     name: "",
     age: 45,
     weightLbs: 150,
@@ -80,7 +111,7 @@ export function readFunnelState() {
     const raw = window.localStorage.getItem(FUNNEL_STORAGE_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw);
-    if (!saved || saved.v !== 1 || !saved.profile) return null;
+    if (!saved || saved.v !== 2 || !saved.profile) return null;
     if (!saved.savedAt || Date.now() - saved.savedAt > MAX_RESUME_AGE_MS) return null;
     return { step: saved.step, profile: { ...emptyProfile(), ...saved.profile } };
   } catch {
@@ -93,7 +124,7 @@ export function writeFunnelState(step, profile) {
   try {
     window.localStorage.setItem(
       FUNNEL_STORAGE_KEY,
-      JSON.stringify({ v: 1, step, profile, savedAt: Date.now() })
+      JSON.stringify({ v: 2, step, profile, savedAt: Date.now() })
     );
   } catch {
     // Private browsing, a full quota, a locked-down browser. Losing resume is
@@ -110,6 +141,7 @@ export function clearFunnelState() {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(FUNNEL_STORAGE_KEY);
+    window.localStorage.removeItem("pelvi.funnel.v1");
   } catch {
     /* see above */
   }
@@ -119,27 +151,18 @@ export function clearFunnelState() {
 //
 // app/stop-bladder-leaks (and every future per-theme ad page) enters the
 // funnel as /?goal=<goalId>. Tapping "Start My Leak-Free Plan" over there IS
-// the answer to the goal question: she typed "bladder leak exercises" into
-// Google, the ad promised leaks, the page promised leaks, and the button she
-// pressed names the plan. Re-asking on the next screen would spend the
-// highest-attention moment of the funnel asking what she just said. Funnel.js
-// consumes this once, on mount, and starts her past the goal screen with the
-// goal chosen; Back still walks to the goal screen, where her goal arrives
-// pre-selected and changeable.
+// the answer to the goal question. Funnel.js consumes this once, on mount, and
+// starts her on the goal screen with the women's pathway and the goal chosen.
 //
 // The parameter is stripped after it is read, AND ONLY IT: gclid and the other
-// ad parameters stay in the address bar for gtag to read (see the note at the
-// foot of lib/openPlanScript.js on why attribution rides the query string).
-// Stripping matters for one real person: the member who entered from the leak
-// page, walked Back, chose a different goal on purpose, and later reloaded.
-// Left in the URL, the parameter would clobber the choice she made.
+// ad parameters stay in the address bar for gtag to read.
 
 export function consumeGoalParam() {
   if (typeof window === "undefined") return null;
   try {
     const params = new URLSearchParams(window.location.search);
     const goal = params.get("goal");
-    if (!goal || !GOALS.some((g) => g.id === goal)) return null;
+    if (!goal || !goalData(PATHWAY.women, goal)) return null;
     params.delete("goal");
     const rest = params.toString();
     window.history.replaceState(
@@ -149,8 +172,6 @@ export function consumeGoalParam() {
     );
     return goal;
   } catch {
-    // A browser that broke URLSearchParams or blocked replaceState. The funnel
-    // then simply starts at the welcome screen, which always works.
     return null;
   }
 }
@@ -158,17 +179,17 @@ export function consumeGoalParam() {
 /**
  * Where a returning member should land.
  *
- * Two steps are never resumed into: the plan-building animation, because it is
- * a transition and not a place, and the timeline before a plan exists.
+ * Three steps are never resumed into: the plan-building animation, because it
+ * is a transition and not a place, the Dr Reed bridge, which only makes sense
+ * straight after the reveal, and the timeline before a plan exists.
  */
 export function resumeStep(saved) {
   if (!saved?.step) return STEP.welcome;
   const { step, profile } = saved;
-  // Nothing past the goal screen can render without a goal. A record that lost
-  // one, however that happened, restarts at the question rather than crashing
-  // on a lookup two screens later.
-  if (step !== STEP.welcome && !profile.goalId) return STEP.goal;
+  if (step !== STEP.welcome && !profile.pathway) return STEP.pathway;
+  if (step !== STEP.welcome && step !== STEP.pathway && !profile.goalId) return STEP.goal;
   if (step === STEP.personalizing) return STEP.health;
+  if (step === STEP.bridge) return STEP.planReveal;
   if ((step === STEP.planReveal || step === STEP.paywall) && !profile.planBuilt) {
     return STEP.health;
   }
@@ -178,7 +199,8 @@ export function resumeStep(saved) {
 /** Everything answered, so the paywall can be trusted to render. */
 export function isProfileComplete(profile) {
   return Boolean(
-    profile?.goalId &&
+    profile?.pathway &&
+      profile?.goalId &&
       profile?.activity &&
       (profile.noConditions || (profile.conditions || []).length > 0)
   );
@@ -206,33 +228,24 @@ export function feetInchesLabel(totalInches) {
   return `${feet}' ${inches}"`;
 }
 
+/** The phone's own spelling for the clinical profile card: 5′ 5″. */
+export function feetInchesPrime(totalInches) {
+  return `${Math.floor(totalInches / 12)}′ ${totalInches % 12}″`;
+}
+
 /** BMI to one decimal place, from pounds and inches. */
 export function bmi(weightLbs, heightInches) {
   const kg = weightLbs / LB_PER_KG;
   const metres = (heightInches * CM_PER_INCH) / 100;
-  if (!metres) return "0.0";
-  return (kg / (metres * metres)).toFixed(1);
+  if (!metres) return 0;
+  return Number((kg / (metres * metres)).toFixed(1));
 }
 
-export function activityPhrase(activityId) {
-  return ACTIVITY_LEVELS.find((a) => a.id === activityId)?.phrase || "lightly active";
-}
-
-// Email is no longer collected in the funnel, so the funnel's own address
-// validator moved out with the screen that used it. Checkout has its own check
-// in lib/checkout.js (isValidEmail), which is where an address is entered now.
-
-/**
- * "pelvic pain", "bladder leaks and prostate concerns", "A, B and C".
- * With nothing selected the sentence still has to read, so it becomes the thing
- * she actually told us: that her needs are her own.
- */
-export function conditionPhrase(conditions, noConditions) {
-  if (noConditions || !conditions?.length) return "your unique needs";
-  const nouns = conditions
-    .map((id) => HEALTH_CONDITIONS.find((c) => c.id === id)?.noun)
-    .filter(Boolean);
-  if (nouns.length === 0) return "your unique needs";
-  if (nouns.length === 1) return nouns[0];
-  return `${nouns.slice(0, -1).join(", ")} and ${nouns[nouns.length - 1]}`;
+/** "A", "A and B", "A, B, and C": the phone's naturalList, Oxford comma and all. */
+export function naturalList(items) {
+  const values = (items || []).filter(Boolean);
+  if (values.length === 0) return "";
+  if (values.length === 1) return values[0];
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(", ")}, and ${values[values.length - 1]}`;
 }

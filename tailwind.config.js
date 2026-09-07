@@ -63,6 +63,20 @@ module.exports = {
           yellow: '#FFCC00',       // systemYellow (rating star)
           gray4: '#D1D1D6',        // systemGray4 (typing dots)
         },
+        // The Atelier palette the 3.1.x onboarding is drawn in. Source:
+        // "Pelvic Floor/Core/DesignSystem/AtelierPalette.swift".
+        atelier: {
+          paper: '#F6F1EA',
+          card: '#FFFCF8',
+          ink: '#1C1820',
+          ink2: '#6B6470',
+          ink3: '#A29BA6',
+          line: 'rgba(28, 24, 32, 0.08)',
+          rose: '#E65473',
+          roseBright: '#F94F70',
+          roseSoft: 'rgba(230, 84, 115, 0.12)',
+          rosewood: '#C43E63',
+        },
         brand: {
           rose: '#E65473',
           roseDeep: '#C33A5C',
@@ -90,6 +104,9 @@ module.exports = {
         // system stack, matching iOS, which uses SF Pro on those two screens.
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         system: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Segoe UI', 'Roboto', 'sans-serif'],
+        // The two faces the iOS onboarding is set in, served from /public/fonts.
+        serif: ['"Instrument Serif"', 'Georgia', 'serif'],
+        figtree: ['Figtree', 'var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
         'cta-gradient': 'linear-gradient(135deg, #E65473 0%, #C33A5C 100%)',

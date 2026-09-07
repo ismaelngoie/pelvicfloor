@@ -71,3 +71,14 @@ body {
   -webkit-text-fill-color: transparent;
   background-image: linear-gradient(135deg, #E65473 0%, #C23A5B 100%);
 }
+
+/* --- Atelier type, the same files the iOS app ships ------------------------
+   Instrument Serif for display lines, Figtree for everything else. Loaded from
+   /public/fonts so the funnel renders in the exact faces the phone renders in,
+   with no third-party request. */
+@font-face { font-family: "Instrument Serif"; src: url("/fonts/InstrumentSerif-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Instrument Serif"; src: url("/fonts/InstrumentSerif-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url("/fonts/Figtree-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url("/fonts/Figtree-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url("/fonts/Figtree-SemiBold.ttf") format("truetype"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url("/fonts/Figtree-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }

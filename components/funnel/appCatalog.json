@@ -1,0 +1,4042 @@
+{
+  "meaningOptions" : [
+    {
+      "echo" : "more confidence in your own body",
+      "id" : "confidence",
+      "title" : "More confidence"
+    },
+    {
+      "echo" : "moving freely again",
+      "id" : "freedom",
+      "title" : "Moving freely again"
+    },
+    {
+      "echo" : "feeling like yourself again",
+      "id" : "myself",
+      "title" : "Feeling like myself again"
+    },
+    {
+      "echo" : "being closer to your partner",
+      "id" : "closeness",
+      "title" : "Being closer to my partner"
+    },
+    {
+      "echo" : "less worry every single day",
+      "id" : "worry",
+      "title" : "Less worry every day"
+    }
+  ],
+  "meaningQuestion" : "What would fixing this mean for you?",
+  "pathways" : {
+    "mensPelvicHealth" : {
+      "detail" : "Erections, lasting longer, leaks, prostate recovery, pain, bowel control, and core goals.",
+      "goalOrder" : [
+        "bladderLeaks",
+        "intimacy",
+        "prostateRecovery",
+        "pelvicPain",
+        "bowelControl",
+        "coreStrength"
+      ],
+      "goals" : {
+        "bladderLeaks" : {
+          "displayTitle" : "Stop Bladder Leaks",
+          "focus" : [
+            {
+              "detail" : "For leaking when you stand, cough, lift, run, or train.",
+              "id" : "bladder.stressLeaks",
+              "supportSubtitle" : "Learn the timing that supports pressure before it arrives.",
+              "supportTitle" : "Practice Before a Cough or Lift",
+              "symbol" : "figure.run",
+              "title" : "Stop leaks with coughs or exercise",
+              "tracking" : {
+                "choices" : [
+                  "None",
+                  "A few",
+                  "Several"
+                ],
+                "question" : "Any leaks with coughing, lifting, or exercise today?",
+                "slot" : "leak",
+                "title" : "Activity leaks"
+              }
+            },
+            {
+              "detail" : "For drops that appear after you think you have finished.",
+              "id" : "bladder.afterDribble",
+              "supportSubtitle" : "Practice the final squeeze and release that helps clear the last drops.",
+              "supportTitle" : "After-Urination Control",
+              "symbol" : "drop.triangle.fill",
+              "title" : "Stop drips after urinating",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Mixed",
+                  "Controlled"
+                ],
+                "question" : "How manageable were drips today?",
+                "slot" : "secondary",
+                "title" : "After-urination control"
+              }
+            },
+            {
+              "detail" : "For the feeling that you have to go right now.",
+              "id" : "bladder.urgency",
+              "supportSubtitle" : "Pause, breathe, and let the first wave settle before moving.",
+              "supportTitle" : "Settle a Sudden Urge",
+              "symbol" : "timer",
+              "title" : "Handle sudden urges",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Mixed",
+                  "Controlled"
+                ],
+                "question" : "How manageable were sudden urges today?",
+                "slot" : "secondary",
+                "title" : "Urge control"
+              }
+            },
+            {
+              "detail" : "For frequent trips, going just in case, or waking at night.",
+              "id" : "bladder.frequency",
+              "supportSubtitle" : "A short reset to notice whether the urge can settle.",
+              "supportTitle" : "Pause Before Another Bathroom Trip",
+              "symbol" : "clock.fill",
+              "title" : "Go less often",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Mixed",
+                  "Manageable"
+                ],
+                "question" : "How manageable were the gaps between bathroom trips today?",
+                "slot" : "secondary",
+                "title" : "Time between trips"
+              }
+            },
+            {
+              "detail" : "Build confidence for work, travel, and daily life.",
+              "id" : "bladder.confidence",
+              "supportSubtitle" : "Practice control before the moments that usually feel uncertain.",
+              "supportTitle" : "Bladder Confidence Reset",
+              "symbol" : "shield.fill",
+              "title" : "Feel safer away from a bathroom",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Growing",
+                  "Strong"
+                ],
+                "question" : "How confident did you feel away from a bathroom today?",
+                "slot" : "confidence",
+                "title" : "Confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "monthly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a month",
+              "title" : "A few times a month"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "several times a day",
+              "title" : "Several times a day"
+            }
+          ],
+          "frequencyQuestion" : "How often do leaks happen?",
+          "impactQuestion" : "What do the leaks get in the way of?",
+          "impacts" : [
+            {
+              "id" : "active",
+              "symbol" : "figure.walk",
+              "tile" : "Stay active all day",
+              "title" : "Walks, golf or workouts"
+            },
+            {
+              "id" : "travel",
+              "symbol" : "car.fill",
+              "tile" : "Travel without worry",
+              "title" : "Long trips and drives"
+            },
+            {
+              "id" : "sleep",
+              "symbol" : "moon.zzz.fill",
+              "tile" : "Sleep through the night",
+              "title" : "A full night of sleep"
+            },
+            {
+              "id" : "social",
+              "symbol" : "person.2.fill",
+              "tile" : "Relax around people",
+              "title" : "Time with friends and family"
+            },
+            {
+              "id" : "confidence",
+              "symbol" : "checkmark.seal.fill",
+              "tile" : "Feel sure of yourself",
+              "title" : "Feeling sure of myself"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "stop leaks and drips",
+          "paywallPromise" : {
+            "drips" : "Fewer drips after urinating by BYDATE.",
+            "night" : "Sleep through the night with fewer bathroom trips by BYDATE.",
+            "stress" : "Fewer leaks with coughing, lifting and exercise by BYDATE.",
+            "urge" : "Fewer sudden urges, no more racing to the bathroom, by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Common.",
+              "Not weakness. Trainable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Drips and leaks respond to training at any age.",
+            "receipt" : "74% of men who trained got dry again. 30% of men who did not.",
+            "source" : "Clinical trial · 300 men",
+            "statLines" : [
+              "1 in 8 men",
+              "live with leaks."
+            ]
+          },
+          "sentencePhrase" : "stop bladder leaks",
+          "situationQuestion" : "When do leaks happen most?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Move and exercise with fewer leaks",
+              "id" : "stress",
+              "planEmphasis" : "stopping leaks by training support before pressure rises",
+              "relatedHealthKeywords" : [
+                "Leaks with coughing",
+                "Prostate"
+              ],
+              "revealPhrase" : "with coughing, lifting or exercise",
+              "title" : "Coughing, lifting or exercise"
+            },
+            {
+              "constellationOutcome" : "Fewer after-urination drips",
+              "id" : "drips",
+              "planEmphasis" : "training the final contraction and full release that help clear the last drops",
+              "relatedHealthKeywords" : [
+                "Drips after urinating",
+                "Prostate"
+              ],
+              "revealPhrase" : "after urinating",
+              "title" : "Drips after urinating"
+            },
+            {
+              "constellationOutcome" : "More control over sudden urges",
+              "id" : "urge",
+              "planEmphasis" : "calming the first urge so you can move to the bathroom with control",
+              "relatedHealthKeywords" : [
+                "Sudden urgency",
+                "Prostate"
+              ],
+              "revealPhrase" : "with sudden, hard-to-hold urges",
+              "title" : "Sudden urges on the way to the bathroom"
+            },
+            {
+              "constellationOutcome" : "Fewer disrupted nights",
+              "id" : "night",
+              "planEmphasis" : "building steadier bladder timing for fewer unnecessary trips",
+              "relatedHealthKeywords" : [
+                "Waking at night",
+                "Frequent bathroom"
+              ],
+              "revealPhrase" : "with frequent trips and disrupted nights",
+              "title" : "Frequent trips, especially at night"
+            }
+          ],
+          "symbol" : "drop.fill",
+          "title" : "Stop Leaks and Drips",
+          "tried" : [
+            {
+              "acknowledgment" : "Kegels alone often plateau: they train the squeeze, but not the release, the timing or the progression. Your plan trains all three.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "Drinking less only shrinks the problem, it does not fix the muscle. Your plan trains the control so you can drink normally again.",
+              "id" : "fluids",
+              "title" : "Cutting back on drinks"
+            },
+            {
+              "acknowledgment" : "Pads manage the symptom. Your plan trains the muscles that address it at the source.",
+              "id" : "pads",
+              "title" : "Pads or liners"
+            },
+            {
+              "acknowledgment" : "Medication can calm the bladder, but it cannot strengthen the floor under it. Your plan trains the part pills cannot reach.",
+              "id" : "meds",
+              "title" : "Medication from a doctor"
+            },
+            {
+              "acknowledgment" : "A strong foundation. Your plan gives that approach daily structure, and a progress report to bring back to your therapist.",
+              "id" : "pt",
+              "title" : "Physical therapy"
+            },
+            {
+              "acknowledgment" : "The perfect starting point. Your plan begins exactly where you are, five minutes at a time.",
+              "id" : "nothing",
+              "title" : "Nothing yet"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "bowelControl" : {
+          "displayTitle" : "Improve Bowel Control",
+          "focus" : [
+            {
+              "detail" : "Train calm timing so every urge does not become a rush.",
+              "id" : "bowel.urgency",
+              "supportSubtitle" : "A short pause to settle the first wave and move calmly.",
+              "supportTitle" : "Bowel Urge Reset",
+              "symbol" : "timer",
+              "title" : "Handle sudden bowel urges",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Mixed",
+                  "Controlled"
+                ],
+                "question" : "How manageable were bowel urges today?",
+                "slot" : "secondary",
+                "title" : "Bowel urge control"
+              }
+            },
+            {
+              "detail" : "Build closure timing, endurance, and everyday confidence.",
+              "id" : "bowel.accidents",
+              "supportSubtitle" : "Train a clean lift, hold, and full release.",
+              "supportTitle" : "Bowel Control Practice",
+              "symbol" : "shield.lefthalf.filled",
+              "title" : "Reduce bowel leakage",
+              "tracking" : {
+                "choices" : [
+                  "None",
+                  "A few",
+                  "Several"
+                ],
+                "question" : "Any bowel leakage since your last check-in?",
+                "slot" : "leak",
+                "title" : "Bowel control"
+              }
+            },
+            {
+              "detail" : "Coordinate breath and release instead of pushing harder.",
+              "id" : "bowel.emptying",
+              "supportSubtitle" : "Use position and breath to reduce straining.",
+              "supportTitle" : "Easier Emptying Reset",
+              "symbol" : "wind",
+              "title" : "Empty with less straining",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How difficult was it to empty your bowels today?",
+                "slot" : "discomfort",
+                "title" : "Emptying effort"
+              }
+            },
+            {
+              "detail" : "Build predictable habits and confidence for daily life.",
+              "id" : "bowel.confidence",
+              "supportSubtitle" : "Practice the skills that make leaving home feel easier.",
+              "supportTitle" : "Bowel Confidence Reset",
+              "symbol" : "shield.fill",
+              "title" : "Feel safer away from a bathroom",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Growing",
+                  "Strong"
+                ],
+                "question" : "How confident did bowel control feel today?",
+                "slot" : "confidence",
+                "title" : "Bowel confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "monthly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a month",
+              "title" : "A few times a month"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "unpredictable",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "unpredictably",
+              "title" : "It's unpredictable"
+            }
+          ],
+          "frequencyQuestion" : "How often does it happen?",
+          "impactQuestion" : "What does it get in the way of?",
+          "impacts" : [
+            {
+              "id" : "leaving",
+              "symbol" : "figure.walk",
+              "tile" : "Leave home relaxed",
+              "title" : "Leaving the house relaxed"
+            },
+            {
+              "id" : "travel",
+              "symbol" : "car.fill",
+              "tile" : "Travel without worry",
+              "title" : "Long trips"
+            },
+            {
+              "id" : "work",
+              "symbol" : "briefcase.fill",
+              "tile" : "Focus at work",
+              "title" : "Work and meetings"
+            },
+            {
+              "id" : "social",
+              "symbol" : "person.2.fill",
+              "tile" : "Say yes to plans",
+              "title" : "Social plans"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "improve bowel control",
+          "paywallPromise" : {
+            "away" : "Feel safer away from a bathroom by BYDATE.",
+            "empty" : "Easier bathroom trips with less straining by BYDATE.",
+            "leak" : "Fewer leaks and more daily confidence by BYDATE.",
+            "urge" : "More control over sudden bowel urges by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Hidden.",
+              "Not hopeless. Trainable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Closure and timing are skills. Skills can be practiced.",
+            "receipt" : "Most people improved with guided muscle training in published studies.",
+            "source" : "Published clinical studies",
+            "statLines" : [
+              "1 in 12 adults struggle",
+              "with bowel control."
+            ]
+          },
+          "sentencePhrase" : "improve bowel control",
+          "situationQuestion" : "When is bowel control hardest?",
+          "situations" : [
+            {
+              "constellationOutcome" : "More control over sudden urges",
+              "id" : "urge",
+              "planEmphasis" : "training the pause and closure timing before moving calmly",
+              "relatedHealthKeywords" : [
+                "Constipation"
+              ],
+              "revealPhrase" : "with sudden bowel urges",
+              "title" : "A sudden urge that is hard to hold"
+            },
+            {
+              "constellationOutcome" : "Fewer leaks and more confidence",
+              "id" : "leak",
+              "planEmphasis" : "building closure endurance and reliable daily control",
+              "relatedHealthKeywords" : [
+                "Pelvic surgery"
+              ],
+              "revealPhrase" : "as bowel leakage",
+              "title" : "Small leaks or staining"
+            },
+            {
+              "constellationOutcome" : "Easier bathroom trips",
+              "id" : "empty",
+              "planEmphasis" : "coordinating breath and release so you do not have to push harder",
+              "relatedHealthKeywords" : [
+                "Constipation",
+                "Difficulty emptying"
+              ],
+              "revealPhrase" : "while emptying",
+              "title" : "Straining or trouble emptying"
+            },
+            {
+              "constellationOutcome" : "Feel safer away from a bathroom",
+              "id" : "away",
+              "planEmphasis" : "building predictable control for work, travel, and daily life",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "away from a bathroom",
+              "title" : "When I am away from a bathroom"
+            }
+          ],
+          "symbol" : "circle.hexagongrid.fill",
+          "title" : "Improve Bowel Control",
+          "tried" : [
+            {
+              "acknowledgment" : "Diet shapes what arrives, but not the muscle that holds it. Your plan trains the closure and the timing.",
+              "id" : "fiber",
+              "title" : "Fiber or diet changes"
+            },
+            {
+              "acknowledgment" : "Medication manages the gut. Your plan strengthens the muscle control that medication cannot build.",
+              "id" : "meds",
+              "title" : "Medication"
+            },
+            {
+              "acknowledgment" : "Routine helps the schedule. Your plan trains the closure strength that keeps you safe between times.",
+              "id" : "retraining",
+              "title" : "Bowel routine changes"
+            },
+            {
+              "acknowledgment" : "Kegels alone often plateau: they train the squeeze, but not the release, the timing or the progression. Your plan trains all three.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "A strong foundation. Your plan gives that approach daily structure, and a progress report to bring back to your therapist.",
+              "id" : "pt",
+              "title" : "Physical therapy"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "coreStrength" : {
+          "displayTitle" : "Build Core Strength",
+          "focus" : [
+            {
+              "detail" : "Make the lower-abdominal connection easier to find.",
+              "id" : "core.connection",
+              "supportSubtitle" : "A clear breath-led connection before your workout.",
+              "supportTitle" : "Find Your Deep Core",
+              "symbol" : "scope",
+              "title" : "Feel my deep core working",
+              "tracking" : {
+                "choices" : [
+                  "Hard to feel",
+                  "Starting",
+                  "Strong"
+                ],
+                "question" : "How clearly can you feel your deep core today?",
+                "slot" : "secondary",
+                "title" : "Core connection"
+              }
+            },
+            {
+              "detail" : "Coordinate support with a steady exhale.",
+              "id" : "core.bracing",
+              "supportSubtitle" : "Practice support that still lets you breathe.",
+              "supportTitle" : "Breath and Brace Reset",
+              "symbol" : "lungs.fill",
+              "title" : "Brace without holding my breath",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Sometimes",
+                  "Easy"
+                ],
+                "question" : "How easy was it to brace and keep breathing today?",
+                "slot" : "secondary",
+                "title" : "Breath control"
+              }
+            },
+            {
+              "detail" : "Build trunk and hip control for daily movement.",
+              "id" : "core.backSupport",
+              "supportSubtitle" : "Connect your deep core before the next daily task.",
+              "supportTitle" : "Back Support Reset",
+              "symbol" : "figure.strengthtraining.traditional",
+              "title" : "Support my lower back",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How much lower-back discomfort do you feel today?",
+                "slot" : "discomfort",
+                "title" : "Back comfort"
+              }
+            },
+            {
+              "detail" : "Build support without staying stiff.",
+              "id" : "core.posture",
+              "supportSubtitle" : "Stack your ribs and pelvis without gripping.",
+              "supportTitle" : "Posture Reset",
+              "symbol" : "figure.stand",
+              "title" : "Improve posture and control",
+              "tracking" : {
+                "choices" : [
+                  "Unsteady",
+                  "Improving",
+                  "Steady"
+                ],
+                "question" : "How steady did your posture feel today?",
+                "slot" : "secondary",
+                "title" : "Postural control"
+              }
+            },
+            {
+              "detail" : "Stay supported for longer without losing form.",
+              "id" : "core.endurance",
+              "supportSubtitle" : "Find a sustainable effort before adding more time.",
+              "supportTitle" : "Core Endurance Check",
+              "symbol" : "timer",
+              "title" : "Build core endurance",
+              "tracking" : {
+                "choices" : [
+                  "Tired quickly",
+                  "Building",
+                  "Steady"
+                ],
+                "question" : "How steady did your core feel during longer efforts today?",
+                "slot" : "secondary",
+                "title" : "Core endurance"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "monthly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a month",
+              "title" : "A few times a month"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "several times a day",
+              "title" : "Several times a day"
+            }
+          ],
+          "frequencyQuestion" : "How often does your core hold you back?",
+          "impactQuestion" : "What does this get in the way of?",
+          "impacts" : [
+            {
+              "id" : "lifting",
+              "symbol" : "bolt.fill",
+              "tile" : "Lift with a steady core",
+              "title" : "Lifting heavy things"
+            },
+            {
+              "id" : "standing",
+              "symbol" : "figure.stand",
+              "tile" : "Stand strong all day",
+              "title" : "Long days on my feet"
+            },
+            {
+              "id" : "sport",
+              "symbol" : "figure.run",
+              "tile" : "Move with confidence",
+              "title" : "Sports and classes"
+            },
+            {
+              "id" : "steady",
+              "symbol" : "checkmark.seal.fill",
+              "tile" : "Feel steady every step",
+              "title" : "Feeling steady"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "strengthen your pelvic floor and core",
+          "paywallPromise" : {
+            "back" : "A stronger core and less back ache by BYDATE.",
+            "connection" : "Finally feel your core working by BYDATE.",
+            "lifting" : "Lift heavier with a stronger core by BYDATE.",
+            "posture" : "Stand taller without trying by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "One system.",
+              "Train it together."
+            ],
+            "cta" : "I'm ready to start",
+            "reassurance" : "Posture, balance and power share one foundation.",
+            "receipt" : "Training the floor with the deep core improved strength and stability in published studies.",
+            "source" : "Published clinical studies",
+            "statLines" : [
+              "Every strong move",
+              "starts at your floor."
+            ]
+          },
+          "sentencePhrase" : "build core strength",
+          "situationQuestion" : "Where does your core let you down?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Lift with a steady core",
+              "id" : "lifting",
+              "planEmphasis" : "lifting heavier without hurting your core",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "when lifting",
+              "title" : "Lifting anything heavy"
+            },
+            {
+              "constellationOutcome" : "Posture that holds",
+              "id" : "posture",
+              "planEmphasis" : "standing taller without forcing it",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "in your posture",
+              "title" : "Slumping and posture"
+            },
+            {
+              "constellationOutcome" : "Less strain on your back",
+              "id" : "back",
+              "planEmphasis" : "a stronger core so your back stops doing all the work",
+              "relatedHealthKeywords" : [
+                "Back or hip"
+              ],
+              "revealPhrase" : "as back fatigue",
+              "title" : "A tired or aching back"
+            },
+            {
+              "constellationOutcome" : "Feel your deep core switch on",
+              "id" : "connection",
+              "planEmphasis" : "finally feeling your deep core switch on",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "as a deep core that is hard to feel",
+              "title" : "Hard to feel the deep core at all"
+            }
+          ],
+          "symbol" : "bolt.fill",
+          "title" : "Strengthen Pelvic Floor and Core",
+          "tried" : [
+            {
+              "acknowledgment" : "Planks and crunches build the outside. Your plan switches on the deep layer that makes them finally work.",
+              "id" : "gym",
+              "title" : "Gym core workouts"
+            },
+            {
+              "acknowledgment" : "Pilates builds the outer core, but often skips the floor that carries it. Your plan connects both, in the right order.",
+              "id" : "pilates",
+              "title" : "Pilates or yoga"
+            },
+            {
+              "acknowledgment" : "Most trainers never program the pelvic floor. Your plan adds the missing foundation under their work.",
+              "id" : "trainer",
+              "title" : "A personal trainer"
+            },
+            {
+              "acknowledgment" : "Random videos can't progress you. A 90-day sequence, calibrated to your answers, can.",
+              "id" : "videos",
+              "title" : "Videos or other apps"
+            },
+            {
+              "acknowledgment" : "The perfect starting point. Your plan begins exactly where you are, five minutes at a time.",
+              "id" : "nothing",
+              "title" : "Nothing yet"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "intimacy" : {
+          "displayTitle" : "Improve Intimacy",
+          "focus" : [
+            {
+              "detail" : "Build pelvic-floor timing, blood-flow support, and control.",
+              "id" : "maleSexual.erectionQuality",
+              "supportSubtitle" : "A short routine for controlled pelvic support without gripping.",
+              "supportTitle" : "Erection Support Practice",
+              "symbol" : "bolt.heart.fill",
+              "title" : "Improve erection quality (ED)",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Mixed",
+                  "Strong"
+                ],
+                "question" : "How confident did sexual function feel today?",
+                "slot" : "confidence",
+                "title" : "Erection confidence"
+              }
+            },
+            {
+              "detail" : "Train relaxation and control instead of squeezing harder.",
+              "id" : "maleSexual.ejaculationControl",
+              "supportSubtitle" : "Practice switching between gentle support and a full release.",
+              "supportTitle" : "Control and Release Practice",
+              "symbol" : "timer",
+              "title" : "Last longer during intimacy (PE)",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Mixed",
+                  "In control"
+                ],
+                "question" : "How in control did intimacy feel today?",
+                "slot" : "confidence",
+                "title" : "Control"
+              }
+            },
+            {
+              "detail" : "Start with release when tightness, aching, or guarding gets in the way.",
+              "id" : "maleSexual.pelvicTension",
+              "supportSubtitle" : "A private reset for less tension and more comfort.",
+              "supportTitle" : "Release Before Intimacy",
+              "symbol" : "wind",
+              "title" : "Reduce pelvic tension during intimacy",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How much pelvic tension do you feel today?",
+                "slot" : "discomfort",
+                "title" : "Pelvic tension"
+              }
+            },
+            {
+              "detail" : "Build repeatable control without constantly checking your body.",
+              "id" : "maleSexual.confidence",
+              "supportSubtitle" : "Reconnect breath, control, and confidence before intimacy.",
+              "supportTitle" : "Sexual Confidence Reset",
+              "symbol" : "shield.fill",
+              "title" : "Feel more confident during intimacy",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Growing",
+                  "Strong"
+                ],
+                "question" : "How confident do you feel about intimacy today?",
+                "slot" : "confidence",
+                "title" : "Sexual confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "rarely",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "now and then",
+              "title" : "Rarely"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "sometimes",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "some of the time",
+              "title" : "Sometimes"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "most",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "most times",
+              "title" : "Most times"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "every",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every time",
+              "title" : "Every time"
+            }
+          ],
+          "frequencyQuestion" : "How often does it get in the way?",
+          "impactQuestion" : "What does this get in the way of?",
+          "impacts" : [
+            {
+              "id" : "confidence",
+              "symbol" : "checkmark.seal.fill",
+              "tile" : "Confidence in bed",
+              "title" : "Confidence in bed"
+            },
+            {
+              "id" : "starting",
+              "symbol" : "heart.fill",
+              "tile" : "Start without fear",
+              "title" : "Starting intimacy"
+            },
+            {
+              "id" : "relaxing",
+              "symbol" : "wind",
+              "tile" : "Relax into the moment",
+              "title" : "Relaxing in the moment"
+            },
+            {
+              "id" : "closeness",
+              "symbol" : "person.2.fill",
+              "tile" : "Feel close again",
+              "title" : "Feeling close to my partner"
+            },
+            {
+              "id" : "myself",
+              "symbol" : "sun.max.fill",
+              "tile" : "Feel like yourself",
+              "title" : "Feeling like myself"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "improve erections and last longer",
+          "paywallPromise" : {
+            "confidence" : "More confidence and control during intimacy by BYDATE.",
+            "early" : "Last longer with more control by BYDATE.",
+            "erection" : "More erection confidence and control by BYDATE.",
+            "tension" : "Less tension and more control during intimacy by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Common.",
+              "Not permanent. Trainable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Erections and control run on a muscle. Muscles can be trained.",
+            "receipt" : "40% of men who trained got full function back. Another 35% clearly improved.",
+            "source" : "Clinical trial · Dorey 2005",
+            "statLines" : [
+              "1 in 3 men face ED",
+              "or finishing early."
+            ]
+          },
+          "sentencePhrase" : "improve intimacy",
+          "situationQuestion" : "What do you want to improve most?",
+          "situations" : [
+            {
+              "constellationOutcome" : "More reliable erection support",
+              "id" : "erection",
+              "planEmphasis" : "building coordinated support and control without constant gripping",
+              "relatedHealthKeywords" : [
+                "Pelvic surgery",
+                "Pain"
+              ],
+              "revealPhrase" : "with erection quality",
+              "title" : "Trouble getting or keeping an erection (ED)"
+            },
+            {
+              "constellationOutcome" : "More control during intimacy",
+              "id" : "early",
+              "planEmphasis" : "training the release and control that harder squeezing misses",
+              "relatedHealthKeywords" : [
+                "Tight or overactive"
+              ],
+              "revealPhrase" : "with ejaculation control",
+              "title" : "Finishing sooner than I want (PE)"
+            },
+            {
+              "constellationOutcome" : "Less tension during intimacy",
+              "id" : "tension",
+              "planEmphasis" : "releasing guarding before adding strength",
+              "relatedHealthKeywords" : [
+                "Tight or overactive",
+                "Pelvic surgery"
+              ],
+              "revealPhrase" : "as tension during intimacy",
+              "title" : "Pelvic tension or aching"
+            },
+            {
+              "constellationOutcome" : "More confidence and control",
+              "id" : "confidence",
+              "planEmphasis" : "building repeatable control so you can focus on intimacy, not symptoms",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "as low confidence",
+              "title" : "Worry or low confidence"
+            }
+          ],
+          "symbol" : "heart.fill",
+          "title" : "Erectile Dysfunction",
+          "tried" : [
+            {
+              "acknowledgment" : "Kegels alone often plateau: they train the squeeze, but not the release, the timing or the progression. Your plan trains all three.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "Pills work on blood flow for one night at a time. Your plan trains the muscle that supports it every night.",
+              "id" : "meds",
+              "title" : "Pills from a doctor"
+            },
+            {
+              "acknowledgment" : "Those tricks fight the moment. Your plan trains the release and control that make the tricks unnecessary.",
+              "id" : "techniques",
+              "title" : "Start-stop or squeeze techniques"
+            },
+            {
+              "acknowledgment" : "Willpower cannot relax a muscle that never learned how. Your plan teaches the release step by step.",
+              "id" : "relax",
+              "title" : "Trying to just relax"
+            },
+            {
+              "acknowledgment" : "The perfect starting point. Your plan begins exactly where you are, five minutes at a time.",
+              "id" : "nothing",
+              "title" : "Nothing yet"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "pelvicPain" : {
+          "displayTitle" : "Ease Pelvic Pain",
+          "focus" : [
+            {
+              "detail" : "For days when discomfort suddenly rises.",
+              "id" : "pain.flares",
+              "supportSubtitle" : "Two quiet minutes to reduce guarding and find an easier position.",
+              "supportTitle" : "Calm a Pain Flare",
+              "symbol" : "waveform.path.ecg",
+              "title" : "Calm pain flares",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How strong is your pelvic discomfort right now?",
+                "slot" : "discomfort",
+                "title" : "Pain flare"
+              }
+            },
+            {
+              "detail" : "For clenching, guarding, or trouble letting go.",
+              "id" : "pain.tightness",
+              "supportSubtitle" : "Use breath and support to soften without stretching hard.",
+              "supportTitle" : "Release Pelvic Tension",
+              "symbol" : "wind",
+              "title" : "Relax tight pelvic muscles",
+              "tracking" : {
+                "choices" : [
+                  "Guarded",
+                  "Some ease",
+                  "Relaxed"
+                ],
+                "question" : "How relaxed does your pelvic area feel today?",
+                "slot" : "secondary",
+                "title" : "Muscle ease"
+              }
+            },
+            {
+              "detail" : "For pain or pressure that builds while sitting.",
+              "id" : "pain.sitting",
+              "supportSubtitle" : "Change pressure and soften before discomfort builds.",
+              "supportTitle" : "Sitting Comfort Reset",
+              "symbol" : "chair.fill",
+              "title" : "Sit more comfortably",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How much discomfort did you feel while sitting today?",
+                "slot" : "discomfort",
+                "title" : "Sitting comfort"
+              }
+            },
+            {
+              "detail" : "Put comfort, choice, and relaxation first.",
+              "id" : "pain.intimacy",
+              "supportSubtitle" : "A private reset for comfort and control.",
+              "supportTitle" : "Relax Before Intimacy",
+              "symbol" : "heart.fill",
+              "title" : "Make intimacy more comfortable",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How comfortable does intimacy feel today?",
+                "slot" : "discomfort",
+                "title" : "Intimacy comfort"
+              }
+            },
+            {
+              "detail" : "Build confidence without pushing through pain.",
+              "id" : "pain.movement",
+              "supportSubtitle" : "Find the smallest movement that feels safe and controlled.",
+              "supportTitle" : "Comfortable Movement Reset",
+              "symbol" : "figure.walk",
+              "title" : "Move with less fear",
+              "tracking" : {
+                "choices" : [
+                  "Unsure",
+                  "Building",
+                  "Confident"
+                ],
+                "question" : "How confident do you feel moving today?",
+                "slot" : "confidence",
+                "title" : "Movement confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "monthly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a month",
+              "title" : "A few times a month"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "nearly all the time",
+              "title" : "It never fully goes away"
+            }
+          ],
+          "frequencyQuestion" : "How often are you in pain?",
+          "impactQuestion" : "What does the pain get in the way of?",
+          "impacts" : [
+            {
+              "id" : "sitting",
+              "symbol" : "chair.fill",
+              "tile" : "Sit without pain",
+              "title" : "Sitting through work or dinner"
+            },
+            {
+              "id" : "workouts",
+              "symbol" : "figure.run",
+              "tile" : "Move without a flare",
+              "title" : "Exercise"
+            },
+            {
+              "id" : "intimacy",
+              "symbol" : "heart.fill",
+              "tile" : "Comfortable intimacy",
+              "title" : "Intimacy"
+            },
+            {
+              "id" : "sleep",
+              "symbol" : "moon.zzz.fill",
+              "tile" : "Sleep without aching",
+              "title" : "Sleeping well"
+            },
+            {
+              "id" : "relaxing",
+              "symbol" : "wind",
+              "tile" : "Relax without bracing",
+              "title" : "Just relaxing"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "ease pelvic pain and tension",
+          "paywallPromise" : {
+            "allday" : "Days with less pain by BYDATE.",
+            "bowel" : "Easier, pain-free bathroom trips by BYDATE.",
+            "exercise" : "Move and exercise with less pain by BYDATE.",
+            "intimacy" : "Sex without pain by BYDATE.",
+            "sitting" : "Sit without pain by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Real.",
+              "Not in your head. Treatable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Tight muscles guard. Guarding can be unlearned.",
+            "receipt" : "Release-first therapy eased pain for most women in published studies.",
+            "source" : "Published clinical studies",
+            "statLines" : [
+              "1 in 4 women",
+              "live with pelvic pain."
+            ]
+          },
+          "sentencePhrase" : "ease pelvic pain",
+          "situationQuestion" : "When does the pain affect you most?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Sit with less discomfort",
+              "id" : "sitting",
+              "planEmphasis" : "melting the tension that makes sitting hurt",
+              "relatedHealthKeywords" : [
+                "Tight or overactive",
+                "Tailbone"
+              ],
+              "revealPhrase" : "when sitting",
+              "title" : "Sitting or long days at a desk"
+            },
+            {
+              "constellationOutcome" : "Move without setting off a flare",
+              "id" : "exercise",
+              "planEmphasis" : "easing pain around exercise without setting off a flare",
+              "relatedHealthKeywords" : [
+                "Tight or overactive"
+              ],
+              "revealPhrase" : "around exercise",
+              "title" : "During or after exercise"
+            },
+            {
+              "constellationOutcome" : "More comfortable intimacy",
+              "id" : "intimacy",
+              "planEmphasis" : "making sex comfortable again, gently and at your pace",
+              "relatedHealthKeywords" : [
+                "Pain with penetration",
+                "Endometriosis"
+              ],
+              "revealPhrase" : "during intimacy",
+              "title" : "During intimacy"
+            },
+            {
+              "constellationOutcome" : "Easier bathroom trips",
+              "id" : "bowel",
+              "planEmphasis" : "making bathroom trips easier and pain-free",
+              "relatedHealthKeywords" : [
+                "Constipation",
+                "Tight or overactive"
+              ],
+              "revealPhrase" : "with bowel movements",
+              "title" : "With bowel movements"
+            },
+            {
+              "constellationOutcome" : "Quieter, more comfortable days",
+              "id" : "allday",
+              "planEmphasis" : "breaking the all-day tension cycle so pain quiets down",
+              "relatedHealthKeywords" : [
+                "Tight or overactive",
+                "Endometriosis"
+              ],
+              "revealPhrase" : "through the whole day",
+              "title" : "Throughout the day"
+            }
+          ],
+          "symbol" : "bolt.slash.fill",
+          "title" : "Ease Pelvic Pain and Tension",
+          "tried" : [
+            {
+              "acknowledgment" : "Relaxing helps in the moment, but guarded muscles tense right back. Your plan retrains them to stay released.",
+              "id" : "relax",
+              "title" : "Relaxation or breathing"
+            },
+            {
+              "acknowledgment" : "Stretching reaches the big muscles, but rarely the pelvic floor itself. Your plan releases exactly where it hurts.",
+              "id" : "stretch",
+              "title" : "Stretching or yoga"
+            },
+            {
+              "acknowledgment" : "Medication quiets the signal. Your plan works on the tight muscles sending it.",
+              "id" : "meds",
+              "title" : "Pain relief or medication"
+            },
+            {
+              "acknowledgment" : "Good care deserves daily follow-through. Your plan gives it structure, plus a progress report to bring back.",
+              "id" : "clinic",
+              "title" : "Doctors or specialists"
+            },
+            {
+              "acknowledgment" : "For a tight, guarded floor, squeezing harder often makes pain worse. Your plan starts with release instead.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "prostateRecovery" : {
+          "displayTitle" : "Recover After Prostate Surgery",
+          "focus" : [
+            {
+              "detail" : "Build gentle timing and endurance after prostate surgery.",
+              "id" : "prostate.continence",
+              "supportSubtitle" : "Reconnect a gentle lift and full release without overworking.",
+              "supportTitle" : "Post-Surgery Control Practice",
+              "symbol" : "drop.fill",
+              "title" : "Regain bladder control",
+              "tracking" : {
+                "choices" : [
+                  "None",
+                  "A few",
+                  "Several"
+                ],
+                "question" : "Any urine loss since your last check-in?",
+                "slot" : "leak",
+                "title" : "Bladder control"
+              }
+            },
+            {
+              "detail" : "Improve the final squeeze and release after using the bathroom.",
+              "id" : "prostate.drips",
+              "supportSubtitle" : "Practice the timing that helps clear the last drops.",
+              "supportTitle" : "After-Urination Control",
+              "symbol" : "drop.triangle.fill",
+              "title" : "Reduce after-urination drips",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Mixed",
+                  "Controlled"
+                ],
+                "question" : "How manageable were drips today?",
+                "slot" : "secondary",
+                "title" : "After-urination control"
+              }
+            },
+            {
+              "detail" : "Train the pause between an urge and rushing to the bathroom.",
+              "id" : "prostate.urgency",
+              "supportSubtitle" : "Pause, breathe, and let the first wave settle before moving.",
+              "supportTitle" : "Settle a Sudden Urge",
+              "symbol" : "timer",
+              "title" : "Handle sudden urges",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Mixed",
+                  "Controlled"
+                ],
+                "question" : "How manageable were sudden urges today?",
+                "slot" : "secondary",
+                "title" : "Urge control"
+              }
+            },
+            {
+              "detail" : "Build reliable control for work, travel, and daily life.",
+              "id" : "prostate.confidence",
+              "supportSubtitle" : "Practice control before the moments that feel uncertain.",
+              "supportTitle" : "Recovery Confidence Reset",
+              "symbol" : "shield.fill",
+              "title" : "Feel confident away from a bathroom",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Growing",
+                  "Strong"
+                ],
+                "question" : "How confident did bladder control feel today?",
+                "slot" : "confidence",
+                "title" : "Recovery confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a day",
+              "title" : "A few times a day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "many times a day",
+              "title" : "Many times a day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "pads",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "often enough for pads",
+              "title" : "Enough that I wear pads"
+            }
+          ],
+          "frequencyQuestion" : "How often do leaks happen right now?",
+          "impactQuestion" : "What do the leaks get in the way of?",
+          "impacts" : [
+            {
+              "id" : "active",
+              "symbol" : "figure.walk",
+              "tile" : "Stay active all day",
+              "title" : "Walks, golf or workouts"
+            },
+            {
+              "id" : "travel",
+              "symbol" : "car.fill",
+              "tile" : "Travel without worry",
+              "title" : "Long trips and drives"
+            },
+            {
+              "id" : "sleep",
+              "symbol" : "moon.zzz.fill",
+              "tile" : "Sleep through the night",
+              "title" : "A full night of sleep"
+            },
+            {
+              "id" : "social",
+              "symbol" : "person.2.fill",
+              "tile" : "Relax around people",
+              "title" : "Time with friends and family"
+            },
+            {
+              "id" : "confidence",
+              "symbol" : "checkmark.seal.fill",
+              "tile" : "Feel sure of yourself",
+              "title" : "Feeling sure of myself"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "recover after prostate surgery",
+          "paywallPromise" : {
+            "activity" : "Move through the day with fewer leaks by BYDATE.",
+            "drips" : "Fewer drips after urinating by BYDATE.",
+            "night" : "Fewer disrupted nights by BYDATE.",
+            "urge" : "More control over sudden bladder urges by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Expected.",
+              "Not permanent. Trainable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Control returns faster when the muscle is trained, not just rested.",
+            "receipt" : "74% of men who trained got dry again. 30% of men who did not.",
+            "source" : "Clinical trial · 300 men",
+            "statLines" : [
+              "9 in 10 men leak",
+              "right after surgery."
+            ]
+          },
+          "sentencePhrase" : "recover after prostate surgery",
+          "situationQuestion" : "What affects recovery most right now?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Move with fewer leaks",
+              "id" : "activity",
+              "planEmphasis" : "rebuilding the timing that supports movement after surgery",
+              "relatedHealthKeywords" : [
+                "Pelvic surgery"
+              ],
+              "revealPhrase" : "during everyday movement",
+              "title" : "Leaks when standing, coughing, or walking"
+            },
+            {
+              "constellationOutcome" : "Fewer after-urination drips",
+              "id" : "drips",
+              "planEmphasis" : "improving the final contraction and release after the bathroom",
+              "relatedHealthKeywords" : [
+                "Pelvic surgery"
+              ],
+              "revealPhrase" : "after urinating",
+              "title" : "Drips after urinating"
+            },
+            {
+              "constellationOutcome" : "More control over sudden urges",
+              "id" : "urge",
+              "planEmphasis" : "training a calm pause before rushing",
+              "relatedHealthKeywords" : [
+                "Pelvic surgery"
+              ],
+              "revealPhrase" : "with sudden urges",
+              "title" : "Sudden bladder urges"
+            },
+            {
+              "constellationOutcome" : "Fewer disrupted nights",
+              "id" : "night",
+              "planEmphasis" : "building steadier control and calmer nights",
+              "relatedHealthKeywords" : [
+                "Pelvic surgery"
+              ],
+              "revealPhrase" : "during the night",
+              "title" : "Frequent trips at night"
+            }
+          ],
+          "symbol" : "cross.case.fill",
+          "title" : "Recover After Prostate Surgery",
+          "tried" : [
+            {
+              "acknowledgment" : "A good start. Your plan turns that sheet of exercises into a daily, progressing program with feedback.",
+              "id" : "rehab",
+              "title" : "Exercises from the hospital"
+            },
+            {
+              "acknowledgment" : "Pads manage the symptom. Your plan trains the muscles that address it at the source.",
+              "id" : "pads",
+              "title" : "Pads or guards"
+            },
+            {
+              "acknowledgment" : "Medication can calm the bladder, but recovery lives in the muscle. Your plan trains it every day.",
+              "id" : "meds",
+              "title" : "Medication"
+            },
+            {
+              "acknowledgment" : "Recovery comes faster trained than waited for. Your plan gives your body the daily signal to rebuild.",
+              "id" : "waiting",
+              "title" : "Waiting for it to improve"
+            },
+            {
+              "acknowledgment" : "Kegels alone often plateau: they train the squeeze, but not the release, the timing or the progression. Your plan trains all three.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        }
+      },
+      "title" : "Men’s pelvic health"
+    },
+    "womensPelvicHealth" : {
+      "detail" : "Bladder, intimacy, postpartum, prolapse, pain, and core goals.",
+      "goalOrder" : [
+        "intimacy",
+        "bladderLeaks",
+        "postpartum",
+        "diastasisRecti",
+        "prolapse",
+        "pelvicPain",
+        "coreStrength",
+        "fitness"
+      ],
+      "goals" : {
+        "bladderLeaks" : {
+          "displayTitle" : "Stop Bladder Leaks",
+          "focus" : [
+            {
+              "detail" : "For leaking with sneezing, lifting, running, or jumping.",
+              "id" : "bladder.stressLeaks",
+              "supportSubtitle" : "Learn the timing that supports pressure before it arrives.",
+              "supportTitle" : "Practice Before a Cough or Lift",
+              "symbol" : "figure.run",
+              "title" : "Stop leaks with coughs or exercise",
+              "tracking" : {
+                "choices" : [
+                  "None",
+                  "A few",
+                  "Several"
+                ],
+                "question" : "Any leaks with coughing, lifting, or exercise today?",
+                "slot" : "leak",
+                "title" : "Activity leaks"
+              }
+            },
+            {
+              "detail" : "For the feeling that you have to go right now.",
+              "id" : "bladder.urgency",
+              "supportSubtitle" : "One guided minute to pause before walking calmly.",
+              "supportTitle" : "Settle a Sudden Urge",
+              "symbol" : "timer",
+              "title" : "Handle sudden urges",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Sometimes",
+                  "In control"
+                ],
+                "question" : "How easy was it to wait when an urge came today?",
+                "slot" : "secondary",
+                "title" : "Urge control"
+              }
+            },
+            {
+              "detail" : "For frequent trips or going just in case.",
+              "id" : "bladder.frequency",
+              "supportSubtitle" : "A short reset to notice whether the urge can settle.",
+              "supportTitle" : "Pause Before Another Bathroom Trip",
+              "symbol" : "clock.fill",
+              "title" : "Go less often",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Mixed",
+                  "Manageable"
+                ],
+                "question" : "How manageable were the gaps between bathroom trips today?",
+                "slot" : "secondary",
+                "title" : "Time between trips"
+              }
+            },
+            {
+              "detail" : "Track night-time urges and bathroom trips.",
+              "id" : "bladder.nighttime",
+              "supportSubtitle" : "A calm voice to help you pause before getting up.",
+              "supportTitle" : "Night Urge Reset",
+              "symbol" : "moon.fill",
+              "title" : "Wake up less at night",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Mixed",
+                  "Manageable"
+                ],
+                "question" : "How manageable were bladder urges overnight?",
+                "slot" : "secondary",
+                "title" : "Night control"
+              }
+            },
+            {
+              "detail" : "Build confidence for work, travel, and daily life.",
+              "id" : "bladder.confidence",
+              "supportSubtitle" : "Practice control before the moments that usually feel uncertain.",
+              "supportTitle" : "Bladder Confidence Reset",
+              "symbol" : "shield.fill",
+              "title" : "Feel safer away from a bathroom",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Growing",
+                  "Strong"
+                ],
+                "question" : "How confident did you feel away from a bathroom today?",
+                "slot" : "confidence",
+                "title" : "Confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "monthly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a month",
+              "title" : "A few times a month"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "several times a day",
+              "title" : "Several times a day"
+            }
+          ],
+          "frequencyQuestion" : "How often do leaks happen?",
+          "impactQuestion" : "What do the leaks get in the way of?",
+          "impacts" : [
+            {
+              "id" : "workouts",
+              "symbol" : "figure.run",
+              "tile" : "Run and jump freely",
+              "title" : "Workouts and running"
+            },
+            {
+              "id" : "laughing",
+              "symbol" : "face.smiling",
+              "tile" : "Laugh without worry",
+              "title" : "Laughing freely"
+            },
+            {
+              "id" : "travel",
+              "symbol" : "car.fill",
+              "tile" : "Travel without planning stops",
+              "title" : "Long car rides and trips"
+            },
+            {
+              "id" : "intimacy",
+              "symbol" : "heart.fill",
+              "tile" : "Relaxed intimacy",
+              "title" : "Intimacy"
+            },
+            {
+              "id" : "sleep",
+              "symbol" : "moon.zzz.fill",
+              "tile" : "Sleep through the night",
+              "title" : "A full night of sleep"
+            },
+            {
+              "id" : "clothes",
+              "symbol" : "tshirt.fill",
+              "tile" : "Wear what you want",
+              "title" : "Wearing what I want"
+            }
+          ],
+          "memberSentencePhrase" : "stop bladder leaks",
+          "paywallPromise" : {
+            "impact" : "Run and jump without leaking by BYDATE.",
+            "night" : "Sleep through the night with fewer bathroom trips by BYDATE.",
+            "stress" : "Laugh and sneeze without leaking by BYDATE.",
+            "urge" : "Fewer sudden urges, no more racing to the bathroom, by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Common.",
+              "Not normal. Fixable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Leaks are a timing problem, not your age. Timing can be retrained.",
+            "receipt" : "56% of women who trained were cured. 6% of women who did not.",
+            "source" : "Cochrane review · 31 trials · 1,800+ women",
+            "statLines" : [
+              "1 in 3 women",
+              "over 30 leak."
+            ]
+          },
+          "sentencePhrase" : "stop bladder leaks",
+          "situationQuestion" : "When do leaks happen most?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Laugh and sneeze without leaks",
+              "id" : "stress",
+              "planEmphasis" : "stopping the leak in the split second before a cough or sneeze",
+              "relatedHealthKeywords" : [
+                "Prolapse",
+                "Postpartum"
+              ],
+              "revealPhrase" : "when you cough, sneeze or laugh",
+              "title" : "Coughing, sneezing or laughing"
+            },
+            {
+              "constellationOutcome" : "Run and jump without leaks",
+              "id" : "impact",
+              "planEmphasis" : "training your muscles to hold when you run and jump",
+              "relatedHealthKeywords" : [
+                "Prolapse",
+                "Pelvic surgery"
+              ],
+              "revealPhrase" : "during exercise and impact",
+              "title" : "Exercise, running or jumping"
+            },
+            {
+              "constellationOutcome" : "More control over sudden urges",
+              "id" : "urge",
+              "planEmphasis" : "calming the sudden urges so you always make it in time",
+              "relatedHealthKeywords" : [
+                "Recurring bladder irritation"
+              ],
+              "revealPhrase" : "with sudden, hard-to-hold urges",
+              "title" : "Sudden urges on the way to the bathroom"
+            },
+            {
+              "constellationOutcome" : "Fewer overnight bathroom trips",
+              "id" : "night",
+              "planEmphasis" : "fewer nighttime bathroom trips and calmer mornings",
+              "relatedHealthKeywords" : [
+                "Recurring bladder irritation"
+              ],
+              "revealPhrase" : "at night and with frequent trips",
+              "title" : "At night, or constant bathroom trips"
+            }
+          ],
+          "symbol" : "drop.fill",
+          "title" : "Stop Bladder Leaks",
+          "tried" : [
+            {
+              "acknowledgment" : "Kegels alone often plateau: they train the squeeze, but not the release, the timing or the progression. Your plan trains all three.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "Timed trips train the clock, not the muscle. Your plan trains the squeeze and timing that hold when the urge hits.",
+              "id" : "bladder_training",
+              "title" : "Bladder training or timed trips"
+            },
+            {
+              "acknowledgment" : "Drinking less only shrinks the problem, it does not fix the muscle. Your plan trains the control so you can live normally again.",
+              "id" : "fluids",
+              "title" : "Drinking less or skipping caffeine"
+            },
+            {
+              "acknowledgment" : "Pads manage the symptom. Your plan trains the muscles that address it at the source.",
+              "id" : "pads",
+              "title" : "Pads or liners"
+            },
+            {
+              "acknowledgment" : "Medication can calm the bladder, but it cannot strengthen the floor under it. Your plan trains the part pills cannot reach.",
+              "id" : "meds",
+              "title" : "Medication from a doctor"
+            },
+            {
+              "acknowledgment" : "A strong foundation. Your plan gives that approach daily structure, and a progress report to bring back to your therapist.",
+              "id" : "pt",
+              "title" : "Physical therapy"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "coreStrength" : {
+          "displayTitle" : "Build Core Strength",
+          "focus" : [
+            {
+              "detail" : "Make the lower-abdominal connection easier to find.",
+              "id" : "core.connection",
+              "supportSubtitle" : "A clear breath-led connection before your workout.",
+              "supportTitle" : "Find Your Deep Core",
+              "symbol" : "scope",
+              "title" : "Feel my deep core working",
+              "tracking" : {
+                "choices" : [
+                  "Hard to feel",
+                  "Starting",
+                  "Strong"
+                ],
+                "question" : "How clearly can you feel your deep core today?",
+                "slot" : "secondary",
+                "title" : "Core connection"
+              }
+            },
+            {
+              "detail" : "Coordinate support with a steady exhale.",
+              "id" : "core.bracing",
+              "supportSubtitle" : "Practice support that still lets you breathe.",
+              "supportTitle" : "Breath and Brace Reset",
+              "symbol" : "lungs.fill",
+              "title" : "Brace without holding my breath",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Sometimes",
+                  "Easy"
+                ],
+                "question" : "How easy was it to brace and keep breathing today?",
+                "slot" : "secondary",
+                "title" : "Breath control"
+              }
+            },
+            {
+              "detail" : "Build trunk and hip control for daily movement.",
+              "id" : "core.backSupport",
+              "supportSubtitle" : "Connect your deep core before the next daily task.",
+              "supportTitle" : "Back Support Reset",
+              "symbol" : "figure.strengthtraining.traditional",
+              "title" : "Support my lower back",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How much lower-back discomfort do you feel today?",
+                "slot" : "discomfort",
+                "title" : "Back comfort"
+              }
+            },
+            {
+              "detail" : "Build support without staying stiff.",
+              "id" : "core.posture",
+              "supportSubtitle" : "Stack your ribs and pelvis without gripping.",
+              "supportTitle" : "Posture Reset",
+              "symbol" : "figure.stand",
+              "title" : "Improve posture and control",
+              "tracking" : {
+                "choices" : [
+                  "Unsteady",
+                  "Improving",
+                  "Steady"
+                ],
+                "question" : "How steady did your posture feel today?",
+                "slot" : "secondary",
+                "title" : "Postural control"
+              }
+            },
+            {
+              "detail" : "Stay supported for longer without losing form.",
+              "id" : "core.endurance",
+              "supportSubtitle" : "Find a sustainable effort before adding more time.",
+              "supportTitle" : "Core Endurance Check",
+              "symbol" : "timer",
+              "title" : "Build core endurance",
+              "tracking" : {
+                "choices" : [
+                  "Tired quickly",
+                  "Building",
+                  "Steady"
+                ],
+                "question" : "How steady did your core feel during longer efforts today?",
+                "slot" : "secondary",
+                "title" : "Core endurance"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "monthly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a month",
+              "title" : "A few times a month"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "several times a day",
+              "title" : "Several times a day"
+            }
+          ],
+          "frequencyQuestion" : "How often does your core hold you back?",
+          "impactQuestion" : "What does this get in the way of?",
+          "impacts" : [
+            {
+              "id" : "lifting",
+              "symbol" : "bolt.fill",
+              "tile" : "Lift with a steady core",
+              "title" : "Lifting heavy things"
+            },
+            {
+              "id" : "standing",
+              "symbol" : "figure.stand",
+              "tile" : "Stand strong all day",
+              "title" : "Long days on my feet"
+            },
+            {
+              "id" : "sport",
+              "symbol" : "figure.run",
+              "tile" : "Move with confidence",
+              "title" : "Sports and classes"
+            },
+            {
+              "id" : "steady",
+              "symbol" : "checkmark.seal.fill",
+              "tile" : "Feel steady every step",
+              "title" : "Feeling steady"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "build core strength",
+          "paywallPromise" : {
+            "back" : "A stronger core and less back ache by BYDATE.",
+            "connection" : "Finally feel your core working by BYDATE.",
+            "lifting" : "Lift heavier with a stronger core by BYDATE.",
+            "posture" : "Stand taller without trying by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "One system.",
+              "Train it together."
+            ],
+            "cta" : "I'm ready to start",
+            "reassurance" : "Posture, balance and power share one foundation.",
+            "receipt" : "Training the floor with the deep core improved strength and stability in published studies.",
+            "source" : "Published clinical studies",
+            "statLines" : [
+              "Every strong move",
+              "starts at your floor."
+            ]
+          },
+          "sentencePhrase" : "build core strength",
+          "situationQuestion" : "Where does your core let you down?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Lift with a steady core",
+              "id" : "lifting",
+              "planEmphasis" : "lifting heavier without hurting your core",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "when lifting",
+              "title" : "Lifting anything heavy"
+            },
+            {
+              "constellationOutcome" : "Posture that holds",
+              "id" : "posture",
+              "planEmphasis" : "standing taller without forcing it",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "in your posture",
+              "title" : "Slumping and posture"
+            },
+            {
+              "constellationOutcome" : "Less strain on your back",
+              "id" : "back",
+              "planEmphasis" : "a stronger core so your back stops doing all the work",
+              "relatedHealthKeywords" : [
+                "Back or hip"
+              ],
+              "revealPhrase" : "as back fatigue",
+              "title" : "A tired or aching back"
+            },
+            {
+              "constellationOutcome" : "Feel your deep core switch on",
+              "id" : "connection",
+              "planEmphasis" : "finally feeling your deep core switch on",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "as a deep core that is hard to feel",
+              "title" : "Hard to feel the deep core at all"
+            }
+          ],
+          "symbol" : "bolt.fill",
+          "title" : "Build Core Strength",
+          "tried" : [
+            {
+              "acknowledgment" : "Planks and crunches build the outside. Your plan switches on the deep layer that makes them finally work.",
+              "id" : "gym",
+              "title" : "Gym core workouts"
+            },
+            {
+              "acknowledgment" : "Pilates builds the outer core, but often skips the floor that carries it. Your plan connects both, in the right order.",
+              "id" : "pilates",
+              "title" : "Pilates or yoga"
+            },
+            {
+              "acknowledgment" : "Most trainers never program the pelvic floor. Your plan adds the missing foundation under their work.",
+              "id" : "trainer",
+              "title" : "A personal trainer"
+            },
+            {
+              "acknowledgment" : "Random videos can't progress you. A 90-day sequence, calibrated to your answers, can.",
+              "id" : "videos",
+              "title" : "Videos or other apps"
+            },
+            {
+              "acknowledgment" : "The perfect starting point. Your plan begins exactly where you are, five minutes at a time.",
+              "id" : "nothing",
+              "title" : "Nothing yet"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "diastasisRecti" : {
+          "displayTitle" : "Fix Diastasis Recti",
+          "focus" : [
+            {
+              "detail" : "Notice and adjust the ridge along your midline.",
+              "id" : "diastasis.doming",
+              "supportSubtitle" : "Find the range where your midline stays controlled.",
+              "supportTitle" : "Doming Check",
+              "symbol" : "waveform.path",
+              "title" : "Reduce doming",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How often did you notice doming today?",
+                "slot" : "discomfort",
+                "title" : "Doming"
+              }
+            },
+            {
+              "detail" : "Make the lower-abdominal connection clearer.",
+              "id" : "diastasis.connection",
+              "supportSubtitle" : "Use breath to find support without gripping.",
+              "supportTitle" : "Deep Core Connection",
+              "symbol" : "scope",
+              "title" : "Feel my deep core working",
+              "tracking" : {
+                "choices" : [
+                  "Hard to feel",
+                  "Starting",
+                  "Connected"
+                ],
+                "question" : "How clearly can you feel your deep core today?",
+                "slot" : "secondary",
+                "title" : "Core connection"
+              }
+            },
+            {
+              "detail" : "Coordinate the exhale with effort.",
+              "id" : "diastasis.pressure",
+              "supportSubtitle" : "Practice exhaling before the effort begins.",
+              "supportTitle" : "Pressure and Breathing Check",
+              "symbol" : "lungs.fill",
+              "title" : "Manage pressure when moving",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How much abdominal pressure did you notice with movement?",
+                "slot" : "discomfort",
+                "title" : "Pressure"
+              }
+            },
+            {
+              "detail" : "For getting up, carrying, and everyday tasks.",
+              "id" : "diastasis.dailyMovement",
+              "supportSubtitle" : "Set your breath and core before the next daily task.",
+              "supportTitle" : "Everyday Movement Reset",
+              "symbol" : "figure.walk",
+              "title" : "Move better in daily life",
+              "tracking" : {
+                "choices" : [
+                  "Unsteady",
+                  "Improving",
+                  "Controlled"
+                ],
+                "question" : "How controlled did daily movements feel today?",
+                "slot" : "confidence",
+                "title" : "Daily movement"
+              }
+            },
+            {
+              "detail" : "Build control before increasing load or impact.",
+              "id" : "diastasis.return",
+              "supportSubtitle" : "Find the strongest level you can control cleanly.",
+              "supportTitle" : "Exercise Readiness Check",
+              "symbol" : "dumbbell.fill",
+              "title" : "Return to harder exercise",
+              "tracking" : {
+                "choices" : [
+                  "Unsure",
+                  "Building",
+                  "Ready"
+                ],
+                "question" : "How confident do you feel with exercise today?",
+                "slot" : "confidence",
+                "title" : "Exercise confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "workouts",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "during workouts",
+              "title" : "Only during workouts"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every time you look down",
+              "title" : "Every time I look down"
+            }
+          ],
+          "frequencyQuestion" : "How often do you notice the doming or gap?",
+          "impactQuestion" : "What does this get in the way of?",
+          "impacts" : [
+            {
+              "id" : "clothes",
+              "symbol" : "tshirt.fill",
+              "tile" : "Wear what you want",
+              "title" : "Wearing what I want"
+            },
+            {
+              "id" : "workouts",
+              "symbol" : "figure.run",
+              "tile" : "Train your core safely",
+              "title" : "Core workouts"
+            },
+            {
+              "id" : "lifting",
+              "symbol" : "bolt.fill",
+              "tile" : "Lift without worry",
+              "title" : "Lifting without worry"
+            },
+            {
+              "id" : "mirror",
+              "symbol" : "sun.max.fill",
+              "tile" : "Feel good in the mirror",
+              "title" : "Feeling good in the mirror"
+            },
+            {
+              "id" : "strong",
+              "symbol" : "checkmark.seal.fill",
+              "tile" : "A strong, steady middle",
+              "title" : "Feeling strong in my middle"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "fix diastasis recti",
+          "paywallPromise" : {
+            "bed" : "Out of bed without the strain by BYDATE.",
+            "doming" : "Less doming, a flatter middle, by BYDATE.",
+            "exercise" : "Exercise without the doming coming back by BYDATE.",
+            "lifting" : "Lift without the doming by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Common.",
+              "Not cosmetic. Closable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "The gap is a pressure problem. Pressure can be retrained.",
+            "receipt" : "Guided core training reduced the gap for most women in published studies.",
+            "source" : "Published clinical studies",
+            "statLines" : [
+              "6 in 10 moms",
+              "have ab separation."
+            ]
+          },
+          "sentencePhrase" : "fix diastasis recti",
+          "situationQuestion" : "When do you notice it most?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Get out of bed with control",
+              "id" : "bed",
+              "planEmphasis" : "getting out of bed without straining your middle",
+              "relatedHealthKeywords" : [
+                "C-section"
+              ],
+              "revealPhrase" : "when getting out of bed",
+              "title" : "Getting out of bed"
+            },
+            {
+              "constellationOutcome" : "Lift with less doming",
+              "id" : "lifting",
+              "planEmphasis" : "lifting without the bulge down your middle",
+              "relatedHealthKeywords" : [
+                "Hernia"
+              ],
+              "revealPhrase" : "when lifting",
+              "title" : "Lifting or carrying"
+            },
+            {
+              "constellationOutcome" : "Exercise with less doming",
+              "id" : "exercise",
+              "planEmphasis" : "exercising without the doming coming back",
+              "relatedHealthKeywords" : [
+                "Hernia"
+              ],
+              "revealPhrase" : "during exercise",
+              "title" : "During exercise"
+            },
+            {
+              "constellationOutcome" : "A steadier, supported middle",
+              "id" : "doming",
+              "planEmphasis" : "closing the gap and flattening the doming, step by step",
+              "relatedHealthKeywords" : [
+                "Hernia"
+              ],
+              "revealPhrase" : "as visible doming",
+              "title" : "Seeing doming or a ridge"
+            }
+          ],
+          "symbol" : "arrow.right.and.line.vertical.and.arrow.left",
+          "title" : "Fix Diastasis Recti",
+          "tried" : [
+            {
+              "acknowledgment" : "Crunches push pressure outward, which can widen the gap. Your plan rebuilds from the inside, pressure first.",
+              "id" : "core",
+              "title" : "Crunches or ab workouts"
+            },
+            {
+              "acknowledgment" : "A binder holds you together from the outside. Your plan teaches your deep core to do that job itself.",
+              "id" : "binder",
+              "title" : "A belly band or binder"
+            },
+            {
+              "acknowledgment" : "Pilates helps, but the gap needs pressure control before load. Your plan sequences it in the safe order.",
+              "id" : "pilates",
+              "title" : "Pilates or yoga"
+            },
+            {
+              "acknowledgment" : "Random videos can't progress you. A 90-day sequence, calibrated to your answers, can.",
+              "id" : "videos",
+              "title" : "Videos or other apps"
+            },
+            {
+              "acknowledgment" : "A strong foundation. Your plan gives that approach daily structure, and a progress report to bring back to your therapist.",
+              "id" : "pt",
+              "title" : "Physical therapy"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "fitness" : {
+          "displayTitle" : "Support My Fitness",
+          "focus" : [
+            {
+              "detail" : "For leaking during running, jumping, or lifting.",
+              "id" : "fitness.leaks",
+              "supportSubtitle" : "Practice breath and timing before impact or effort.",
+              "supportTitle" : "Leak-Free Movement Prep",
+              "symbol" : "drop.fill",
+              "title" : "Exercise without leaks",
+              "tracking" : {
+                "choices" : [
+                  "None",
+                  "A few",
+                  "Several"
+                ],
+                "question" : "Any leaks during exercise today?",
+                "slot" : "leak",
+                "title" : "Exercise leaks"
+              }
+            },
+            {
+              "detail" : "Exhale and support before the hardest part of a lift.",
+              "id" : "fitness.lifting",
+              "supportSubtitle" : "Set your breath and pressure before the weight moves.",
+              "supportTitle" : "Brace Before Lifting",
+              "symbol" : "dumbbell.fill",
+              "title" : "Lift with better pressure control",
+              "tracking" : {
+                "choices" : [
+                  "Hard",
+                  "Mixed",
+                  "Controlled"
+                ],
+                "question" : "How controlled did pressure feel while lifting today?",
+                "slot" : "secondary",
+                "title" : "Lifting control"
+              }
+            },
+            {
+              "detail" : "Build control before adding more speed or impact.",
+              "id" : "fitness.impact",
+              "supportSubtitle" : "Check control before your next run or jump session.",
+              "supportTitle" : "Impact Readiness Check",
+              "symbol" : "figure.run",
+              "title" : "Return to running or jumping",
+              "tracking" : {
+                "choices" : [
+                  "Unsure",
+                  "Building",
+                  "Ready"
+                ],
+                "question" : "How confident do you feel with running or jumping today?",
+                "slot" : "confidence",
+                "title" : "Impact confidence"
+              }
+            },
+            {
+              "detail" : "Keep your trunk steady while your body moves.",
+              "id" : "fitness.coreControl",
+              "supportSubtitle" : "Find deep support before the movement gets harder.",
+              "supportTitle" : "Core Control Reset",
+              "symbol" : "circle.hexagongrid.fill",
+              "title" : "Improve core control",
+              "tracking" : {
+                "choices" : [
+                  "Unsteady",
+                  "Building",
+                  "Steady"
+                ],
+                "question" : "How steady did your core feel during exercise today?",
+                "slot" : "secondary",
+                "title" : "Core control"
+              }
+            },
+            {
+              "detail" : "Train without constantly worrying about symptoms.",
+              "id" : "fitness.confidence",
+              "supportSubtitle" : "Choose the level where your body feels controlled today.",
+              "supportTitle" : "Workout Confidence Reset",
+              "symbol" : "shield.fill",
+              "title" : "Feel confident in workouts",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Growing",
+                  "Strong"
+                ],
+                "question" : "How confident did you feel exercising today?",
+                "slot" : "confidence",
+                "title" : "Workout confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "monthly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "in the odd session",
+              "title" : "The odd session"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "most weeks",
+              "title" : "Most weeks"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "almost every workout",
+              "title" : "Almost every workout"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "every",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every session",
+              "title" : "Every single session"
+            }
+          ],
+          "frequencyQuestion" : "How often does it affect a workout?",
+          "impactQuestion" : "What does this get in the way of?",
+          "impacts" : [
+            {
+              "id" : "workouts",
+              "symbol" : "figure.run",
+              "tile" : "Run and jump freely",
+              "title" : "Workouts and running"
+            },
+            {
+              "id" : "laughing",
+              "symbol" : "face.smiling",
+              "tile" : "Laugh without worry",
+              "title" : "Laughing freely"
+            },
+            {
+              "id" : "travel",
+              "symbol" : "car.fill",
+              "tile" : "Travel without planning stops",
+              "title" : "Long car rides and trips"
+            },
+            {
+              "id" : "intimacy",
+              "symbol" : "heart.fill",
+              "tile" : "Relaxed intimacy",
+              "title" : "Intimacy"
+            },
+            {
+              "id" : "sleep",
+              "symbol" : "moon.zzz.fill",
+              "tile" : "Sleep through the night",
+              "title" : "A full night of sleep"
+            },
+            {
+              "id" : "clothes",
+              "symbol" : "tshirt.fill",
+              "tile" : "Wear what you want",
+              "title" : "Wearing what I want"
+            }
+          ],
+          "memberSentencePhrase" : "support your fitness",
+          "paywallPromise" : {
+            "jumping" : "Jump without leaking by BYDATE.",
+            "lifting" : "Lift heavy without leaks or strain by BYDATE.",
+            "running" : "Run without leaks or worry by BYDATE.",
+            "sport" : "Back to your sport, stronger, by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Common in sport.",
+              "Not required."
+            ],
+            "cta" : "I'm ready to start",
+            "reassurance" : "Impact needs timing. Timing is trainable.",
+            "receipt" : "56% of women who trained were cured. 6% of women who did not.",
+            "source" : "Cochrane review · 31 trials",
+            "statLines" : [
+              "1 in 3 women leak",
+              "during exercise."
+            ]
+          },
+          "sentencePhrase" : "support your fitness",
+          "situationQuestion" : "Where does it show up in your training?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Run with more control",
+              "id" : "running",
+              "planEmphasis" : "running without leaks, worry or holding back",
+              "relatedHealthKeywords" : [
+                "Prolapse"
+              ],
+              "revealPhrase" : "when running",
+              "title" : "Running"
+            },
+            {
+              "constellationOutcome" : "Jump with more control",
+              "id" : "jumping",
+              "planEmphasis" : "jumping without leaking",
+              "relatedHealthKeywords" : [
+                "Prolapse"
+              ],
+              "revealPhrase" : "with jumping",
+              "title" : "Jumping and plyometrics"
+            },
+            {
+              "constellationOutcome" : "Lift with less pressure",
+              "id" : "lifting",
+              "planEmphasis" : "lifting heavy without leaks or that pushing-down feeling",
+              "relatedHealthKeywords" : [
+                "Hernia",
+                "Prolapse"
+              ],
+              "revealPhrase" : "under heavy lifts",
+              "title" : "Heavy lifting"
+            },
+            {
+              "constellationOutcome" : "Return to your sport confidently",
+              "id" : "sport",
+              "planEmphasis" : "getting back to your sport, stronger than before",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "in your return to sport",
+              "title" : "Returning to a sport"
+            }
+          ],
+          "symbol" : "figure.run",
+          "title" : "Support My Fitness",
+          "tried" : [
+            {
+              "acknowledgment" : "Pushing through teaches the leak to stay. Your plan trains the timing that holds under impact instead.",
+              "id" : "training",
+              "title" : "Just training through it"
+            },
+            {
+              "acknowledgment" : "Kegels alone often plateau: they train the squeeze, but not the release, the timing or the progression. Your plan trains all three.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "Pads manage the symptom. Your plan trains the muscles that address it at the source.",
+              "id" : "pads",
+              "title" : "Pads during workouts"
+            },
+            {
+              "acknowledgment" : "A strong six-pack cannot stop a leak. Your plan trains the floor that actually holds under pressure.",
+              "id" : "gym",
+              "title" : "More core work"
+            },
+            {
+              "acknowledgment" : "A strong foundation. Your plan gives that approach daily structure, and a progress report to bring back to your therapist.",
+              "id" : "pt",
+              "title" : "Physical therapy"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "intimacy" : {
+          "displayTitle" : "Improve Intimacy",
+          "focus" : [
+            {
+              "detail" : "Build relaxation and control for a stronger sexual response.",
+              "id" : "intimacy.sensation",
+              "supportSubtitle" : "Build relaxation and control for stronger orgasms.",
+              "supportTitle" : "Sensation and Orgasm Practice",
+              "symbol" : "sparkles",
+              "title" : "Feel more sensation and stronger orgasms",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Some",
+                  "Clear"
+                ],
+                "question" : "How clear does pelvic sensation feel today?",
+                "slot" : "secondary",
+                "title" : "Sensation"
+              }
+            },
+            {
+              "detail" : "For pain, burning, or discomfort.",
+              "id" : "intimacy.comfort",
+              "supportSubtitle" : "A gentle reset that puts comfort first.",
+              "supportTitle" : "Comfort Before Intimacy",
+              "symbol" : "heart.fill",
+              "title" : "Make intimacy more comfortable",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How comfortable does intimacy feel today?",
+                "slot" : "discomfort",
+                "title" : "Comfort"
+              }
+            },
+            {
+              "detail" : "For tension, guarding, or trouble letting go.",
+              "id" : "intimacy.relaxation",
+              "supportSubtitle" : "Two quiet minutes to soften instead of squeeze.",
+              "supportTitle" : "Release Pelvic Tension",
+              "symbol" : "wind",
+              "title" : "Relax tight pelvic muscles",
+              "tracking" : {
+                "choices" : [
+                  "Guarded",
+                  "Some ease",
+                  "Relaxed"
+                ],
+                "question" : "How easily can your pelvic muscles relax today?",
+                "slot" : "secondary",
+                "title" : "Muscle ease"
+              }
+            },
+            {
+              "detail" : "Track comfort while your body changes.",
+              "id" : "intimacy.dryness",
+              "supportSubtitle" : "A low-pressure reset for days when comfort needs more care.",
+              "supportTitle" : "Comfort During Hormone Changes",
+              "symbol" : "drop.fill",
+              "title" : "Manage dryness or hormone changes",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How comfortable does dryness feel today?",
+                "slot" : "discomfort",
+                "title" : "Dryness comfort"
+              }
+            },
+            {
+              "detail" : "Build trust in your body at your own pace.",
+              "id" : "intimacy.confidence",
+              "supportSubtitle" : "A private moment to feel present and in control.",
+              "supportTitle" : "Confidence and Connection Reset",
+              "symbol" : "shield.fill",
+              "title" : "Feel more confident and connected",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Growing",
+                  "Strong"
+                ],
+                "question" : "How confident do you feel about intimacy today?",
+                "slot" : "confidence",
+                "title" : "Confidence"
+              }
+            },
+            {
+              "detail" : "Reconnect with comfort, sensation, and confidence.",
+              "id" : "intimacy.postpartum",
+              "supportSubtitle" : "Gentle reconnection for a body that is still changing.",
+              "supportTitle" : "Postpartum Intimacy Reset",
+              "symbol" : "figure.and.child.holdinghands",
+              "title" : "Adjust to postpartum changes",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How comfortable does intimacy feel in your postpartum recovery?",
+                "slot" : "discomfort",
+                "title" : "Postpartum comfort"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "rarely",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "now and then",
+              "title" : "Rarely"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "sometimes",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "some of the time",
+              "title" : "Sometimes"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "most",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "most times",
+              "title" : "Most times"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "every",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every time",
+              "title" : "Every time"
+            }
+          ],
+          "frequencyQuestion" : "How often does it get in the way?",
+          "impactQuestion" : "What does this get in the way of?",
+          "impacts" : [
+            {
+              "id" : "closeness",
+              "symbol" : "person.2.fill",
+              "tile" : "Feel close again",
+              "title" : "Feeling close to my partner"
+            },
+            {
+              "id" : "enjoying",
+              "symbol" : "heart.fill",
+              "tile" : "Enjoy intimacy again",
+              "title" : "Enjoying intimacy"
+            },
+            {
+              "id" : "spontaneity",
+              "symbol" : "sparkles",
+              "tile" : "Say yes without worry",
+              "title" : "Saying yes without worry"
+            },
+            {
+              "id" : "myself",
+              "symbol" : "sun.max.fill",
+              "tile" : "Feel like yourself",
+              "title" : "Feeling like myself"
+            },
+            {
+              "id" : "sleep",
+              "symbol" : "moon.zzz.fill",
+              "tile" : "Relax and sleep well",
+              "title" : "Relaxing and sleeping well"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "improve intimacy",
+          "paywallPromise" : {
+            "deep" : "Sex without pain and more sensation by BYDATE.",
+            "dryness" : "More comfort and more pleasure by BYDATE.",
+            "entry" : "Comfortable sex and more feeling by BYDATE.",
+            "orgasm" : "Easier, stronger orgasms by BYDATE.",
+            "sensation" : "Feel more during sex by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Common.",
+              "Not the end. Trainable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Sensation runs on muscle and blood flow. Both can be trained.",
+            "receipt" : "Women who trained reported more sensation and easier orgasms in published studies.",
+            "source" : "Published clinical studies",
+            "statLines" : [
+              "Nearly half of women",
+              "notice intimacy change."
+            ]
+          },
+          "sentencePhrase" : "improve intimacy",
+          "situationQuestion" : "When does this affect you most?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Comfort from the start",
+              "id" : "entry",
+              "planEmphasis" : "learning to relax those muscles so sex stops hurting at the start",
+              "relatedHealthKeywords" : [
+                "Pain with penetration",
+                "Tight or overactive",
+                "Dryness"
+              ],
+              "revealPhrase" : "at the start of intimacy",
+              "title" : "Discomfort at the start of intimacy"
+            },
+            {
+              "constellationOutcome" : "Comfort during deeper intimacy",
+              "id" : "deep",
+              "planEmphasis" : "releasing deep tension so sex stops hurting, with positions that help",
+              "relatedHealthKeywords" : [
+                "Pain with penetration",
+                "Endometriosis",
+                "Tight or overactive"
+              ],
+              "revealPhrase" : "during deeper intimacy",
+              "title" : "Deeper discomfort during intimacy"
+            },
+            {
+              "constellationOutcome" : "More sensation and feeling",
+              "id" : "sensation",
+              "planEmphasis" : "waking up blood flow and feeling so you feel more during sex",
+              "relatedHealthKeywords" : [
+                "Postpartum",
+                "Hormonal"
+              ],
+              "revealPhrase" : "as low sensation",
+              "title" : "Low sensation or numbness"
+            },
+            {
+              "constellationOutcome" : "Easier, stronger orgasms",
+              "id" : "orgasm",
+              "planEmphasis" : "the muscle control behind stronger, easier orgasms",
+              "relatedHealthKeywords" : [
+                "Tight or overactive",
+                "Dryness or hormonal"
+              ],
+              "revealPhrase" : "when reaching orgasm",
+              "title" : "Difficulty reaching orgasm"
+            },
+            {
+              "constellationOutcome" : "Less irritation, more comfort",
+              "id" : "dryness",
+              "planEmphasis" : "daily comfort work so sex feels good instead of sore",
+              "relatedHealthKeywords" : [
+                "Dryness or hormonal",
+                "Recurring"
+              ],
+              "revealPhrase" : "as dryness and irritation",
+              "title" : "Dryness or irritation"
+            }
+          ],
+          "symbol" : "heart.fill",
+          "title" : "Improve Intimacy",
+          "tried" : [
+            {
+              "acknowledgment" : "Relaxing helps in the moment, but the muscle forgets by the next one. Your plan makes the release automatic.",
+              "id" : "relax",
+              "title" : "Relaxation or breathing"
+            },
+            {
+              "acknowledgment" : "Lubricant eases the surface. Your plan works on the muscles underneath, where comfort and feeling actually start.",
+              "id" : "lube",
+              "title" : "Lubricant or moisturizers"
+            },
+            {
+              "acknowledgment" : "Stretching reaches the big muscles, but rarely the pelvic floor itself. Your plan goes exactly where yoga cannot.",
+              "id" : "stretch",
+              "title" : "Stretching or yoga"
+            },
+            {
+              "acknowledgment" : "Good care deserves daily follow-through. Your plan gives it structure, plus a progress report to bring back.",
+              "id" : "clinic",
+              "title" : "A doctor or therapist"
+            },
+            {
+              "acknowledgment" : "Kegels alone often plateau: they train the squeeze, but not the release, the timing or the progression. Your plan trains all three.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "pelvicPain" : {
+          "displayTitle" : "Ease Pelvic Pain",
+          "focus" : [
+            {
+              "detail" : "For days when discomfort suddenly rises.",
+              "id" : "pain.flares",
+              "supportSubtitle" : "Two quiet minutes to reduce guarding and find an easier position.",
+              "supportTitle" : "Calm a Pain Flare",
+              "symbol" : "waveform.path.ecg",
+              "title" : "Calm pain flares",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How strong is your pelvic discomfort right now?",
+                "slot" : "discomfort",
+                "title" : "Pain flare"
+              }
+            },
+            {
+              "detail" : "For clenching, guarding, or trouble letting go.",
+              "id" : "pain.tightness",
+              "supportSubtitle" : "Use breath and support to soften without stretching hard.",
+              "supportTitle" : "Release Pelvic Tension",
+              "symbol" : "wind",
+              "title" : "Relax tight pelvic muscles",
+              "tracking" : {
+                "choices" : [
+                  "Guarded",
+                  "Some ease",
+                  "Relaxed"
+                ],
+                "question" : "How relaxed does your pelvic area feel today?",
+                "slot" : "secondary",
+                "title" : "Muscle ease"
+              }
+            },
+            {
+              "detail" : "For pain or pressure that builds while sitting.",
+              "id" : "pain.sitting",
+              "supportSubtitle" : "Change pressure and soften before discomfort builds.",
+              "supportTitle" : "Sitting Comfort Reset",
+              "symbol" : "chair.fill",
+              "title" : "Sit more comfortably",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How much discomfort did you feel while sitting today?",
+                "slot" : "discomfort",
+                "title" : "Sitting comfort"
+              }
+            },
+            {
+              "detail" : "Put comfort, choice, and relaxation first.",
+              "id" : "pain.intimacy",
+              "supportSubtitle" : "A private reset for comfort and control.",
+              "supportTitle" : "Relax Before Intimacy",
+              "symbol" : "heart.fill",
+              "title" : "Make intimacy more comfortable",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How comfortable does intimacy feel today?",
+                "slot" : "discomfort",
+                "title" : "Intimacy comfort"
+              }
+            },
+            {
+              "detail" : "Build confidence without pushing through pain.",
+              "id" : "pain.movement",
+              "supportSubtitle" : "Find the smallest movement that feels safe and controlled.",
+              "supportTitle" : "Comfortable Movement Reset",
+              "symbol" : "figure.walk",
+              "title" : "Move with less fear",
+              "tracking" : {
+                "choices" : [
+                  "Unsure",
+                  "Building",
+                  "Confident"
+                ],
+                "question" : "How confident do you feel moving today?",
+                "slot" : "confidence",
+                "title" : "Movement confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "monthly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a month",
+              "title" : "A few times a month"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "nearly all the time",
+              "title" : "It never fully goes away"
+            }
+          ],
+          "frequencyQuestion" : "How often are you in pain?",
+          "impactQuestion" : "What does the pain get in the way of?",
+          "impacts" : [
+            {
+              "id" : "sitting",
+              "symbol" : "chair.fill",
+              "tile" : "Sit without pain",
+              "title" : "Sitting through work or dinner"
+            },
+            {
+              "id" : "workouts",
+              "symbol" : "figure.run",
+              "tile" : "Move without a flare",
+              "title" : "Exercise"
+            },
+            {
+              "id" : "intimacy",
+              "symbol" : "heart.fill",
+              "tile" : "Comfortable intimacy",
+              "title" : "Intimacy"
+            },
+            {
+              "id" : "sleep",
+              "symbol" : "moon.zzz.fill",
+              "tile" : "Sleep without aching",
+              "title" : "Sleeping well"
+            },
+            {
+              "id" : "relaxing",
+              "symbol" : "wind",
+              "tile" : "Relax without bracing",
+              "title" : "Just relaxing"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "ease pelvic pain",
+          "paywallPromise" : {
+            "allday" : "Days with less pain by BYDATE.",
+            "bowel" : "Easier, pain-free bathroom trips by BYDATE.",
+            "exercise" : "Move and exercise with less pain by BYDATE.",
+            "intimacy" : "Sex without pain by BYDATE.",
+            "sitting" : "Sit without pain by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Real.",
+              "Not in your head. Treatable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Tight muscles guard. Guarding can be unlearned.",
+            "receipt" : "Release-first therapy eased pain for most women in published studies.",
+            "source" : "Published clinical studies",
+            "statLines" : [
+              "1 in 4 women",
+              "live with pelvic pain."
+            ]
+          },
+          "sentencePhrase" : "ease pelvic pain",
+          "situationQuestion" : "When does the pain affect you most?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Sit with less discomfort",
+              "id" : "sitting",
+              "planEmphasis" : "melting the tension that makes sitting hurt",
+              "relatedHealthKeywords" : [
+                "Tight or overactive",
+                "Tailbone"
+              ],
+              "revealPhrase" : "when sitting",
+              "title" : "Sitting or long days at a desk"
+            },
+            {
+              "constellationOutcome" : "Move without setting off a flare",
+              "id" : "exercise",
+              "planEmphasis" : "easing pain around exercise without setting off a flare",
+              "relatedHealthKeywords" : [
+                "Tight or overactive"
+              ],
+              "revealPhrase" : "around exercise",
+              "title" : "During or after exercise"
+            },
+            {
+              "constellationOutcome" : "More comfortable intimacy",
+              "id" : "intimacy",
+              "planEmphasis" : "making sex comfortable again, gently and at your pace",
+              "relatedHealthKeywords" : [
+                "Pain with penetration",
+                "Endometriosis"
+              ],
+              "revealPhrase" : "during intimacy",
+              "title" : "During intimacy"
+            },
+            {
+              "constellationOutcome" : "Easier bathroom trips",
+              "id" : "bowel",
+              "planEmphasis" : "making bathroom trips easier and pain-free",
+              "relatedHealthKeywords" : [
+                "Constipation",
+                "Tight or overactive"
+              ],
+              "revealPhrase" : "with bowel movements",
+              "title" : "With bowel movements"
+            },
+            {
+              "constellationOutcome" : "Quieter, more comfortable days",
+              "id" : "allday",
+              "planEmphasis" : "breaking the all-day tension cycle so pain quiets down",
+              "relatedHealthKeywords" : [
+                "Tight or overactive",
+                "Endometriosis"
+              ],
+              "revealPhrase" : "through the whole day",
+              "title" : "Throughout the day"
+            }
+          ],
+          "symbol" : "bolt.slash.fill",
+          "title" : "Ease Pelvic Pain",
+          "tried" : [
+            {
+              "acknowledgment" : "Relaxing helps in the moment, but guarded muscles tense right back. Your plan retrains them to stay released.",
+              "id" : "relax",
+              "title" : "Relaxation or breathing"
+            },
+            {
+              "acknowledgment" : "Stretching reaches the big muscles, but rarely the pelvic floor itself. Your plan releases exactly where it hurts.",
+              "id" : "stretch",
+              "title" : "Stretching or yoga"
+            },
+            {
+              "acknowledgment" : "Medication quiets the signal. Your plan works on the tight muscles sending it.",
+              "id" : "meds",
+              "title" : "Pain relief or medication"
+            },
+            {
+              "acknowledgment" : "Good care deserves daily follow-through. Your plan gives it structure, plus a progress report to bring back.",
+              "id" : "clinic",
+              "title" : "Doctors or specialists"
+            },
+            {
+              "acknowledgment" : "For a tight, guarded floor, squeezing harder often makes pain worse. Your plan starts with release instead.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "postpartum" : {
+          "displayTitle" : "Recover Postpartum",
+          "focus" : [
+            {
+              "detail" : "Learn to feel a gentle lift and a full release.",
+              "id" : "postpartum.reconnect",
+              "supportSubtitle" : "Gentle timing with a full release between efforts.",
+              "supportTitle" : "Pelvic Floor Reconnection",
+              "symbol" : "waveform.path.ecg",
+              "title" : "Reconnect my pelvic floor",
+              "tracking" : {
+                "choices" : [
+                  "Hard to feel",
+                  "Starting",
+                  "Clear"
+                ],
+                "question" : "How clearly can you feel a gentle lift and release today?",
+                "slot" : "confidence",
+                "title" : "Pelvic floor connection"
+              }
+            },
+            {
+              "detail" : "Reconnect breath and lower-abdominal support.",
+              "id" : "postpartum.core",
+              "supportSubtitle" : "Reconnect breath, pelvic floor, and deep core without pushing.",
+              "supportTitle" : "Postpartum Core Reset",
+              "symbol" : "circle.hexagongrid.fill",
+              "title" : "Rebuild my deep core",
+              "tracking" : {
+                "choices" : [
+                  "Hard to feel",
+                  "Starting",
+                  "Connected"
+                ],
+                "question" : "How clearly can you feel your deep core today?",
+                "slot" : "confidence",
+                "title" : "Core connection"
+              }
+            },
+            {
+              "detail" : "For leaking after birth during daily movement.",
+              "id" : "postpartum.leaks",
+              "supportSubtitle" : "Practice breath and timing before pressure rises.",
+              "supportTitle" : "Postpartum Bladder Reset",
+              "symbol" : "drop.fill",
+              "title" : "Reduce bladder leaks",
+              "tracking" : {
+                "choices" : [
+                  "None",
+                  "A few",
+                  "Several"
+                ],
+                "question" : "Any bladder leaks since your last check-in?",
+                "slot" : "leak",
+                "title" : "Leaks"
+              }
+            },
+            {
+              "detail" : "For a heavy or dragging pelvic feeling.",
+              "id" : "postpartum.pressure",
+              "supportSubtitle" : "A supported pause when your body is asking for less load.",
+              "supportTitle" : "Pressure Relief Reset",
+              "symbol" : "arrow.down.heart.fill",
+              "title" : "Ease pressure or heaviness",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How much pelvic pressure or heaviness do you feel today?",
+                "slot" : "discomfort",
+                "title" : "Pressure or heaviness"
+              }
+            },
+            {
+              "detail" : "Rebuild control before adding more impact or load.",
+              "id" : "postpartum.return",
+              "supportSubtitle" : "Practice controlled pressure before your next workout.",
+              "supportTitle" : "Ready-to-Move Check",
+              "symbol" : "figure.walk",
+              "title" : "Return to exercise safely",
+              "tracking" : {
+                "choices" : [
+                  "Unsure",
+                  "Building",
+                  "Ready"
+                ],
+                "question" : "How confident do you feel exercising today?",
+                "slot" : "confidence",
+                "title" : "Movement confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "hard",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "during harder tasks",
+              "title" : "Only during harder tasks"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few times a week",
+              "title" : "A few times a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "with almost everything",
+              "title" : "With almost everything I do"
+            }
+          ],
+          "frequencyQuestion" : "How often does your body remind you?",
+          "impactQuestion" : "What does this get in the way of?",
+          "impacts" : [
+            {
+              "id" : "baby",
+              "symbol" : "figure.and.child.holdinghands",
+              "tile" : "Carry your baby with ease",
+              "title" : "Lifting and carrying my baby"
+            },
+            {
+              "id" : "workouts",
+              "symbol" : "figure.run",
+              "tile" : "Return to exercise",
+              "title" : "Getting back to exercise"
+            },
+            {
+              "id" : "laughing",
+              "symbol" : "face.smiling",
+              "tile" : "Laugh without worry",
+              "title" : "Laughing and sneezing freely"
+            },
+            {
+              "id" : "intimacy",
+              "symbol" : "heart.fill",
+              "tile" : "A comfortable return to intimacy",
+              "title" : "Intimacy"
+            },
+            {
+              "id" : "strong",
+              "symbol" : "bolt.fill",
+              "tile" : "Feel strong again",
+              "title" : "Feeling strong again"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "recover postpartum",
+          "paywallPromise" : {
+            "exercise" : "Back to real exercise, safely, by BYDATE.",
+            "feeding" : "Feed and carry without the aches by BYDATE.",
+            "intimacy" : "Comfortable sex again by BYDATE.",
+            "lifting" : "Lift your baby without worry by BYDATE.",
+            "walking" : "Feel strong on your feet again by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Normal after birth.",
+              "Not forever."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Your body grew a baby. It can rebuild its support too.",
+            "receipt" : "Moms who trained were about a third less likely to keep leaking.",
+            "source" : "Cochrane review · pregnancy and birth",
+            "statLines" : [
+              "9 in 10 new moms",
+              "have a weakened floor."
+            ]
+          },
+          "sentencePhrase" : "recover postpartum",
+          "situationQuestion" : "When does your body feel it most?",
+          "situations" : [
+            {
+              "constellationOutcome" : "Lift and carry with support",
+              "id" : "lifting",
+              "planEmphasis" : "lifting your baby without strain or worry",
+              "relatedHealthKeywords" : [
+                "C-section",
+                "Diastasis"
+              ],
+              "revealPhrase" : "when lifting your baby",
+              "title" : "Lifting or carrying the baby"
+            },
+            {
+              "constellationOutcome" : "More comfortable feeding positions",
+              "id" : "feeding",
+              "planEmphasis" : "easing the feeding-position aches while your core reconnects",
+              "relatedHealthKeywords" : [
+                "C-section"
+              ],
+              "revealPhrase" : "in feeding positions",
+              "title" : "Feeding and holding positions"
+            },
+            {
+              "constellationOutcome" : "Feel stronger on your feet",
+              "id" : "walking",
+              "planEmphasis" : "feeling strong on your feet again, without the heaviness",
+              "relatedHealthKeywords" : [
+                "Prolapse",
+                "Heaviness"
+              ],
+              "revealPhrase" : "when on your feet",
+              "title" : "Walking or being on your feet"
+            },
+            {
+              "constellationOutcome" : "A comfortable return to intimacy",
+              "id" : "intimacy",
+              "planEmphasis" : "making sex comfortable again after birth, at your pace",
+              "relatedHealthKeywords" : [
+                "Pain with penetration",
+                "Scar"
+              ],
+              "revealPhrase" : "around returning to intimacy",
+              "title" : "Returning to intimacy"
+            },
+            {
+              "constellationOutcome" : "A confident return to exercise",
+              "id" : "exercise",
+              "planEmphasis" : "getting you safely back to real exercise",
+              "relatedHealthKeywords" : [
+                "Diastasis",
+                "Prolapse"
+              ],
+              "revealPhrase" : "in your return to exercise",
+              "title" : "Returning to exercise"
+            }
+          ],
+          "symbol" : "leaf.fill",
+          "title" : "Recover Postpartum",
+          "tried" : [
+            {
+              "acknowledgment" : "Kegels alone often plateau: they train the squeeze, but not the release, the timing or the progression. Your plan trains all three.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "Pilates builds the outer core, but often skips the floor that carries it. Your plan connects both, in the right order.",
+              "id" : "pilates",
+              "title" : "Pilates or yoga"
+            },
+            {
+              "acknowledgment" : "Random videos can't progress you. A 90-day sequence, calibrated to your birth and your answers, can.",
+              "id" : "videos",
+              "title" : "Postpartum workout videos"
+            },
+            {
+              "acknowledgment" : "Time softens symptoms, but muscles need training to come back. Your plan gives your body the signal it is waiting for.",
+              "id" : "waiting",
+              "title" : "Waiting for it to heal"
+            },
+            {
+              "acknowledgment" : "A strong foundation. Your plan gives that approach daily structure, and a progress report to bring back to your therapist.",
+              "id" : "pt",
+              "title" : "Physical therapy"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        },
+        "prolapse" : {
+          "displayTitle" : "Support Pelvic Prolapse",
+          "focus" : [
+            {
+              "detail" : "For pressure that builds as the day goes on.",
+              "id" : "prolapse.pressure",
+              "supportSubtitle" : "A supported pause that lowers pressure before it builds.",
+              "supportTitle" : "Pressure Relief Reset",
+              "symbol" : "arrow.down.heart.fill",
+              "title" : "Ease pressure or a bulging feeling",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How much pelvic pressure do you feel today?",
+                "slot" : "discomfort",
+                "title" : "Pelvic pressure"
+              }
+            },
+            {
+              "detail" : "Build support for the heavy or dragging feeling.",
+              "id" : "prolapse.heaviness",
+              "supportSubtitle" : "Connect breath and support without pushing down.",
+              "supportTitle" : "Heaviness Relief Reset",
+              "symbol" : "scalemass.fill",
+              "title" : "Feel less heaviness",
+              "tracking" : {
+                "choices" : [
+                  "High",
+                  "Moderate",
+                  "Low"
+                ],
+                "question" : "How much pelvic heaviness do you feel today?",
+                "slot" : "discomfort",
+                "title" : "Pelvic heaviness"
+              }
+            },
+            {
+              "detail" : "Coordinate the pelvic floor and deep core gently.",
+              "id" : "prolapse.support",
+              "supportSubtitle" : "Build a gentle lift with a complete release.",
+              "supportTitle" : "Pelvic Support Practice",
+              "symbol" : "arrow.up.heart.fill",
+              "title" : "Build better pelvic support",
+              "tracking" : {
+                "choices" : [
+                  "Low",
+                  "Building",
+                  "Supported"
+                ],
+                "question" : "How supported does your pelvic area feel today?",
+                "slot" : "confidence",
+                "title" : "Pelvic support"
+              }
+            },
+            {
+              "detail" : "For standing, walking, lifting, and daily tasks.",
+              "id" : "prolapse.dailyMovement",
+              "supportSubtitle" : "Set your breath and support before the next daily task.",
+              "supportTitle" : "Everyday Pressure Check",
+              "symbol" : "figure.walk",
+              "title" : "Move through the day with confidence",
+              "tracking" : {
+                "choices" : [
+                  "Unsure",
+                  "Building",
+                  "Confident"
+                ],
+                "question" : "How confident did daily movement feel today?",
+                "slot" : "confidence",
+                "title" : "Daily confidence"
+              }
+            },
+            {
+              "detail" : "Build control before adding more impact or load.",
+              "id" : "prolapse.exercise",
+              "supportSubtitle" : "Find the strongest level you can control without heaviness.",
+              "supportTitle" : "Exercise Support Check",
+              "symbol" : "figure.strengthtraining.traditional",
+              "title" : "Exercise with less pressure",
+              "tracking" : {
+                "choices" : [
+                  "Unsure",
+                  "Building",
+                  "Ready"
+                ],
+                "question" : "How confident did exercise feel today?",
+                "slot" : "confidence",
+                "title" : "Exercise confidence"
+              }
+            }
+          ],
+          "frequencies" : [
+            {
+              "constellationOutcome" : "",
+              "id" : "long",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "after long days",
+              "title" : "Only after long days"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "weekly",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "a few days a week",
+              "title" : "A few days a week"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "daily",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "every day",
+              "title" : "Every day"
+            },
+            {
+              "constellationOutcome" : "",
+              "id" : "constant",
+              "planEmphasis" : "",
+              "relatedHealthKeywords" : [
+
+              ],
+              "revealPhrase" : "most of the day",
+              "title" : "Most of every day"
+            }
+          ],
+          "frequencyQuestion" : "How often do you feel the heaviness?",
+          "impactQuestion" : "What does the heaviness get in the way of?",
+          "impacts" : [
+            {
+              "id" : "walks",
+              "symbol" : "figure.walk",
+              "tile" : "Walk as long as you want",
+              "title" : "Long walks"
+            },
+            {
+              "id" : "standing",
+              "symbol" : "figure.stand",
+              "tile" : "Stand all day with support",
+              "title" : "Standing all day"
+            },
+            {
+              "id" : "workouts",
+              "symbol" : "figure.run",
+              "tile" : "Exercise with confidence",
+              "title" : "Exercise"
+            },
+            {
+              "id" : "lifting",
+              "symbol" : "bolt.fill",
+              "tile" : "Lift without pressure",
+              "title" : "Lifting kids or groceries"
+            },
+            {
+              "id" : "evenings",
+              "symbol" : "moon.zzz.fill",
+              "tile" : "End the day comfortable",
+              "title" : "Comfortable evenings"
+            },
+            {
+              "id" : "other",
+              "symbol" : "sparkles",
+              "tile" : "",
+              "title" : "Something else"
+            }
+          ],
+          "memberSentencePhrase" : "support pelvic prolapse",
+          "paywallPromise" : {
+            "allday" : "Less heaviness by the end of the day by BYDATE.",
+            "bowel" : "Easier bathroom trips with less pelvic pressure by BYDATE.",
+            "exercise" : "Exercise with more support and less heaviness by BYDATE.",
+            "lifting" : "Lift and carry with less pelvic pressure by BYDATE.",
+            "standing" : "Stand and walk with less heaviness by BYDATE."
+          },
+          "prevalence" : {
+            "beatLines" : [
+              "Common.",
+              "Not your fault. Supportable."
+            ],
+            "cta" : "I'm ready to fix it",
+            "reassurance" : "Lift and pressure control lighten the heaviness, day by day.",
+            "receipt" : "Women who trained reported clearly fewer symptoms in a 447-woman trial.",
+            "source" : "POPPY trial · The Lancet",
+            "statLines" : [
+              "1 in 3 mothers",
+              "have some prolapse."
+            ]
+          },
+          "sentencePhrase" : "support pelvic prolapse",
+          "situationQuestion" : "When do you notice pressure or heaviness most?",
+          "situations" : [
+            {
+              "constellationOutcome" : "More support on your feet",
+              "id" : "standing",
+              "planEmphasis" : "building support that lasts through standing and walking",
+              "relatedHealthKeywords" : [
+                "Heaviness",
+                "Bulge"
+              ],
+              "revealPhrase" : "after time on your feet",
+              "title" : "After standing or walking for a while"
+            },
+            {
+              "constellationOutcome" : "Lift with less pressure",
+              "id" : "lifting",
+              "planEmphasis" : "coordinating breath and support before pressure rises",
+              "relatedHealthKeywords" : [
+                "Heaviness",
+                "Pelvic surgery"
+              ],
+              "revealPhrase" : "while lifting or carrying",
+              "title" : "While lifting or carrying"
+            },
+            {
+              "constellationOutcome" : "Exercise with more confidence",
+              "id" : "exercise",
+              "planEmphasis" : "building strength without increasing downward pressure",
+              "relatedHealthKeywords" : [
+                "Heaviness",
+                "Bulge"
+              ],
+              "revealPhrase" : "during or after exercise",
+              "title" : "During or after exercise"
+            },
+            {
+              "constellationOutcome" : "Easier bathroom trips",
+              "id" : "bowel",
+              "planEmphasis" : "reducing straining and improving pressure control",
+              "relatedHealthKeywords" : [
+                "Constipation",
+                "Difficulty emptying"
+              ],
+              "revealPhrase" : "during bowel movements",
+              "title" : "During bowel movements"
+            },
+            {
+              "constellationOutcome" : "Less heaviness by evening",
+              "id" : "allday",
+              "planEmphasis" : "managing pressure early so heaviness does not keep building",
+              "relatedHealthKeywords" : [
+                "Heaviness",
+                "Bulge"
+              ],
+              "revealPhrase" : "as the day goes on",
+              "title" : "It builds through the day"
+            }
+          ],
+          "symbol" : "arrow.up.heart.fill",
+          "title" : "Support Pelvic Prolapse",
+          "tried" : [
+            {
+              "acknowledgment" : "Kegels alone often plateau: they train the squeeze, but not the release, the timing or the progression. Your plan trains all three.",
+              "id" : "kegels",
+              "title" : "Kegels on my own"
+            },
+            {
+              "acknowledgment" : "A pessary supports from the inside, and training makes that support stronger. Your plan works alongside it.",
+              "id" : "pessary",
+              "title" : "A pessary"
+            },
+            {
+              "acknowledgment" : "Avoiding protects you today but weakens support over time. Your plan rebuilds strength without the downward pressure.",
+              "id" : "avoiding",
+              "title" : "Avoiding lifting or exercise"
+            },
+            {
+              "acknowledgment" : "Pads manage the symptom. Your plan trains the lift and support that address it at the source.",
+              "id" : "pads",
+              "title" : "Pads or liners"
+            },
+            {
+              "acknowledgment" : "A strong foundation. Your plan gives that approach daily structure, and a progress report to bring back to your therapist.",
+              "id" : "pt",
+              "title" : "Physical therapy"
+            },
+            {
+              "acknowledgment" : "Whatever you tried took real effort. Your plan keeps what helped and adds what was missing: release, timing and progression.",
+              "id" : "other",
+              "title" : "Something else"
+            },
+            {
+              "acknowledgment" : "That's okay. Your plan starts from a clean baseline and teaches you as you go, five minutes at a time.",
+              "id" : "unsure",
+              "title" : "Not sure"
+            }
+          ]
+        }
+      },
+      "title" : "Women’s pelvic health"
+    }
+  },
+  "triedQuestion" : "What have you already tried?"
+}

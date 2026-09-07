@@ -260,7 +260,8 @@ export function Typewriter({
  * Decorative to a screen reader, which already has the whole list.
  */
 export function ScrollMoreHint({ visible, tone = "light" }) {
-  const from = tone === "dark" ? "from-black" : "from-app-background";
+  const from =
+    tone === "dark" ? "from-black" : tone === "paper" ? "from-atelier-paper" : "from-app-background";
   return (
     <div
       aria-hidden="true"
