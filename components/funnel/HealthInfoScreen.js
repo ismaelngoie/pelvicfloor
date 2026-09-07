@@ -45,6 +45,18 @@ export default function HealthInfoScreen({ profile, onPatch, onNext, onBack }) {
   const answeredConditions = profile.noConditions || selected.size > 0;
   const ready = answeredConditions && Boolean(profile.activity);
 
+  // The button is never locked (owner, 2026-09-07): a member who has nothing
+  // to tell us should not have to say so first. Continuing with nothing chosen
+  // records "none of these" and the middle activity level, so every screen
+  // after this one still has an answer to build on.
+  const continueAnyway = () => {
+    const patch = {};
+    if (!answeredConditions) patch.noConditions = true;
+    if (!profile.activity) patch.activity = (ACTIVITY_LEVELS[1] || ACTIVITY_LEVELS[0])?.id;
+    if (Object.keys(patch).length) onPatch(patch);
+    onNext();
+  };
+
   const toggle = (title) => {
     const next = new Set(selected);
     if (next.has(title)) next.delete(title);
@@ -117,7 +129,7 @@ export default function HealthInfoScreen({ profile, onPatch, onNext, onBack }) {
         </div>
       </Body>
       <Footer>
-        <Button onClick={onNext} disabled={!ready} variant="rose" id="onboarding.health.continue">
+        <Button onClick={continueAnyway} variant="rose" id="onboarding.health.continue">
           {copy.cta}
         </Button>
       </Footer>
