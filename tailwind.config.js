@@ -76,6 +76,11 @@ module.exports = {
           roseBright: '#F94F70',
           roseSoft: 'rgba(230, 84, 115, 0.12)',
           rosewood: '#C43E63',
+          sage: '#6F8F7A',
+          amber: '#C58A2A',
+          plum: '#3A2F44',
+          night: '#15121A',
+          nightInk: '#F4EEF1',
         },
         brand: {
           rose: '#E65473',

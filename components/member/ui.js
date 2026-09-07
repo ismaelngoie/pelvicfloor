@@ -10,17 +10,17 @@ import { coachLabel, durationLabel, itemDescription, tagLabel } from "@/lib/libr
 export function Card({ className = "", as: Tag = "section", ...rest }) {
   return (
     <Tag
-      className={`rounded-[20px] border border-black/[0.06] bg-white p-4 shadow-[0_5px_14px_rgba(0,0,0,0.04)] ${className}`}
+      className={`rounded-[22px] border border-atelier-line bg-atelier-card p-4 shadow-[0_14px_20px_-6px_rgba(58,47,68,0.12)] ${className}`}
       {...rest}
     />
   );
 }
 
-export function SectionHeader({ title, subtitle, action, id }) {
+export function SectionHeader({ title, subtitle, action, id, serif = false }) {
   return (
     <div className="flex items-end justify-between gap-3 px-1">
       <div className="min-w-0">
-        <h2 id={id} className="text-[19px] font-bold leading-tight text-app-textPrimary">
+        <h2 id={id} className={serif ? "font-serif text-[22px] leading-tight text-atelier-ink" : "text-[19px] font-bold leading-tight text-atelier-ink"}>
           {title}
         </h2>
         {subtitle && <p className="mt-0.5 text-[13px] text-app-textSecondary">{subtitle}</p>}
@@ -277,10 +277,10 @@ export function Sheet({ open, onClose, title, children, labelledBy }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
-        className="relative max-h-[86vh] overflow-y-auto rounded-t-[28px] bg-app-background pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl tab:w-full tab:max-w-[560px] tab:rounded-[24px] tab:pb-5"
+        className="relative max-h-[86vh] overflow-y-auto rounded-t-[28px] bg-atelier-paper pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl tab:w-full tab:max-w-[560px] tab:rounded-[24px] tab:pb-5"
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-black/[0.06] bg-app-background/95 px-5 py-4 backdrop-blur">
-          <h2 id={headingId} className="text-[17px] font-bold text-app-textPrimary">{title}</h2>
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-atelier-line bg-atelier-paper/95 px-5 py-4 backdrop-blur">
+          <h2 id={headingId} className="font-serif text-[21px] text-atelier-ink">{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -322,7 +322,7 @@ export function PrimaryButton({ className = "", ...rest }) {
   return (
     <button
       type="button"
-      className={`flex h-14 w-full items-center justify-center rounded-full bg-ios-pink text-[17px] font-bold text-white disabled:bg-app-borderIdle disabled:text-app-textSecondary ${className}`}
+      className={`flex h-14 w-full items-center justify-center rounded-full bg-atelier-rose text-[17px] font-bold text-white shadow-[0_10px_24px_rgba(230,84,115,0.32)] disabled:bg-app-borderIdle disabled:text-app-textSecondary ${className}`}
       {...rest}
     />
   );

@@ -152,7 +152,7 @@ export default function MemberShell({ children }) {
 
   return (
     <div
-      className="pv-member-shell flex min-h-full flex-col bg-app-background tab:fixed tab:inset-0 tab:flex-row tab:overflow-hidden"
+      className="pv-member-shell flex min-h-full flex-col bg-atelier-paper tab:fixed tab:inset-0 tab:flex-row tab:overflow-hidden"
       // Belt to the braces in app/Clarity.jsx. Microsoft Clarity is never
       // injected on /app, so on any normal load there is no recorder here to
       // mask anything from. This attribute is what covers the one case the
@@ -194,7 +194,7 @@ function TabBar() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.08] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg tab:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-atelier-ink/10 bg-atelier-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg tab:hidden"
     >
       <ul className="mx-auto flex max-w-2xl">
         {TABS.map(({ href, label, Icon }) => {
@@ -211,7 +211,7 @@ function TabBar() {
                 onClick={rememberScroll}
                 aria-current={active ? "page" : undefined}
                 className={`flex h-[62px] flex-col items-center justify-center gap-1 ${
-                  active ? "text-ios-pink" : "text-app-textSecondary"
+                  active ? "text-atelier-rose" : "text-atelier-ink3"
                 }`}
               >
                 <Icon
@@ -251,7 +251,7 @@ function SideNav() {
   return (
     <nav
       aria-label="Main"
-      className="hidden shrink-0 flex-col border-r border-black/[0.07] bg-white tab:flex tab:w-[76px] lg:w-[248px]"
+      className="hidden shrink-0 flex-col border-r border-atelier-line bg-atelier-paper tab:flex tab:w-[76px] lg:w-[248px]"
     >
       <div className="flex h-[64px] shrink-0 items-center justify-center lg:justify-start lg:px-5">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-cta-gradient text-[16px] font-black text-white">
@@ -275,8 +275,8 @@ function SideNav() {
                 title={label}
                 className={`flex min-h-[48px] items-center justify-center gap-3 rounded-2xl px-2 lg:justify-start lg:px-3.5 ${
                   active
-                    ? "bg-ios-pink/[0.1] text-ios-pink"
-                    : "text-app-textSecondary hover:bg-black/[0.04]"
+                    ? "bg-atelier-rose/[0.12] text-atelier-rose"
+                    : "text-atelier-ink2 hover:bg-atelier-ink/[0.04]"
                 }`}
               >
                 <Icon
@@ -309,7 +309,7 @@ function SideNav() {
               aria-label="Progress through your plan"
             >
               <span
-                className="block h-full rounded-full bg-ios-pink"
+                className="block h-full rounded-full bg-atelier-rose"
                 style={{ width: `${(Math.min(currentDayNumber, planLength) / planLength) * 100}%` }}
               />
             </div>
@@ -325,10 +325,10 @@ function SideNav() {
 function Splash({ label }) {
   const reduceMotion = usePrefersReducedMotion();
   return (
-    <div className="grid min-h-full place-items-center bg-app-background px-6">
+    <div className="grid min-h-full place-items-center bg-atelier-paper px-6">
       <div className="text-center">
         <Loader2
-          className={`mx-auto h-8 w-8 text-ios-pink ${reduceMotion ? "" : "animate-spin"}`}
+          className={`mx-auto h-8 w-8 text-atelier-rose ${reduceMotion ? "" : "animate-spin"}`}
           aria-hidden="true"
         />
         <p className="mt-4 text-sm text-app-textSecondary">{label}</p>

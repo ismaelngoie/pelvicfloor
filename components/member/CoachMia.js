@@ -25,7 +25,7 @@
 //      calm sentence and a Try again button. There is no "open the app".
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCw, Send, Sparkles } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useMember } from "./MemberProvider";
 import { usePlayer } from "./PlayerProvider";
 import { usePrefersReducedMotion } from "./VideoPlayer";
@@ -349,17 +349,18 @@ export default function CoachMia() {
   const waiting = busy && !streaming;
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="relative flex flex-1 flex-col" style={{ backgroundImage: "linear-gradient(180deg, #FFF9FB 0%, #F6F1EA 100%)" }}>
+      <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[-180px] h-[380px] w-[380px] -translate-x-1/2 rounded-full bg-atelier-rose/[0.13] blur-[120px]" />
       {/* Header */}
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/[0.06] bg-white/90 px-4 py-2.5 backdrop-blur">
-        <span className="grid h-[42px] w-[42px] shrink-0 place-items-center overflow-hidden rounded-full bg-app-primary/10 ring-2 ring-app-primary/35">
+      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-atelier-ink/[0.055] bg-atelier-paper/80 px-[18px] py-2.5 backdrop-blur-lg">
+        <span className="grid h-[42px] w-[42px] shrink-0 place-items-center overflow-hidden rounded-full bg-atelier-rose/10 ring-1 ring-white/60 outline outline-1 outline-offset-[3px] outline-atelier-rose/35">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/coachMiaAvatar.png" alt="" className="h-full w-full object-cover" />
         </span>
         <div className="min-w-0">
-          <p className="text-[17px] font-bold leading-tight text-app-textPrimary">Coach Mia™</p>
-          <p className="flex items-center gap-1.5 text-[12.5px] font-medium text-app-textSecondary">
-            <span className="h-2 w-2 rounded-full bg-app-positive" aria-hidden="true" />
+          <p className="font-serif text-[21px] leading-tight text-atelier-ink">Coach Mia™</p>
+          <p className="flex items-center gap-1.5 text-[12.5px] font-medium text-atelier-ink2">
+            <span className="h-2 w-2 rounded-full bg-atelier-sage shadow-[0_0_6px_rgba(111,143,122,0.6)]" aria-hidden="true" />
             {loading ? "Connecting..." : busy ? "Typing..." : "Online"}
           </p>
         </div>
@@ -374,7 +375,7 @@ export default function CoachMia() {
         {loading && (
           <div className="grid place-items-center py-20">
             <Loader2
-              className={`h-7 w-7 text-ios-pink ${reduceMotion ? "" : "animate-spin"}`}
+              className={`h-7 w-7 text-atelier-rose ${reduceMotion ? "" : "animate-spin"}`}
               aria-hidden="true"
             />
             <span className="sr-only">Loading your conversation</span>
@@ -382,13 +383,13 @@ export default function CoachMia() {
         )}
 
         {loadError && (
-          <p role="alert" className="rounded-2xl bg-white p-4 text-[14px] text-app-textPrimary">
+          <p role="alert" className="rounded-[16px] border border-atelier-line bg-atelier-card p-4 text-[14px] text-atelier-ink">
             {loadError}
           </p>
         )}
 
         {!loading && !loadError && messages.length === 0 && (
-          <EmptyState firstName={firstName} />
+          <EmptyState firstName={firstName} prompts={prompts} onPrompt={send} busy={busy} />
         )}
 
         {!loading && groups.length > 0 && (
@@ -442,14 +443,14 @@ export default function CoachMia() {
         {replyError && (
           <div
             role="alert"
-            className="mt-3.5 rounded-[18px] bg-white p-3.5 shadow-[0_6px_16px_rgba(0,0,0,0.06)]"
+            className="mt-3.5 rounded-[18px] border border-atelier-line bg-atelier-card p-3.5 shadow-[0_6px_16px_rgba(0,0,0,0.06)]"
           >
-            <p className="text-[14px] leading-snug text-app-textPrimary">{replyError}</p>
+            <p className="text-[14px] leading-snug text-atelier-ink">{replyError}</p>
             <button
               type="button"
               onClick={retry}
               disabled={busy}
-              className="mt-2.5 inline-flex items-center gap-2 rounded-full bg-cta-gradient px-4 py-2 text-[13.5px] font-bold text-white disabled:opacity-50"
+              className="mt-2.5 inline-flex items-center gap-2 rounded-full bg-atelier-rose px-4 py-2 text-[13.5px] font-bold text-white disabled:opacity-50"
             >
               <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
               Try again
@@ -458,7 +459,7 @@ export default function CoachMia() {
         )}
 
         {saveWarning && (
-          <p role="status" className="mt-3 px-1 text-[12px] leading-snug text-app-textSecondary">
+          <p role="status" className="mt-3 px-1 text-[12px] leading-snug text-atelier-ink2">
             This part of the conversation is showing on this device only. We could not save it to
             your account, so it may not follow you to your phone.
           </p>
@@ -475,22 +476,21 @@ export default function CoachMia() {
         // composer floats 76px off the bottom of the window.
         <div
           ref={composerRef}
-          className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 border-t border-black/[0.06] bg-app-background/95 backdrop-blur tab:bottom-0"
+          className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 border-t border-atelier-ink/[0.055] bg-atelier-paper/90 backdrop-blur-lg tab:bottom-0"
         >
           {/* Capped to the transcript's own measure. A composer stretched to
               1300px puts the send button a long way from the last thing she
               read, and the prompt chips end up on a different axis to the
               conversation they belong to. */}
-          <ul className="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-2.5 no-scrollbar">
+          <ul className={`mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-2.5 no-scrollbar ${messages.length === 0 ? "hidden" : ""}`}>
             {prompts.map((prompt) => (
               <li key={prompt}>
                 <button
                   type="button"
                   onClick={() => send(prompt)}
                   disabled={busy}
-                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-app-borderIdle bg-white px-3.5 text-[13px] font-medium text-app-textPrimary disabled:opacity-50"
+                  className="flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-atelier-rose/[0.28] bg-atelier-rose/[0.09] px-[15px] text-[13.5px] font-semibold text-atelier-rose disabled:opacity-50"
                 >
-                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-app-primary" aria-hidden="true" />
                   {prompt}
                 </button>
               </li>
@@ -513,25 +513,25 @@ export default function CoachMia() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
                   }}
-                  placeholder="Ask Mia anything"
-                  className="max-h-32 min-h-[48px] w-full resize-none rounded-[24px] border border-app-borderIdle bg-white px-4 py-3 text-[15px] leading-snug text-app-textPrimary placeholder:text-app-textSecondary focus:border-ios-pink focus:outline-none"
+                  placeholder="Ask Coach Mia…"
+                  className="max-h-32 min-h-[48px] w-full resize-none rounded-[24px] border border-atelier-ink/[0.055] bg-atelier-ink/[0.045] px-4 py-[11px] text-[16px] leading-snug text-atelier-ink placeholder:text-atelier-ink3 focus:border-atelier-rose/40 focus:outline-none"
                 />
               </label>
               <button
                 type="submit"
                 disabled={!draft.trim() || busy}
                 aria-label="Send your message to Coach Mia"
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-cta-gradient text-white disabled:opacity-40"
+                className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full bg-atelier-rose text-white shadow-[0_3px_8px_rgba(230,84,115,0.3)] disabled:bg-atelier-ink/[0.045] disabled:text-atelier-ink3 disabled:shadow-none"
               >
                 {busy ? (
                   <Loader2 className={`h-5 w-5 ${reduceMotion ? "" : "animate-spin"}`} aria-hidden="true" />
                 ) : (
-                  <Send className="h-5 w-5" aria-hidden="true" />
+                  <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2.8} aria-hidden="true" />
                 )}
               </button>
             </div>
 
-            <p className="mt-2 px-1 text-[11.5px] leading-snug text-app-textSecondary">
+            <p className="mt-2 px-1 text-[11.5px] leading-snug text-atelier-ink3">
               Coach Mia cannot diagnose anything. For anything sudden, painful or new, please see a
               doctor or a pelvic health physiotherapist.
             </p>
@@ -544,19 +544,37 @@ export default function CoachMia() {
 
 // --- Pieces ----------------------------------------------------------------
 
-function EmptyState({ firstName }) {
+function EmptyState({ firstName, prompts = [], onPrompt, busy }) {
   return (
     <div className="px-2 py-8 text-center">
-      <span className="mx-auto grid h-[92px] w-[92px] place-items-center overflow-hidden rounded-full bg-app-primary/10 shadow-[0_0_30px_rgba(230,84,115,0.25)]">
+      <span className="mx-auto grid h-[92px] w-[92px] place-items-center overflow-hidden rounded-full bg-atelier-rose/10 shadow-[0_8px_20px_rgba(230,84,115,0.28)] ring-2 ring-white/65 outline outline-1 outline-offset-[7px] outline-atelier-rose/30">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/coachMiaAvatar.png" alt="" className="h-full w-full object-cover" />
       </span>
-      <h1 className="mt-5 text-[22px] font-bold leading-tight text-app-textPrimary">
+      <h1 className="mt-5 font-serif text-[27px] leading-tight text-atelier-ink">
         {firstName ? `Hello, ${firstName}! I'm Mia, your personal guide.` : "Hello! I'm Mia, your personal guide."}
       </h1>
-      <p className="mx-auto mt-2 max-w-xs text-[15px] font-medium leading-snug text-app-textSecondary">
+      <p className="mx-auto mt-2 max-w-xs text-[15px] font-medium leading-snug text-atelier-ink2">
         Ask me anything about your plan, your exercises, or how you feel today.
       </p>
+      {prompts.length > 0 && (
+        <ul className="mx-auto mt-6 max-w-md space-y-2.5 text-left">
+          {prompts.map((prompt) => (
+            <li key={prompt}>
+              <button
+                type="button"
+                onClick={() => onPrompt?.(prompt)}
+                disabled={busy}
+                className="flex w-full items-center gap-2.5 rounded-[17px] border border-atelier-rose/[0.18] bg-white/95 px-[15px] py-[13px] text-left shadow-[0_3px_8px_rgba(0,0,0,0.05)]"
+              >
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-atelier-rose" aria-hidden="true" />
+                <span className="min-w-0 flex-1 text-[15px] font-medium leading-snug text-atelier-ink">{prompt}</span>
+                <ArrowUpRight className="h-3 w-3 shrink-0 text-atelier-ink3" strokeWidth={2.6} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -565,11 +583,11 @@ function EmptyState({ firstName }) {
 function TypingBubble({ reduceMotion }) {
   return (
     <div className="mt-3.5 flex justify-start pr-14" role="status" aria-label="Coach Mia is typing">
-      <div className="flex items-center gap-1.5 rounded-[22px] bg-white px-4 py-3.5 shadow-[0_6px_16px_rgba(0,0,0,0.06)]">
+      <div className="flex items-center gap-1.5 rounded-[22px] border border-atelier-ink/[0.055] bg-white/95 px-4 py-3.5 shadow-[0_4px_8px_rgba(0,0,0,0.07)]">
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className={`h-2 w-2 rounded-full bg-app-textSecondary/50 ${reduceMotion ? "" : "animate-bounce"}`}
+            className={`h-2 w-2 rounded-full bg-atelier-ink3/70 ${reduceMotion ? "" : "animate-bounce"}`}
             style={reduceMotion ? undefined : { animationDelay: `${i * 0.15}s` }}
             aria-hidden="true"
           />
@@ -595,18 +613,26 @@ function Bubble({ message, first, last, isLastGroup, onStartRoutine, routineMeta
     ? `rounded-[22px] ${first ? "" : "rounded-tr-lg"} ${last ? "" : "rounded-br-lg"}`
     : `rounded-[22px] ${first ? "" : "rounded-tl-lg"} ${last ? "" : "rounded-bl-lg"}`;
 
-  const bubbleClass = `px-4 py-2.5 text-[15px] leading-snug ${radius} ${
-    mine ? "bg-cta-gradient text-white" : "bg-white text-app-textPrimary shadow-[0_6px_16px_rgba(0,0,0,0.06)]"
+  const bubbleClass = `px-[15px] py-2.5 text-[16px] leading-snug ${radius} ${
+    mine
+      ? "border border-white/[0.14] text-white shadow-[0_4px_10px_rgba(230,84,115,0.28)]"
+      : "border border-atelier-ink/[0.055] bg-white/95 text-atelier-ink shadow-[0_4px_8px_rgba(0,0,0,0.07)]"
   }`;
+  const bubbleStyle = mine ? { backgroundImage: "linear-gradient(135deg, #E65473 0%, #C33A5C 100%)" } : undefined;
 
   return (
-    <div className={`flex ${mine ? "justify-end pl-14" : "justify-start pr-14"}`}>
+    <div className={`flex items-end gap-2 ${mine ? "justify-end pl-14" : "justify-start pr-14"}`}>
+      {!mine && (
+        <span className="h-[26px] w-[26px] shrink-0 overflow-hidden rounded-full ring-1 ring-white/50" aria-hidden="true">
+          {last && !message.live ? <img src="/coachMiaAvatar.png" alt="" className="h-full w-full object-cover" /> : null}
+        </span>
+      )}
       <div className="max-w-full">
         {text && (
-          <div className={bubbleClass} aria-live={message.live ? "polite" : undefined}>
+          <div className={bubbleClass} style={bubbleStyle} aria-live={message.live ? "polite" : undefined}>
             <p className="whitespace-pre-wrap break-words">{renderInline(text)}</p>
             {last && !after && at && (
-              <p className={`mt-1 text-[10.5px] ${mine ? "text-white/70" : "text-app-textSecondary"}`}>
+              <p className={`mt-1 text-[11px] font-medium ${mine ? "text-white/70" : "text-atelier-ink3"}`}>
                 {at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
               </p>
             )}
@@ -617,19 +643,19 @@ function Bubble({ message, first, last, isLastGroup, onStartRoutine, routineMeta
           <button
             type="button"
             onClick={onStartRoutine}
-            className="mt-2 flex w-full items-center gap-3 rounded-[18px] bg-app-primary/[0.07] p-3 text-left ring-1 ring-inset ring-app-primary/25"
+            className="mt-2 flex w-full items-center gap-3 rounded-[18px] border border-atelier-rose/25 bg-atelier-rose/[0.07] p-3 text-left"
           >
             {/* ChatView's routine card prints "Day \(engine.currentDayNumber)
                 of 90, N short moves". Same here while the day is live. Once it
                 is a replay the card names the replayed day and drops "of 90"
                 entirely, because that day is no longer where she is. */}
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-bold text-app-textPrimary">
+              <span className="block text-[15px] font-bold text-atelier-ink">
                 {routineMeta.replayDayNumber == null
                   ? "Today's 5-Minute Routine"
                   : `Replay Day ${routineMeta.replayDayNumber}`}
               </span>
-              <span className="mt-0.5 block text-[12.5px] font-medium text-app-textSecondary">
+              <span className="mt-0.5 block text-[12.5px] font-medium text-atelier-ink2">
                 {routineMeta.replayDayNumber == null
                   ? `Day ${routineMeta.currentDayNumber}${routineMeta.planLength ? ` of ${routineMeta.planLength}` : ""}, `
                   : ""}
@@ -638,7 +664,7 @@ function Bubble({ message, first, last, isLastGroup, onStartRoutine, routineMeta
                 {routineMeta.seconds > 0 ? ` · ${durationLabel(routineMeta.seconds)}` : ""}
               </span>
             </span>
-            <span className="shrink-0 rounded-full bg-cta-gradient px-4 py-2 text-[13px] font-bold text-white">
+            <span className="shrink-0 rounded-full bg-atelier-rose px-4 py-2 text-[13px] font-bold text-white">
               Start
             </span>
           </button>
@@ -647,10 +673,10 @@ function Bubble({ message, first, last, isLastGroup, onStartRoutine, routineMeta
         {/* Whatever she wrote after the routine line, usually the encouragement.
             The phone drops it; there is no reason to lose it here. */}
         {after && (
-          <div className={`mt-1 ${bubbleClass}`}>
+          <div className={`mt-1 ${bubbleClass}`} style={bubbleStyle}>
             <p className="whitespace-pre-wrap break-words">{renderInline(after)}</p>
             {last && at && (
-              <p className="mt-1 text-[10.5px] text-app-textSecondary">
+              <p className="mt-1 text-[11px] font-medium text-atelier-ink3">
                 {at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
               </p>
             )}

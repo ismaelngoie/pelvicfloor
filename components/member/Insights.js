@@ -19,14 +19,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, ArrowUpRight, Bookmark, ClipboardList, Info, Loader2, MessageCircle,
-  Play, Quote, RefreshCw, Search, Sparkles, X,
+  ArrowLeft, ArrowUp, ArrowUpRight, BookOpen, Bookmark, ClipboardList, Info, Loader2, MessageCircle, Play, Quote, RefreshCw, Search, ShieldCheck, Sparkles, X,
 } from "lucide-react";
 import { useMember } from "./MemberProvider";
+import { DR_REED } from "@/components/funnel/revealCopy";
+import { goalSentencePhrase } from "@/lib/program";
+import { ACard, Eyebrow } from "./atelierUI";
 import { usePlayer } from "./PlayerProvider";
 import { Card, SectionHeader } from "./ui";
 import { usePrefersReducedMotion } from "./VideoPlayer";
-import ProgressCharts from "./ProgressCharts";
 import { libraryGoalPhrase } from "@/lib/goalCopy";
 import { articlesBySlugs, loadInsightArticles } from "@/lib/ai/insightLibrary";
 import { answerQuestion, askSuggestions, MAX_QUESTION_LENGTH } from "@/lib/ai/insightAnswer";
@@ -81,6 +82,21 @@ export default function Insights() {
   // the device. Read after mount so the server-rendered markup and the first
   // client render agree.
   const refreshAsked = useCallback(() => setAsked(recentArticles(6)), []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("ask")) setAsking({});
+    const wanted = params.get("article");
+    if (wanted && articles) {
+      const found = articles.find((a) => a.id === wanted);
+      if (found) setOpen(found);
+    }
+    if (params.get("ask") || (wanted && articles)) {
+      params.delete("ask"); params.delete("article");
+      const query = params.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    }
+  }, [articles]);
   useEffect(() => { refreshAsked(); }, [refreshAsked]);
 
   /** What the generator is told about her. Ported from InsightSignals.current(). */
@@ -158,13 +174,22 @@ export default function Insights() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4 lg:max-w-5xl lg:px-8 lg:pt-6">
       <header className="px-1">
-        <h1 className="text-[30px] font-bold leading-tight tracking-[-0.4px] text-app-textPrimary">
-          Insights
-        </h1>
-        <p className="mt-1 text-[15px] text-app-textSecondary">
-          Trusted answers, written for you.
-        </p>
+        <h1 className="font-serif text-[34px] leading-tight text-atelier-ink">Insights</h1>
+        <p className="mt-1 font-serif text-[17px] italic text-atelier-ink2">Trusted answers, written for you.</p>
       </header>
+      {/* InsightView.clinicalLibraryHero */}
+      <ACard className="mt-5 flex items-center gap-3.5 rounded-[24px] p-4" shadow={false}>
+        <span className="relative shrink-0" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={DR_REED.headshot} alt="" width={62} height={62} className="h-[62px] w-[62px] rounded-full object-cover object-top" />
+          <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-white text-atelier-rose"><ShieldCheck className="h-3.5 w-3.5" /></span>
+        </span>
+        <span className="min-w-0 flex-1">
+          <Eyebrow>YOUR CLINICAL LIBRARY</Eyebrow>
+          <span className="mt-0.5 block font-serif text-[20px] leading-tight text-atelier-ink">Answers for {goalSentencePhrase(goalId)}</span>
+          <span className="mt-0.5 block text-[12px] text-atelier-ink2">Reviewed guidance with the original medical sources attached.</span>
+        </span>
+      </ACard>
 
       {/* The ask box sits above everything else on purpose. It is the answer to
           the question she actually came here with, and it is the one thing on
@@ -173,7 +198,7 @@ export default function Insights() {
 
       {asked.length > 0 && (
         <section className="mt-6" aria-labelledby="your-questions">
-          <SectionHeader id="your-questions" title="Your questions" />
+          <SectionHeader serif id="your-questions" title="Your questions" />
           <ul className="mt-3 flex gap-3 overflow-x-auto px-1 pb-2 no-scrollbar">
             {asked.map((article) => (
               <li key={article.id}>
@@ -184,14 +209,13 @@ export default function Insights() {
         </section>
       )}
 
-      <ProgressCharts />
 
       {/* The search box is a control, not prose: past about 40rem a full-width
           pill just puts the clear button a long way from the caret. */}
       <label className="relative mt-8 block lg:max-w-xl">
         <span className="sr-only">Search the articles</span>
         <Search
-          className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-app-textSecondary"
+          className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-atelier-ink3"
           aria-hidden="true"
         />
         <input
@@ -199,7 +223,7 @@ export default function Insights() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search the articles"
-          className="h-12 w-full rounded-full border border-app-borderIdle bg-white pl-11 pr-11 text-[15px] text-app-textPrimary placeholder:text-app-textSecondary focus:border-ios-pink focus:outline-none"
+          className="h-12 w-full rounded-full border border-atelier-line bg-atelier-card pl-11 pr-11 text-[15px] text-atelier-ink placeholder:text-atelier-ink3 focus:border-atelier-rose/40 focus:outline-none"
         />
         {query && (
           <button
@@ -216,7 +240,7 @@ export default function Insights() {
       {!articles && (
         <div className="grid place-items-center py-20">
           <Loader2
-            className={`h-7 w-7 text-ios-pink ${reduceMotion ? "" : "animate-spin"}`}
+            className={`h-7 w-7 text-atelier-rose ${reduceMotion ? "" : "animate-spin"}`}
             aria-hidden="true"
           />
           <span className="sr-only">Loading the articles</span>
@@ -225,7 +249,7 @@ export default function Insights() {
 
       {searchResults && (
         <section className="mt-6" aria-label="Search results">
-          <p role="status" className="px-1 text-[13px] font-semibold text-app-textSecondary">
+          <p role="status" className="px-1 font-mono text-[11px] uppercase tracking-[0.1em] text-atelier-ink3">
             {searchResults.length} {searchResults.length === 1 ? "article" : "articles"}
           </p>
           <ul className="mt-3 grid gap-3 tab:grid-cols-2 xl:grid-cols-3">
@@ -261,7 +285,7 @@ export default function Insights() {
 
           {savedArticles.length > 0 && (
             <section aria-labelledby="saved-for-later">
-              <SectionHeader id="saved-for-later" title="Saved for later" />
+              <SectionHeader serif id="saved-for-later" title="Saved for later" />
               <ul className="mt-3 grid gap-3 tab:grid-cols-2 xl:grid-cols-3">
                 {savedArticles.map((article) => (
                   <li key={article.id}>
@@ -274,7 +298,7 @@ export default function Insights() {
 
           {categories.map((category) => (
             <section key={category.title} aria-labelledby={`cat-${slug(category.title)}`}>
-              <SectionHeader id={`cat-${slug(category.title)}`} title={category.title} />
+              <SectionHeader serif id={`cat-${slug(category.title)}`} title={category.title} />
               <ul className="mt-3 flex gap-3 overflow-x-auto px-1 pb-2 no-scrollbar">
                 {category.items.map((article) => (
                   <li key={article.id}>
@@ -319,19 +343,16 @@ function AskBar({ onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className="mt-5 flex w-full items-center gap-3 rounded-[20px] border border-app-primary/25 bg-white p-4 text-left shadow-[0_5px_14px_rgba(0,0,0,0.04)] lg:max-w-xl"
+      className="mt-5 flex w-full items-center gap-3 rounded-full border border-atelier-rose/25 bg-atelier-card py-3 pl-[18px] pr-2.5 text-left shadow-[0_6px_14px_rgba(0,0,0,0.04)] lg:max-w-xl"
     >
-      <Sparkles className="h-5 w-5 shrink-0 text-app-primary" aria-hidden="true" />
+      <Sparkles className="h-5 w-5 shrink-0 text-atelier-rose" aria-hidden="true" />
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-bold leading-snug text-app-textPrimary">
+        <span className="block text-[15px] font-semibold leading-snug text-atelier-ink">
           Ask anything about your pelvic floor
         </span>
-        <span className="mt-0.5 block text-[12.5px] leading-snug text-app-textSecondary">
-          Ask in your own words. You will get a short, clear article back.
-        </span>
       </span>
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cta-gradient">
-        <ArrowUpRight className="h-4 w-4 text-white" aria-hidden="true" />
+      <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-atelier-rose">
+        <ArrowUp className="h-4 w-4 text-white" strokeWidth={2.6} aria-hidden="true" />
       </span>
     </button>
   );
@@ -343,16 +364,16 @@ function AskedQuestionCard({ article, onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className="flex h-full w-[248px] shrink-0 flex-col rounded-[18px] border border-app-borderIdle bg-white p-4 text-left"
+      className="flex h-full w-[248px] shrink-0 flex-col rounded-[20px] border border-atelier-line bg-atelier-card p-4 text-left"
     >
-      <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-ios-pink">
+      <span className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.13em] text-atelier-rose">
         <Quote className="h-3 w-3" aria-hidden="true" />
         You asked
       </span>
-      <span className="mt-1.5 line-clamp-2 text-[14px] font-semibold leading-snug text-app-textPrimary">
+      <span className="mt-1.5 line-clamp-2 font-serif text-[18px] leading-snug text-atelier-ink">
         {article.question}
       </span>
-      <span className="mt-1.5 line-clamp-3 text-[12.5px] leading-snug text-app-textSecondary">
+      <span className="mt-1.5 line-clamp-3 text-[12.5px] leading-snug text-atelier-ink2">
         {article.shortAnswer}
       </span>
     </button>
@@ -458,9 +479,9 @@ function AskSheet({ goalId, signals, articles, initialArticle, onClose, onOpenAr
       role="dialog"
       aria-modal="true"
       aria-label="Ask anything about your pelvic floor"
-      className="fixed inset-0 z-40 overflow-y-auto bg-app-background"
+      className="fixed inset-0 z-40 overflow-y-auto bg-atelier-card"
     >
-      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-black/[0.06] bg-app-background/95 px-3 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] backdrop-blur">
+      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-atelier-line bg-atelier-card/95 px-3 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] backdrop-blur">
         <p className="min-w-0 flex-1 pl-1 text-[15px] font-bold text-app-textPrimary">Ask</p>
         <button
           type="button"
@@ -661,7 +682,7 @@ function AskedArticleView({ article, articles, onAskAnother, onOpenArticle, onRe
           <ul className="mt-3 space-y-3">
             {article.todaySteps.map((step) => (
               <li key={step} className="flex gap-3">
-                <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ios-pink" aria-hidden="true" />
+                <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-atelier-rose" aria-hidden="true" />
                 <span className="text-[14.5px] leading-snug text-app-textPrimary">{step}</span>
               </li>
             ))}
@@ -808,47 +829,51 @@ function ArticleTile({ article, reason, onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className="flex h-full w-[248px] shrink-0 flex-col rounded-[18px] border border-app-borderIdle bg-white p-4 text-left"
+      className="flex h-full w-[260px] shrink-0 flex-col overflow-hidden rounded-[22px] border border-atelier-line bg-atelier-card text-left"
     >
-      <span className="text-[11px] font-bold uppercase tracking-wider text-ios-pink">
-        {article.category}
-      </span>
-      <span className="mt-1.5 line-clamp-2 text-[15px] font-bold leading-snug text-app-textPrimary">
-        {article.title}
-      </span>
-      <span className="mt-1.5 line-clamp-3 text-[12.5px] leading-snug text-app-textSecondary">
-        {article.summary}
-      </span>
-      {reason && (
-        <span className="mt-auto flex items-center gap-1.5 pt-3 text-[11px] font-semibold text-app-positive">
-          <Sparkles className="h-3 w-3" aria-hidden="true" />
-          {reason}
+      <span className="relative block h-[132px] w-full" style={{ backgroundImage: tintFor(article.id) }} aria-hidden="true">
+        <span className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/[0.48] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+          <ShieldCheck className="h-3 w-3" /> Reviewed
         </span>
-      )}
+        <span className="absolute bottom-2.5 left-2.5 font-mono text-[10px] uppercase tracking-[0.13em] text-white/90">{article.category}</span>
+      </span>
+      <span className="flex flex-1 flex-col p-3.5">
+        <span className="line-clamp-2 text-[16px] font-bold leading-snug text-atelier-ink">{article.title}</span>
+        <span className="mt-1.5 line-clamp-3 text-[12.5px] leading-snug text-atelier-ink2">{article.summary}</span>
+        <span className="mt-auto flex items-center gap-1.5 pt-3 text-[11px] font-semibold text-atelier-rosewood">
+          <BookOpen className="h-3 w-3" aria-hidden="true" />
+          {readingTime(article)} · Sources included
+        </span>
+        {reason && <span className="mt-1 text-[11px] font-semibold text-atelier-sage">{reason}</span>}
+      </span>
     </button>
   );
 }
-
+function tintFor(id) {
+  let hash = 0;
+  for (let i = 0; i < (id || "").length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) % 360;
+  return `linear-gradient(150deg, hsl(${hash} 32% 40%) 0%, hsl(${(hash + 38) % 360} 30% 24%) 100%)`;
+}
+function readingTime(article) {
+  const words = String(article?.body || "").split(/\s+/).filter(Boolean).length;
+  return `${Math.max(1, Math.round(words / 200))} min`;
+}
 function ArticleRow({ article, onOpen }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="block w-full rounded-[18px] border border-app-borderIdle bg-white p-4 text-left"
+      className="flex w-full items-center gap-3 rounded-[20px] border border-atelier-line bg-atelier-card p-3 text-left"
     >
-      <span className="text-[11px] font-bold uppercase tracking-wider text-ios-pink">
-        {article.category}
-      </span>
-      <span className="mt-1 block text-[15px] font-bold leading-snug text-app-textPrimary">
-        {article.title}
-      </span>
-      <span className="mt-1 block text-[12.5px] leading-snug text-app-textSecondary">
-        {article.summary}
+      <span className="h-20 w-20 shrink-0 rounded-[16px]" style={{ backgroundImage: tintFor(article.id) }} aria-hidden="true" />
+      <span className="min-w-0 flex-1">
+        <span className="line-clamp-2 block text-[15px] font-bold leading-snug text-atelier-ink">{article.title}</span>
+        <span className="mt-1 line-clamp-2 block text-[12px] leading-snug text-atelier-ink2">{article.summary}</span>
+        <span className="mt-1 block text-[11px] text-atelier-ink3">{readingTime(article)} · {article.category}</span>
       </span>
     </button>
   );
 }
-
 function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
   const { openPlayer } = usePlayer();
 
@@ -878,11 +903,11 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
           type="button"
           onClick={onClose}
           aria-label="Close the article"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black/5"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-atelier-ink/[0.06]"
         >
-          <ArrowLeft className="h-5 w-5 text-app-textPrimary" aria-hidden="true" />
+          <ArrowLeft className="h-5 w-5 text-atelier-ink" aria-hidden="true" />
         </button>
-        <p className="min-w-0 flex-1 truncate text-[13px] font-semibold text-app-textSecondary">
+        <p className="min-w-0 flex-1 truncate font-mono text-[11px] uppercase tracking-[0.12em] text-atelier-ink3">
           {article.category}
         </p>
         <button
@@ -890,26 +915,35 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
           onClick={onToggleSaved}
           aria-pressed={saved}
           aria-label={saved ? "Remove from saved" : "Save for later"}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black/5"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-atelier-ink/[0.06]"
         >
           <Bookmark
-            className={`h-5 w-5 ${saved ? "fill-ios-pink text-ios-pink" : "text-app-textPrimary"}`}
+            className={`h-5 w-5 ${saved ? "fill-atelier-rose text-atelier-rose" : "text-atelier-ink"}`}
             aria-hidden="true"
           />
         </button>
       </div>
 
       <article className="mx-auto w-full max-w-2xl px-5 pb-[max(3rem,env(safe-area-inset-bottom))] pt-5">
-        <h1 className="text-[27px] font-bold leading-[1.15] tracking-[-0.4px] text-app-textPrimary">
+        <div className="-mx-5 -mt-5 h-[220px]" style={{ backgroundImage: tintFor(article.id) }} aria-hidden="true" />
+        <h1 className="mt-6 font-serif text-[32px] leading-[1.08] text-atelier-ink">
           {article.title}
         </h1>
-        <p className="mt-2 text-[15.5px] leading-snug text-app-textSecondary">{article.summary}</p>
+        <p className="mt-3 font-serif text-[18px] italic leading-snug text-atelier-ink2">{article.summary}</p>
+        <div className="mt-4 flex items-center gap-3 rounded-[18px] border border-atelier-line bg-atelier-paper p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={DR_REED.headshot} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover object-top" />
+          <span className="min-w-0">
+            <span className="block font-mono text-[10px] uppercase tracking-[0.13em] text-atelier-ink3">Clinically reviewed</span>
+            <span className="block text-[13px] font-semibold text-atelier-ink">{DR_REED.planReviewedStrong} · {readingTime(article)} read</span>
+          </span>
+        </div>
 
         <div className="mt-6">{renderBody(article.body)}</div>
 
         {article.takeaways?.length > 0 && (
-          <section className="mt-8 rounded-[18px] border border-app-borderIdle bg-white p-4">
-            <h2 className="text-[13px] font-bold uppercase tracking-wider text-app-textSecondary">
+          <section className="mt-8 rounded-[22px] border border-atelier-line bg-atelier-paper p-4">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.13em] text-atelier-ink3">
               Key takeaways
             </h2>
             <ul className="mt-3 space-y-3">
@@ -919,7 +953,7 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
                     className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ios-pink"
                     aria-hidden="true"
                   />
-                  <span className="text-[14.5px] leading-snug text-app-textPrimary">
+                  <span className="text-[14.5px] leading-snug text-atelier-ink">
                     {takeaway.text}
                   </span>
                 </li>
@@ -929,13 +963,13 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
         )}
 
         {article.didYouKnow && (
-          <section className="mt-4 flex gap-3 rounded-[18px] bg-app-primary/[0.07] p-4 ring-1 ring-inset ring-app-primary/20">
-            <Info className="mt-0.5 h-5 w-5 shrink-0 text-app-primary" aria-hidden="true" />
+          <section className="mt-4 flex gap-3 rounded-[22px] bg-atelier-rose/[0.07] p-4 ring-1 ring-inset ring-atelier-rose/20">
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-atelier-rose" aria-hidden="true" />
             <div>
-              <h2 className="text-[13px] font-bold uppercase tracking-wider text-app-primary">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.13em] text-atelier-rose">
                 Did you know
               </h2>
-              <p className="mt-1 text-[14.5px] leading-snug text-app-textPrimary">
+              <p className="mt-1 text-[14.5px] leading-snug text-atelier-ink">
                 {article.didYouKnow}
               </p>
             </div>
@@ -944,7 +978,7 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
 
         {videos.length > 0 && (
           <section className="mt-8">
-            <h2 className="text-[17px] font-bold text-app-textPrimary">Try it now</h2>
+            <h2 className="font-serif text-[22px] text-atelier-ink">Try it now</h2>
             <ul className="mt-3 space-y-2">
               {videos.map((video, i) => (
                 <li key={video.id}>
@@ -953,12 +987,12 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
                     onClick={() =>
                       openPlayer({ videos, startIndex: i, title: article.title, subtitle: "From this article" })
                     }
-                    className="flex w-full items-center gap-3 rounded-[16px] border border-app-borderIdle bg-white p-3 text-left"
+                    className="flex w-full items-center gap-3 rounded-[16px] border border-atelier-line bg-atelier-paper p-3 text-left"
                   >
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ios-pink">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-atelier-rose">
                       <Play className="h-4 w-4 translate-x-[1px] fill-white text-white" aria-hidden="true" />
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-app-textPrimary">
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-atelier-ink">
                       {video.title}
                     </span>
                   </button>
@@ -987,7 +1021,7 @@ function renderBody(body) {
 
     if (trimmed.startsWith("### ")) {
       out.push(
-        <h2 key={index} className="mt-7 text-[19px] font-bold leading-snug text-app-textPrimary first:mt-0">
+        <h2 key={index} className="mt-7 font-serif text-[24px] leading-snug text-atelier-ink first:mt-0">
           {trimmed.slice(4)}
         </h2>
       );
