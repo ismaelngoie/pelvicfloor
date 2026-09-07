@@ -15,6 +15,9 @@ import { Volume2 } from "lucide-react";
 export default function DrReedVideo({
   src,
   topAligned = false,
+  // Vertical crop as a CSS object-position value. Overrides `topAligned`, for
+  // the sheets where the frame has shelf above her head to trim.
+  objectPosition,
   autoPlay = true,
   loop = false,
   onFinish,
@@ -73,7 +76,7 @@ export default function DrReedVideo({
         loop={loop}
         onEnded={() => finishRef.current?.()}
         className={`h-full w-full ${fill ? "object-cover" : "object-cover"}`}
-        style={{ objectPosition: topAligned ? "50% 0%" : "50% 50%" }}
+        style={{ objectPosition: objectPosition || (topAligned ? "50% 0%" : "50% 50%") }}
       />
       {needsUnmute ? (
         <button

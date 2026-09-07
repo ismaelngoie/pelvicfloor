@@ -42,12 +42,12 @@ export function CredentialsSheet({ open, onClose }) {
   const c = DR_REED.sheet;
   return (
     <Sheet open={open} onClose={onClose} label={`${c.name}, credentials`} tall>
-      {/* The clip is portrait 9:16. A square box pinned to the top of the
-          frame shows her head and shoulders in full without pushing the
-          credentials below the fold; the phone crops the same way. */}
+      {/* The clip is portrait 9:16. A square box shows her head and
+          shoulders in full without pushing the credentials below the fold;
+          the crop starts just above her hair so no shelf sits over her head. */}
       <DrReedVideo
         src={DR_REED.credentials}
-        topAligned
+        objectPosition="50% 18%"
         onPlayed={() => track("reviewer_video_played")}
         className="w-full"
         style={{ aspectRatio: "1 / 1", maxHeight: "46dvh" }}
@@ -81,7 +81,7 @@ export function RecoverySheet({ open, onClose, onContinue }) {
     <Sheet open={open} onClose={onClose} label={r.title} tall>
       <DrReedVideo
         src={DR_REED.recovery}
-        topAligned
+        objectPosition="50% 30%"
         onPlayed={() => track("recovery_video_played")}
         className="w-full"
         style={{ aspectRatio: "1 / 1", maxHeight: "46dvh" }}
