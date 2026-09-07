@@ -225,9 +225,10 @@ export default function Funnel({ onReachPaywall }) {
     (from) => {
       if (from === STEP.health) {
         trackHealthAnswers(profile);
-        // Coming back to change an answer should not cost her the seven second
-        // build again, but changing her goal should, because it is a new plan.
-        setStep(profile.planBuilt ? STEP.planReveal : STEP.personalizing);
+        // The build always runs after the health check-in, exactly as the
+        // phone does it: the seven seconds are part of the reveal, not a cost
+        // to be skipped.
+        setStep(STEP.personalizing);
         return;
       }
       if (from === STEP.planReveal) {

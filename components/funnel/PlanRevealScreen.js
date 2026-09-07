@@ -16,7 +16,7 @@ import {
   revealHeadlinePhrase, trackingSignals, whyFiveMinutes,
 } from "./revealCopy";
 import { bmi as bmiOf, naturalList } from "./funnelState";
-import { BackButton, Button, Card, Eyebrow } from "./atelier";
+import { Button, Card, Eyebrow } from "./atelier";
 import { RichText, useMounted, useReducedMotion, useThemeColor } from "./ui";
 
 const CredentialsSheet = dynamic(() => import("./ReedSheets").then((m) => m.CredentialsSheet), { ssr: false });
@@ -102,7 +102,7 @@ function ResultRow({ value, label, fill, emphasized }) {
   );
 }
 
-export default function PlanRevealScreen({ profile, onNext, onBack }) {
+export default function PlanRevealScreen({ profile, onNext }) {
   useThemeColor("#000000");
   const { pathway, goalId } = profile;
   const goal = goalData(pathway, goalId);
@@ -162,12 +162,9 @@ export default function PlanRevealScreen({ profile, onNext, onBack }) {
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col bg-black font-figtree text-white">
-      <div className="shrink-0 px-4 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
-        <div className="flex h-11 items-center">
-          <BackButton onClick={onBack} tone="dark" />
-        </div>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar px-5 pb-6">
+      {/* No way back from here, exactly like the phone: the reveal is the
+          payoff of the assessment, not a question she can revisit. */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] tab:pt-6">
         <h1 className="funnel-rise pt-1 font-serif text-[34px] leading-[1.06] text-white/[0.92]" style={rise(60)}>
           {name ? <em className="text-white">{name}, </em> : null}
           your plan {headline.preposition}

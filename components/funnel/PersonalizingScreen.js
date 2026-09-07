@@ -7,7 +7,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Circle } from "lucide-react";
 import { PERSONALIZING, focusData, personalizedChecklist, personalizingCopy, situationData } from "./appCopy";
-import { BackButton } from "./atelier";
 import { Typewriter, useThemeColor } from "./ui";
 
 const PHASE_1 = 0.25;
@@ -50,7 +49,7 @@ function ChecklistRow({ label, state, progress }) {
   );
 }
 
-export default function PersonalizingScreen({ profile, onDone, onBack }) {
+export default function PersonalizingScreen({ profile, onDone }) {
   const { pathway, goalId } = profile;
   const block = useMemo(() => personalizingCopy(goalId, pathway, profile.name), [goalId, pathway, profile.name]);
   const checklist = useMemo(
@@ -102,12 +101,7 @@ export default function PersonalizingScreen({ profile, onDone, onBack }) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-black font-figtree">
-      <div className="shrink-0 px-4 pt-[max(env(safe-area-inset-top),14px)] tab:pt-4">
-        <div className="flex h-11 items-center">
-          <BackButton onClick={onBack} tone="dark" />
-        </div>
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain no-scrollbar px-6 pb-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain no-scrollbar px-6 pb-4 pt-[max(env(safe-area-inset-top),24px)] tab:pt-8">
         <h1 className="shrink-0 pt-2 text-center font-serif text-[26px] leading-tight text-white sm:text-[28px]">{block.title}</h1>
         <p className="mx-auto mt-2 max-w-[22rem] shrink-0 text-center text-[15px] leading-snug text-white/60 sm:text-[16px]">{block.subtitle}</p>
         {inChecklist ? null : (

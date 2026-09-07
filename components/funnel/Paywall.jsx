@@ -11,10 +11,13 @@
 //   2. "Restore" opens the log-in sheet: there is no App Store to ask here.
 //   3. Closing the checkout without paying opens Dr Reed's recovery sheet,
 //      which is what the phone does when the Apple sheet is dismissed.
+//
+// No back button, like the phone. The browser's own Back still returns to
+// the reveal (app/HomeClient.jsx) so a swipe does not throw her off the site.
 
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { ArrowLeft, BadgeCheck, Info, Play } from "lucide-react";
+import { BadgeCheck, Info, Play } from "lucide-react";
 import { frequencyData, goalData, memberPortrait, situationData, triedData } from "./appCopy";
 import {
   DR_REED, PAYWALL, dayOneTitle, paywallBaseCopy, paywallHeadline, paywallImage, paywallStrategySymbol, pricedCta,
@@ -31,6 +34,7 @@ const CredentialsSheet = dynamic(() => import("./ReedSheets").then((m) => m.Cred
 const RecoverySheet = dynamic(() => import("./ReedSheets").then((m) => m.RecoverySheet), { ssr: false });
 const DayOneSheet = dynamic(() => import("./ReedSheets").then((m) => m.DayOneSheet), { ssr: false });
 
+// eslint-disable-next-line no-unused-vars
 export default function Paywall({ profile, onPaid, onBack }) {
   usePageChrome("#F6F1EA");
   const pathway = profile?.pathway || "womensPelvicHealth";
@@ -78,19 +82,8 @@ export default function Paywall({ profile, onPaid, onBack }) {
 
   return (
     <section className="relative flex h-full min-h-full w-full flex-col overflow-hidden bg-atelier-paper font-figtree text-atelier-ink">
-      {onBack ? (
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to my plan"
-          className="absolute left-3 top-[max(env(safe-area-inset-top),10px)] z-30 flex h-10 w-10 items-center justify-center rounded-full border border-atelier-line bg-atelier-card text-atelier-rosewood"
-        >
-          <ArrowLeft size={20} aria-hidden="true" />
-        </button>
-      ) : null}
-
       <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar px-5 pb-4 pt-[max(env(safe-area-inset-top),14px)]">
-        <h1 className="funnel-rise mt-12 font-serif text-[30px] leading-[1.06] text-atelier-ink" style={{ animationDelay: "40ms" }}>
+        <h1 className="funnel-rise mt-2 font-serif text-[30px] leading-[1.06] text-atelier-ink" style={{ animationDelay: "40ms" }}>
           {paywallHeadline(name, base.outcome)}
         </h1>
         <p className="funnel-rise mt-2 text-[14.5px] leading-snug text-atelier-ink2" style={{ animationDelay: "110ms" }}>

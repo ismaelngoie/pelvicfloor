@@ -73,12 +73,16 @@ export function BackButton({ onClick, tone = "paper", label = "Go back" }) {
   );
 }
 
+/**
+ * No back button anywhere in the funnel (owner's call, 2026-09-07, matching
+ * the phone). `onBack` is still accepted so the screens keep their wiring for
+ * the browser's own Back gesture, but nothing is drawn for it.
+ */
+// eslint-disable-next-line no-unused-vars
 export function Header({ onBack, railStep, railFraction = 0, tone = "paper", right = null }) {
   return (
     <div className="flex h-14 shrink-0 items-center justify-between gap-2 px-4 pt-[max(env(safe-area-inset-top),8px)]">
-      <div className="flex w-10 shrink-0 items-center">
-        {onBack ? <BackButton onClick={onBack} tone={tone} /> : null}
-      </div>
+      <div className="flex w-10 shrink-0 items-center" />
       <div className="flex flex-1 justify-center">
         {railStep ? <Rail step={railStep} fraction={railFraction} tone={tone} /> : null}
       </div>
