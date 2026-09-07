@@ -6,9 +6,8 @@
 // with her face, the guarantee pill, and the priced button.
 //
 // Where the web has to differ it is marked WEB CHANGE:
-//   1. The price is a year (lib/pricing.js), so the button reads "/yr" and a
-//      "per year. Cancel anytime." line sits under it. Auto-renewal has to be
-//      stated next to the price on a card checkout.
+//   1. The price and period on the button come from lib/pricing.js. The
+//      renewal term is stated on the checkout sheet itself.
 //   2. "Restore" opens the log-in sheet: there is no App Store to ask here.
 //   3. Closing the checkout without paying opens Dr Reed's recovery sheet,
 //      which is what the phone does when the Apple sheet is dismissed.
@@ -174,10 +173,6 @@ export default function Paywall({ profile, onPaid, onBack }) {
         </Button>
         <p className="mt-2 text-center text-[13px] font-semibold text-atelier-ink2">
           {setupFailed ? "The plan is temporarily unavailable. Please try again." : PAYWALL.subtext}
-        </p>
-        {/* WEB CHANGE: the renewal term next to the price. */}
-        <p className="mt-0.5 text-center text-[11.5px] text-atelier-ink3">
-          {PAYWALL.priceLabel} per {PAYWALL.pricePeriod}. Cancel anytime.
         </p>
         <p className="mt-1.5 flex items-center justify-center gap-4 text-[12px] font-medium text-atelier-ink3">
           <button

@@ -42,12 +42,15 @@ export function CredentialsSheet({ open, onClose }) {
   const c = DR_REED.sheet;
   return (
     <Sheet open={open} onClose={onClose} label={`${c.name}, credentials`} tall>
+      {/* The clip is portrait 9:16. A square box pinned to the top of the
+          frame shows her head and shoulders in full without pushing the
+          credentials below the fold; the phone crops the same way. */}
       <DrReedVideo
         src={DR_REED.credentials}
         topAligned
         onPlayed={() => track("reviewer_video_played")}
         className="w-full"
-        style={{ aspectRatio: "9 / 10", maxHeight: 380 }}
+        style={{ aspectRatio: "1 / 1", maxHeight: "46dvh" }}
       />
       <div className="px-6 pb-[max(env(safe-area-inset-bottom),20px)] pt-5">
         <h2 className="font-serif text-[30px] leading-[1.05] text-atelier-ink">{c.name}</h2>
@@ -81,7 +84,7 @@ export function RecoverySheet({ open, onClose, onContinue }) {
         topAligned
         onPlayed={() => track("recovery_video_played")}
         className="w-full"
-        style={{ height: 340 }}
+        style={{ aspectRatio: "1 / 1", maxHeight: "46dvh" }}
       />
       <div className="px-6 pb-[max(env(safe-area-inset-bottom),20px)] pt-5">
         <h2 className="font-serif text-[30px] leading-[1.05] text-atelier-ink">{r.title}</h2>

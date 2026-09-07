@@ -95,7 +95,11 @@ import {
   BADGE_TITLE, COVERAGE_TITLE, LADDER_LINE, MILESTONE_CARD_BODY,
   coverageBody,
 } from "@/lib/guaranteeCopy";
-import { DEFAULT_PRICE_LABEL } from "@/lib/pricing";
+import { DEFAULT_PRICE_LABEL, DEFAULT_PRICE_PERIOD, PRICE_AMOUNT_CENTS, BILLING_INTERVAL } from "@/lib/pricing";
+
+// "About 83 cents a day": the paywall price spread over a 30 day month (or a
+// 365 day year), rounded to whole cents so it says what Dr Reed says.
+const CENTS_A_DAY = Math.round(PRICE_AMOUNT_CENTS / (BILLING_INTERVAL === "year" ? 365 : 30));
 import { ctaLabel, showcaseItems } from "@/lib/paywallCopy";
 import {
   MEMBER_COUNT_TO, TESTIMONIALS, howItHelps, memberCountLine,
@@ -1035,20 +1039,20 @@ export default function LeakLandingClient() {
                 is telling a stranger everything you have never said out loud.
               </p>
               <p className="mt-4 text-[19px] font-bold leading-snug sm:text-[21px]">
-                Pelvi is {DEFAULT_PRICE_LABEL} for the year. Around 41 cents a
+                Pelvi is {DEFAULT_PRICE_LABEL} a {DEFAULT_PRICE_PERIOD}. About {CENTS_A_DAY} cents a
                 day.
               </p>
-              {/* $492/365 is $1.35 a day against our $0.41: "about triple" is
-                  accurate and rounds in the conservative direction. Gourville's
-                  pennies-a-day research says the per-day frame works best when
-                  it stands next to a small ongoing expense, which is exactly
-                  what the pads line above just established. */}
+              {/* $492/365 is $1.35 a day. Gourville's pennies-a-day research
+                  says the per-day frame works best when it stands next to a
+                  small ongoing expense, which is exactly what the pads line
+                  above just established. The cents figure is derived from
+                  lib/pricing.js so it cannot drift from the paywall. */}
               <p className="mt-1.5 text-[14px] leading-snug text-app-textSecondary sm:text-[15px]">
-                In that 2005 study, women spent about triple that just managing
+                In that 2005 study, women spent about $1.35 a day just managing
                 the problem.
               </p>
               <p className="mt-2.5 text-[13px] leading-snug text-app-textSecondary sm:text-[14px]">
-                Billed once, renews yearly, cancel anytime.
+                Billed {DEFAULT_PRICE_PERIOD === "year" ? "once, renews yearly" : "monthly"}, cancel anytime.
               </p>
               <div className="mt-3 flex justify-center">
                 <RatingBadge />

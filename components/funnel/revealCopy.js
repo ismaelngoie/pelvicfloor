@@ -10,12 +10,11 @@ import { isMens } from "./appCopy";
 // ---------------------------------------------------------------------------
 
 /**
- * The bridge clip says "Our app is about 83 cents a day", which is the App
- * Store price ($24.99 a month). The web sells a year at DEFAULT_PRICE_LABEL,
- * so the sentence is not true here and the clip stays off until the web price
- * matches the phone or the clip is re-recorded. Flip this to true to show it.
+ * Dr Reed's 26 seconds between the reveal and the paywall, exactly as the
+ * phone plays them. The clip says "Our app is about 83 cents a day", which is
+ * $24.99 a month: keep lib/pricing.js at that price while this is on.
  */
-export const SHOW_BRIDGE_VIDEO = false;
+export const SHOW_BRIDGE_VIDEO = true;
 
 export const DR_REED = {
   headshot: "/dr-evelyn-reed.jpg",
@@ -257,7 +256,7 @@ export const PAYWALL = {
   },
 };
 
-/** "Start My Intimacy Plan for $149.99/yr" */
+/** "Start My Intimacy Plan for $24.99/mo" */
 export function pricedCta(ctaTitle) {
   return `${ctaTitle} for ${PAYWALL.priceLabel}/${PAYWALL.pricePeriodShort}`;
 }

@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import {
   BILLING_INTERVAL, BILLING_INTERVAL_COUNT, PRICE_AMOUNT_CENTS, PRICE_CURRENCY,
+  DEFAULT_STRIPE_PRICE_ID,
 } from "../../lib/pricing.js";
 
 // POST /api/create-payment-intent
@@ -296,25 +297,45 @@ let cachedPriceId = null;
  * STRIPE_PRICE_ID still wins, unresolved, so a price can be swapped from the
  * Cloudflare dashboard without a deploy.
  */
+/** True when a Stripe price is exactly what lib/pricing.js says we sell. */
+function priceMatchesPricing(price) {
+  return (
+    price?.active === true &&
+    price?.type === "recurring" &&
+    price?.recurring?.interval === EXPECTED_INTERVAL &&
+    (price?.recurring?.interval_count ?? 1) === EXPECTED_INTERVAL_COUNT &&
+    price?.currency === CURRENCY &&
+    price?.unit_amount === EXPECTED_AMOUNT
+  );
+}
+
 async function resolvePriceId(stripe, env) {
   const pinned = clean(env.STRIPE_PRICE_ID, 120);
   if (pinned) return pinned;
   if (cachedPriceId) return cachedPriceId;
 
-  // `active: true` already excludes the two archived prices. The rest of the
+  // The id the owner switched on in the dashboard, trusted only after it is
+  // checked field by field against lib/pricing.js. A stale or mistyped id
+  // falls through to the product scan below instead of selling the wrong
+  // amount.
+  if (DEFAULT_STRIPE_PRICE_ID) {
+    try {
+      const pinnedPrice = await stripe.prices.retrieve(DEFAULT_STRIPE_PRICE_ID);
+      if (priceMatchesPricing(pinnedPrice)) {
+        cachedPriceId = pinnedPrice.id;
+        return cachedPriceId;
+      }
+    } catch {
+      // Unknown id or a Stripe hiccup: the scan below is the source of truth.
+    }
+  }
+
+  // `active: true` already excludes the archived prices. The rest of the
   // filter is belt and braces: it is cheap, and the thing it guards against is
-  // charging a woman the wrong amount.
+  // charging a member the wrong amount.
   const prices = await stripe.prices.list({ product: PRODUCT_ID, active: true, limit: 100 });
 
-  const matches = prices.data.filter(
-    (price) =>
-      price.active === true &&
-      price.type === "recurring" &&
-      price.recurring?.interval === EXPECTED_INTERVAL &&
-      (price.recurring?.interval_count ?? 1) === EXPECTED_INTERVAL_COUNT &&
-      price.currency === CURRENCY &&
-      price.unit_amount === EXPECTED_AMOUNT
-  );
+  const matches = prices.data.filter(priceMatchesPricing);
 
   if (matches.length === 0) {
     const error = new Error(
