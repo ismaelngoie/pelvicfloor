@@ -391,7 +391,7 @@ export function ctaSubtext(goalId, pathway, situationId, focusId = null, from = 
   const byDate = byDateString(from);
   const fromSituation = anyGoalData(goalId, pathway)?.paywallPromise?.[situationId];
   const promise = tighteningFor(goalId, pathway, focusId)
-    ? `A tighter vagina you can feel by ${byDate}.`
+    ? `Get a tighter vagina by ${byDate}.`
     : fromSituation ? fromSituation.replace(/BYDATE/g, byDate) : goalPromise(goalId, pathway, byDate);
   return `${promise} If not, one tap full ${DEFAULT_PRICE_LABEL} refund.`;
 }
