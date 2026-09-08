@@ -40,7 +40,7 @@ const MENS_ONLY = new Set(["prostateRecovery", "bowelControl"]);
 
 export default function Today() {
   const {
-    member, goalId, goal, catalog, days, currentDay, headlineDay, todaysVideos,
+    member, goalId, focusId, goal, catalog, days, currentDay, headlineDay, todaysVideos,
     currentDayNumber, currentDayUnlocked, replayDayNumber, sessionDayNumber,
     bankableDayNumber, completedDayCount, highestUnlockedDay, todayKey,
     planLength, graduated, completions, events, streak, history, contentError,
@@ -98,7 +98,10 @@ export default function Today() {
     graphRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
-  const audio = dashboardSession(goalId, pathway);
+  const audio = dashboardSession(goalId, pathway, focusId);
+  // The web-only "Tighten Vaginal Canal" focus names her plan; every other
+  // member reads her goal tile's title.
+  const planLabel = goalId === "intimacy" && focusId === "intimacy.tightening" ? "Tighten Vaginal Canal" : goal?.title;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-8 pt-4 lg:max-w-5xl lg:px-8 lg:pt-6">
@@ -113,7 +116,7 @@ export default function Today() {
       <div className="lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
         <div>
           <SealCard
-            title={journeyTitle(goalId, mens)}
+            title={journeyTitle(goalId, mens, focusId)}
             subtitle={
               graduated
                 ? "All 90 days complete. Revisit any day, any time."
@@ -141,7 +144,7 @@ export default function Today() {
             videos={todaysVideos}
             watched={history?.completed || new Set()}
             progress={todayProgress}
-            goalTitle={goal?.title}
+            goalTitle={planLabel}
             onStart={startSession}
             onPlayFrom={openSession}
           />
@@ -154,14 +157,14 @@ export default function Today() {
           {(goalId === "bladderLeaks" || goalId === "postpartum") && (
             <InTheMomentCard goalId={goalId} onUrgeRescue={() => setSession("urge")} onAudioKegels={() => setSession("kegels")} />
           )}
-          <ProgressCard progress={todayProgress} goalTitle={goal?.title} onTap={todayProgress > 0 ? scrollToGraph : startSession} />
+          <ProgressCard progress={todayProgress} goalTitle={planLabel} onTap={todayProgress > 0 ? scrollToGraph : startSession} />
         </div>
         <div>
           <WeeklyConsistencyCard completions={completions} streak={streak} goalId={goalId} mens={mens} todayKey={todayKey} />
           <div ref={graphRef}>
             <ProgressGraph events={events} completions={completions} streak={streak} goalId={goalId} mens={mens} />
           </div>
-          <TrackCard goalId={goalId} mens={mens} member={member} todayKey={todayKey} />
+          <TrackCard goalId={goalId} focusId={focusId} mens={mens} member={member} todayKey={todayKey} />
           {mens
             ? <MensQuickCard goalId={goalId} member={member} patchMember={patchMember} />
             : <WomensQuickCard member={member} patchMember={patchMember} />}
@@ -176,6 +179,7 @@ export default function Today() {
         open={pathwayOpen}
         onClose={() => setPathwayOpen(false)}
         goalId={goalId}
+        focusId={focusId}
         days={days}
         currentDayNumber={currentDayNumber}
         currentDayUnlocked={currentDayUnlocked}
@@ -276,9 +280,11 @@ function pulsePhrase(goalId, mens) {
 
 // --- The seal card ---------------------------------------------------------------
 
-function journeyTitle(goalId, mens) {
+function journeyTitle(goalId, mens, focusId) {
   switch (goalId) {
-    case "intimacy": return mens ? "90-Day Erection and Control Plan" : "90-Day Intimacy Journey";
+    case "intimacy":
+      if (mens) return "90-Day Erection and Control Plan";
+      return focusId === "intimacy.tightening" ? "90-Day Vaginal Tightening Journey" : "90-Day Intimacy Journey";
     case "bladderLeaks": return "90-Day Bladder Control Journey";
     case "postpartum": return "90-Day Postpartum Recovery";
     case "pregnancyPrep": return "90-Day Pregnancy Preparation";
@@ -872,6 +878,7 @@ function ProgressGraph({ events, completions, streak, goalId, mens }) {
 
 const TRACK_PLANS = {
   intimacy: ["Comfort, sensation and confidence, private and only for you.", Heart],
+  intimacyTightening: ["Comfort, tightness and confidence, private and only for you.", Heart],
   intimacyMens: ["Erection support, lasting control and confidence, private and only for you.", HeartPulse],
   bladderLeaks: ["See changes in leaks, urge control and confidence.", Droplet],
   postpartum: ["Notice recovery comfort, energy and core connection.", Baby],
@@ -893,8 +900,12 @@ const QUICK_LOG = [
   { kind: "fluid", label: "Fluid", entry: { volumeML: 240, fluidType: "water" } },
 ];
 
-function TrackCard({ goalId, mens, member, todayKey }) {
-  const [subtitle, Icon] = TRACK_PLANS[goalId === "intimacy" && mens ? "intimacyMens" : goalId] || TRACK_PLANS.coreStrength;
+function TrackCard({ goalId, focusId, mens, member, todayKey }) {
+  const planKey =
+    goalId === "intimacy" && mens ? "intimacyMens"
+    : goalId === "intimacy" && focusId === "intimacy.tightening" ? "intimacyTightening"
+    : goalId;
+  const [subtitle, Icon] = TRACK_PLANS[planKey] || TRACK_PLANS.coreStrength;
   const bladder = goalId === "bladderLeaks" || goalId === "prostateRecovery";
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -1139,7 +1150,7 @@ function AskAnythingCard({ mens, onOpen }) {
 // --- The 90-day map (ProgramPathwayView) --------------------------------------------------
 
 function ProgramPathwaySheet({
-  open, onClose, goalId, days, currentDayNumber, currentDayUnlocked,
+  open, onClose, goalId, focusId, days, currentDayNumber, currentDayUnlocked,
   highestUnlockedDay, completedDayCount, graduated, completions, planLength, onPlayDay,
 }) {
   const currentWeek = Math.floor((currentDayNumber - 1) / 7) + 1;
@@ -1162,9 +1173,9 @@ function ProgramPathwaySheet({
   const total = planLength || days?.length || 0;
   const pct = total ? Math.round((Math.min(completedDayCount, total) / total) * 100) : 0;
   return (
-    <Sheet open={open} onClose={onClose} title={pathwayTitle(goalId)} labelledBy="pathway-title">
+    <Sheet open={open} onClose={onClose} title={pathwayTitle(goalId, focusId)} labelledBy="pathway-title">
       <div className="pb-6">
-        <p className="text-[14px] leading-snug text-atelier-ink2">{pathwaySubtitle(goalId)}</p>
+        <p className="text-[14px] leading-snug text-atelier-ink2">{pathwaySubtitle(goalId, focusId)}</p>
         <p className="mt-3 flex items-start gap-2 rounded-[16px] border border-atelier-line bg-atelier-card p-3 text-[12.5px] leading-snug text-atelier-ink2">
           <CalendarClock className="mt-px h-4 w-4 shrink-0 text-atelier-rose" aria-hidden="true" />
           One day at a time. Miss a day? Nothing is lost, you just carry on.

@@ -46,14 +46,19 @@ const SESSION_WAIT_MS = 3000;
 /**
  * @param {object} props
  * @param {string|null} props.goalId   her goal, or null when it is genuinely unknown
+ * @param {string|null} [props.focusId] her focus; only the web-only
+ *   "Tighten Vaginal Canal" option changes what this screen says
  * @param {string} props.name          her first name, or ""
  * @param {boolean} [props.sessionPending]  the sign-in that this payment buys
  *   is still in flight. See the note on the action bar.
  * @param {{amount:number,currency:string,interval:string}|null} [props.price]
  *   what Stripe is actually charging, or null when this browser does not know.
  */
-export default function ProgramIntro({ goalId, name, sessionPending = false, price = null }) {
+export default function ProgramIntro({ goalId, focusId = null, name, sessionPending = false, price = null }) {
   const reduced = useReducedMotion();
+  // She tapped "Tighten Vaginal Canal", so the screen after paying says it, not
+  // the goal tile's softer "Improve Intimacy".
+  const tightening = goalId === "intimacy" && focusId === "intimacy.tightening";
   // The browser chrome follows the screen down. Without this the iOS status bar
   // area stays brand pink above a black page, which is the single thing that
   // most makes a web app look like a web page.
@@ -226,7 +231,7 @@ export default function ProgramIntro({ goalId, name, sessionPending = false, pri
             </h1>
             <p className="mx-auto mt-3 max-w-[19rem] text-[16px] leading-relaxed text-white/75">
               One short session a day, for 90 days.
-              {goal ? ` Your goal: ${goal.title}.` : ""}
+              {goal ? ` Your goal: ${tightening ? "Tighten Vaginal Canal" : goal.title}.` : ""}
             </p>
           </div>
 
@@ -279,7 +284,7 @@ export default function ProgramIntro({ goalId, name, sessionPending = false, pri
           {goal ? (
             <p className={`${riseClass} mt-3 flex items-start gap-2.5 px-1 text-[13px] leading-relaxed text-white/55`} style={rise(5)}>
               <ShieldCheck size={15} className="mt-[2px] shrink-0 text-app-primary" aria-hidden="true" />
-              <span>{milestoneCardPromise(goalId, day90)}</span>
+              <span>{milestoneCardPromise(goalId, day90, focusId)}</span>
             </p>
           ) : null}
 

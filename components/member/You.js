@@ -85,7 +85,7 @@ import { APP_HANDOFF_READY, appStoreURL, isIOSDevice } from "@/lib/appStore";
 
 export default function You() {
   const {
-    member, user, goalId, entitlement, patchMember, refreshMember, refreshEntitlement,
+    member, user, goalId, focusId, entitlement, patchMember, refreshMember, refreshEntitlement,
     signIn, signOut,
     // `currentDayNumber` is the day she is on, and the only value allowed to
     // print as "Day N of 90". See lib/program.js, above `programState`.
@@ -280,10 +280,10 @@ export default function You() {
             style={{ backgroundImage: goalAccentCSS(goalId) }}
           >
             <p className="text-[11px] font-bold uppercase tracking-wider text-white/80">Your goal</p>
-            <p className="mt-1 text-[20px] font-bold leading-tight">{goal?.title}</p>
-            <p className="mt-1 text-[13px] text-white/90">{pathwaySubtitle(goalId)}</p>
+            <p className="mt-1 text-[20px] font-bold leading-tight">{goalId === "intimacy" && focusId === "intimacy.tightening" ? "Tighten Vaginal Canal" : goal?.title}</p>
+            <p className="mt-1 text-[13px] text-white/90">{pathwaySubtitle(goalId, focusId)}</p>
             <p className="mt-2 text-[12.5px] font-semibold text-white/90">
-              {pathwayTitle(goalId)}
+              {pathwayTitle(goalId, focusId)}
               {planLength ? ` · Day ${Math.min(currentDayNumber, planLength)} of ${planLength}` : ""}
             </p>
             <button
@@ -560,6 +560,7 @@ export default function You() {
         onClose={close}
         checkIns={checkIns}
         goalId={goalId}
+        focusId={focusId}
         onOpenReport={() => setSheet("report")}
       />
 
@@ -596,7 +597,8 @@ export default function You() {
         onClose={close}
         currentGoalId={goalId}
         onChoose={async (nextGoal) => {
-          await patchMember({ goal: nextGoal.id, goalTitle: nextGoal.title });
+          // A new goal is a new question set; the old focus belongs to the old one.
+          await patchMember({ goal: nextGoal.id, goalTitle: nextGoal.title, focus: null });
           close();
         }}
       />
@@ -673,7 +675,7 @@ export default function You() {
       <Sheet open={sheet === "terms"} onClose={close} title={COVERAGE_TITLE}>
         <div className="pb-6">
           <ul className="space-y-3">
-            {coverageBody(goalId).split("\n").map((line) => (
+            {coverageBody(goalId, focusId).split("\n").map((line) => (
               <li key={line} className="text-[15px] leading-snug text-app-textPrimary">
                 {line.replace(/^•\s*/, "")}
               </li>

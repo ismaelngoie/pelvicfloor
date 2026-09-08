@@ -51,7 +51,7 @@ function ChecklistRow({ label, state, progress }) {
 
 export default function PersonalizingScreen({ profile, onDone }) {
   const { pathway, goalId } = profile;
-  const block = useMemo(() => personalizingCopy(goalId, pathway, profile.name), [goalId, pathway, profile.name]);
+  const block = useMemo(() => personalizingCopy(goalId, pathway, profile.name, profile.focusId), [goalId, pathway, profile.name, profile.focusId]);
   const checklist = useMemo(
     () =>
       personalizedChecklist({

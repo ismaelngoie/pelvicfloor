@@ -41,13 +41,16 @@ export default function Paywall({ profile, onPaid, onBack }) {
   const pathway = profile?.pathway || "womensPelvicHealth";
   const goalId = profile?.goalId || "coreStrength";
   const name = (profile?.name || "").trim().split(" ")[0];
+  // Her focus only changes the words when it is the web-only "Tighten Vaginal
+  // Canal" option; every other focus leaves the phone's goal copy alone.
+  const focusId = profile?.focusId || null;
 
-  const headline = useMemo(() => headlineParts(name, goalId, pathway), [name, goalId, pathway]);
-  const features = useMemo(() => showcaseFeatures(goalId, pathway), [goalId, pathway]);
-  const reviews = useMemo(() => reviewsFor(goalId, pathway), [goalId, pathway]);
-  const plan = useMemo(() => planValue(goalId, pathway), [goalId, pathway]);
-  const cta = ctaTitle(goalId, pathway);
-  const subtext = useMemo(() => ctaSubtext(goalId, pathway, profile?.situationId), [goalId, pathway, profile?.situationId]);
+  const headline = useMemo(() => headlineParts(name, goalId, pathway, focusId), [name, goalId, pathway, focusId]);
+  const features = useMemo(() => showcaseFeatures(goalId, pathway, focusId), [goalId, pathway, focusId]);
+  const reviews = useMemo(() => reviewsFor(goalId, pathway, focusId), [goalId, pathway, focusId]);
+  const plan = useMemo(() => planValue(goalId, pathway, focusId), [goalId, pathway, focusId]);
+  const cta = ctaTitle(goalId, pathway, focusId);
+  const subtext = useMemo(() => ctaSubtext(goalId, pathway, profile?.situationId, focusId), [goalId, pathway, profile?.situationId, focusId]);
 
   const featureIndex = useRotation(features.length, VIDEO_PAYWALL.showcaseMs, !reduced);
   const reviewIndex = useRotation(reviews.length, VIDEO_PAYWALL.reviewMs, !reduced);

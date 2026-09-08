@@ -9,7 +9,10 @@
 // legacy goal titles, otherwise identical. Change the phone first.
 
 import { DEFAULT_PRICE_LABEL } from "@/lib/pricing";
-import { anyGoalData, isMens, memberPortrait } from "./appCopy";
+import { anyGoalData, isMens, isTightening, memberPortrait } from "./appCopy";
+
+/** Her focus is the web-only "Tighten Vaginal Canal" option under Improve Intimacy. */
+const tighteningFor = (goalId, pathway, focusId) => goalId === "intimacy" && !isMens(pathway) && isTightening(focusId);
 
 export const VIDEO_PAYWALL = {
   video: "/paywall_video.mp4",
@@ -26,8 +29,10 @@ export const VIDEO_PAYWALL = {
 };
 
 /** "Sarah, ready to" + the goal in her second person, or "Ready to" alone. */
-export function headlineParts(name, goalId, pathway) {
-  const phrase = (anyGoalData(goalId, pathway)?.sentencePhrase || "").trim();
+export function headlineParts(name, goalId, pathway, focusId) {
+  const phrase = tighteningFor(goalId, pathway, focusId)
+    ? "tighten your vagina"
+    : (anyGoalData(goalId, pathway)?.sentencePhrase || "").trim();
   const lead = name ? `${name}, ready to` : "Ready to";
   return phrase ? { lead, phrase, tail: "?" } : { lead, phrase: "start", tail: "?" };
 }
@@ -46,6 +51,8 @@ const WOMENS_HEADLINE = {
   prolapse: ["arrow.up.heart.fill", "Less heaviness, more support", "Daily coach led video for prolapse support"],
   coreStrength: ["bolt.fill", "A deep core that holds you up", "Daily coach led video to build core strength"],
 };
+
+const TIGHTENING_HEADLINE = ["arrow.right.and.line.vertical.and.arrow.left", "A tighter, stronger vagina", "Daily coach led video to tighten your vaginal canal"];
 
 const MENS_HEADLINE = {
   bladderLeaks: ["drop.fill", "Move all day without leaks or drips", "Daily coach led video to stop leaks and drips"],
@@ -74,10 +81,11 @@ function audioText(goalId, mens) {
   }
 }
 
-export function showcaseFeatures(goalId, pathway) {
+export function showcaseFeatures(goalId, pathway, focusId) {
   const mens = isMens(pathway);
+  const tightening = tighteningFor(goalId, pathway, focusId);
   const [icon, headline, dailyVideo] =
-    (mens && MENS_HEADLINE[goalId]) || WOMENS_HEADLINE[goalId] || WOMENS_HEADLINE.coreStrength;
+    (tightening && TIGHTENING_HEADLINE) || (mens && MENS_HEADLINE[goalId]) || WOMENS_HEADLINE[goalId] || WOMENS_HEADLINE.coreStrength;
   const features = [
     { icon: "play.rectangle.on.rectangle.fill", text: dailyVideo },
     { icon, text: headline },
@@ -85,7 +93,7 @@ export function showcaseFeatures(goalId, pathway) {
   ];
   // The cycle tracker is a women's pathway feature.
   if (!mens) features.push({ icon: "calendar.badge.clock", text: "Track your cycle and predict your next period" });
-  const audio = audioText(goalId, mens);
+  const audio = tightening ? "Guided audio for squeeze, hold and release, works offline" : audioText(goalId, mens);
   if (audio) features.push({ icon: "waveform.circle.fill", text: audio });
   features.push(
     { icon: "play.rectangle.on.rectangle.fill", text: "500+ customized exercise videos" },
@@ -96,12 +104,14 @@ export function showcaseFeatures(goalId, pathway) {
 
 // --- Button title (ctaTitle) ---------------------------------------------------
 
-export function ctaTitle(goalId, pathway) {
+export function ctaTitle(goalId, pathway, focusId) {
   const mens = isMens(pathway);
   switch (goalId) {
     case "bladderLeaks": return mens ? "Start My Fewer-Leaks Plan" : "Start My Leak-Free Plan";
     case "pelvicPain": return "Start My Pain-Relief Plan";
-    case "intimacy": return mens ? "Start My Control Plan" : "Start My Intimacy Plan";
+    case "intimacy":
+      if (mens) return "Start My Control Plan";
+      return isTightening(focusId) ? "Start My Vaginal Tightening Plan" : "Start My Intimacy Plan";
     case "postpartum": return "Start My Postpartum Plan";
     case "pregnancyPrep": return "Start My Pregnancy Prep";
     case "coreStrength": return "Start My Core Plan";
@@ -134,8 +144,14 @@ const DEFAULT_REVIEWS = pack(
   ["This finally felt made for me", "Small wins in days I smiled", "Five minutes gave real change", "Pain eased and I breathed", "Confidence returned I feel in control"]
 );
 
-export function reviewsFor(goalId, pathway) {
+export function reviewsFor(goalId, pathway, focusId) {
   const mens = isMens(pathway);
+  if (tighteningFor(goalId, pathway, focusId)) {
+    return pack(
+      ["Maya S.", "Dani R.", "Lina H.", "Brooke E.", "Kim W."],
+      ["Tighter by week 3, my partner noticed", "I can feel the grip now", "Tighter, stronger and I feel more", "Two kids and I feel tight again", "Stronger orgasms and a tighter squeeze"]
+    );
+  }
   if (mens) {
     switch (goalId) {
       case "intimacy":
@@ -251,13 +267,17 @@ export function reviewsFor(goalId, pathway) {
 
 // --- "How will this app..." (PaywallPlanValue.content) -------------------------
 
-export function planValue(goalId, pathway) {
+export function planValue(goalId, pathway, focusId) {
   const mens = isMens(pathway);
   let title;
   let audio;
   let tracking;
   let quickHelp = "Ask Coach Mia questions in real time";
-  switch (goalId) {
+  if (tighteningFor(goalId, pathway, focusId)) {
+    title = "How will this app tighten your vaginal canal?";
+    audio = "Offline guided audio for squeeze, hold and release";
+    tracking = "Track tightness, sensation and confidence";
+  } else switch (goalId) {
     case "bladderLeaks":
       title = mens ? "How will this app stop your leaks and drips?" : "How will this app stop your bladder leaks?";
       audio = "Offline guided audio for urges and bladder control";
@@ -362,12 +382,16 @@ function goalPromise(goalId, pathway, byDate) {
 /**
  * Her situation answer sharpens the promise when it can (SymptomProfileStore
  * .paywallPromise, carried in the catalog with a BYDATE slot); the goal
- * promise is the fallback. Then the 2025 wording: the price and the promise
- * that it comes back with one tap. The button itself never carries the price.
+ * promise is the fallback. The web-only tightening focus outranks both: she
+ * tapped "Tighten Vaginal Canal", so the line under the button says exactly
+ * that. Then the 2025 wording: the price and the promise that it comes back
+ * with one tap. The button itself never carries the price.
  */
-export function ctaSubtext(goalId, pathway, situationId, from = new Date()) {
+export function ctaSubtext(goalId, pathway, situationId, focusId = null, from = new Date()) {
   const byDate = byDateString(from);
   const fromSituation = anyGoalData(goalId, pathway)?.paywallPromise?.[situationId];
-  const promise = fromSituation ? fromSituation.replace(/BYDATE/g, byDate) : goalPromise(goalId, pathway, byDate);
+  const promise = tighteningFor(goalId, pathway, focusId)
+    ? `A tighter vagina you can feel by ${byDate}.`
+    : fromSituation ? fromSituation.replace(/BYDATE/g, byDate) : goalPromise(goalId, pathway, byDate);
   return `${promise} If not, one tap full ${DEFAULT_PRICE_LABEL} refund.`;
 }

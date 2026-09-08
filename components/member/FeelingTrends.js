@@ -40,7 +40,7 @@ const MOOD_VALUE = { "😊": 2, "😐": 1 };
  * You tab's progress card. `onOpenReport` hands off to the doctor's report,
  * which is the phone's providerReportLink at the bottom of the same screen.
  */
-export default function FeelingTrendsSheet({ open, onClose, checkIns, goalId, onOpenReport }) {
+export default function FeelingTrendsSheet({ open, onClose, checkIns, goalId, focusId = null, onOpenReport }) {
   const series = useMemo(() => buildSeries(checkIns), [checkIns]);
   const hasAnyData =
     series.leak.length || series.pain.length || series.mood.length ||
@@ -95,7 +95,7 @@ export default function FeelingTrendsSheet({ open, onClose, checkIns, goalId, on
             )}
             {series.feeling.length > 0 && (
               <TrendChart
-                title={goalFeelingTitle(goalId)}
+                title={goalFeelingTitle(goalId, focusId)}
                 icon={Target}
                 color={COLOR.feeling}
                 data={series.feeling}

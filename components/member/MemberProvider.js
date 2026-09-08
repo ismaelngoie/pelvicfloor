@@ -34,6 +34,7 @@ import { entitlementState } from "@/lib/memberEntitlement";
 import { fetchEntitlement } from "@/lib/memberBilling";
 import { fetchRecentEvents, savedIdsOf, setSavedIds, summarizeEvents } from "@/lib/memberData";
 import { FIXTURES_ON } from "@/lib/devFixtures";
+import { readPlan } from "@/lib/postPurchase";
 
 const MemberContext = createContext(null);
 
@@ -265,6 +266,25 @@ export function MemberProvider({ children }) {
     },
     [member?.id]
   );
+
+  // THE FOCUS SHE TAPPED IN THE FUNNEL, CARRIED INTO THE MEMBER AREA.
+  //
+  // The checkout sends only her goal to the server, so her record is created
+  // without a focus. The paywall remembered it in the plan record
+  // (lib/postPurchase, written on arrival at the paywall), and the first time
+  // her record resolves here without one, while the remembered goal still
+  // matches, it is written once. Today only the web-only "Tighten Vaginal
+  // Canal" focus changes any words; the field stays generic so the phone can
+  // adopt it later.
+  const focusId = typeof member?.focus === "string" && member.focus ? member.focus : null;
+  useEffect(() => {
+    if (!member?.id || focusId || FIXTURES_ON) return;
+    const plan = readPlan();
+    if (!plan?.focusId || !plan.goalId || plan.goalId !== member.goal) return;
+    patchMember({ focus: plan.focusId }).catch(() => {
+      // Her record simply keeps the goal's own words. Nothing to recover.
+    });
+  }, [member?.id, member?.goal, focusId, patchMember]);
 
   // THE NAME APPLE ONLY EVER SAYS ONCE, PUT SOMEWHERE PERMANENT.
   //
@@ -641,6 +661,7 @@ export function MemberProvider({ children }) {
       refreshEntitlement,
       patchMember,
       goalId,
+      focusId,
       goal: goalById(goalId),
       program,
       catalog,
@@ -682,7 +703,7 @@ export function MemberProvider({ children }) {
       configured, authState, signingIn, user, member, memberError, contentError,
       entitlement, entitlementChecking, linkRedeeming, linkState,
       signIn, confirmLinkEmail, signOutMember, refreshMember,
-      refreshEntitlement, patchMember, goalId,
+      refreshEntitlement, patchMember, goalId, focusId,
       program, catalog, days, planLength, todayKey,
       currentDayNumber, currentDayUnlocked, replayDayNumber, sessionDayNumber,
       bankableDayNumber, completedDayCount, highestUnlockedDay,

@@ -17,7 +17,7 @@ import { SESSIONS_PER_WEEK } from "@/lib/guaranteeCopy";
 const WEEKS_SHOWN = 8;
 
 export default function ProgressCharts() {
-  const { member, goalId, completions, history, streak } = useMember();
+  const { member, goalId, focusId, completions, history, streak } = useMember();
   const [checkIns, setCheckIns] = useState([]);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function ProgressCharts() {
         <Card className="mt-3">
           <h3 className="text-[15px] font-bold text-app-textPrimary">How you have been feeling</h3>
           <p className="mt-0.5 text-[12.5px] leading-snug text-app-textSecondary">
-            {goalFeelingQuestion(goalId)} Your answers, most recent on the right.
+            {goalFeelingQuestion(goalId, focusId)} Your answers, most recent on the right.
           </p>
 
           <div className="mt-4 flex h-[92px] items-end gap-1.5">

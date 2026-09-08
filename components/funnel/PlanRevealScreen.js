@@ -155,7 +155,7 @@ export default function PlanRevealScreen({ profile, onNext }) {
   const labels = baseline(goalId, frequency);
   const evidence = clinicalEvidence(goalId, pathway);
   const why = whyFiveMinutes(pathway);
-  const session = dashboardSession(goalId, pathway);
+  const session = dashboardSession(goalId, pathway, profile.focusId);
   const concern = focus?.title.toLowerCase() || goal.memberSentencePhrase;
   const signals = trackingSignals(goalId, pathway, focus);
   const rise = (ms) => ({ animationDelay: `${ms}ms` });
@@ -258,7 +258,7 @@ export default function PlanRevealScreen({ profile, onNext }) {
       </div>
       <div className="shrink-0 bg-gradient-to-t from-black via-black/95 to-black/70 px-5 pb-[max(env(safe-area-inset-bottom),14px)] pt-3">
         <Button onClick={onNext} variant="roseBright" breathe id="onboarding.timeline.continue">
-          {revealCta(goalId)}
+          {revealCta(goalId, profile.focusId)}
         </Button>
       </div>
       {credentialsOpen ? <CredentialsSheet open onClose={() => setCredentialsOpen(false)} /> : null}

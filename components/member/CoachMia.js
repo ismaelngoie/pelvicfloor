@@ -53,7 +53,7 @@ export default function CoachMia() {
   // `currentDayNumber` is her position, `replayDayNumber` is a day she has
   // already finished, `sessionDayNumber` only says which videos load.
   const {
-    member, goal, goalId, streak, currentDay, headlineDay, currentDayNumber,
+    member, goal, goalId, focusId, streak, currentDay, headlineDay, currentDayNumber,
     replayDayNumber, sessionDayNumber, bankableDayNumber, planLength, todaysVideos,
   } = useMember();
   const { openPlayer } = usePlayer();
@@ -335,7 +335,7 @@ export default function CoachMia() {
   }, []);
 
   const prompts = useMemo(() => {
-    const list = ["What's my plan for today?", goalPrompt(goalId)];
+    const list = ["What's my plan for today?", goalPrompt(goalId, focusId)];
     const extras = [...EXTRA_PROMPTS];
     if (streak.current > 10) extras.push("How do I stay motivated?");
     list.push(extras[Math.floor(Math.random() * extras.length)]);

@@ -2832,6 +2832,24 @@
           "displayTitle" : "Improve Intimacy",
           "focus" : [
             {
+              "detail" : "A tighter grip and more feeling, for you and your partner.",
+              "id" : "intimacy.tightening",
+              "supportSubtitle" : "Squeeze, lift and hold, then fully release.",
+              "supportTitle" : "Vaginal Tightening Practice",
+              "symbol" : "arrow.right.and.line.vertical.and.arrow.left",
+              "title" : "Tighten Vaginal Canal",
+              "tracking" : {
+                "choices" : [
+                  "Loose",
+                  "Firmer",
+                  "Tight"
+                ],
+                "question" : "How tight and strong do you feel inside today?",
+                "slot" : "secondary",
+                "title" : "Tightness"
+              }
+            },
+            {
               "detail" : "Build relaxation and control for a stronger sexual response.",
               "id" : "intimacy.sensation",
               "supportSubtitle" : "Build relaxation and control for stronger orgasms.",

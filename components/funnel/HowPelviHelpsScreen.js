@@ -8,7 +8,7 @@ import React, { useMemo } from "react";
 import { BadgeCheck } from "lucide-react";
 import {
   CONSTELLATION_SCREEN, constellationBase, constellationNodes, constellationSummary, focusData,
-  frequencyData, goalData, impactsData, situationData, triedData,
+  focusSentencePhrase, frequencyData, goalData, impactsData, situationData, triedData,
 } from "./appCopy";
 import SFIcon from "./icons";
 import { Body, Button, Footer, Header, Screen, Subtitle } from "./atelier";
@@ -68,7 +68,7 @@ function Constellation({ icon, nodes }) {
 export default function HowPelviHelpsScreen({ profile, onNext, onBack }) {
   const { pathway, goalId } = profile;
   const goal = goalData(pathway, goalId);
-  const base = useMemo(() => constellationBase(goalId, pathway), [goalId, pathway]);
+  const base = useMemo(() => constellationBase(goalId, pathway, profile.focusId), [goalId, pathway, profile.focusId]);
   const focus = focusData(pathway, goalId, profile.focusId);
   const situation = situationData(pathway, goalId, profile.situationId);
   const frequency = frequencyData(pathway, goalId, profile.frequencyId);
@@ -80,16 +80,17 @@ export default function HowPelviHelpsScreen({ profile, onNext, onBack }) {
   );
   if (!goal) return null;
   const summary = constellationSummary({ fallback: base.subtitle, focus, situation, frequency, tried });
+  const headlinePhrase = focusSentencePhrase(goalId, profile.focusId, goal.sentencePhrase);
   return (
     <Screen>
       <Header onBack={onBack} railStep={3} railFraction={0.2} />
       <Body>
         <div className="funnel-rise pt-3 text-center" style={{ animationDelay: "40ms" }}>
-          <h1 className="font-serif text-[31px] leading-[1.08] text-atelier-ink" aria-label={`${CONSTELLATION_SCREEN.headlineLead} ${goal.sentencePhrase}`}>
+          <h1 className="font-serif text-[31px] leading-[1.08] text-atelier-ink" aria-label={`${CONSTELLATION_SCREEN.headlineLead} ${headlinePhrase}`}>
             <span aria-hidden="true">
               {CONSTELLATION_SCREEN.headlineLead}
               <br />
-              <em>{goal.sentencePhrase}</em>.
+              <em>{headlinePhrase}</em>.
             </span>
           </h1>
         </div>

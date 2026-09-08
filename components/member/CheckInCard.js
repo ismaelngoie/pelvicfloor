@@ -22,7 +22,7 @@ const MOODS = [
 ];
 
 export default function CheckInCard({ dateKey }) {
-  const { member, goalId } = useMember();
+  const { member, goalId, focusId } = useMember();
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -173,7 +173,7 @@ export default function CheckInCard({ dateKey }) {
           />
 
           <Slider
-            label={goalFeelingQuestion(goalId)}
+            label={goalFeelingQuestion(goalId, focusId)}
             value={goalFeeling}
             min={1}
             max={5}

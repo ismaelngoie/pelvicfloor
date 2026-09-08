@@ -40,7 +40,7 @@ export default function HealthInfoScreen({ profile, onPatch, onNext, onBack }) {
   const focus = focusData(pathway, goalId, profile.focusId);
   const situation = situationData(pathway, goalId, profile.situationId);
   const options = healthOptions(goalId, pathway, profile.focusId, situation);
-  const copy = healthCopy(goalId, focus?.title);
+  const copy = healthCopy(goalId, focus?.title, profile.focusId);
   const selected = new Set(profile.conditions || []);
   const answeredConditions = profile.noConditions || selected.size > 0;
   const ready = answeredConditions && Boolean(profile.activity);
@@ -91,7 +91,7 @@ export default function HealthInfoScreen({ profile, onPatch, onNext, onBack }) {
         </button>
         {answeredConditions ? (
           <p className="mt-3 text-center text-[13.5px] font-medium text-atelier-rosewood" aria-live="polite">
-            {healthHelper(selected.size > 0, goalId, pathway)}
+            {healthHelper(selected.size > 0, goalId, pathway, profile.focusId)}
           </p>
         ) : null}
 

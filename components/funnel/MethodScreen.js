@@ -69,7 +69,7 @@ export function ClinicalVisual({ phases, symbol }) {
 export default function MethodScreen({ profile, onNext, onBack }) {
   const goal = goalData(profile.pathway, profile.goalId);
   if (!goal) return null;
-  const content = methodContent(profile.goalId, profile.pathway, profile.situationId);
+  const content = methodContent(profile.goalId, profile.pathway, profile.situationId, profile.focusId);
   return (
     <Screen>
       <Header onBack={onBack} railStep={2} railFraction={1} />

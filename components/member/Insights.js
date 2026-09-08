@@ -51,7 +51,7 @@ const GOAL_CATEGORIES = {
 
 export default function Insights() {
   const {
-    goalId, goal, member, patchMember, catalog, currentDayNumber, headlineDay,
+    goalId, focusId, goal, member, patchMember, catalog, currentDayNumber, headlineDay,
     currentDay, completions,
   } = useMember();
   const reduceMotion = usePrefersReducedMotion();
@@ -101,7 +101,7 @@ export default function Insights() {
 
   /** What the generator is told about her. Ported from InsightSignals.current(). */
   const signals = useMemo(() => ({
-    goalTitle: goal?.title || "a stronger pelvic floor",
+    goalTitle: goalId === "intimacy" && focusId === "intimacy.tightening" ? "Tighten Vaginal Canal" : goal?.title || "a stronger pelvic floor",
     // InsightPersonalizer sends `max(1, engine.currentDayNumber)`, so the
     // article she is offered is picked for the day she is on, not the one the
     // Today ring happens to be replaying.
@@ -186,7 +186,7 @@ export default function Insights() {
         </span>
         <span className="min-w-0 flex-1">
           <Eyebrow>YOUR CLINICAL LIBRARY</Eyebrow>
-          <span className="mt-0.5 block font-serif text-[20px] leading-tight text-atelier-ink">Answers for {goalSentencePhrase(goalId)}</span>
+          <span className="mt-0.5 block font-serif text-[20px] leading-tight text-atelier-ink">Answers for {goalSentencePhrase(goalId, focusId)}</span>
           <span className="mt-0.5 block text-[12px] text-atelier-ink2">Reviewed guidance with the original medical sources attached.</span>
         </span>
       </ACard>
@@ -268,14 +268,14 @@ export default function Insights() {
             <SectionHeader
               id="for-you"
               title="For you"
-              subtitle={`Picked because your goal is ${libraryGoalPhrase(goalId)}.`}
+              subtitle={`Picked because your goal is ${libraryGoalPhrase(goalId, focusId)}.`}
             />
             <ul className="mt-3 flex gap-3 overflow-x-auto px-1 pb-2 no-scrollbar">
               {forYou.map((article) => (
                 <li key={article.id}>
                   <ArticleTile
                     article={article}
-                    reason={`Because your goal is ${libraryGoalPhrase(goalId)}`}
+                    reason={`Because your goal is ${libraryGoalPhrase(goalId, focusId)}`}
                     onOpen={() => setOpen(article)}
                   />
                 </li>

@@ -19,10 +19,11 @@ export default function PaywallScreen({ profile, onBack }) {
   // reach: the screen after payment names both. On arrival rather than on
   // success, because a 3-D Secure redirect leaves this document entirely.
   const goalId = profile?.goalId || null;
+  const focusId = profile?.focusId || null;
   const name = profile?.name || "";
   useEffect(() => {
-    rememberPlan({ goalId, name });
-  }, [goalId, name]);
+    rememberPlan({ goalId, focusId, name });
+  }, [goalId, focusId, name]);
 
   const handlePaid = useCallback(() => {
     clearFunnelState();

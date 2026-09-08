@@ -84,7 +84,7 @@ export default function WelcomeClient() {
   const [status, setStatus] = useState("unknown");
   // Her goal and her first name, or nulls. See lib/postPurchase.js: nulls are a
   // supported answer and the intro has a real shape for them.
-  const [plan, setPlan] = useState({ goalId: null, name: "", price: null });
+  const [plan, setPlan] = useState({ goalId: null, focusId: null, name: "", price: null });
 
   // The Stripe PaymentIntent id, pulled off the client secret this browser paid
   // with. It is the transaction_id for the Google Ads purchase conversion below:
@@ -137,7 +137,7 @@ export default function WelcomeClient() {
   const [sessionMessage, setSessionMessage] = useState(null);
 
   useEffect(() => {
-    setPlan(readPlan() || { goalId: null, name: "", price: null });
+    setPlan(readPlan() || { goalId: null, focusId: null, name: "", price: null });
   }, []);
 
   // Arriving from the link in her inbox. Finished here rather than on /app so
@@ -447,6 +447,7 @@ export default function WelcomeClient() {
         // note on the button in ProgramIntro.
         <ProgramIntro
           goalId={plan.goalId}
+          focusId={plan.focusId}
           name={plan.name}
           price={plan.price}
           sessionPending={session === "working"}

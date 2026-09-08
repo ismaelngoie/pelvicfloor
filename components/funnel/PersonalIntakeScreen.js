@@ -90,12 +90,13 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
         step,
         goalId,
         pathway,
+        focusId: profile.focusId,
         name: profile.name,
         age: profile.age,
         situationTitle: situation?.title?.toLowerCase() || null,
         triedId: profile.triedId,
       }),
-    [step, goalId, pathway, profile.name, profile.age, profile.triedId, situation]
+    [step, goalId, pathway, profile.focusId, profile.name, profile.age, profile.triedId, situation]
   );
 
   const go = (next) => onPatch({ intakeStep: next });
@@ -125,7 +126,7 @@ export default function PersonalIntakeScreen({ profile, onPatch, onNext, onBack 
   const heightText = profile.heightUnit === "cm" ? `${inchesToCm(profile.heightInches)} cm` : feetInchesPrime(profile.heightInches);
   const weightText = profile.weightUnit === "kg" ? `${lbsToKg(profile.weightLbs)} kg` : `${profile.weightLbs} lb`;
   const name = (profile.name || "").trim();
-  const story = memberStory(goalId, pathway);
+  const story = memberStory(goalId, pathway, profile.focusId);
   const canContinue =
     step === "name" ? name.length > 0 : true;
 
