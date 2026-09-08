@@ -129,11 +129,9 @@ export default function Paywall({ profile, onPaid, onBack }) {
         disablePictureInPicture
         tabIndex={-1}
       />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{ background: "linear-gradient(180deg, rgba(20,18,24,0.62) 0%, rgba(20,18,24,0.40) 42%, rgba(20,18,24,0.58) 72%, rgba(20,18,24,0.92) 100%)" }}
-      />
+      {/* The phone's dimming view: flat black at 50%, top to bottom, so the
+          clip stays visible behind the button instead of sinking into ink. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: "rgba(0,0,0,0.5)" }} />
 
       <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar px-5 pb-5 pt-[max(env(safe-area-inset-top),44px)]">
         <h1 className="funnel-rise text-center font-serif text-[36px] leading-[1.04] text-white" style={{ animationDelay: "40ms" }}>
@@ -223,7 +221,9 @@ export default function Paywall({ profile, onPaid, onBack }) {
         </div>
       </div>
 
-      <footer className="relative z-20 shrink-0 px-5 pb-[max(env(safe-area-inset-bottom),10px)] pt-2" style={{ background: "linear-gradient(180deg, rgba(20,18,24,0) 0%, rgba(20,18,24,0.85) 30%, rgba(20,18,24,0.95) 100%)" }}>
+      {/* Clear, like the phone's footer: the video runs behind the badge,
+          the button and the promise line. */}
+      <footer className="relative z-20 shrink-0 px-5 pb-[max(env(safe-area-inset-bottom),10px)] pt-2">
         <button
           type="button"
           onClick={() => setCredentialsOpen(true)}
@@ -241,7 +241,7 @@ export default function Paywall({ profile, onPaid, onBack }) {
             {setupFailed ? "Try Again" : cta}
           </Button>
         </div>
-        <p className="mt-2 text-center text-[12px] font-medium leading-snug text-white/65">
+        <p className="mt-2 text-center text-[12px] font-medium leading-snug text-white/80">
           {setupFailed ? "The plan is temporarily unavailable. Please try again." : subtext}
         </p>
         <p className="mt-1 flex flex-wrap items-center justify-center gap-x-3 text-[11px] font-medium text-white/50">
