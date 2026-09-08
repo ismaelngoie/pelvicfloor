@@ -825,7 +825,7 @@ export function profileContext({ situationTitle, frequencyTitle, tried, memberSe
 export function memberStory(goalId, pathway, focusId) {
   const mens = isMens(pathway);
   if (!mens && goalId === "intimacy" && isTightening(focusId)) {
-    return { quote: "Three weeks in and honestly it feels like new down there. My husband noticed before I said a word.", name: "Jenna, 41 · Vaginal rejuvenation" };
+    return { quote: "One week in and honestly it feels like new down there. My husband noticed before I said a word.", name: "Jenna, 41 · Vaginal rejuvenation" };
   }
   switch (goalId) {
     case "bladderLeaks":

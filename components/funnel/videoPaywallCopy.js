@@ -149,7 +149,7 @@ export function reviewsFor(goalId, pathway, focusId) {
   if (tighteningFor(goalId, pathway, focusId)) {
     return pack(
       ["Maya S.", "Dani R.", "Lina H.", "Brooke E.", "Kim W."],
-      ["Can't believe how good it feels now haha", "Felt like new again by week 3", "My husband noticed before I said anything", "Two kids later and I feel like me again", "Rejuvenated is honestly the only word for it"]
+      ["Can't believe how good it feels now haha", "By day 5 I could feel the difference, my husband keeps smiling", "My husband noticed before I said anything", "Two kids later and I feel like me again", "Rejuvenated is honestly the only word for it"]
     );
   }
   if (mens) {
