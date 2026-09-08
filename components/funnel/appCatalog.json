@@ -2832,21 +2832,21 @@
           "displayTitle" : "Improve Intimacy",
           "focus" : [
             {
-              "detail" : "A tighter grip and more feeling, for you and your partner.",
+              "detail" : "Rejuvenate and tighten, from five minutes a day.",
               "id" : "intimacy.tightening",
               "supportSubtitle" : "Squeeze, lift and hold, then fully release.",
-              "supportTitle" : "Vaginal Tightening Practice",
+              "supportTitle" : "Vaginal Rejuvenation Practice",
               "symbol" : "arrow.right.and.line.vertical.and.arrow.left",
               "title" : "Tighten Vaginal Canal",
               "tracking" : {
                 "choices" : [
                   "Loose",
                   "Firmer",
-                  "Tight"
+                  "Toned"
                 ],
-                "question" : "How tight and strong do you feel inside today?",
+                "question" : "How firm and toned do you feel inside today?",
                 "slot" : "secondary",
-                "title" : "Tightness"
+                "title" : "Tone"
               }
             },
             {

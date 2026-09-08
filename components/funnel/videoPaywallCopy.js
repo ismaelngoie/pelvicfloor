@@ -52,7 +52,7 @@ const WOMENS_HEADLINE = {
   coreStrength: ["bolt.fill", "A deep core that holds you up", "Daily coach led video to build core strength"],
 };
 
-const TIGHTENING_HEADLINE = ["arrow.right.and.line.vertical.and.arrow.left", "A tighter, stronger vagina", "Daily coach led video to tighten your vaginal canal"];
+const TIGHTENING_HEADLINE = ["arrow.right.and.line.vertical.and.arrow.left", "Vaginal rejuvenation, no surgery", "Daily coach led video to rejuvenate and tighten"];
 
 const MENS_HEADLINE = {
   bladderLeaks: ["drop.fill", "Move all day without leaks or drips", "Daily coach led video to stop leaks and drips"],
@@ -149,7 +149,7 @@ export function reviewsFor(goalId, pathway, focusId) {
   if (tighteningFor(goalId, pathway, focusId)) {
     return pack(
       ["Maya S.", "Dani R.", "Lina H.", "Brooke E.", "Kim W."],
-      ["Tighter by week 3, my partner noticed", "I can feel the grip now", "Tighter, stronger and I feel more", "Two kids and I feel tight again", "Stronger orgasms and a tighter squeeze"]
+      ["Can't believe how good it feels now haha", "Felt like new again by week 3", "My husband noticed before I said anything", "Two kids later and I feel like me again", "Rejuvenated is honestly the only word for it"]
     );
   }
   if (mens) {
@@ -274,9 +274,9 @@ export function planValue(goalId, pathway, focusId) {
   let tracking;
   let quickHelp = "Ask Coach Mia questions in real time";
   if (tighteningFor(goalId, pathway, focusId)) {
-    title = "How will this app tighten your vaginal canal?";
+    title = "How will this app rejuvenate your vaginal canal?";
     audio = "Offline guided audio for squeeze, hold and release";
-    tracking = "Track tightness, sensation and confidence";
+    tracking = "Track tone, sensation and confidence";
   } else switch (goalId) {
     case "bladderLeaks":
       title = mens ? "How will this app stop your leaks and drips?" : "How will this app stop your bladder leaks?";

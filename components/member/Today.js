@@ -878,7 +878,7 @@ function ProgressGraph({ events, completions, streak, goalId, mens }) {
 
 const TRACK_PLANS = {
   intimacy: ["Comfort, sensation and confidence, private and only for you.", Heart],
-  intimacyTightening: ["Comfort, tightness and confidence, private and only for you.", Heart],
+  intimacyTightening: ["Comfort, tone and confidence, private and only for you.", Heart],
   intimacyMens: ["Erection support, lasting control and confidence, private and only for you.", HeartPulse],
   bladderLeaks: ["See changes in leaks, urge control and confidence.", Droplet],
   postpartum: ["Notice recovery comfort, energy and core connection.", Baby],

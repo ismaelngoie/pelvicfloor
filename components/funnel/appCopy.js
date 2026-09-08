@@ -195,7 +195,7 @@ export function focusReaction(focusId) {
   const lead = "That gives us a clear target.";
   switch (focusId) {
     case TIGHTENING_FOCUS:
-      return `${lead} Your plan will train the squeeze, the lift and the hold that make your vaginal canal tighter.`;
+      return `${lead} Your plan rejuvenates the muscles around your vaginal canal, so it feels firm and alive again.`;
     case "bladder.urgency":
       return `${lead} Your plan will train calm, control, and the pause before you move.`;
     case "bladder.nighttime":
@@ -344,7 +344,7 @@ export function methodContent(goalId, pathway, situationId, focusId) {
         }
       }
       if (isTightening(focusId)) {
-        return { subtitle: "Your plan trains the squeeze, lift and hold that tighten your vaginal canal, then adds endurance so it lasts.", phases: ["Squeeze", "Hold", "Tighter"], symbol: "arrow.right.and.line.vertical.and.arrow.left" };
+        return { subtitle: "Your plan trains the squeeze, lift and hold that rejuvenate your vaginal canal, then adds endurance so the tone lasts.", phases: ["Squeeze", "Hold", "Rejuvenate"], symbol: "arrow.right.and.line.vertical.and.arrow.left" };
       }
       switch (situationId) {
         case "entry":
@@ -414,9 +414,9 @@ export function constellationBase(goalId, pathway, focusId) {
     case "intimacy":
       if (!mens && isTightening(focusId)) {
         return {
-          subtitle: "We train the muscles that grip your vaginal canal, so you feel tighter, stronger and more.",
+          subtitle: "We rejuvenate the muscles around your vaginal canal, so it feels firm, toned and alive again.",
           icon: "arrow.right.and.line.vertical.and.arrow.left",
-          nodes: [["arrow.right.and.line.vertical.and.arrow.left", "A tighter vaginal canal"], ["bolt.heart.fill", "A stronger grip"], ["sparkles", "More feeling for both of you"], ["heart.fill", "Stronger orgasms"], ["face.smiling", "Confidence comes back"], ["person.2.fill", "Feel close again"]],
+          nodes: [["arrow.right.and.line.vertical.and.arrow.left", "A rejuvenated vaginal canal"], ["bolt.heart.fill", "A stronger grip"], ["sparkles", "More feeling for both of you"], ["heart.fill", "Stronger orgasms"], ["face.smiling", "Confidence comes back"], ["person.2.fill", "Feel close again"]],
         };
       }
       return {
@@ -442,7 +442,7 @@ export function constellationBase(goalId, pathway, focusId) {
 }
 
 const FOCUS_OUTCOME_LABELS = {
-  [TIGHTENING_FOCUS]: "A tighter vaginal canal",
+  [TIGHTENING_FOCUS]: "A rejuvenated vaginal canal",
   "intimacy.sensation": "More feeling and stronger orgasms",
   "intimacy.comfort": "Comfortable intimacy",
   "intimacy.relaxation": "Muscles that let go",
@@ -564,7 +564,7 @@ function outcomeTopics(text) {
 const normalized = (text) => String(text || "").trim().toLowerCase();
 
 /** "We will start with …": the focus title lowercased, except where that reads badly. */
-const FOCUS_START_PHRASE = { [TIGHTENING_FOCUS]: "tightening your vaginal canal" };
+const FOCUS_START_PHRASE = { [TIGHTENING_FOCUS]: "rejuvenating your vaginal canal" };
 
 function triedNode(tried) {
   switch (tried?.id) {
@@ -700,8 +700,8 @@ const MIA_WOMEN = {
   },
 };
 const MIA_TIGHTENING = {
-  goalAcknowledgement: "Let's get you tighter, {name}. We'll train the squeeze, the lift and the hold that make your vaginal canal stronger and tighter.",
-  ageJustification: "At {age}, I balance strong squeezes with full release, so the muscles get tighter without holding tension.",
+  goalAcknowledgement: "Let's rejuvenate you, {name}. We'll train the squeeze, the lift and the hold that bring your vaginal canal back to firm and toned.",
+  ageJustification: "At {age}, I balance strong squeezes with full release, so the muscles firm up without holding tension.",
   heightJustification: "Noted. Your height helps me set your positions, so every squeeze reaches the right muscles.",
 };
 const MIA_MEN = {
@@ -825,7 +825,7 @@ export function profileContext({ situationTitle, frequencyTitle, tried, memberSe
 export function memberStory(goalId, pathway, focusId) {
   const mens = isMens(pathway);
   if (!mens && goalId === "intimacy" && isTightening(focusId)) {
-    return { quote: "Three weeks in and I feel so much tighter. My husband noticed before I said a word.", name: "Jenna, 41 · Vaginal tightening" };
+    return { quote: "Three weeks in and honestly it feels like new down there. My husband noticed before I said a word.", name: "Jenna, 41 · Vaginal rejuvenation" };
   }
   switch (goalId) {
     case "bladderLeaks":
@@ -891,7 +891,7 @@ export function healthCopy(goalId, focusTitle, focusId) {
   const headline = "Anything I should know before we start?";
   const tightening = goalId === "intimacy" && isTightening(focusId);
   const focusSentence = tightening
-    ? " Your focus is a tighter vaginal canal."
+    ? " Your focus is vaginal rejuvenation."
     : focusTitle ? ` Your focus is ${focusTitle.toLowerCase()}.` : "";
   const lead = "Select everything that applies. Coach Mia™ uses it to choose";
   if (tightening) {
@@ -1091,7 +1091,7 @@ export function personalizingCopy(goalId, pathway, name, focusId) {
   const trimmed = (name || "").trim();
   const named = (title) => (trimmed ? `${trimmed}, ${title}` : title);
   if (!mens && goalId === "intimacy" && isTightening(focusId)) {
-    return { title: named("Coach Mia™ is building your vaginal tightening plan"), subtitle: "Train the squeeze, lift and hold that make your vaginal canal tighter, stronger and more sensitive.", connecting: "Finding the muscles that grip and lift…", calibrating: "Setting your squeeze, hold and release for a tighter feel…", checklist: ["Find the muscles that grip", "Squeeze, lift and hold", "Full release between reps", "Endurance that lasts"] };
+    return { title: named("Coach Mia™ is building your vaginal tightening plan"), subtitle: "Rejuvenate the muscles around your vaginal canal: firmer, stronger and more sensitive.", connecting: "Finding the muscles that grip and lift…", calibrating: "Setting your squeeze, hold and release for lasting tone…", checklist: ["Find the muscles that grip", "Squeeze, lift and hold", "Full release between reps", "Rejuvenation that lasts"] };
   }
   switch (goalId) {
     case "intimacy":
@@ -1132,7 +1132,7 @@ export function personalizingCopy(goalId, pathway, name, focusId) {
 }
 
 const CHECKLIST_TAIL = {
-  [TIGHTENING_FOCUS]: ["Squeeze, lift and hold, then full release", "Build a tighter, stronger grip"],
+  [TIGHTENING_FOCUS]: ["Squeeze, lift and hold, then full release", "Rejuvenate from the inside"],
   bladderLeaks: ["Train control for your exact trigger", "Track fewer leaks and bathroom trips"],
   intimacy: ["Release before stronger work", "Build comfort, feeling and control"],
   prolapse: ["Reduce downward pressure", "Build support for daily movement"],

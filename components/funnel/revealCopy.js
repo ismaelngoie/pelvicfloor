@@ -85,7 +85,7 @@ export function revealHeadlinePhrase(goalId, focus, memberSentencePhrase) {
   if (!focus) return { preposition: "to", outcome: memberSentencePhrase };
   if (goalId === "intimacy") {
     switch (focus.id) {
-      case TIGHTENING_FOCUS: return { preposition: "for", outcome: "a tighter, stronger vaginal canal" };
+      case TIGHTENING_FOCUS: return { preposition: "for", outcome: "a rejuvenated, firmer vaginal canal" };
       case "intimacy.sensation": return { preposition: "for", outcome: "more sensation and stronger orgasms" };
       case "intimacy.comfort": return { preposition: "for", outcome: "less pain during sex and more comfortable intimacy" };
       case "intimacy.relaxation": return { preposition: "for", outcome: "releasing tightness and stopping pelvic clenching" };
@@ -99,7 +99,7 @@ export function revealHeadlinePhrase(goalId, focus, memberSentencePhrase) {
 }
 
 const INTIMACY_MILESTONES = {
-  [TIGHTENING_FOCUS]: ["Find the muscles that grip and lift your vaginal canal", "Stronger squeezes and longer holds you can feel", "Faster, firmer contractions with full release", "A tighter, stronger vaginal canal you can feel"],
+  [TIGHTENING_FOCUS]: ["Find the muscles that grip and lift your vaginal canal", "Stronger squeezes and longer holds you can feel", "Faster, firmer contractions with full release", "Firmer, toned and rejuvenated, and you can feel it"],
   "intimacy.sensation": ["Feel release, rhythm and sensation working together", "More sensation and easier arousal", "Stronger orgasm training through rhythm and precise control", "Stronger orgasms and confident intimacy"],
   "intimacy.comfort": ["Release guarding before intimacy", "Less tension and easier penetration", "More comfort with controlled strength", "Comfortable, confident intimacy"],
   "intimacy.relaxation": ["Recognize and release hidden clenching", "A pelvic floor that relaxes on command", "Control without holding excess tension", "Comfortable intimacy without constant clenching"],
@@ -206,7 +206,7 @@ export function dashboardSession(goalId, pathway, focusId) {
   const s = (title, seconds, subtitle) => ({ title, seconds, subtitle });
   switch (goalId) {
     case "intimacy":
-      if (!mens && isTightening(focusId)) return s("Tighten and Hold Practice", 42, "Squeeze, lift and hold the muscles that tighten your vaginal canal.");
+      if (!mens && isTightening(focusId)) return s("Tighten and Hold Practice", 42, "Squeeze, lift and hold the muscles that rejuvenate your vaginal canal.");
       return mens
         ? s("Last Longer Control Practice", 42, "Practice slowing down, releasing tension, and choosing when to continue.")
         : s("Relax Before Intimacy", 42, "Release pelvic tension for more comfortable intimacy.");
