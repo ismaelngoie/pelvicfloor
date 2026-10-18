@@ -20,14 +20,14 @@ const GALLERY = [
 ];
 
 const PRESS = [
-  ["CafeMom", "cafe-mom.png"], ["Women’s Health", "womens-health.png"],
-  ["TODAY", "today.png"], ["NPR", "npr.png"],
-  ["USA TODAY", "usa-today.png"], ["Mother Muse", "mother-muse.png"],
+  ["Women’s Health", "womens-health.png"],
+  ["TODAY", "today.png"], ["NPR", "npr-rose.svg"],
+  ["USA TODAY", "usa-today.png"],
 ];
 
 const FAQ = [
   ["What is diastasis recti?", "It is a gap between the two sides of your stomach muscles. It is common after pregnancy. Strength and how you feel when moving matter as well as the size of the gap."],
-  ["What results can I expect in 12 weeks?", "Regular exercise can build core strength. Research on closing the gap has mixed results, and Pelvi has not been tested in a clinical trial. Use 12 weeks to review your progress, rather than as a deadline for healing. Gap closure, a flat stomach and visible results are not guaranteed. Your plan continues for 90 days."],
+  ["What results can I expect in 12 weeks?", "Follow your daily plan and track how your core feels as you go. Everyone progresses differently. If you are not happy with your progress within the first 12 weeks, ask for a full refund under this page’s money-back offer."],
   ["Is the whole session five minutes?", "Five minutes is a simple starting habit. Follow the coach videos, then practice at your own pace. Full sessions can take longer as your plan builds."],
   ["What if I had my baby years ago?", "You can still work on core strength. If the gap has stayed or you have symptoms, a pelvic health physiotherapist can help you understand what you need."],
   ["Can I use this after a C-section?", "Ask your doctor or physiotherapist when to start, especially after a C-section, surgery or birth complications. Stop if exercise causes pain."],
@@ -35,8 +35,53 @@ const FAQ = [
   ["Is this just breathing and kegels?", "No. Start with breathing and gentle core exercises. Then build up to heel slides, marching, bridges and everyday lifting practice. Videos show you the steps, with tips on breathing and when to make a move easier."],
   ["Do I need equipment or an app download?", "Open Pelvi in Safari or Chrome on your phone. No App Store download or special equipment is needed. A mat or comfortable floor space helps. Some exercises use a chair or wall."],
   ["What am I paying for?", `Your Pelvi membership is ${DEFAULT_PRICE_LABEL} ${PRICE_CURRENCY} per ${DEFAULT_PRICE_PERIOD}, automatically renewed until you cancel. It includes your diastasis plan and the member tools shown here. The 90-day plan describes the program length, not a one-time payment.`],
-  ["Can I cancel or get a refund?", "Cancel future payments from You → Subscription → Manage or cancel. For the 7-day money-back guarantee, email contact@pelvi.health within 7 days. You do not need to complete any exercises to ask for a refund. See the full terms below."],
+  ["Can I cancel or get a refund?", "Cancel future payments from You → Subscription → Manage or cancel. This diastasis recti offer includes a 12-week money-back guarantee. If you are not happy with your progress, email contact@pelvi.health within 84 days of your first payment for a full refund of membership fees paid during that period. There is no exercise-completion requirement."],
 ];
+
+function PressMarquee() {
+  return <section className={styles.press} aria-label="Publications covering diastasis recti">
+    <svg className={styles.pressFilters} aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="dr-press-rose" colorInterpolationFilters="sRGB">
+          <feColorMatrix type="saturate" values="0" />
+          <feComponentTransfer>
+            <feFuncR type="gamma" amplitude="1" exponent="3" offset="0" />
+            <feFuncG type="gamma" amplitude="1" exponent="3" offset="0" />
+            <feFuncB type="gamma" amplitude="1" exponent="3" offset="0" />
+          </feComponentTransfer>
+          <feComponentTransfer>
+            <feFuncR type="linear" slope="0.325490" intercept="0.639216" />
+            <feFuncG type="linear" slope="0.729412" intercept="0.215686" />
+            <feFuncB type="linear" slope="0.596078" intercept="0.321569" />
+          </feComponentTransfer>
+        </filter>
+        <filter id="dr-press-pink" colorInterpolationFilters="sRGB">
+          <feColorMatrix type="saturate" values="0" />
+          <feComponentTransfer>
+            <feFuncR type="gamma" amplitude="1" exponent="3" offset="0" />
+            <feFuncG type="gamma" amplitude="1" exponent="3" offset="0" />
+            <feFuncB type="gamma" amplitude="1" exponent="3" offset="0" />
+          </feComponentTransfer>
+          <feComponentTransfer>
+            <feFuncR type="linear" slope="0.062745" intercept="0.901961" />
+            <feFuncG type="linear" slope="0.615686" intercept="0.329412" />
+            <feFuncB type="linear" slope="0.466667" intercept="0.450980" />
+          </feComponentTransfer>
+        </filter>
+      </defs>
+    </svg>
+    <div className={styles.pressHeading}>
+      <p>Diastasis recti, in the news</p>
+    </div>
+    <div className={styles.pressViewport} role="group" aria-label="Publication logos" tabIndex={0}>
+      <div id="dr-press-track" className={styles.pressTrack}>
+        {[0, 1, 2].map(group => <ul key={group} className={`${styles.pressGroup} ${group > 0 ? styles.pressDuplicate : ""}`} aria-hidden={group > 0 ? true : undefined}>
+          {PRESS.map(([name, file]) => <li key={file}><img className={file.endsWith(".svg") ? styles.pressNpr : undefined} src={`/diastasis/press/${file}`} alt={group === 0 ? name : ""} width="196" height="54" loading="lazy" decoding="async" /></li>)}
+        </ul>)}
+      </div>
+    </div>
+  </section>;
+}
 
 function Phone({ src, alt, className = "" }) {
   return <div className={`${styles.phone} ${className}`}><img src={src} alt={alt} width="390" height={src.includes("check-in") ? "556" : "844"} loading="lazy" decoding="async" /></div>;
@@ -70,7 +115,7 @@ export default function DiastasisLanding() {
   return (
     <div ref={scrollRef} className={styles.page}>
       <a href="#dr-product" className={styles.skip}>Skip to the plan</a>
-      <div className={styles.announcement}>Start with 5 minutes a day. Build a habit for your core.</div>
+      <div className={styles.announcement}>Daily coach videos. Your diastasis recti plan.</div>
       <header className={styles.header}>
         <a href="/" className={styles.logo} aria-label="Pelvi Health home">pelvi<span>®</span></a>
         <span className={styles.headerNote}>YOUR DAILY DIASTASIS RECTI PLAN</span>
@@ -83,7 +128,7 @@ export default function DiastasisLanding() {
             {active === 0 ? <div className={styles.overview}>
               <img className={styles.heroPhoto} src="/diastasis/at-home-1200.webp" srcSet="/diastasis/at-home-720.webp 720w, /diastasis/at-home-1200.webp 1200w" sizes="(min-width: 1000px) 50vw, 100vw" alt="A woman practicing relaxed breathing at home" width="1200" height="800" fetchPriority="high" />
               <span className={styles.galleryTag}>DAILY COACH VIDEOS</span>
-              <div className={styles.heroMessage}>5 minutes.<br /><em>A place to start.</em></div>
+              <div className={styles.heroMessage}>5 minutes.<br /><em>For your core.</em></div>
               <Phone src="/diastasis/app-player.webp" alt={GALLERY[1].alt} className={styles.heroPhone} />
             </div> : <div className={`${styles.screenStage} ${active === 2 ? styles.checkInStage : ""}`}>
               <div className={styles.screenLabel}>INSIDE YOUR PELVI PLAN <span>0{active}</span></div>
@@ -101,27 +146,24 @@ export default function DiastasisLanding() {
 
         <div className={styles.offerColumn}>
           <p className={styles.eyebrow}>YOUR DIASTASIS RECTI EXERCISE PLAN</p>
-          <h1 id="dr-title">Rebuild your core.<br /><em>Without surgery.</em></h1>
-          <p className={styles.heroCopy}><strong>Start with 5 minutes a day.</strong><span>Daily coach videos. Simple exercises for your abdominal separation. Full sessions can take longer.</span></p>
+          <h1 id="dr-title">Heal Your Abdominal Separation.<br /><em>Without Surgery.</em></h1>
+          <p className={styles.heroCopy}>Get visible results with 5 minutes daily coach videos. Simple exercises for your abdominal separation.</p>
           <div className={styles.price}><strong>{DEFAULT_PRICE_LABEL}</strong><span>{PRICE_CURRENCY} / {DEFAULT_PRICE_PERIOD}<small>Full Pelvi membership</small></span></div>
           <p className={styles.billingTerms}>Monthly membership. Renews until canceled.</p>
           <ul className={styles.benefits}>
-            <li><Check size={17} /> Guided Core Self-Assessment</li>
-            <li><Check size={17} /> Pressure-Aware Approach</li>
-            <li><Check size={17} /> Track Your Progress for 12 Weeks</li>
+            <li><Check size={17} /> Medical-Grade Assessment</li>
+            <li><Check size={17} /> 5-Minute Daily Plans</li>
+            <li><Check size={17} /> Visible Results in 12 Weeks</li>
           </ul>
           <div ref={offerRef} id="dr-offer" className={styles.purchase}>
             <button type="button" className={styles.primary} onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={18} aria-hidden="true" /></button>
             <p className={styles.socialProof}>Join <strong>10,734+ women</strong> fixing their Diastasis Recti</p>
           </div>
-          <div className={styles.guarantee}><ShieldCheck size={23} /><p><strong>7 days to make sure it’s for you.</strong><span>Money back for any reason. <a href="#dr-refund" onClick={() => { const details = document.getElementById("dr-refund"); if (details) details.open = true; }}>How it works</a></span></p></div>
+          <div className={styles.guarantee}><ShieldCheck size={28} /><p><strong>Your progress. Or your money back.</strong><span>Not happy within 12 weeks? Get a full refund.</span></p></div>
         </div>
       </section>
 
-      <section className={styles.press} aria-label="Publications covering diastasis recti">
-        <p>Diastasis recti, in the news</p>
-        <div className={styles.pressLogos}>{PRESS.map(([name, file]) => <img key={file} src={`/diastasis/press/${file}`} alt={name} width="160" height="48" loading="lazy" />)}</div>
-      </section>
+      <PressMarquee />
       <InlineExercisePreview />
 
       <div className={styles.trustStrip}><span><Smartphone size={17} /> iPhone + Android</span><span><Heart size={17} /> At your own pace</span><span><MonitorPlay size={17} /> TV playback options</span></div>
@@ -148,10 +190,9 @@ export default function DiastasisLanding() {
         <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>INSIDE YOUR MEMBERSHIP</p><h2 id="dr-inside">Daily guidance.<br /><em>Right on your phone.</em></h2></div><p>Open in Safari or Chrome.<br />No App Store download.</p></div>
         <div className={styles.appShowcase}>
           <article><div className={styles.appImage}><Phone src="/diastasis/app-player.webp" alt={GALLERY[1].alt} /></div><span>01 / DAILY COACH VIDEOS</span><h3>See every move.</h3><p>Pause, replay and follow at your own pace.</p></article>
-          <article><div className={`${styles.appImage} ${styles.tvImage}`}><MonitorPlay size={48} aria-hidden="true" /><h3>Your coach.<br />On your TV.</h3><p>AirPlay + Chromecast options<br />on supported devices.</p></div><span>02 / MORE ROOM TO FOLLOW</span><h3>Use your bigger screen.</h3><p>Keep your phone close or watch on a supported TV.</p></article>
+          <article><div className={`${styles.appImage} ${styles.tvImage}`}><img className={styles.tvPhoto} src="/diastasis/tv-with-baby.webp" alt="A mother following a coach on her television while her baby plays nearby" width="1100" height="1100" loading="lazy" decoding="async" /></div><span>02 / MORE ROOM TO FOLLOW</span><h3>Your coach. On your TV.</h3><p>AirPlay and Chromecast options on supported devices.</p></article>
           <article><div className={styles.appImage}><Phone src="/diastasis/app-check-in.webp" alt={GALLERY[2].alt} /></div><span>03 / SIMPLE SELF-ASSESSMENTS</span><h3>Track how your core feels.</h3><p>Keep a record of pressure, control and confidence.</p></article>
         </div>
-        <p className={styles.demoNote}>Actual Pelvi web app, shown with example data. Sessions vary with your plan.</p>
       </section>
 
       <section className={styles.progression} aria-labelledby="dr-progression">
@@ -163,15 +204,15 @@ export default function DiastasisLanding() {
         </ol>
       </section>
 
-      <section className={styles.evidence} aria-labelledby="dr-evidence"><p className={styles.eyebrow}>MAKE TIME FOR YOUR PROGRESS</p><h2 id="dr-evidence">Make the next<br /><em>12 weeks count.</em></h2><p>Practice regularly. Track how movement feels.<br />Give your core a clear plan to follow.</p><details><summary>What does the research say about results? <span>+</span></summary><div><p>A 12-week exercise trial improved strength without closing the gap. Reviews have mixed findings on gap reduction. These studies did not test Pelvi, and they do not guarantee your results. Some people need individual treatment or surgery.</p><a href="https://pubmed.ncbi.nlm.nih.gov/37286390/" target="_blank" rel="noopener noreferrer">Read the 12-week study ↗</a><a href="https://pubmed.ncbi.nlm.nih.gov/41995773/" target="_blank" rel="noopener noreferrer">Read the 2026 research review ↗</a><a href="https://pubmed.ncbi.nlm.nih.gov/41995887/" target="_blank" rel="noopener noreferrer">Read the second 2026 review ↗</a><a href="https://www.nhs.uk/baby/support-and-services/your-post-pregnancy-body/" target="_blank" rel="noopener noreferrer">NHS advice after pregnancy ↗</a></div></details></section>
+      <section className={styles.evidence} aria-labelledby="dr-evidence"><p className={styles.eyebrow}>OUR 12-WEEK MONEY-BACK GUARANTEE</p><h2 id="dr-evidence">Your progress.<br /><em>Or your money back.</em></h2><p>Follow your plan. Make time for your core.<br />Not happy with your progress within 12 weeks? Ask for a full refund.</p><a className={styles.guaranteeLink} href="/diastasis-recti/guarantee">See how the guarantee works <ArrowRight size={15} aria-hidden="true" /></a></section>
 
-      <section className={styles.faq} aria-labelledby="dr-faq"><div><p className={styles.eyebrow}>BEFORE YOU START</p><h2 id="dr-faq">Your questions.<br /><em>Simple answers.</em></h2><p>Need a hand?<br /><a href="mailto:contact@pelvi.health">contact@pelvi.health</a></p></div><div className={styles.faqList}>{FAQ.map(([question, answer], i) => <details key={question} id={i === FAQ.length - 1 ? "dr-refund" : undefined}><summary>{question}<span>+</span></summary><p>{answer} {i === FAQ.length - 1 && <a href="/terms">Read the full terms</a>}</p></details>)}</div></section>
+      <section className={styles.faq} aria-labelledby="dr-faq"><div><p className={styles.eyebrow}>BEFORE YOU START</p><h2 id="dr-faq">Your questions.<br /><em>Simple answers.</em></h2><p>Need a hand?<br /><a href="mailto:contact@pelvi.health">contact@pelvi.health</a></p></div><div className={styles.faqList}>{FAQ.map(([question, answer], i) => <details key={question} id={i === FAQ.length - 1 ? "dr-refund" : undefined}><summary>{question}<span>+</span></summary><p>{answer} {i === FAQ.length - 1 && <a href="/diastasis-recti/guarantee">Read the guarantee terms</a>}</p></details>)}</div></section>
 
-      <section className={styles.finalOffer}><div><p className={styles.eyebrow}>START WITH 5 MINUTES A DAY</p><h2>Your core.<br /><em>Your next step.</em></h2><p>Daily coach videos. A clear plan for diastasis recti.</p><div className={styles.finalPrice}>{DEFAULT_PRICE_LABEL}<span>{PRICE_CURRENCY} / {DEFAULT_PRICE_PERIOD}</span></div><p className={styles.finalTerms}>Monthly membership. Renews until canceled.</p><button type="button" className={styles.primary} onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={18} aria-hidden="true" /></button><p className={styles.finalSocial}>Join 10,734+ women fixing their Diastasis Recti</p></div><div className={styles.finalArt}><Phone src="/diastasis/app-player.webp" alt={GALLERY[1].alt} /><span>DAILY COACH<br /><em>videos.</em></span></div></section>
+      <section className={styles.finalOffer}><div><p className={styles.eyebrow}>DAILY COACH VIDEOS. ONE CLEAR PLAN.</p><h2>Your core.<br /><em>Your next step.</em></h2><p>Daily coach videos. A clear plan for diastasis recti.</p><div className={styles.finalPrice}>{DEFAULT_PRICE_LABEL}<span>{PRICE_CURRENCY} / {DEFAULT_PRICE_PERIOD}</span></div><p className={styles.finalTerms}>Monthly membership. Renews until canceled.</p><button type="button" className={styles.primary} onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={18} aria-hidden="true" /></button><p className={styles.finalSocial}>Join 10,734+ women fixing their Diastasis Recti</p></div><div className={styles.finalArt}><Phone src="/diastasis/app-player.webp" alt={GALLERY[1].alt} /><span>DAILY COACH<br /><em>videos.</em></span></div></section>
 
-      <footer className={styles.footer}><div><a href="/" className={styles.logo}>pelvi<span>®</span></a><p>Core care. In your corner.</p></div><nav aria-label="Landing page footer"><a href="/app">Member log in</a><a href="mailto:contact@pelvi.health">Contact</a><a href="/terms">Terms & refunds</a><a href="/privacy-policy">Privacy</a></nav><p className={styles.suitability}>Recently had a C-section or abdominal surgery, have pain, a known hernia or clinician restrictions? Ask your clinician before starting. Stop if exercise causes pain. Pelvi provides exercise guidance and education, not diagnosis or medical care.</p><p className={styles.copyright}>© {new Date().getFullYear()} Pelvi Health. Lifestyle imagery is illustrative.</p></footer>
+      <footer className={styles.footer}><div><a href="/" className={styles.logo}>pelvi<span>®</span></a><p>Core care. In your corner.</p></div><nav aria-label="Landing page footer"><a href="/app">Member log in</a><a href="mailto:contact@pelvi.health">Contact</a><a href="/diastasis-recti/guarantee">12-week guarantee</a><a href="/terms-of-service">Terms</a><a href="/privacy-policy">Privacy</a></nav><p className={styles.suitability}>Recently had a C-section or abdominal surgery, have pain, a known hernia or clinician restrictions? Ask your clinician before starting. Stop if exercise causes pain. Pelvi provides exercise guidance and education, not diagnosis or medical care.</p><p className={styles.copyright}>© {new Date().getFullYear()} Pelvi Health. Lifestyle imagery is illustrative.</p></footer>
 
-      {!offerVisible && !checkoutOpen && <div className={styles.stickyOffer}><div><strong>{DEFAULT_PRICE_LABEL}<small> / {DEFAULT_PRICE_PERIOD}</small></strong><span>7-day money-back guarantee</span></div><button type="button" onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={17} aria-hidden="true" /></button></div>}
+      {!offerVisible && !checkoutOpen && <div className={styles.stickyOffer}><div><strong>{DEFAULT_PRICE_LABEL}<small> / {DEFAULT_PRICE_PERIOD}</small></strong><span>12-week money-back guarantee</span></div><button type="button" onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={17} aria-hidden="true" /></button></div>}
       {checkoutOpen && <CheckoutSheet open onClose={closeCheckout} goalId={GOAL_ID} successPath={checkoutPath} />}
     </div>
   );

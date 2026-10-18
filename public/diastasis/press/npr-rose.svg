@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 167">
+  <title>NPR</title>
+  <path fill="#A33752" d="M0 0h167v167H0z"/>
+  <path fill="#C74666" d="M167 0h166v167H167z"/>
+  <path fill="#E65473" d="M333 0h167v167H333z"/>
+  <g fill="#F6F1EA" font-family="Arial,Helvetica,sans-serif" font-size="156" font-weight="700" text-anchor="middle">
+    <text x="83" y="128">n</text>
+    <text x="250" y="128">p</text>
+    <text x="416" y="128">r</text>
+  </g>
+</svg>

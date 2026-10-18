@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { SAMPLE_EXERCISE } from "./sampleExercise";
+import { SAMPLE_VIDEO } from "./sampleVideo";
 import styles from "./InlineExercisePreview.module.css";
 
 const NEARBY_PIXELS = 360;
@@ -158,9 +158,9 @@ export default function InlineExercisePreview() {
             <video
               ref={videoRef}
               className={styles.video}
-              src={sourceReady ? `${SAMPLE_EXERCISE.url}#t=0.1` : undefined}
+              src={sourceReady ? `${SAMPLE_VIDEO.url}#t=0.1` : undefined}
               controls loop muted playsInline preload="metadata"
-              aria-label={`${SAMPLE_EXERCISE.title} exercise demonstration`}
+              aria-label={SAMPLE_VIDEO.title}
               aria-describedby={captionId}
               onCanPlay={playWhenVisible}
               onPlay={() => {
@@ -171,13 +171,13 @@ export default function InlineExercisePreview() {
               onPause={() => { if (policyRef.current.automatic) userPausedRef.current = true; }}
               onError={() => setMediaError(true)}
             >
-              Your browser cannot play this video. Use the demonstration link below.
+              Your browser cannot play this video. Use the preview link below.
             </video>
           </div>
-          <figcaption id={captionId} className={styles.caption}>{SAMPLE_EXERCISE.title} <span aria-hidden="true">·</span> Exercise demonstration</figcaption>
+          <figcaption id={captionId} className={styles.caption}>Video preview</figcaption>
         </figure>
         {(reducedMotion || autoplayBlocked) && !mediaError && <p className={styles.note}>Press play when you’re ready.</p>}
-        {mediaError && <p role="status" className={styles.note}>This browser could not load the preview. <a href={SAMPLE_EXERCISE.url} target="_blank" rel="noopener noreferrer">Open the full demonstration</a>.</p>}
+        {mediaError && <p role="status" className={styles.note}>This browser could not load the preview. <a href={SAMPLE_VIDEO.url} target="_blank" rel="noopener noreferrer">Open the video preview</a>.</p>}
       </div>
     </section>
   );
