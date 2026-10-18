@@ -101,7 +101,7 @@ test("HTML, redirects, private responses and errors cannot masquerade as cacheab
 test("install stores only the neutral fallback and does not replace the worker under an open page", async () => {
   const worker = makeWorker(async () => new Response(offlineHTML, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
   await worker.lifecycle("install");
-  assert.deepEqual(worker.requests.map((request) => request.url), [`${ORIGIN}/offline.html`]);
+  assert.deepEqual(worker.requests.map((request) => request.url), [`${ORIGIN}/offline`]);
   assert.equal(worker.requests[0].options.cache, "reload");
   assert.equal(worker.requests[0].options.credentials, "omit");
   assert.equal(worker.stores.get("pelvi-offline-v1").size, 1);
@@ -119,7 +119,7 @@ test("navigation always fetches fresh HTML and never adds account or checkout re
 
 test("offline navigation returns generic help without storing or echoing the requested URL", async () => {
   const worker = makeWorker(async (request) => {
-    if ((typeof request === "string" ? request : request.url).endsWith("/offline.html")) return new Response(offlineHTML, { headers: { "Content-Type": "text/html" } });
+    if ((typeof request === "string" ? request : request.url).endsWith("/offline")) return new Response(offlineHTML, { headers: { "Content-Type": "text/html" } });
     throw new TypeError("network offline");
   });
   await worker.lifecycle("install");

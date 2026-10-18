@@ -13,7 +13,9 @@
  */
 const STATIC_CACHE = "pelvi-static-v1";
 const OFFLINE_CACHE = "pelvi-offline-v1";
-const OFFLINE_URL = new URL("/offline.html", self.location.origin).href;
+// Pages redirects *.html to clean URLs. Fetch the canonical route so the
+// account-free fallback can be cached without accepting redirected responses.
+const OFFLINE_URL = new URL("/offline", self.location.origin).href;
 const MAX_STATIC_ENTRIES = 160;
 const MAX_STATIC_BYTES = 5 * 1024 * 1024;
 const HASHED_NAME = /(?:^|[.\-])[a-f0-9]{8,}(?:[.\-]|$)/i;
