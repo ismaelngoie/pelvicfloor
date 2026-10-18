@@ -32,7 +32,7 @@
     "public/clarity-gate.js": "e3591dc1e9e890dda54407d83c29bc864c51d49bec63b5244eaa97e89b1d673f",
     "lib/postPurchase.js": "69c493274e6fb63315607efd6306f19dcc1b99fc1f692beb5a08b79c8e1c79b1",
     "lib/identity.js": "f793cfa9961e97bb45b2932dbc7c719a432a52027544e5f64d2b7b6c8afaeb88",
-    "lib/firebase.js": "97c51a0d1cba382629500cd28fe8f7c69cfa8dcb163206dc17e15d08268b21f3",
+    "lib/firebase.js": "9f910d26979f01b16d7a5e3e9d60b03b192cf341acb3a5bae8498284c53759f9",
     "lib/openPlan.js": "ef9c40099415ce2efd0269607a8076e3d5fb68187f8be2f7db5fc50e2e672a31",
     "components/auth/ProviderButtons.jsx": "506911cef6ea671654134a5532efe2680e7bb993fbe0f191ed6a90a3925fd203",
     "lib/authProviders.js": "e316a5ab813d195bb5d56a959c457f2a9af12d838755d706535974b33307e9e1",

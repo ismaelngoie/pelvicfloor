@@ -7,10 +7,11 @@ const root = new URL("../", import.meta.url);
 const gateSource = await readFile(new URL("public/clarity-gate.js", root), "utf8");
 const gateURL = `data:text/javascript;base64,${Buffer.from(gateSource).toString("base64")}`;
 const { isTrackedPath } = await import(gateURL);
+const consentURL = `data:text/javascript;base64,${Buffer.from(await readFile(new URL("public/marketing-consent.js", root), "utf8")).toString("base64")}`;
 const analyticsSource = await readFile(new URL("lib/diastasisAnalytics.js", root), "utf8");
 const isolatedSource = analyticsSource
   .replace('"../public/clarity-gate.js"', JSON.stringify(gateURL))
-  .replace('import { readMarketingConsent } from "./marketingConsent.js";', 'const readMarketingConsent = () => ({ analytics: false });');
+  .replace('"./marketingConsent.js"', JSON.stringify(consentURL));
 const { createDiastasisTelemetry, DIASTASIS_CLARITY_EVENTS } = await import(
   `data:text/javascript;base64,${Buffer.from(isolatedSource).toString("base64")}`
 );
@@ -23,7 +24,7 @@ function harness({ ready = true, consent = true, path = "/diastasis-recti", sear
   if (ready) scope.clarity = recorder;
   const telemetry = createDiastasisTelemetry({
     getWindow: () => scope,
-    getConsent: () => ({ analytics }),
+    getConsent: () => ({ decided: true, analytics }),
     schedule: (callback) => { const id = ++nextTimer; timers.set(id, callback); return id; },
     cancel: (id) => timers.delete(id),
   });
@@ -63,6 +64,16 @@ test("declined or undecided analytics never queues events for later consent", ()
   assert.deepEqual(h.calls, []);
   assert.equal(h.telemetry.track("landing_view"), true);
   assert.deepEqual(h.calls, [["set", "landing_page", "diastasis_recti"], ["event", "dr_landing_view"]]);
+});
+
+test("undecided public visits emit only anonymous cookieless events without granting permissions", () => {
+  const calls = [], choice = { decided: false, analytics: false, advertising: false, matching: false, consentId: "" };
+  const scope = { location: { pathname: "/diastasis-recti", search: "" }, clarity: (...args) => calls.push(args) };
+  const telemetry = createDiastasisTelemetry({ getWindow: () => scope, getConsent: () => choice });
+  assert.equal(telemetry.track("landing_view"), true);
+  assert.deepEqual(calls, [["set", "landing_page", "diastasis_recti"], ["event", "dr_landing_view"]]);
+  assert.deepEqual(choice, { decided: false, analytics: false, advertising: false, matching: false, consentId: "" });
+  telemetry.dispose();
 });
 
 test("initial render waits for the existing Clarity stub and sends the view once", () => {
@@ -177,12 +188,12 @@ test("protected sources outside the explicitly authorized tracking changes retai
   // silently accept changes to home, the existing funnel, pricing or billing.
   const authorized = new Set([
     "public/clarity-gate.js", "public/clarity-static.js", "lib/analytics.js", "app/Clarity.jsx", "app/GoogleAds.jsx",
-    "app/layout.js", "app/privacy-policy/page.js", "functions/api/create-payment-intent.js", "lib/checkout.js",
+    "app/layout.js", "app/privacy-policy/page.js", "functions/api/create-payment-intent.js", "lib/checkout.js", "lib/firebase.js",
     "app/diastasis-recti/start/StartClient.jsx", "components/diastasis/DiastasisCheckoutSheet.jsx",
   ]);
   const unchanged = Object.entries(fixture.files).filter(([file]) => !authorized.has(file)).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
-  assert.equal(unchanged.length, 58);
-  assert.equal(createHash("sha256").update(JSON.stringify(unchanged)).digest("hex"), "1f1050f4baa3bf8e8cef547be91f45b538ffed121f6fa56587f97125acc072ec");
+  assert.equal(unchanged.length, 57);
+  assert.equal(createHash("sha256").update(JSON.stringify(unchanged)).digest("hex"), "483ad984fa8cf07917d8f5b36b0110b3d3e420a488a3e8c62b86f756c7df1afd");
   for (const [file, expected] of unchanged) {
     assert.equal(createHash("sha256").update(await readFile(new URL(file, root))).digest("hex"), expected, file);
   }

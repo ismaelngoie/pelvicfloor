@@ -91,7 +91,9 @@ export default function PrivacyPolicy() {
           browser until you pay. Paying sends your email, your name if you gave one, and the goal
           you picked to Stripe. Once you sign in, your sessions, your daily check-ins and your
           messages to Coach Mia are stored in Google Firebase. We record website sessions with
-          Microsoft Clarity, but never inside the member area, and we run the Google Ads tag. The
+          Microsoft Clarity on eligible public pages, using no analytics cookies by default.
+          Your saved opt-out and browser privacy signals are respected. Google and Meta ad
+          measurement require a previously saved advertising permission. The
           email address you type in the checkout is kept whether or not you pay, and we may use it
           to write to you and in advertising audiences — never with any health information attached.
           Your pelvic health answers are sensitive data and we treat them that way. We do not sell
@@ -245,20 +247,26 @@ export default function PrivacyPolicy() {
       {/* ------------------------------------------------------------------ */}
       <h2 id="recording">4. Session recording</h2>
       <p>
-        With your analytics permission, we use <strong>Microsoft Clarity</strong> on this website. Clarity records your visit: the
+        We use <strong>Microsoft Clarity</strong> on eligible public pages of this website.
+        Unless you previously saved permission for analytics storage, it runs in cookieless mode.
+        Opening a page or privacy settings does not grant storage, advertising or email-matching
+        permission. Clarity can record your visit: the
         pages you open, where you move and tap, how far you scroll, and how long you stay. Those
         recordings can be played back like a video, and they are grouped into heatmaps. We use them
         to find the screens where people get stuck.
       </p>
       <h3>Where it records, and where it does not</h3>
       <p>
-        After you allow website analytics, recording is on for the public part of the site: the landing page, the plan builder, the
-        plan, the paywall, the page after you pay, the blog, and these legal pages.
+        Clarity is limited to a named set of public routes, including the landing pages, the plan
+        builder, the plan, the paywall, eligible confirmation pages, the blog and these legal pages.
+        New routes are excluded unless they are explicitly added to that public list.
       </p>
       <p>
         <strong>It is switched off inside the member area.</strong> Nothing on /app is recorded, so
         your daily check-ins, your leak and pain scores, your messages to Coach Mia and your billing
-        details are never in a session replay. Our own admin screens are not recorded either.
+        details are never in a session replay. Our own admin screens and private account setup
+        routes are excluded too. Pages with known sensitive query parameters, such as an email,
+        token or payment intent secret, are excluded before the Clarity tag is loaded.
       </p>
 
       <h3>What is in a recording</h3>
@@ -295,8 +303,11 @@ export default function PrivacyPolicy() {
         </a>.
       </p>
       <p>
-        Choose Essential only or turn Website analytics off in Privacy choices to stop new
-        recordings. You can also block <strong>clarity.ms</strong> in your browser. Your plan,
+        Open Privacy settings and choose Turn off website analytics to stop new recordings.
+        There is no automatic privacy popup or opt-in control. A previously saved analytics
+        denial, Global Privacy Control or Do Not Track keeps Clarity off. We always deny
+        Microsoft advertising storage in this integration. You can also block
+        <strong> clarity.ms</strong> in your browser. Your plan,
         payment and account work without analytics. Email us to ask for deletion of a past
         recording that can be tied to you.
       </p>
@@ -305,7 +316,7 @@ export default function PrivacyPolicy() {
       {/* ------------------------------------------------------------------ */}
       <h2 id="advertising">5. Advertising</h2>
       <p>
-        With your ad measurement permission, this site can load the <strong>Google Ads</strong>
+        With your previously saved ad measurement permission, this site can load the <strong>Google Ads</strong>
         tag on public pages and the <strong>Meta Pixel</strong> on eligible general pages.
         These tools help measure which ads bring visits and purchases. They can set advertising
         cookies. We do not load these tags inside the member area, admin screens or payment-secret
@@ -336,8 +347,9 @@ export default function PrivacyPolicy() {
         withdrawing permission also stops future server purchase reports.
       </p>
       <p>
-        Email matching is off unless the integration is eligible and you separately choose
-        Purchase matching in Privacy choices. If enabled, we normalize your verified receipt
+        Email matching is off by default. It is used only if the integration is eligible and
+        your previously saved, separate purchase-matching permission remains active. The current
+        privacy settings can withdraw permissions and do not grant new ones. If enabled, we normalize your verified receipt
         email and hash it with SHA-256 before sending it to Meta. Meta can compare the hash to
         its users to match a purchase to an ad. Hashing is a matching method, not anonymization.
         This integration does not upload abandoned-checkout email lists.
@@ -348,7 +360,7 @@ export default function PrivacyPolicy() {
         Global Privacy Control and Do Not Track signals keep the new advertising integration off.
       </p>
       <p>
-        You can turn future ad measurement off through Privacy choices. This does not remove
+        You can turn future ad measurement or purchase matching off through Privacy settings. This does not remove
         events already delivered to an advertising platform. To request deletion or help with
         a past event, email <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a>.
       </p>
@@ -372,11 +384,13 @@ export default function PrivacyPolicy() {
         </li>
         <li>
           <strong>Microsoft Clarity cookies</strong> (named <strong>_clck</strong> and{" "}
-          <strong>_clsk</strong>), which tie the pages of one visit together.
+          <strong>_clsk</strong>), which tie the pages of one visit together, are permitted only
+          under a previously saved analytics-storage permission. By default, Clarity is sent a
+          denied analytics-storage signal and runs without these analytics cookies.
         </li>
         <li>
           <strong>Google Ads cookies</strong> (including <strong>_gcl_au</strong>), which measure
-          whether an ad led to a signup.
+          whether an ad led to a signup, are used only with advertising permission.
         </li>
         <li>
           <strong>Meta advertising cookies</strong> (such as <strong>_fbp</strong> and <strong>_fbc</strong>),
@@ -384,8 +398,10 @@ export default function PrivacyPolicy() {
         </li>
         <li>
           <strong>Your privacy choices.</strong> Stored for up to 180 days with a random
-          first-party consent code. An essential denial cookie helps retain a withdrawal
-          if your browser blocks local storage. These choices do not contain health answers.
+          first-party consent code when you make an explicit choice. An essential denial cookie
+          helps retain a withdrawal if your browser blocks local storage. A visit or opening
+          Privacy settings does not create a consent code or save a new permission. These choices
+          do not contain health answers.
         </li>
         <li>
           <strong>Stripe cookies</strong> on the checkout, which Stripe uses to detect fraud.
@@ -467,9 +483,10 @@ export default function PrivacyPolicy() {
           </a>
         </li>
         <li>
-          <strong>Meta</strong>, but only if and when we upload an advertising audience as described
-          in <a href="#advertising">section 5</a>. It would receive a scrambled form of your email
-          address and nothing else. There is no Meta tracking pixel anywhere on this site today.
+          <strong>Meta</strong> receives eligible advertising measurement only while the required
+          advertising permission is active. A hashed receipt email is included only under the
+          separate matching conditions in <a href="#advertising">section 5</a>. We do not send
+          health answers or private member activity to Meta.
         </li>
         <li>
           <strong>Microsoft</strong> runs Clarity, described in <a href="#recording">section 4</a>.
@@ -674,11 +691,12 @@ export default function PrivacyPolicy() {
 //     Ads reviewers look for one. Give me the state of registration and the
 //     business address and I will add a line to section 1.
 //
-//  2. CONSENT CONTROLS. MarketingChoices and the canonical marketing-consent
-//     helper now gate Next Clarity/Google/Meta loading. Static Clarity uses the
-//     same stored analytics permission. Clarity consentv2 grants analytics
-//     only; Microsoft Ads storage remains denied. Keep these controls and the
-//     notice in sections 4 and 5 in sync with later integrations.
+//  2. PRIVACY CONTROLS. MarketingChoices opens only on an explicit request and
+//     can only withdraw permissions. The canonical clarityConsentPolicy permits
+//     cookieless Clarity on eligible public routes for an undecided visit, while
+//     saved denials, GPC and DNT disable it. Only a prior explicit analytics allow
+//     grants analytics storage. Google/Meta consent gates remain separate and
+//     Microsoft Ads storage remains denied. Keep sections 4 and 5 in sync.
 //
 //  2b. SECTION 4 IS A DESCRIPTION OF lib/analytics.js. Every specific claim in
 //     it maps to a line of that file: the allowlist, data-clarity-mask on the

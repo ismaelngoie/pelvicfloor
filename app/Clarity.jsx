@@ -42,38 +42,89 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-import { CLARITY_PROJECT_ID, isTrackedPath, stopClarity } from "@/lib/analytics";
-import { MARKETING_CONSENT_EVENT, marketingPersistenceBlocked, readMarketingConsent, syncMarketingConsent } from "@/lib/marketingConsent";
+import { CLARITY_PROJECT_ID, isTrackedPath } from "@/lib/analytics";
+import { MARKETING_CONSENT_EVENT, MARKETING_CONSENT_KEY, clarityConsentPolicy,
+  marketingPersistenceBlocked, readMarketingConsent, syncMarketingConsent } from "@/lib/marketingConsent";
 import { deferMarketingReload, markMarketingNavigationStarted } from "@/lib/marketingNavigation";
+import { stopClarityRecording } from "../public/clarity-stop.js";
 
-// Module scope, so it is per document rather than per mount. A hard navigation
-// gives a fresh module and therefore a fresh decision, which is exactly the
-// behaviour layers 2 and 3 depend on.
-let injected = false;
-let bailedOut = false;
+export function createClarityController({ scope = window, doc = document,
+  getConsent = readMarketingConsent, getPolicy = clarityConsentPolicy,
+  syncConsent = syncMarketingConsent, persistenceBlocked = marketingPersistenceBlocked,
+  tracked = isTrackedPath, deferReload = deferMarketingReload,
+  markNavigation = markMarketingNavigationStarted,
+} = {}) {
+  let injected = false;
+  let stopped = false;
+  let storageMode = null;
+  let transition = 0;
+  let currentPath = scope.location.pathname;
+  const call = (...args) => { try { scope.clarity?.(...args); } catch { /* Analytics never blocks the page. */ } };
+  const publicDocument = () => tracked(currentPath, scope.location.search);
+  const snapshot = (choice) => [choice.decided, choice.consentId, choice.decidedAt, choice.analytics, choice.advertising, choice.matching];
 
-function injectTag() {
-  // Clarity's own snippet, kept recognisable on purpose so it can be diffed
-  // against the one Microsoft hands out. The first line is what makes every
-  // call in lib/analytics.js safe before the CDN answers: window.clarity is a
-  // queue until the real implementation replaces it.
-  window.clarity =
-    window.clarity ||
-    function clarityQueue() {
-      (window.clarity.q = window.clarity.q || []).push(arguments);
+  function inject(policy) {
+    scope.clarity = scope.clarity || function clarityQueue() {
+      (scope.clarity.q = scope.clarity.q || []).push(arguments);
     };
-  // Replay consent is separate from permission to share replay data with
-  // Microsoft Ads. This integration grants analytics only.
-  window.clarity("consentv2", { analytics_Storage: "granted", ad_Storage: "denied" });
+    // Undecided visits use no cookie storage; only an existing explicit saved
+    // analytics permission can grant it. Microsoft Ads sharing stays denied.
+    call("consentv2", { analytics_Storage: policy.analyticsStorage, ad_Storage: "denied" });
+    storageMode = policy.analyticsStorage;
+    const script = doc.createElement("script");
+    script.async = true;
+    script.src = `https://www.clarity.ms/tag/${CLARITY_PROJECT_ID}`;
+    script.onerror = () => {};
+    doc.head.appendChild(script);
+    injected = true;
+  }
 
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.clarity.ms/tag/${CLARITY_PROJECT_ID}`;
-  // An ad blocker will refuse this request. That is fine and expected: the
-  // queue above absorbs every call and nothing on the page notices.
-  script.onerror = () => {};
-  document.head.appendChild(script);
+  function scheduleFreshDocument(choice, wasPublic) {
+    const generation = ++transition;
+    const expected = snapshot(choice);
+    const enabled = getPolicy(choice).enabled;
+    const safe = () => !persistenceBlocked() && generation === transition && publicDocument() === wasPublic
+      && snapshot(getConsent()).every((value, index) => value === expected[index])
+      && getPolicy(getConsent()).enabled === enabled;
+    const reload = () => {
+      if (wasPublic) deferReload({ document: doc, window: scope, canReload: safe });
+      else if (safe()) { markNavigation(doc); scope.location.replace(scope.location.href); }
+    };
+    if (!wasPublic) { reload(); return; }
+    try { Promise.resolve(syncConsent(choice)).catch(() => {}).finally(reload).catch(() => {}); }
+    catch { /* Keep the recorder stopped if optional sync cannot run. */ }
+  }
+
+  return {
+    applyChoice(pathname, event) {
+      if (event?.type === "storage" && event.key !== null && event.key !== MARKETING_CONSENT_KEY) return;
+      currentPath = pathname || scope.location.pathname;
+      try {
+        const choice = getConsent();
+        const policy = getPolicy(choice);
+        const isPublic = publicDocument();
+        if (isPublic && policy.enabled && !stopped) {
+          if (!injected) inject(policy);
+          else if (storageMode !== policy.analyticsStorage) {
+            call("consentv2", { analytics_Storage: policy.analyticsStorage, ad_Storage: "denied" });
+            storageMode = policy.analyticsStorage;
+          }
+          return;
+        }
+        if (!injected) return;
+        if (!stopped) {
+          stopClarityRecording(scope, doc); stopped = true;
+        }
+        scheduleFreshDocument(choice, isPublic);
+      } catch {
+        stopClarityRecording(scope, doc); stopped = true;
+      }
+    },
+  };
 }
+
+// One lifecycle per document, including React development remounts.
+let lifecycle;
 
 export default function Clarity() {
   const pathname = usePathname();
@@ -81,39 +132,8 @@ export default function Clarity() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // window.location.search rather than useSearchParams(). useSearchParams in
-    // a statically exported route forces the whole subtree into a client-side
-    // bailout and needs its own Suspense boundary; this reads the same value
-    // after mount with none of that. The gate is a client-side decision either
-    // way, because nothing is injected during prerender.
-    const applyChoice = () => {
-      const publicDocument = isTrackedPath(pathname || window.location.pathname, window.location.search);
-      const choice = readMarketingConsent();
-      const allowed = publicDocument && choice.analytics;
-      if (allowed) {
-        if (!injected) {
-          injected = true;
-          injectTag();
-        }
-        return;
-      }
-      if (!injected) return;
-      try { window.clarity?.("consentv2", { analytics_Storage: "denied", ad_Storage: "denied" }); } catch { /* A blocked tag does not affect the page. */ }
-      stopClarity();
-      if (marketingPersistenceBlocked()) return;
-      if (bailedOut && publicDocument) return;
-      bailedOut = true;
-      // A fresh document discards the live recorder after withdrawal or entry
-      // into a private route. It will not inject again without permission.
-      const safe = () => !marketingPersistenceBlocked();
-      if (publicDocument && !choice.analytics) void syncMarketingConsent(choice).finally(() => {
-        deferMarketingReload({ canReload: safe });
-      });
-      else {
-        markMarketingNavigationStarted();
-        if (safe()) window.location.replace(window.location.href);
-      }
-    };
+    if (!lifecycle) lifecycle = createClarityController();
+    const applyChoice = (event) => lifecycle.applyChoice(pathname || window.location.pathname, event);
     applyChoice();
     window.addEventListener(MARKETING_CONSENT_EVENT, applyChoice);
     window.addEventListener("storage", applyChoice);
