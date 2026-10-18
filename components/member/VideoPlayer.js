@@ -13,6 +13,10 @@
 // a video counts at 80 percent watched, a day counts at 60 percent of its
 // videos. Change them there, not here.
 
+import { useMember } from "./MemberProvider";
+import { SessionFeedback } from "./MemberTools";
+import ExercisePractice from "./ExercisePractice";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Check, ChevronLeft, ChevronRight, FlipHorizontal2, Heart,
@@ -20,6 +24,11 @@ import {
 } from "lucide-react";
 import { DAY_COMPLETION_THRESHOLD, VIDEO_COMPLETION_THRESHOLD } from "@/lib/program";
 import { durationLabel } from "@/lib/library";
+import { exerciseGuidance, exerciseTransition } from "@/lib/exercisePrescription";
+import {
+  addPlaybackDelta, allowsPlaybackShortcut, createPlaybackLedger, finalizePlaybackSession, markExerciseComplete,
+  playbackEntry, playbackSummary, resolveExercisePractice, retryPlaybackEvent, takePlaybackEvent,
+} from "@/lib/playbackLedger";
 
 const SKIP_SECONDS = 10;
 
@@ -44,6 +53,15 @@ function clockLabel(seconds) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function containModalTab(event) {
+  if (event.key !== "Tab") return;
+  const nodes = [...event.currentTarget.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), [tabindex="0"]')];
+  const first = nodes[0];
+  const last = nodes[nodes.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+}
+
 /**
  * @param {object}   props
  * @param {object[]} props.videos    catalog entries, in playing order
@@ -63,22 +81,30 @@ export default function VideoPlayer({
   title = "Your session",
   subtitle = "",
   dayContext = null,
+  prescriptionDay = 1,
+  playbackContext = "library",
   onClose,
   onVideoWatched,
   onDayComplete,
   onToggleSaved,
   savedIds = [],
 }) {
+  const { prescriptionForVideo, shouldOpenCoachMode, member, goalId, focusId, difficulty, logSessionComplete } = useMember();
+  const [practice, setPractice] = useState(null);
   const videoRef = useRef(null);
   const shellRef = useRef(null);
   const lastTimeRef = useRef(0);
-  const watchRef = useRef(new Map()); // index -> { seconds, logged }
-  const dayLoggedRef = useRef(false);
+  const ledgerRef = useRef(createPlaybackLedger(videos.length));
+  const watchRef = useRef(ledgerRef.current.entries);
+  const eventPromisesRef = useRef(new Map());
+  const finishInFlightRef = useRef(false);
+  const autoCoachOpenedRef = useRef(false);
   const hideTimerRef = useRef(null);
 
   const [index, setIndex] = useState(() =>
     Math.min(Math.max(startIndex, 0), Math.max(videos.length - 1, 0))
   );
+  const [playbackRevision, setPlaybackRevision] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [waiting, setWaiting] = useState(true);
   const [time, setTime] = useState(0);
@@ -95,64 +121,55 @@ export default function VideoPlayer({
   // Whether onDayComplete actually fired. The completion screen is not allowed
   // to say "Day 4 is done" unless a day was really banked.
   const [dayCredited, setDayCredited] = useState(false);
+  const [savingCompletion, setSavingCompletion] = useState(false);
+  const [completionError, setCompletionError] = useState("");
+  const [transition, setTransition] = useState(null);
+  const [coachMode, setCoachMode] = useState(false);
 
   const reduceMotion = usePrefersReducedMotion();
   const current = videos[index] || null;
+  const prescription = current ? prescriptionForVideo?.(current, { programDay: prescriptionDay }) : null;
   const isLast = index >= videos.length - 1;
   const savedSet = useMemo(() => new Set(savedIds), [savedIds]);
+  const guidance = useMemo(() => exerciseGuidance(current, { goalId }), [current, goalId]);
+  const shouldHoldForCoach = shouldOpenCoachMode && !autoCoachOpenedRef.current;
+  useEffect(() => {
+    if (shouldOpenCoachMode && !finished && !autoCoachOpenedRef.current) {
+      autoCoachOpenedRef.current = true;
+      videoRef.current?.pause();
+      setPlaying(false);
+      setCoachMode(true);
+    }
+  }, [shouldOpenCoachMode, finished]);
 
   // --- Progress bookkeeping ------------------------------------------------
 
-  // seconds       real playback time, not timeline position
-  // logged        the 80 percent event has been written
-  // partialLogged she left early and the partial event has been written
-  const bucket = useCallback((i) => {
-    const map = watchRef.current;
-    if (!map.has(i)) map.set(i, { seconds: 0, logged: false, partialLogged: false });
-    return map.get(i);
+  const bucket = useCallback((i) => playbackEntry(ledgerRef.current, i), []);
+  const totalSecondsWatched = useCallback(() => playbackSummary(ledgerRef.current).seconds, []);
+
+  // Completion and persistence are separate. A demonstration can qualify at
+  // 80%, while its immutable history event waits for all guided work to end.
+  const markWatched = useCallback((i) => {
+    markExerciseComplete(ledgerRef.current, i);
+    setWatchedCount(playbackSummary(ledgerRef.current).completed);
   }, []);
 
-  const totalSecondsWatched = useCallback(() => {
-    let total = 0;
-    for (const entry of watchRef.current.values()) total += entry.seconds;
-    return total;
-  }, []);
-
-  /**
-   * A program day counts when 60 percent of its videos counted, and never on
-   * any other terms. There is deliberately no override for "she reached the end
-   * of the playlist": WorkoutPlayerCore.finishSession only calls
-   * ProgramEngine.completeDay when sessionMeetsCompletionBar is true, so
-   * skipping four exercises and letting the fifth run out must not bank a day
-   * against the 90-day guarantee here either.
-   */
-  const maybeCompleteDay = useCallback(() => {
-    if (!dayContext?.day || dayLoggedRef.current) return;
-    const done = [...watchRef.current.values()].filter((e) => e.logged).length;
-    const ratio = videos.length ? done / videos.length : 0;
-    if (ratio < DAY_COMPLETION_THRESHOLD) return;
-    dayLoggedRef.current = true;
-    setDayCredited(true);
-    onDayComplete?.({ day: dayContext.day, secondsWatched: totalSecondsWatched() });
-  }, [dayContext?.day, videos.length, onDayComplete, totalSecondsWatched]);
-
-  /** Fires once per video, the moment it crosses the 80 percent line. */
-  const markWatched = useCallback(
-    (i) => {
-      const entry = bucket(i);
-      if (entry.logged) return;
-      entry.logged = true;
-      setWatchedCount([...watchRef.current.values()].filter((e) => e.logged).length);
-      onVideoWatched?.({
-        video: videos[i],
-        secondsWatched: entry.seconds,
-        completed: true,
-        programDay: dayContext?.day ?? null,
-      });
-      maybeCompleteDay();
-    },
-    [bucket, videos, onVideoWatched, dayContext?.day, maybeCompleteDay]
-  );
+  const flushVideoEvent = useCallback((i, { partial = false } = {}) => {
+    if (eventPromisesRef.current.has(i)) return eventPromisesRef.current.get(i);
+    const event = takePlaybackEvent(ledgerRef.current, i, { partial });
+    if (!event || !videos[i]) return Promise.resolve();
+    const pending = (async () => {
+      try {
+        const result = await onVideoWatched?.({ video: videos[i], ...event,
+          programDay: playbackContext === "library" ? null : prescriptionDay, playbackContext,
+        });
+        if (result === false) retryPlaybackEvent(ledgerRef.current, i);
+      } catch { retryPlaybackEvent(ledgerRef.current, i); }
+      finally { eventPromisesRef.current.delete(i); }
+    })();
+    eventPromisesRef.current.set(i, pending);
+    return pending;
+  }, [videos, onVideoWatched, prescriptionDay, playbackContext]);
 
   // --- Element wiring ------------------------------------------------------
 
@@ -171,12 +188,13 @@ export default function VideoPlayer({
     el.load();
     el.volume = volume;
     el.muted = muted;
+    if (shouldHoldForCoach || coachMode) return;
     const attempt = el.play();
     if (attempt?.catch) attempt.catch(() => setPlaying(false));
     // volume and muted are applied, not depended on: their own effect below
     // handles a mid-clip change, and re-running this one would restart playback.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
+  }, [index, playbackRevision]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -196,7 +214,7 @@ export default function VideoPlayer({
     // seek, a loop restart or a nudge of the scrubber while paused is not five
     // minutes of exercise.
     const entry = bucket(index);
-    if (!el.paused && delta > 0 && delta < 2) entry.seconds += delta;
+    addPlaybackDelta(ledgerRef.current, index, delta, !el.paused);
     setTime(now);
     const total = el.duration;
     // 80 percent of the clip WATCHED, not 80 percent of the way along the
@@ -207,34 +225,55 @@ export default function VideoPlayer({
     }
   }, [bucket, index, markWatched]);
 
-  const goTo = useCallback(
-    (nextIndex) => {
-      if (nextIndex < 0 || nextIndex >= videos.length) return;
-      setFinished(false);
-      setIndex(nextIndex);
-    },
-    [videos.length]
-  );
+  const goTo = useCallback((nextIndex) => {
+    if (nextIndex < 0 || nextIndex >= videos.length) return;
+    if (nextIndex !== index) void flushVideoEvent(index);
+    setPractice(null);
+    setTransition(null);
+    setFinished(false);
+    if (nextIndex === index) setPlaybackRevision((value) => value + 1);
+    setIndex(nextIndex);
+  }, [videos.length, index, flushVideoEvent]);
 
-  /**
-   * End the playlist and show the completion screen. Never a bare
-   * `setFinished` anywhere else, so there is exactly one way out of a playlist.
-   *
-   * `credit` is true only when the last clip actually played to its end, which
-   * counts that one exercise. The DAY still has to earn itself on the 60 percent
-   * rule either way.
-   */
-  const finishSession = useCallback(
-    ({ credit = false } = {}) => {
-      if (credit) markWatched(index);
-      maybeCompleteDay();
-      videoRef.current?.pause();
-      setPlaying(false);
-      setFinished(true);
-      setChromeVisible(true);
-    },
-    [markWatched, index, maybeCompleteDay]
-  );
+  // This explicit finish path is the sole place that can bank a program day.
+  const finishSession = useCallback(async ({ credit = false } = {}) => {
+    if (credit) markWatched(index);
+    videoRef.current?.pause();
+    setPlaying(false);
+    setFinished(true);
+    setChromeVisible(true);
+    setCompletionError("");
+    const ledger = ledgerRef.current;
+    const summary = playbackSummary(ledger);
+    setWatchedCount(summary.completed);
+    if (!summary.qualifies || ledger.finalizing || finishInFlightRef.current) return;
+    finishInFlightRef.current = true;
+    setSavingCompletion(true);
+    try {
+      await Promise.all([...ledger.entries.keys()].map((i) => flushVideoEvent(i)));
+      const result = await finalizePlaybackSession(ledger, {
+        day: dayContext?.day ?? null,
+        onDayComplete,
+        requireSessionRecord: !dayContext?.day && ["program", "continuation", "replay"].includes(playbackContext),
+        onSessionComplete: (value) => logSessionComplete?.({
+          secondsWatched: value.seconds, completedCount: value.completed, videoCount: videos.length,
+          programDay: playbackContext === "library" ? null : prescriptionDay, playbackContext,
+        }),
+      });
+      setDayCredited(result.credited);
+      if (result.saveFailed) setCompletionError(`Your exercise is finished, but your ${dayContext?.day ? "day" : "session"} could not be saved. Try saving again.`);
+    } finally { finishInFlightRef.current = false; setSavingCompletion(false); }
+  }, [index, markWatched, flushVideoEvent, dayContext?.day, onDayComplete, logSessionComplete,
+    videos.length, playbackContext, prescriptionDay]);
+
+  const advanceAfterExercise = useCallback(() => {
+    void flushVideoEvent(index);
+    if (isLast) { void finishSession(); return; }
+    const next = exerciseTransition(current, videos[index + 1], { member, goalId, focusId, difficulty, programDay: prescriptionDay });
+    videoRef.current?.pause();
+    setPlaying(false);
+    setTransition({ ...next, nextIndex: index + 1, remaining: next.seconds });
+  }, [flushVideoEvent, index, isLast, finishSession, current, videos, member, goalId, focusId, difficulty, prescriptionDay]);
 
   const handleEnded = useCallback(() => {
     const el = videoRef.current;
@@ -244,14 +283,31 @@ export default function VideoPlayer({
       el.play().catch(() => {});
       return;
     }
-    // Reaching the end is completion whatever the arithmetic says.
-    if (isLast) {
-      finishSession({ credit: true });
+    markWatched(index);
+    if (prescription?.offersGuidedPractice && !bucket(index).practiceResolved) {
+      setPlaying(false);
+      setPractice({ index });
       return;
     }
-    markWatched(index);
-    goTo(index + 1);
-  }, [looping, markWatched, index, isLast, finishSession, goTo]);
+    advanceAfterExercise();
+  }, [looping, markWatched, index, prescription, bucket, advanceAfterExercise]);
+
+  const finishPractice = useCallback((seconds = 0) => {
+    if (!practice || practice.index !== index) return;
+    resolveExercisePractice(ledgerRef.current, index, seconds);
+    setWatchedCount(playbackSummary(ledgerRef.current).completed);
+    setPractice(null);
+    advanceAfterExercise();
+  }, [practice, index, advanceAfterExercise]);
+
+  useEffect(() => {
+    if (!transition) return undefined;
+    if (transition.remaining <= 0) { goTo(transition.nextIndex); return undefined; }
+    const timer = setTimeout(() => {
+      setTransition((value) => value ? { ...value, remaining: document.hidden ? value.remaining : value.remaining - 1 } : value);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [transition, goTo]);
 
   const togglePlay = useCallback(() => {
     const el = videoRef.current;
@@ -285,20 +341,9 @@ export default function VideoPlayer({
 
   const close = useCallback(() => {
     videoRef.current?.pause();
-    // Anything part-watched still counts toward her minutes, so leaving early
-    // is not the same as never having started.
-    const entry = watchRef.current.get(index);
-    if (entry && !entry.logged && !entry.partialLogged && entry.seconds > 3) {
-      entry.partialLogged = true;
-      onVideoWatched?.({
-        video: videos[index],
-        secondsWatched: entry.seconds,
-        completed: false,
-        programDay: dayContext?.day ?? null,
-      });
-    }
+    for (const i of ledgerRef.current.entries.keys()) void flushVideoEvent(i, { partial: true });
     onClose?.();
-  }, [index, videos, onVideoWatched, dayContext?.day, onClose]);
+  }, [flushVideoEvent, onClose]);
 
   // --- Keyboard ------------------------------------------------------------
 
@@ -309,8 +354,11 @@ export default function VideoPlayer({
       const key = event.key.toLowerCase();
       const handled = () => { event.preventDefault(); event.stopPropagation(); };
 
+      if (practice) { if (event.key === "Escape") { handled(); setPractice(null); } return; }
+      if (coachMode) { if (event.key === "Escape") { handled(); setCoachMode(false); } return; }
+      if (transition) { if (event.key === "Escape") { handled(); setTransition(null); } return; }
       if (event.key === "Escape") { handled(); close(); return; }
-      if (finished) return;
+      if (!allowsPlaybackShortcut({ practice, transition, finished, saving: savingCompletion, tagName: tag, isContentEditable: event.target?.isContentEditable })) return;
 
       switch (key) {
         case " ":
@@ -329,7 +377,7 @@ export default function VideoPlayer({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [close, finished, togglePlay, skip, isLast, index, goTo]);
+  }, [close, finished, togglePlay, skip, isLast, index, goTo, practice, coachMode, transition, savingCompletion]);
 
   // --- Chrome auto-hide ----------------------------------------------------
 
@@ -350,7 +398,7 @@ export default function VideoPlayer({
   useEffect(() => {
     let sentinel = null;
     let cancelled = false;
-    if (playing && typeof navigator !== "undefined" && navigator.wakeLock?.request) {
+    if ((playing || practice) && typeof navigator !== "undefined" && navigator.wakeLock?.request) {
       navigator.wakeLock
         .request("screen")
         .then((lock) => { if (cancelled) lock.release().catch(() => {}); else sentinel = lock; })
@@ -360,7 +408,7 @@ export default function VideoPlayer({
       cancelled = true;
       sentinel?.release?.().catch(() => {});
     };
-  }, [playing]);
+  }, [playing, practice]);
 
   // Focus the panel so the keyboard map works without a click first.
   useEffect(() => { shellRef.current?.focus(); }, []);
@@ -386,12 +434,27 @@ export default function VideoPlayer({
       onTouchStart={wakeChrome}
     >
       <style>{PLAYER_CSS}</style>
+      {coachMode && <div onKeyDown={containModalTab} role="dialog" aria-modal="true" aria-label="Coach Mode" className="fixed inset-0 z-[75] overflow-y-auto bg-atelier-paper px-5 py-6 text-atelier-ink"><div className="mx-auto max-w-xl"><button type="button" autoFocus onClick={() => setCoachMode(false)} className="min-h-11 px-2 font-semibold text-atelier-rosewood">Back to exercise</button><p className="mt-4 text-xs uppercase tracking-widest text-atelier-rosewood">Coach Mode</p><h2 className="mt-2 font-serif text-[32px]">{current?.title}</h2><p className="mt-3 text-sm text-atelier-ink2">{prescription?.doseLine} · {prescription?.restLine}</p><p className="mt-2 text-sm text-atelier-ink2">{prescription?.setup}</p>{[["Why this helps", guidance.purpose], ["What to feel", guidance.feel], ["How to breathe", guidance.breathe], ["What to avoid", guidance.avoid], ["Make it easier", guidance.easier]].map(([label, text]) => <section key={label} className="mt-4 rounded-2xl border border-atelier-line bg-atelier-card p-4"><h3 className="font-semibold">{label}</h3><p className="mt-2 text-[15px] leading-relaxed text-atelier-ink2">{text}</p></section>)}<button type="button" onClick={() => setCoachMode(false)} className="my-6 min-h-[52px] w-full rounded-full bg-atelier-rosewood font-semibold text-white">Continue Exercise</button></div></div>}
+      {practice && prescription && <ExercisePractice key={`${current?.id}-${index}`} video={current} prescription={prescription}
+        onClose={() => setPractice(null)}
+        onWatch={() => { setPractice(null); const el = videoRef.current; if (el) { el.currentTime = 0; lastTimeRef.current = 0; el.play().catch(() => {}); } }}
+        onSkip={() => finishPractice(0)}
+        onFinish={finishPractice} />}
+      {transition && <div onKeyDown={containModalTab} role="dialog" aria-modal="true" aria-label="Next exercise" className="fixed inset-0 z-[65] flex flex-col items-center justify-center bg-black/95 px-6 text-center text-white">
+        <p className="text-xs uppercase tracking-widest text-white/60">Up next</p><h2 className="mt-3 text-2xl font-semibold">{videos[transition.nextIndex]?.title}</h2>
+        <p className="mt-4 max-w-md text-base text-white/80">{transition.instruction}</p><p aria-live="off" className="my-6 text-6xl font-semibold tabular-nums">{transition.remaining}</p>
+        <button type="button" autoFocus onClick={() => goTo(transition.nextIndex)} className="min-h-[52px] w-full max-w-xs rounded-full bg-ios-pink px-6 font-semibold">Start now</button>
+        <button type="button" onClick={() => setTransition((value) => value ? { ...value, remaining: Math.min(30, value.remaining + 10), instruction: "Take your time. Start when you feel set up." } : value)} className="mt-3 min-h-[44px] px-6 text-sm text-white/80">Give me 10 more seconds</button>
+      </div>}
 
       {finished ? (
         <CompletionScreen
           title={title}
           dayContext={dayContext}
           dayCredited={dayCredited}
+          saving={savingCompletion}
+          error={completionError}
+          onRetrySave={() => finishSession()}
           videoCount={videos.length}
           watchedCount={watchedCount}
           seconds={totalSecondsWatched()}
@@ -402,8 +465,7 @@ export default function VideoPlayer({
             // exercises she had already done had to be redone before the day
             // could reach the 60 percent bar. markWatched is idempotent per
             // index, so nothing is logged twice either.
-            setFinished(false);
-            setIndex(0);
+            goTo(0);
           }}
           onClose={close}
         />
@@ -515,6 +577,9 @@ export default function VideoPlayer({
                 longer trip for the mouse, and the transport ends up nowhere
                 near the video it controls. */}
             <div className="mx-auto w-full max-w-[1100px]">
+            {prescription && (prescription.offersGuidedPractice ? <button type="button" onClick={() => { videoRef.current?.pause(); setPlaying(false); setPractice({ index }); }} className="mx-4 mt-3 flex w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-left" aria-label={`Exercise plan, ${prescription.doseLine}. ${prescription.setup}`}><span className="flex-1"><span className="block text-[15px] font-semibold">{prescription.doseLine}</span><span className="mt-1 block text-xs text-white/70">{prescription.setup}</span></span><Play className="h-5 w-5 shrink-0" aria-hidden="true" /></button>
+              : <div className="mx-4 mt-3 rounded-2xl border border-white/20 bg-white/10 px-4 py-3"><p className="text-[15px] font-semibold">{prescription.doseLine}</p><p className="mt-1 text-xs text-white/70">{prescription.setup}</p></div>)}
+            {prescription && <button type="button" onClick={() => { videoRef.current?.pause(); setPlaying(false); setCoachMode(true); }} className="mx-4 mt-2 min-h-[44px] rounded-full border border-white/20 px-5 text-sm font-semibold text-white">Coach Mode: what to feel</button>}
             {/* Scrubber */}
             <div className="px-4 pt-2">
               <input
@@ -817,25 +882,27 @@ function PlaybackProblem({ kind, isLast, url, onRetry, onSkip, onClose }) {
  */
 function CompletionScreen({
   title, dayContext, dayCredited, videoCount, watchedCount, seconds, reduceMotion,
-  onReplay, onClose,
+  saving, error, onRetrySave, onReplay, onClose,
 }) {
   // A real number, not a flattering one. Under a minute reads as under a minute.
   const minutes = Math.round(seconds / 60);
   const isProgramDay = Boolean(dayContext?.day);
-  const heading = isProgramDay
+  const heading = saving ? "Saving your progress…" : error ? "Your progress needs saving." : isProgramDay
     ? dayCredited
       ? `Day ${dayContext.day} is done.`
       : `Day ${dayContext.day} is still open.`
-    : watchedCount > 0
+    : videoCount > 0 && watchedCount / videoCount >= DAY_COMPLETION_THRESHOLD
       ? "Session complete."
       : "Session ended.";
 
   // 60 percent of the playlist, rounded up, is what banks the day.
   const needed = Math.ceil(videoCount * DAY_COMPLETION_THRESHOLD);
   const short = Math.max(0, needed - watchedCount);
-  const celebrate = isProgramDay ? dayCredited : watchedCount > 0;
+  const celebrate = !saving && !error && (isProgramDay ? dayCredited : videoCount > 0 && watchedCount / videoCount >= DAY_COMPLETION_THRESHOLD);
 
   const body = (() => {
+    if (saving) return "Saving your completed day…";
+    if (error) return error;
     if (watchedCount >= videoCount && videoCount > 0) {
       return "You finished every exercise. That is what makes this stick.";
     }
@@ -878,6 +945,9 @@ function CompletionScreen({
         </div>
       </dl>
 
+      {celebrate && <SessionFeedback programDay={dayContext?.day} dark />}
+      {saving && <p role="status" className="mt-4 text-sm text-white/70">Saving…</p>}
+      {error && <button type="button" onClick={onRetrySave} disabled={saving} className="mt-5 min-h-[48px] rounded-full bg-ios-pink px-7 font-semibold">Try saving again</button>}
       {/* Two ways forward, always. When the day did not bank, the one that
           banks it is the one under her thumb. */}
       <div className="mt-9 flex w-full max-w-xs flex-col gap-3">

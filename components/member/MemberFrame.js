@@ -4,16 +4,25 @@
 // It lives in a layout, so it is created once and survives every tab change.
 // Switching tabs must never refetch 812 KB of program JSON.
 
-import { MemberProvider } from "./MemberProvider";
+import { MemberProvider, useMember } from "./MemberProvider";
 import { PlayerProvider } from "./PlayerProvider";
 import MemberShell from "./MemberShell";
+import { PathwayPicker } from "./MemberTools";
 
 export default function MemberFrame({ children }) {
   return (
     <MemberProvider>
       <PlayerProvider>
-        <MemberShell>{children}</MemberShell>
+        <MemberShell><MemberExperienceGate>{children}</MemberExperienceGate></MemberShell>
       </PlayerProvider>
     </MemberProvider>
   );
+}
+
+// Like BodyPathwaySelectionGate on iOS, an older member chooses their body
+// pathway before receiving goal-dependent exercises or clinical guidance.
+function MemberExperienceGate({ children }) {
+  const { member } = useMember();
+  const selected = ["womensPelvicHealth", "mensPelvicHealth"].includes(member?.pathway);
+  return selected ? children : <PathwayPicker required open onClose={() => {}} />;
 }

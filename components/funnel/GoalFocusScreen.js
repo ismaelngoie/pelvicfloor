@@ -20,7 +20,7 @@ export default function GoalFocusScreen({ profile, onSelect, onNext, onBack }) {
           <Subtitle className="mt-2">{FOCUS_SCREEN.subtitle(goal.memberSentencePhrase)}</Subtitle>
         </div>
         <div className="mt-5 space-y-3 pb-4">
-          {goal.focus.map((focus, i) => (
+          {goal.focus.filter((focus) => focus.id !== "intimacy.tightening").map((focus, i) => (
             <div key={focus.id} className="funnel-rise" style={{ animationDelay: `${120 + i * 60}ms` }}>
               <OptionCard
                 id={focus.id}

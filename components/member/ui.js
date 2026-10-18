@@ -254,25 +254,25 @@ export function ExerciseShelf({ title, subtitle, items, onPlay, onToggleSaved, s
  * fit, so it becomes what a desktop application would use: a panel of a
  * readable width, in the middle of the screen, rounded on all four corners.
  */
-export function Sheet({ open, onClose, title, children, labelledBy }) {
+export function Sheet({ open, onClose, title, children, labelledBy, dismissible = true }) {
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e) => { if (e.key === "Escape" && dismissible) onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, dismissible]);
 
   if (!open) return null;
   const headingId = labelledBy || "sheet-title";
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col justify-end tab:items-center tab:justify-center tab:p-6">
-      <button
+      {dismissible ? <button
         type="button"
         aria-label="Close"
         onClick={onClose}
         className="absolute inset-0 bg-black/40"
-      />
+      /> : <div className="absolute inset-0 bg-black/40" aria-hidden="true" />}
       <div
         role="dialog"
         aria-modal="true"
@@ -281,14 +281,14 @@ export function Sheet({ open, onClose, title, children, labelledBy }) {
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-atelier-line bg-atelier-paper/95 px-5 py-4 backdrop-blur">
           <h2 id={headingId} className="font-serif text-[21px] text-atelier-ink">{title}</h2>
-          <button
+          {dismissible && <button
             type="button"
             onClick={onClose}
             aria-label="Close"
             className="grid h-9 w-9 place-items-center rounded-full bg-black/5"
           >
             <X className="h-4 w-4 text-app-textPrimary" aria-hidden="true" />
-          </button>
+          </button>}
         </div>
         <div className="px-5 pt-4">{children}</div>
       </div>

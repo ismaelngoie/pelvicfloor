@@ -1,6 +1,6 @@
 "use client";
 
-// Insights. The library of 23 articles the app ships, the charts that answer
+// Insights. The native library of 62 reviewed articles, the charts that answer
 // "is this actually working", and the box that answers a question nobody has
 // written an article about yet.
 //
@@ -23,36 +23,25 @@ import {
 } from "lucide-react";
 import { useMember } from "./MemberProvider";
 import { DR_REED } from "@/components/funnel/revealCopy";
+import { focusData } from "@/components/funnel/appCopy";
 import { goalSentencePhrase } from "@/lib/program";
 import { ACard, Eyebrow } from "./atelierUI";
 import { usePlayer } from "./PlayerProvider";
 import { Card, SectionHeader } from "./ui";
 import { usePrefersReducedMotion } from "./VideoPlayer";
 import { libraryGoalPhrase } from "@/lib/goalCopy";
-import { articlesBySlugs, loadInsightArticles } from "@/lib/ai/insightLibrary";
+import { articlesBySlugs, loadInsightArticles, recommendableArticles, relatedArticles } from "@/lib/ai/insightLibrary";
+import { goalArticles as goalGuides, insightSignals, personalizedArticles } from "@/lib/ai/insightPersonalizer";
 import { answerQuestion, askSuggestions, MAX_QUESTION_LENGTH } from "@/lib/ai/insightAnswer";
 import { cachedArticle, forgetArticle, recentArticles, rememberArticle } from "@/lib/ai/askedStore";
-
-// The two categories iOS keeps out of the browse rows. Their articles are
-// still reachable by search, so nothing in the library is unreachable.
-const HIDDEN_CATEGORIES = new Set(["For You", "For Men"]);
-
-const GOAL_CATEGORIES = {
-  bladderLeaks: ["Core & Breathing", "How Your Body Works", "Fitness & Lifestyle"],
-  pelvicPain: ["Pain & Relaxation", "Core & Breathing"],
-  postpartum: ["Postpartum Recovery", "Core & Breathing"],
-  pregnancyPrep: ["Pregnancy", "Core & Breathing"],
-  intimacy: ["Sex & Intimacy", "Pain & Relaxation"],
-  diastasisRecti: ["Postpartum Recovery", "Core & Breathing"],
-  coreStrength: ["Core & Breathing", "Fitness & Lifestyle", "How Your Body Works"],
-  fitness: ["Fitness & Lifestyle", "Core & Breathing"],
-  stability: ["Fitness & Lifestyle", "How Your Body Works"],
-};
+import { insightReadingMinutes, parseInsightBody } from "@/lib/ai/insightReading";
+import { ClinicalSourceLinks } from "./ResourceCenter";
+import { memberPathway } from "@/lib/dailyTracking";
 
 export default function Insights() {
   const {
     goalId, focusId, goal, member, patchMember, catalog, currentDayNumber, headlineDay,
-    currentDay, completions,
+    currentDay, completions, checkIns = [],
   } = useMember();
   const reduceMotion = usePrefersReducedMotion();
 
@@ -81,7 +70,8 @@ export default function Insights() {
   // Her own answers, kept in this browser exactly as the phone keeps them on
   // the device. Read after mount so the server-rendered markup and the first
   // client render agree.
-  const refreshAsked = useCallback(() => setAsked(recentArticles(6)), []);
+  const questionScope = `${member?.id || ""}:${memberPathway(member, goalId)}`;
+  const refreshAsked = useCallback(() => setAsked(recentArticles(6, questionScope)), [questionScope]);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -101,6 +91,7 @@ export default function Insights() {
 
   /** What the generator is told about her. Ported from InsightSignals.current(). */
   const signals = useMemo(() => ({
+    ...insightSignals({ member, goalId, programDay: currentDayNumber, weekTheme: headlineDay?.theme || currentDay?.theme, completions, checkIns }),
     goalTitle: goalId === "intimacy" && focusId === "intimacy.tightening" ? "Tighten Vaginal Canal" : goal?.title || "a stronger pelvic floor",
     // InsightPersonalizer sends `max(1, engine.currentDayNumber)`, so the
     // article she is offered is picked for the day she is on, not the one the
@@ -108,7 +99,7 @@ export default function Insights() {
     programDay: Math.max(1, currentDayNumber || 1),
     weekTheme: headlineDay?.theme || currentDay?.theme || null,
     hasStartedProgram: Boolean(completions?.length) || Boolean(member?.programStartedAt),
-  }), [goal?.title, currentDayNumber, headlineDay?.theme, currentDay?.theme, completions?.length, member?.programStartedAt]);
+  }), [goalId, focusId, goal?.title, currentDayNumber, headlineDay?.theme, currentDay?.theme, completions, checkIns, member]);
 
   const toggleSavedArticle = useCallback(
     async (id) => {
@@ -123,38 +114,30 @@ export default function Insights() {
     [articles]
   );
 
-  const forYou = useMemo(() => {
-    if (!articles) return [];
-    const wanted = GOAL_CATEGORIES[goalId] || GOAL_CATEGORIES.coreStrength;
-    const picked = [];
-    for (const category of wanted) {
-      for (const article of articles) {
-        if (article.category === category && !picked.includes(article)) picked.push(article);
-        if (picked.length >= 5) break;
-      }
-      if (picked.length >= 5) break;
-    }
-    return picked;
-  }, [articles, goalId]);
+  const eligibleArticles = useMemo(() => recommendableArticles(articles, signals.bodyPathway), [articles, signals.bodyPathway]);
+  const forYou = useMemo(() => personalizedArticles(articles, signals), [articles, signals]);
+  const focus = focusData(signals.bodyPathway, goalId, focusId);
+  const clinicalGuides = useMemo(() => goalGuides(articles, { ...signals, focusTitle: focus?.title || "", focusPrompt: [focus?.detail, focus?.supportTitle, focus?.tracking?.title].filter(Boolean).join(" ") }), [articles, signals, focus]);
 
   const categories = useMemo(() => {
     if (!articles) return [];
     const map = new Map();
-    for (const article of articles) {
-      if (HIDDEN_CATEGORIES.has(article.category)) continue;
+    for (const article of eligibleArticles) {
+      if (article.category === "For You") continue;
       if (!map.has(article.category)) map.set(article.category, []);
       map.get(article.category).push(article);
     }
-    return [...map.entries()].map(([title, items]) => ({ title, items }));
-  }, [articles]);
+    const order = ["Core & Breathing", "Pain & Relaxation", "Pregnancy", "Postpartum Recovery", "Sex & Intimacy", "Fitness & Lifestyle", "For Men", "How Your Body Works"];
+    return [...map.entries()].map(([title, items]) => ({ title, items })).sort((a, b) => order.indexOf(a.title) - order.indexOf(b.title));
+  }, [articles, eligibleArticles]);
 
   const searchResults = useMemo(() => {
     const clean = query.trim().toLowerCase();
     if (!clean || !articles) return null;
-    return articles.filter((a) =>
+    return eligibleArticles.filter((a) =>
       `${a.title} ${a.summary} ${a.category} ${a.body}`.toLowerCase().includes(clean)
     );
-  }, [query, articles]);
+  }, [query, articles, eligibleArticles]);
 
   const savedArticles = useMemo(
     () => savedIds.map((id) => byId.get(id)).filter(Boolean),
@@ -264,6 +247,14 @@ export default function Insights() {
 
       {articles && !searchResults && (
         <div className="mt-8 space-y-8">
+          {clinicalGuides.length > 0 && (
+            <section aria-labelledby="goal-guides">
+              <SectionHeader serif id="goal-guides" title="Your goal, explained" subtitle={focus?.title || "Reviewed guidance for the goal you chose."} />
+              <ul className="mt-3 flex gap-3 overflow-x-auto px-1 pb-2 no-scrollbar">
+                {clinicalGuides.map((article) => <li key={article.id}><ArticleTile article={article} onOpen={() => setOpen(article)} /></li>)}
+              </ul>
+            </section>
+          )}
           <section aria-labelledby="for-you">
             <SectionHeader
               id="for-you"
@@ -271,11 +262,11 @@ export default function Insights() {
               subtitle={`Picked because your goal is ${libraryGoalPhrase(goalId, focusId)}.`}
             />
             <ul className="mt-3 flex gap-3 overflow-x-auto px-1 pb-2 no-scrollbar">
-              {forYou.map((article) => (
+              {forYou.map(({ article, reason }) => (
                 <li key={article.id}>
                   <ArticleTile
                     article={article}
-                    reason={`Because your goal is ${libraryGoalPhrase(goalId, focusId)}`}
+                    reason={reason}
                     onOpen={() => setOpen(article)}
                   />
                 </li>
@@ -318,6 +309,8 @@ export default function Insights() {
           onToggleSaved={() => toggleSavedArticle(open.id)}
           onClose={() => setOpen(null)}
           catalog={catalog}
+          related={relatedArticles(articles, open, signals.bodyPathway)}
+          onOpenArticle={setOpen}
         />
       )}
 
@@ -325,6 +318,7 @@ export default function Insights() {
         <AskSheet
           goalId={goalId}
           signals={signals}
+          questionScope={questionScope}
           articles={articles || []}
           initialArticle={asking.article || null}
           onClose={() => { setAsking(null); refreshAsked(); }}
@@ -387,7 +381,7 @@ function AskedQuestionCard({ article, onOpen }) {
  * There is no transcript here, because the output is an article and articles do
  * not have turns.
  */
-function AskSheet({ goalId, signals, articles, initialArticle, onClose, onOpenArticle }) {
+function AskSheet({ goalId, signals, articles, initialArticle, questionScope, onClose, onOpenArticle }) {
   const router = useRouter();
   const reduceMotion = usePrefersReducedMotion();
 
@@ -438,7 +432,7 @@ function AskSheet({ goalId, signals, articles, initialArticle, onClose, onOpenAr
       setPhase("working");
 
       // A repeat question costs nothing.
-      const cached = cachedArticle(question);
+      const cached = cachedArticle(question, questionScope);
       if (cached) {
         workingRef.current = false;
         setAnswer({ kind: "article", question, article: cached });
@@ -450,7 +444,7 @@ function AskSheet({ goalId, signals, articles, initialArticle, onClose, onOpenAr
         const grounding = library.length ? library : await loadInsightArticles().catch(() => []);
         const result = await answerQuestion({ question, signals, articles: grounding });
         if (runRef.current !== runId) return;
-        if (result.kind === "article") rememberArticle(result.article);
+        if (result.kind === "article") rememberArticle(result.article, questionScope);
         setAnswer(result);
         setPhase("answered");
       } catch {
@@ -460,7 +454,7 @@ function AskSheet({ goalId, signals, articles, initialArticle, onClose, onOpenAr
         if (runRef.current === runId) workingRef.current = false;
       }
     },
-    [signals, library]
+    [signals, library, questionScope]
   );
 
   const startOver = useCallback(() => {
@@ -539,7 +533,7 @@ function AskSheet({ goalId, signals, articles, initialArticle, onClose, onOpenAr
             </form>
 
             <ul className="mt-7 space-y-2.5">
-              {askSuggestions(goalId).map((suggestion) => (
+              {askSuggestions(goalId, signals.bodyPathway).map((suggestion) => (
                 <li key={suggestion}>
                   <button
                     type="button"
@@ -608,7 +602,7 @@ function AskSheet({ goalId, signals, articles, initialArticle, onClose, onOpenAr
             articles={library}
             onAskAnother={startOver}
             onOpenArticle={onOpenArticle}
-            onRemove={() => { forgetArticle(answer.article.id); startOver(); }}
+            onRemove={() => { forgetArticle(answer.article.id, questionScope); startOver(); }}
           />
         )}
 
@@ -831,7 +825,7 @@ function ArticleTile({ article, reason, onOpen }) {
       onClick={onOpen}
       className="flex h-full w-[260px] shrink-0 flex-col overflow-hidden rounded-[22px] border border-atelier-line bg-atelier-card text-left"
     >
-      <span className="relative block h-[132px] w-full" style={{ backgroundImage: tintFor(article.id) }} aria-hidden="true">
+      <span className="relative block h-[132px] w-full bg-cover bg-center" style={{ backgroundImage: articleCover(article) }} aria-hidden="true">
         <span className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/[0.48] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white">
           <ShieldCheck className="h-3 w-3" /> Reviewed
         </span>
@@ -854,9 +848,11 @@ function tintFor(id) {
   for (let i = 0; i < (id || "").length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) % 360;
   return `linear-gradient(150deg, hsl(${hash} 32% 40%) 0%, hsl(${(hash + 38) % 360} 30% 24%) 100%)`;
 }
+function articleCover(article) {
+  return article.imageURL ? `linear-gradient(180deg, transparent, rgba(20,10,25,0.5)), url("${article.imageURL}")` : tintFor(article.id);
+}
 function readingTime(article) {
-  const words = String(article?.body || "").split(/\s+/).filter(Boolean).length;
-  return `${Math.max(1, Math.round(words / 200))} min`;
+  return `${insightReadingMinutes(article?.body)} min`;
 }
 function ArticleRow({ article, onOpen }) {
   return (
@@ -865,7 +861,7 @@ function ArticleRow({ article, onOpen }) {
       onClick={onOpen}
       className="flex w-full items-center gap-3 rounded-[20px] border border-atelier-line bg-atelier-card p-3 text-left"
     >
-      <span className="h-20 w-20 shrink-0 rounded-[16px]" style={{ backgroundImage: tintFor(article.id) }} aria-hidden="true" />
+      <span className="h-20 w-20 shrink-0 rounded-[16px] bg-cover bg-center" style={{ backgroundImage: articleCover(article) }} aria-hidden="true" />
       <span className="min-w-0 flex-1">
         <span className="line-clamp-2 block text-[15px] font-bold leading-snug text-atelier-ink">{article.title}</span>
         <span className="mt-1 line-clamp-2 block text-[12px] leading-snug text-atelier-ink2">{article.summary}</span>
@@ -874,8 +870,9 @@ function ArticleRow({ article, onOpen }) {
     </button>
   );
 }
-function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
+function ArticleReader({ article, saved, onToggleSaved, onClose, catalog, related = [], onOpenArticle }) {
   const { openPlayer } = usePlayer();
+  const router = useRouter();
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -886,7 +883,7 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
   const videos = useMemo(
     () =>
       (article.videos || [])
-        .map((v) => (v.videoId ? catalog?.byId?.get(v.videoId) : null))
+        .map((v) => (v.videoId ? catalog?.byId?.get(v.videoId) : (catalog?.videos || []).find((item) => item.url === v.url)) || (v.url ? { id: v.url, title: v.title, url: v.url, durationSeconds: 0 } : null))
         .filter(Boolean),
     [article.videos, catalog]
   );
@@ -925,7 +922,7 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
       </div>
 
       <article className="mx-auto w-full max-w-2xl px-5 pb-[max(3rem,env(safe-area-inset-bottom))] pt-5">
-        <div className="-mx-5 -mt-5 h-[220px]" style={{ backgroundImage: tintFor(article.id) }} aria-hidden="true" />
+        <div className="-mx-5 -mt-5 h-[220px] bg-cover bg-center" style={{ backgroundImage: articleCover(article) }} aria-hidden="true" />
         <h1 className="mt-6 font-serif text-[32px] leading-[1.08] text-atelier-ink">
           {article.title}
         </h1>
@@ -935,11 +932,17 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
           <img src={DR_REED.headshot} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover object-top" />
           <span className="min-w-0">
             <span className="block font-mono text-[10px] uppercase tracking-[0.13em] text-atelier-ink3">Clinically reviewed</span>
-            <span className="block text-[13px] font-semibold text-atelier-ink">{DR_REED.planReviewedStrong} · {readingTime(article)} read</span>
+            <span className="block text-[13px] font-semibold text-atelier-ink">{article.clinical?.reviewedBy || DR_REED.planReviewedStrong} · {readingTime(article)} read</span>
+            {article.clinical?.reviewedDate && <span className="block text-[11px] text-atelier-ink3">Reviewed {article.clinical.reviewedDate}</span>}
           </span>
         </div>
 
-        <div className="mt-6">{renderBody(article.body)}</div>
+        {parseInsightBody(article.body).some((block) => block.type === "heading") && <nav className="mt-5 rounded-[18px] bg-atelier-paper p-4" aria-label="In this article"><p className="text-[12px] font-bold text-atelier-ink3">In this article</p><ul className="mt-2 space-y-2">{parseInsightBody(article.body).map((block, index) => block.type === "heading" && <li key={index}><a href={`#article-section-${index}`} className="text-[13px] text-atelier-rose">{block.text}</a></li>)}</ul></nav>}
+        <div className="mt-6">{renderBody(article.body, {
+          onVideo: (index) => { const video = videos[index]; return video ? <button key={`video-${index}`} onClick={() => openPlayer({ videos: [video], title: video.title, subtitle: "From this article" })} className="mt-4 flex w-full items-center gap-3 rounded-[18px] border border-atelier-line bg-atelier-paper p-4 text-left"><Play className="h-5 w-5 text-atelier-rose" aria-hidden="true" /><span className="text-[14px] font-semibold text-atelier-ink">{video.title}</span></button> : null; },
+          onAction: () => <button key="intimacy-path" onClick={() => { onClose(); router.push("/app/you?tool=pathway"); }} className="mt-4 rounded-full bg-atelier-rose px-5 py-3 text-[14px] font-semibold text-white">Open your guided pathway</button>,
+        })}</div>
+        <ClinicalSourceLinks sources={article.clinical?.sources} />
 
         {article.takeaways?.length > 0 && (
           <section className="mt-8 rounded-[22px] border border-atelier-line bg-atelier-paper p-4">
@@ -1001,6 +1004,7 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
             </ul>
           </section>
         )}
+        {related.length > 0 && <section className="mt-8"><h2 className="font-serif text-[22px] text-atelier-ink">Keep reading</h2><ul className="mt-3 space-y-2">{related.map((item) => <li key={item.id}><ArticleRow article={item} onOpen={() => { onOpenArticle?.(item); document.querySelector('[role="dialog"]')?.scrollTo({ top: 0 }); }} /></li>)}</ul></section>}
       </article>
     </div>
   );
@@ -1011,65 +1015,18 @@ function ArticleReader({ article, saved, onToggleSaved, onClose, catalog }) {
  * `**bold**`, `*` bullets, `1.` steps, and a `[VIDEO]` marker where the app
  * inlines a clip. Anything not in that list is a paragraph.
  */
-function renderBody(body) {
-  const blocks = String(body || "").split(/\n{2,}/);
-  const out = [];
-
-  blocks.forEach((block, index) => {
-    const trimmed = block.trim();
-    if (!trimmed || trimmed === "[VIDEO]") return;
-
-    if (trimmed.startsWith("### ")) {
-      out.push(
-        <h2 key={index} className="mt-7 font-serif text-[24px] leading-snug text-atelier-ink first:mt-0">
-          {trimmed.slice(4)}
-        </h2>
-      );
-      return;
+function renderBody(body, { onVideo, onAction } = {}) {
+  return parseInsightBody(body).map((block, index) => {
+    if (block.type === "heading") return <h2 id={`article-section-${index}`} key={index} className="mt-7 scroll-mt-20 font-serif text-[24px] leading-snug text-atelier-ink first:mt-0">{block.text}</h2>;
+    if (block.type === "divider") return <hr key={index} className="my-6 border-atelier-line" />;
+    if (block.type === "video") return onVideo?.(block.index) || null;
+    if (block.type === "action") return onAction?.(block.action) || null;
+    if (block.type === "bullets" || block.type === "numbered") {
+      const Tag = block.type === "bullets" ? "ul" : "ol";
+      return <Tag key={index} className={`mt-3 space-y-2 pl-5 ${block.type === "bullets" ? "list-disc" : "list-decimal"}`}>{block.items.map((line, item) => <li key={item} className="text-[15.5px] leading-relaxed text-atelier-ink">{inline(line)}</li>)}</Tag>;
     }
-
-    const lines = trimmed.split("\n").map((l) => l.trim()).filter(Boolean);
-
-    if (lines.every((l) => /^\*\s+/.test(l)) && lines.length > 0) {
-      out.push(
-        <ul key={index} className="mt-3 space-y-2 pl-1">
-          {lines.map((line, i) => (
-            <li key={i} className="flex gap-2.5">
-              <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-app-textSecondary" aria-hidden="true" />
-              <span className="text-[15.5px] leading-relaxed text-app-textPrimary">
-                {inline(line.replace(/^\*\s+/, ""))}
-              </span>
-            </li>
-          ))}
-        </ul>
-      );
-      return;
-    }
-
-    if (lines.every((l) => /^\d+\.\s+/.test(l)) && lines.length > 0) {
-      out.push(
-        <ol key={index} className="mt-3 space-y-2 pl-1">
-          {lines.map((line, i) => (
-            <li key={i} className="flex gap-2.5">
-              <span className="mt-0.5 text-[15px] font-bold text-ios-pink">{i + 1}.</span>
-              <span className="text-[15.5px] leading-relaxed text-app-textPrimary">
-                {inline(line.replace(/^\d+\.\s+/, ""))}
-              </span>
-            </li>
-          ))}
-        </ol>
-      );
-      return;
-    }
-
-    out.push(
-      <p key={index} className="mt-3 text-[15.5px] leading-relaxed text-app-textPrimary">
-        {inline(trimmed.replace(/\n/g, " "))}
-      </p>
-    );
+    return <p key={index} className="mt-3 text-[15.5px] leading-relaxed text-atelier-ink">{inline(block.items.join(" "))}</p>;
   });
-
-  return out;
 }
 
 /**

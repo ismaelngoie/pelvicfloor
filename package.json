@@ -10,7 +10,7 @@
     "lint": "next lint",
     "test:acquisition": "node --test tests/admin-acquisition.test.mjs",
     "test:video": "node --test tests/video-factory.test.mjs",
-    "test": "npm run test:acquisition && npm run test:video"
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^2.4.0",

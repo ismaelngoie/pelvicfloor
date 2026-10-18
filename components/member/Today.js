@@ -8,7 +8,7 @@
 // private Q&A card. Same order as the phone, top to bottom.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUp, ArrowUpRight, AudioLines, CalendarClock, Check, CheckCircle2, ChevronDown, Clock,
   Droplet, Flame, Heart, HeartPulse, Leaf, Lock, PartyPopper, Play, RefreshCw, ShieldCheck,
@@ -21,6 +21,10 @@ import { ACard, ARow, Chevron, Eyebrow, RoseAction, Serif } from "./atelierUI";
 import CheckInCard from "./CheckInCard";
 import BladderDiary from "./BladderDiary";
 import GuidedSession from "./GuidedSession";
+import AudioHub from "./AudioHub";
+import ProfilePhoto from "./ProfilePhoto";
+import { dashboardAudioSession, audioSessionsFor } from "@/lib/audioCatalog";
+import { NightWaking, SessionFeedback } from "./MemberTools";
 import { CSectionQuickCard, MensQuickCard, WaterQuickCard, WomensQuickCard } from "./TrackerCards";
 import { coachTipsFor } from "./coachTips";
 import { usePrefersReducedMotion } from "./VideoPlayer";
@@ -32,7 +36,7 @@ import { pathwaySubtitle, pathwayTitle } from "@/lib/goalCopy";
 import { SESSIONS_PER_WEEK } from "@/lib/guaranteeCopy";
 import { durationLabel } from "@/lib/library";
 import { videosForDay } from "@/lib/program";
-import { dashboardSession } from "@/components/funnel/revealCopy";
+
 
 /** iOS counts today's five minutes as 300 seconds of video. So do we. */
 const DAILY_TARGET_SECONDS = 300;
@@ -43,30 +47,49 @@ export default function Today() {
     member, goalId, focusId, goal, catalog, days, currentDay, headlineDay, todaysVideos,
     currentDayNumber, currentDayUnlocked, replayDayNumber, sessionDayNumber,
     bankableDayNumber, completedDayCount, highestUnlockedDay, todayKey,
-    planLength, graduated, completions, events, streak, history, contentError,
-    patchMember, entitlement,
+    planLength, graduated, completions, dailySessionCompletions, events, streak, history, contentError,
+    patchMember, entitlement, continuation, adaptationSummary, videosForProgramDay, logVideoWatched,
   } = useMember();
   const { openPlayer } = usePlayer();
   const router = useRouter();
+  const requestedTool = useSearchParams().get("tool");
   const mens = member?.pathway === "mensPelvicHealth" || MENS_ONLY.has(goalId);
   const pathway = mens ? "mensPelvicHealth" : "womensPelvicHealth";
   const firstName = firstNameOf(member?.name);
   const greeting = greetingFor(new Date());
 
-  const sessionsThisWeek = useMemo(() => countSessionsThisWeek(completions), [completions, todayKey]);
-  const doneToday = useMemo(() => hasCompletionToday(completions), [completions, todayKey]);
+  const activityCompletions = useMemo(() => [...(completions || []), ...(dailySessionCompletions || [])], [completions, dailySessionCompletions]);
+  const sessionsThisWeek = useMemo(() => countSessionsThisWeek(activityCompletions), [activityCompletions, todayKey]);
+  const doneToday = useMemo(() => hasCompletionToday(activityCompletions), [activityCompletions, todayKey]);
   const todayProgress = useMemo(() => progressToday(events, doneToday), [events, doneToday, todayKey]);
   const started = completedDayCount > 0 || currentDayNumber > 1 || todayProgress > 0;
   const programWeek = Math.min(13, Math.floor((Math.max(1, currentDayNumber) - 1) / 7) + 1);
-  const weekDone = useMemo(() => countWeekDone(completions, currentDayNumber), [completions, currentDayNumber]);
+  const goalCompletions = useMemo(() => (completions || []).filter((entry) => !entry.programID || entry.programID === goalId), [completions, goalId]);
+  const weekDone = useMemo(() => countWeekDone(goalCompletions, currentDayNumber), [goalCompletions, currentDayNumber]);
 
   const [session, setSession] = useState(null);
+  const recordGuidedSession = useCallback(({ id, title, seconds }) => logVideoWatched({ video: { id: `audio-${id}`, title: title ? `Audio Kegels · ${title}` : "Audio Kegels" }, secondsWatched: seconds, completed: true, playbackContext: "guidedAudio" }), [logVideoWatched]);
   const [pathwayOpen, setPathwayOpen] = useState(false);
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [audioSessionId, setAudioSessionId] = useState(null);
+  const [nightOpen, setNightOpen] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(false);
+  const [graduationOpen, setGraduationOpen] = useState(false);
+  useEffect(() => {
+    if (!member?.id) return;
+    const tool = requestedTool;
+    if (tool === "audio") { setAudioSessionId(null); setAudioOpen(true); }
+    else if (tool === "urge") { if (["bladderLeaks", "postpartum"].includes(goalId)) setSession("urge"); else { setAudioSessionId(null); setAudioOpen(true); } }
+    else if (tool === "kegels") { if (["pelvicPain", "intimacy"].includes(goalId)) { setAudioSessionId(audioSessionsFor(goalId, pathway, focusId)[0]?.id || null); setAudioOpen(true); } else setSession("kegels"); }
+    else if (tool === "night") setNightOpen(true);
+    else if (["water", "cycle", "menopause", "mens", "difficulty"].includes(tool)) router.push(`/app/you?tool=${tool}`);
+  }, [router, requestedTool, member?.id, goalId, pathway, focusId]);
+  useEffect(() => { if (continuation?.needsCheckIn) setGraduationOpen(true); }, [continuation?.needsCheckIn]);
   const graphRef = useRef(null);
 
   const playPathwayDay = useCallback(
     (day) => {
-      const videos = videosForDay(day, catalog);
+      const videos = videosForProgramDay ? videosForProgramDay(day) : videosForDay(day, catalog);
       if (!videos.length) return;
       const banks = day.day === bankableDayNumber;
       openPlayer({
@@ -74,9 +97,11 @@ export default function Today() {
         title: `Day ${day.day}: ${day.title}`,
         subtitle: banks ? `Day ${day.day} of ${planLength || "your plan"}` : `Replay of Day ${day.day}`,
         dayContext: banks ? { day: day.day } : null,
+        prescriptionDay: day.day,
+        playbackContext: banks ? "program" : "replay",
       });
     },
-    [catalog, openPlayer, planLength, bankableDayNumber]
+    [catalog, openPlayer, planLength, bankableDayNumber, videosForProgramDay]
   );
 
   const openSession = useCallback(
@@ -86,26 +111,28 @@ export default function Today() {
       openPlayer({
         videos: todaysVideos,
         ...(startIndex == null ? {} : { startIndex }),
-        title: currentDay ? `Day ${sessionDayNumber}: ${currentDay.title}` : "Today's session",
-        subtitle: banks ? `Day ${sessionDayNumber} of ${planLength || "your plan"}` : `Replay of Day ${sessionDayNumber}`,
+        title: currentDay ? (graduated ? `Continuation Day ${continuation?.cycleDay || 1}: ${currentDay.title}` : `Day ${sessionDayNumber}: ${currentDay.title}`) : "Today's session",
+        subtitle: graduated ? (continuation?.phase?.title || "Keep Your Results") : banks ? `Day ${sessionDayNumber} of ${planLength || "your plan"}` : `Replay of Day ${sessionDayNumber}`,
         dayContext: banks ? { day: sessionDayNumber } : null,
+        prescriptionDay: sessionDayNumber,
+        playbackContext: graduated ? "continuation" : banks ? "program" : "replay",
       });
     },
-    [todaysVideos, openPlayer, currentDay, sessionDayNumber, bankableDayNumber, planLength]
+    [todaysVideos, openPlayer, currentDay, sessionDayNumber, bankableDayNumber, planLength, graduated, continuation]
   );
-  const startSession = useCallback(() => openSession(null), [openSession]);
+  const startSession = useCallback(() => setBriefingOpen(true), []);
   const scrollToGraph = useCallback(() => {
     graphRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
-  const audio = dashboardSession(goalId, pathway, focusId);
+  const audio = dashboardAudioSession(goalId, pathway);
   // The web-only "Tighten Vaginal Canal" focus names her plan; every other
   // member reads her goal tile's title.
-  const planLabel = goalId === "intimacy" && focusId === "intimacy.tightening" ? "Tighten Vaginal Canal" : goal?.title;
+  const planLabel = goal?.title;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-8 pt-4 lg:max-w-5xl lg:px-8 lg:pt-6">
-      <DashboardHeader greeting={greeting} firstName={firstName} goalId={goalId} mens={mens} name={member?.name} started={started} currentDayNumber={currentDayNumber} />
+      <DashboardHeader greeting={greeting} firstName={firstName} goalId={goalId} mens={mens} name={member?.name} member={member} patchMember={patchMember} started={started} currentDayNumber={currentDayNumber} />
 
       {contentError && (
         <ACard className="mt-5 p-4" role="alert">
@@ -119,7 +146,7 @@ export default function Today() {
             title={journeyTitle(goalId, mens, focusId)}
             subtitle={
               graduated
-                ? "All 90 days complete. Revisit any day, any time."
+                ? `Continuation · Day ${continuation?.cycleDay || 1} · ${continuation?.phase?.title || continuation?.phase || "Keep Your Results"}`
                 : started
                   ? `Week ${programWeek} · ${headlineDay?.theme || currentDay?.theme || ""}`.replace(/ · $/, "")
                   : "Your complete 90-day plan is ready"
@@ -151,23 +178,24 @@ export default function Today() {
           {audio && (
             <GuidedAudioCard
               session={audio}
-              onOpen={() => setSession(goalId === "bladderLeaks" || goalId === "postpartum" ? "urge" : "kegels")}
+              onOpen={() => { setAudioSessionId(null); setAudioOpen(true); }}
             />
           )}
-          {(goalId === "bladderLeaks" || goalId === "postpartum") && (
+          {(["bladderLeaks", "postpartum"].includes(goalId)) && (
             <InTheMomentCard goalId={goalId} onUrgeRescue={() => setSession("urge")} onAudioKegels={() => setSession("kegels")} />
           )}
+          {adaptationSummary && <p className="mt-4 rounded-2xl border border-atelier-line bg-atelier-card px-4 py-3 text-[13px] leading-relaxed text-atelier-ink2">{typeof adaptationSummary === "string" ? adaptationSummary : adaptationSummary.message || adaptationSummary.detail || "Your daily plan reflects your focus, difficulty, and recent feedback."}</p>}
           <ProgressCard progress={todayProgress} goalTitle={planLabel} onTap={todayProgress > 0 ? scrollToGraph : startSession} />
         </div>
         <div>
-          <WeeklyConsistencyCard completions={completions} streak={streak} goalId={goalId} mens={mens} todayKey={todayKey} />
+          <WeeklyConsistencyCard completions={activityCompletions} streak={streak} goalId={goalId} mens={mens} todayKey={todayKey} />
           <div ref={graphRef}>
-            <ProgressGraph events={events} completions={completions} streak={streak} goalId={goalId} mens={mens} />
+            <ProgressGraph events={events} completions={activityCompletions} streak={streak} goalId={goalId} mens={mens} />
           </div>
           <TrackCard goalId={goalId} focusId={focusId} mens={mens} member={member} todayKey={todayKey} />
           {mens
-            ? <MensQuickCard goalId={goalId} member={member} patchMember={patchMember} />
-            : <WomensQuickCard member={member} patchMember={patchMember} />}
+            ? <MensQuickCard goalId={goalId} focusId={focusId} member={member} patchMember={patchMember} />
+            : <WomensQuickCard goalId={goalId} focusId={focusId} member={member} patchMember={patchMember} />}
           <WaterQuickCard member={member} patchMember={patchMember} />
           {!mens && <CSectionQuickCard />}
           <CoachInsightCard goalId={goalId} mens={mens} router={router} />
@@ -186,20 +214,22 @@ export default function Today() {
         highestUnlockedDay={highestUnlockedDay}
         completedDayCount={completedDayCount}
         graduated={graduated}
-        completions={completions}
+        completions={goalCompletions}
         planLength={planLength}
         onPlayDay={playPathwayDay}
       />
-      {session && (
-        <GuidedSession kind={session} onClose={() => setSession(null)} onSessionComplete={() => {}} />
-      )}
+      <NightWaking open={nightOpen} onClose={() => setNightOpen(false)} />
+      <Sheet open={briefingOpen} onClose={() => setBriefingOpen(false)} title={graduated ? "Your continuation session" : `Day ${sessionDayNumber}: ${currentDay?.title || "Your daily plan"}`}><div className="pb-5"><Eyebrow>{graduated ? "Keep your results" : `Day ${sessionDayNumber} of ${planLength || 90}`}</Eyebrow><Serif size={32} className="mt-3">{currentDay?.title || "Your daily plan"}</Serif><p className="mt-4 text-[16px] leading-relaxed text-atelier-ink2">{currentDay?.intention || "Move with an easy breath, find the right level for your body, and let every effort fully release."}</p><p className="mt-4 text-sm text-atelier-ink2">{todaysVideos.length} exercises · {durationLabel(todaysVideos.reduce((n, v) => n + (v.durationSeconds || 0), 0))}</p><RoseAction className="mt-6" onClick={() => { setBriefingOpen(false); openSession(null); }}>Begin My Session</RoseAction></div></Sheet>
+      <Sheet open={graduationOpen} onClose={() => setGraduationOpen(false)} title="Your next chapter"><div className="pb-5"><Serif size={32}>You built a foundation.</Serif><p className="mt-3 text-[15px] text-atelier-ink2">Your next 30 days build on the final month of your program, with sessions that adapt to how your body feels now.</p><SessionFeedback graduation programDay={90} onSaved={() => setGraduationOpen(false)} /></div></Sheet>
+      {audioOpen && <AudioHub goalId={goalId} pathway={pathway} focusId={focusId} programDay={currentDayNumber} memberId={member?.id} graduated={graduated} completions={goalCompletions} initialSessionId={audioSessionId} onClose={() => { setAudioOpen(false); setAudioSessionId(null); }} />}
+      {session && <GuidedSession kind={session} memberId={member?.id} goalId={goalId} onClose={() => setSession(null)} onSessionComplete={recordGuidedSession} />}
     </div>
   );
 }
 
 // --- Header ------------------------------------------------------------------
 
-function DashboardHeader({ greeting, firstName, goalId, mens, name, started, currentDayNumber }) {
+function DashboardHeader({ greeting, firstName, goalId, mens, name, member, patchMember, started, currentDayNumber }) {
   const weekday = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const eyebrow = started && currentDayNumber <= 90
     ? `${weekday} · Week ${Math.min(13, Math.floor((currentDayNumber - 1) / 7) + 1)}`
@@ -214,12 +244,7 @@ function DashboardHeader({ greeting, firstName, goalId, mens, name, started, cur
         </h1>
         <CommunityPulse goalId={goalId} mens={mens} />
       </div>
-      <span
-        aria-hidden="true"
-        className="mt-3.5 grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full border border-atelier-line bg-atelier-card text-[15px] font-bold text-atelier-ink3"
-      >
-        {initialsOf(name)}
-      </span>
+      <div className="mt-3.5 shrink-0"><ProfilePhoto member={member} patchMember={patchMember} size={42} /></div>
     </header>
   );
 }
@@ -284,7 +309,7 @@ function journeyTitle(goalId, mens, focusId) {
   switch (goalId) {
     case "intimacy":
       if (mens) return "90-Day Erection and Control Plan";
-      return focusId === "intimacy.tightening" ? "90-Day Vaginal Tightening Journey" : "90-Day Intimacy Journey";
+      return "90-Day Intimacy Journey";
     case "bladderLeaks": return "90-Day Bladder Control Journey";
     case "postpartum": return "90-Day Postpartum Recovery";
     case "pregnancyPrep": return "90-Day Pregnancy Preparation";
@@ -548,7 +573,7 @@ function GuidedAudioCard({ session, onOpen }) {
 // --- In the moment ---------------------------------------------------------------------
 
 function InTheMomentCard({ goalId, onUrgeRescue, onAudioKegels }) {
-  const showsUrge = goalId === "bladderLeaks" || goalId === "postpartum";
+  const showsUrge = ["bladderLeaks", "postpartum"].includes(goalId);
   const showsKegels = goalId !== "pelvicPain" && goalId !== "intimacy";
   return (
     <ACard className="mt-4 p-4" shadow={false} aria-labelledby="in-the-moment">
@@ -903,7 +928,6 @@ const QUICK_LOG = [
 function TrackCard({ goalId, focusId, mens, member, todayKey }) {
   const planKey =
     goalId === "intimacy" && mens ? "intimacyMens"
-    : goalId === "intimacy" && focusId === "intimacy.tightening" ? "intimacyTightening"
     : goalId;
   const [subtitle, Icon] = TRACK_PLANS[planKey] || TRACK_PLANS.coreStrength;
   const bladder = goalId === "bladderLeaks" || goalId === "prostateRecovery";
@@ -917,9 +941,9 @@ function TrackCard({ goalId, focusId, mens, member, todayKey }) {
   useEffect(() => {
     if (!memberId) return undefined;
     let cancelled = false;
-    fetchCheckIn(memberId, todayKey).then((r) => { if (!cancelled) setChecked(Boolean(r)); }).catch(() => {});
+    fetchCheckIn(memberId, todayKey, goalId).then((r) => { if (!cancelled) setChecked(Boolean(r)); }).catch(() => {});
     return () => { cancelled = true; };
-  }, [memberId, todayKey, checkInOpen]);
+  }, [memberId, todayKey, goalId, checkInOpen]);
 
   const reload = useCallback(async () => {
     if (!memberId || !bladder) return;
@@ -1009,9 +1033,7 @@ function TrackCard({ goalId, focusId, mens, member, todayKey }) {
           <BladderDiary open={diaryOpen} onClose={() => setDiaryOpen(false)} memberId={memberId} entries={entries} onChange={reload} />
         </>
       )}
-      <Sheet open={checkInOpen} onClose={() => setCheckInOpen(false)} title="Today's check-in" labelledBy="checkin-sheet">
-        <div className="pb-6"><CheckInCard dateKey={todayKey} /></div>
-      </Sheet>
+      {checkInOpen && <CheckInCard roomOnly dateKey={todayKey} onClose={() => setCheckInOpen(false)} onSaved={() => { setChecked(true); setCheckInOpen(false); }} />}
     </section>
   );
 }
@@ -1035,10 +1057,12 @@ const DEFAULT_ARTICLE = {
 };
 
 function CoachInsightCard({ goalId, mens, router }) {
-  const tips = useMemo(() => coachTipsFor(goalId), [goalId]);
+  const tips = useMemo(() => coachTipsFor(goalId, mens ? "mensPelvicHealth" : "womensPelvicHealth"), [goalId, mens]);
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  const tip = tips.length ? tips[(dayOfYear - 1 + tips.length) % tips.length] : null;
   const [article, setArticle] = useState(null);
   const [open, setOpen] = useState(false);
-  const slug = DEFAULT_ARTICLE[goalId === "intimacy" && mens ? "intimacyMens" : goalId] || DEFAULT_ARTICLE.coreStrength;
+  const slug = tip?.articleSlug || DEFAULT_ARTICLE[goalId === "intimacy" && mens ? "intimacyMens" : goalId] || DEFAULT_ARTICLE.coreStrength;
   useEffect(() => {
     let cancelled = false;
     loadInsightArticles().then((list) => {
@@ -1056,8 +1080,6 @@ function CoachInsightCard({ goalId, mens, router }) {
       </p>
     );
   }
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-  const tip = tips[(dayOfYear - 1 + tips.length) % tips.length];
   const minutes = article ? Math.max(1, Math.round(String(article.body || "").split(/\s+/).length / 200)) : null;
   const openArticle = () => {
     if (article) router.push(`/app/insights?article=${encodeURIComponent(article.id)}`);
@@ -1300,7 +1322,7 @@ function progressToday(events, doneToday) {
   if (doneToday) return 1;
   const today = new Date();
   let seconds = 0;
-  for (const e of events || []) { const d = toDate(e.date); if (d && isSameDay(d, today)) seconds += Number(e.secondsWatched) || 0; }
+  for (const e of events || []) { const d = toDate(e.date); if (d && isSameDay(d, today) && (!e.playbackContext || ["program", "continuation", "replay"].includes(e.playbackContext))) { if (e.sessionCompleted) return 1; seconds += Number(e.secondsWatched) || 0; } }
   return Math.min(1, seconds / DAILY_TARGET_SECONDS);
 }
 function lastSevenDays(completions) {

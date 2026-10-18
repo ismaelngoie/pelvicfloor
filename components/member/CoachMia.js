@@ -25,7 +25,8 @@
 //      calm sentence and a Try again button. There is no "open the app".
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowUpRight, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Bookmark, Headphones, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMember } from "./MemberProvider";
 import { usePlayer } from "./PlayerProvider";
 import { usePrefersReducedMotion } from "./VideoPlayer";
@@ -37,6 +38,14 @@ import { withoutLongDashes } from "@/lib/ai/text";
 import { goalPrompt } from "@/lib/goalCopy";
 import { durationLabel } from "@/lib/library";
 import { FIXTURES_ON } from "@/lib/devFixtures";
+import { coachAction, coachTool } from "@/lib/ai/coachActions";
+import { buildCareMemory } from "@/lib/ai/coachMemory";
+import { acknowledgeCoachMessage, pendingCoachMessages } from "@/lib/ai/proactiveCoach";
+import { savedCoachAnswers, toggleCoachAnswer } from "@/lib/ai/savedCoachAnswers";
+import { readAudioJourney } from "@/lib/audioJourney";
+import { focusData } from "@/components/funnel/appCopy";
+import { Sheet } from "./ui";
+import { cycleEntries, cycleSummary, logWater, newTrackerId, WATER_DRINKS } from "@/lib/trackerModels";
 
 const EXTRA_PROMPTS = [
   "Why does drinking water matter?",
@@ -53,9 +62,12 @@ export default function CoachMia() {
   // `currentDayNumber` is her position, `replayDayNumber` is a day she has
   // already finished, `sessionDayNumber` only says which videos load.
   const {
-    member, goal, goalId, focusId, streak, currentDay, headlineDay, currentDayNumber,
+    member, goal, goalId, focusId, pathway, streak, currentDay, headlineDay, currentDayNumber,
     replayDayNumber, sessionDayNumber, bankableDayNumber, planLength, todaysVideos,
+    checkIns = [], completions = [], difficulty, setDifficulty, logDayComplete,
+    patchMember, currentDayUnlocked, graduated, todayKey,
   } = useMember();
+  const router = useRouter();
   const { openPlayer } = usePlayer();
   const reduceMotion = usePrefersReducedMotion();
 
@@ -72,6 +84,8 @@ export default function CoachMia() {
   const [replyError, setReplyError] = useState(null);
   const [lastQuestion, setLastQuestion] = useState("");
   const [saveWarning, setSaveWarning] = useState(false);
+  const [keptAnswers, setKeptAnswers] = useState([]);
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
   const endRef = useRef(null);
   const inputRef = useRef(null);
@@ -95,6 +109,14 @@ export default function CoachMia() {
   // and no retry. A ref is written and read in the same tick, so it is the only
   // thing that can gate an event handler.
   const inFlightRef = useRef(false);
+  const deliveredRef = useRef(new Set());
+
+  useEffect(() => {
+    setSaved([]); setUnsaved([]); setStreaming(null); setSaveWarning(false); setBusy(false); setReplyError(null); setLastQuestion("");
+    setKeptAnswers(savedCoachAnswers(member?.id));
+    deliveredRef.current = new Set();
+    return () => { runRef.current += 1; inFlightRef.current = false; };
+  }, [member?.id]);
 
   // --- Transcript ----------------------------------------------------------
 
@@ -137,7 +159,7 @@ export default function CoachMia() {
   const messages = useMemo(() => {
     const list = [...saved, ...unsaved];
     if (streaming) list.push({ ...streaming, role: "mia", source: "gemini", live: true });
-    return list;
+    return list.sort((a, b) => (messageDate(a)?.getTime() || 0) - (messageDate(b)?.getTime() || 0));
   }, [saved, unsaved, streaming]);
 
   useEffect(() => {
@@ -183,7 +205,11 @@ export default function CoachMia() {
     // day the member is reading on the card next to her.
     programDay: currentDayNumber || 1,
     weekTheme: headlineDay?.theme || currentDay?.theme || null,
-  }), [member?.name, goal?.title, streak?.current, todaysVideos, currentDayNumber, headlineDay?.theme, currentDay?.theme]);
+    bodyPathway: pathway,
+    difficulty: difficulty?.title || difficulty || "medium",
+    focus: focusData(pathway, goalId, focusId)?.title || null,
+    careMemory: buildCareMemory({ member: { ...member, pathway }, goalId, checkIns, completions, focus: focusData(pathway, goalId, focusId), audioRecords: readAudioJourney(member?.id).records }),
+  }), [member, goalId, focusId, pathway, goal?.title, difficulty, checkIns, completions, streak?.current, todaysVideos, currentDayNumber, headlineDay?.theme, currentDay?.theme]);
 
   /**
    * Put a message on screen without Firestore.
@@ -196,6 +222,57 @@ export default function CoachMia() {
     setUnsaved((prev) => [...prev, message]);
     if (warn) setSaveWarning(true);
   }, []);
+
+  useEffect(() => {
+    if (!member?.id || loading) return;
+    const deliver = async () => {
+      for (const queued of pendingCoachMessages(member.id)) {
+        if (deliveredRef.current.has(queued.id)) continue;
+        deliveredRef.current.add(queued.id);
+        const local = { ...queued, role: "mia", source: "proactive" };
+        if (saved.some((message) => message.id === queued.id)) { acknowledgeCoachMessage(member.id, queued.id); continue; }
+        if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
+          keepLocally(local, { warn: false }); acknowledgeCoachMessage(member.id, queued.id); continue;
+        }
+        try { await saveCoachReply(member.id, queued.text, { id: queued.id, source: "proactive" }); acknowledgeCoachMessage(member.id, queued.id); }
+        catch { keepLocally(local); }
+      }
+    };
+    deliver();
+    window.addEventListener("pelvi:coach-queue", deliver);
+    return () => window.removeEventListener("pelvi:coach-queue", deliver);
+  }, [member?.id, loading, saved, keepLocally]);
+
+  const performAction = useCallback(async (action) => {
+    if (action.type === "difficulty") {
+      await setDifficulty(action.value);
+      return `Done. Your ${goal?.title?.toLowerCase() || "pelvic health"} plan is now ${action.value === "easy" ? "Easy" : action.value === "hard" ? "Hard" : "Medium"}. Your next session will use that level.`;
+    }
+    if (action.type === "water") {
+      const water = logWater(member.trackers?.water || {}, WATER_DRINKS.find((drink) => drink.id === action.drink));
+      await patchMember({ trackers: { ...(member.trackers || {}), water } });
+      return `Done. I logged one ${action.drink} of water for today.`;
+    }
+    if (action.type === "period") {
+      const womens = member.trackers?.womens || {};
+      if (pathway === "mensPelvicHealth" || womens.mode === "menopause") return "Period logging is not active in your current health tracker. You can change the women's tracker in You if it applies to you.";
+      const entries = cycleEntries(womens);
+      if (action.ended && !cycleSummary(entries).periodActive) return "There is no ongoing period in your tracker to mark ended. Open your cycle tracker in You to review your timeline.";
+      const kind = action.ended ? "periodEnded" : "periodStarted";
+      const next = entries.some((entry) => entry.date === todayKey && entry.kind === kind) ? entries : [...entries, { id: newTrackerId(), date: todayKey, kind, goalRawValue: null }];
+      await patchMember({ trackers: { ...(member.trackers || {}), womens: { ...womens, mode: "cycle", cycleEntries: next } } });
+      return action.ended ? "Done. I marked your period as ended today." : "Done. I marked today as the first day of your period.";
+    }
+    if (action.type === "complete") {
+      if (graduated) return "Your 90-day program is already complete. Your continuation plan is ready on Today.";
+      if (!currentDay || !todaysVideos.length) return "Your plan is still loading. Open Today in a moment and I will keep your place.";
+      if (!currentDayUnlocked || bankableDayNumber == null) return `Your progress is saved. Day ${currentDayNumber} opens tomorrow.`;
+      const done = await logDayComplete({ day: bankableDayNumber, secondsWatched: 0 });
+      if (!done) return "Your progress is already saved. Open Today to see the next session.";
+      return `Done. Day ${bankableDayNumber} is complete. Your progress and streak are saved.${bankableDayNumber < planLength ? ` Day ${bankableDayNumber + 1} opens tomorrow.` : ""}`;
+    }
+    return `Opening ${action.label.toLowerCase()}.`;
+  }, [member, pathway, goal?.title, todayKey, setDifficulty, patchMember, graduated, currentDay, todaysVideos, currentDayUnlocked, bankableDayNumber, currentDayNumber, planLength, logDayComplete]);
 
   const run = useCallback(
     async (question, { alreadySent = false } = {}) => {
@@ -251,6 +328,21 @@ export default function CoachMia() {
         return;
       }
 
+      const action = coachAction(body) || coachTool(body, pathway);
+      if (action) {
+        try {
+          const text = await performAction(action);
+          const replyId = newMessageId();
+          const local = { id: replyId, role: "mia", source: "local_action", text, date: new Date() };
+          if (localOnly) keepLocally(local, { warn: false });
+          else await saveCoachReply(member.id, text, { id: replyId, source: "local_action" }).catch(() => keepLocally(local));
+          if (action.type === "open") router.push(action.href);
+        } catch {
+          setReplyError("I could not save that change. Your plan has not been confirmed as changed. Please try the action from Today or You.");
+        } finally { inFlightRef.current = false; setBusy(false); }
+        return;
+      }
+
       // History is every turn before this one, oldest first, without the
       // question itself. Same 30 turn window the phone sends.
       const history = messages
@@ -287,11 +379,11 @@ export default function CoachMia() {
             keepLocally(local);
           });
         }
-      } catch {
+      } catch (error) {
         if (runRef.current !== runId) return;
         setStreaming(null);
         setReplyError(
-          "Mia could not answer just now. It is usually the connection, so trying again normally works."
+          typeof navigator !== "undefined" && !navigator.onLine ? "You're offline. Connect to Wi-Fi or mobile data, then try again. Your question is saved." : error?.message === "slow-connection" ? "The reply took too long to arrive. Your question is saved. Please try again." : "Mia could not answer just now. Your question is saved. Please try again."
         );
       } finally {
         // Unconditional: the latch is what lets the NEXT question through, so
@@ -301,7 +393,7 @@ export default function CoachMia() {
         if (runRef.current === runId) setBusy(false);
       }
     },
-    [member?.id, messages, buildContext, keepLocally]
+    [member?.id, pathway, messages, buildContext, keepLocally, performAction, router]
   );
 
   const send = useCallback(
@@ -335,14 +427,15 @@ export default function CoachMia() {
   }, []);
 
   const prompts = useMemo(() => {
-    const list = ["What's my plan for today?", goalPrompt(goalId, focusId)];
+    const prompt = goalId === "intimacy" && pathway === "mensPelvicHealth" ? "How can I improve erections and last longer?" : ({ prolapse: "How can I feel less pelvic heaviness?", prostateRecovery: "How can I improve control after prostate treatment?", bowelControl: "How can I improve bowel control?" })[goalId] || goalPrompt(goalId, focusId);
+    const list = ["What's my plan for today?", prompt];
     const extras = [...EXTRA_PROMPTS];
     if (streak.current > 10) extras.push("How do I stay motivated?");
     list.push(extras[Math.floor(Math.random() * extras.length)]);
     return list;
     // Regenerated only when the goal or the streak band changes, so the rail
     // does not reshuffle under her thumb on every render.
-  }, [goalId, streak.current > 10]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [goalId, focusId, pathway, streak.current > 10]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const firstName = (member?.name || "").trim().split(/\s+/)[0];
   const groups = useMemo(() => groupMessages(messages), [messages]);
@@ -365,6 +458,10 @@ export default function CoachMia() {
           </p>
         </div>
       </header>
+      <div className="relative mx-auto flex w-full max-w-2xl gap-2 overflow-x-auto px-4 pt-3 no-scrollbar">
+        <button onClick={() => router.push("/app?tool=audio")} className="inline-flex shrink-0 items-center gap-2 rounded-full border border-atelier-line bg-atelier-card px-4 py-2 text-[12px] font-semibold text-atelier-ink"><Headphones className="h-4 w-4 text-atelier-rose" aria-hidden="true" />Guided Audio</button>
+        <button onClick={() => setArchiveOpen(true)} className="inline-flex shrink-0 items-center gap-2 rounded-full border border-atelier-line bg-atelier-card px-4 py-2 text-[12px] font-semibold text-atelier-ink"><Bookmark className="h-4 w-4 text-atelier-rose" aria-hidden="true" />Saved answers{keptAnswers.length ? ` (${keptAnswers.length})` : ""}</button>
+      </div>
 
       {/* Transcript. flex-1 so the composer holds the bottom edge even when the
           conversation is two messages long. */}
@@ -400,6 +497,8 @@ export default function CoachMia() {
                   <Bubble
                     key={message.id}
                     message={message}
+                    saved={keptAnswers.some((answer) => answer.id === message.id)}
+                    onToggleSaved={() => setKeptAnswers(toggleCoachAnswer(member?.id, message, goalId))}
                     first={mi === 0}
                     last={mi === group.messages.length - 1}
                     isLastGroup={gi === groups.length - 1}
@@ -538,6 +637,9 @@ export default function CoachMia() {
           </form>
         </div>
       )}
+      <Sheet open={archiveOpen} onClose={() => setArchiveOpen(false)} title="Saved Coach Mia answers">
+        <div className="space-y-3 pb-6">{keptAnswers.length ? keptAnswers.map((answer) => <article key={answer.id} className="rounded-[18px] border border-atelier-line bg-atelier-paper p-4"><p className="whitespace-pre-wrap text-[14px] leading-relaxed text-atelier-ink">{parseCoachReply(answer.text).body}</p><button onClick={() => setKeptAnswers(toggleCoachAnswer(member?.id, answer, answer.goal))} className="mt-3 text-[12px] font-semibold text-atelier-rose">Remove saved answer</button></article>) : <p className="text-[14px] text-atelier-ink2">Save a helpful answer with its bookmark to keep it here.</p>}</div>
+      </Sheet>
     </div>
   );
 }
@@ -597,7 +699,7 @@ function TypingBubble({ reduceMotion }) {
   );
 }
 
-function Bubble({ message, first, last, isLastGroup, onStartRoutine, routineMeta }) {
+function Bubble({ message, first, last, isLastGroup, onStartRoutine, routineMeta, saved, onToggleSaved }) {
   const mine = message.role === "user";
   const raw = String(message.text || "");
   // Mia points at today's session with the same marker the phone parses:
@@ -638,6 +740,7 @@ function Bubble({ message, first, last, isLastGroup, onStartRoutine, routineMeta
             )}
           </div>
         )}
+        {!mine && !message.live && text && <button type="button" onClick={onToggleSaved} aria-pressed={saved} aria-label={saved ? "Remove saved answer" : "Save Coach Mia answer"} className="mt-1 inline-flex min-h-[36px] items-center gap-1.5 px-2 text-[11px] text-atelier-ink3"><Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-atelier-rose text-atelier-rose" : ""}`} aria-hidden="true" />{saved ? "Saved" : "Save answer"}</button>}
 
         {showsRoutine && onStartRoutine && (
           <button
