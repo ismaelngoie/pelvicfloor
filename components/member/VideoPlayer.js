@@ -16,11 +16,13 @@
 import { useMember } from "./MemberProvider";
 import { SessionFeedback } from "./MemberTools";
 import ExercisePractice from "./ExercisePractice";
+import useTVPlayback from "./useTVPlayback";
+import WatchOnTV from "./WatchOnTV";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Check, ChevronLeft, ChevronRight, FlipHorizontal2, Heart,
-  Loader2, Pause, Play, Repeat, RotateCcw, RotateCw, Volume2, VolumeX,
+  Loader2, Pause, Play, Repeat, RotateCcw, RotateCw, Tv, Volume2, VolumeX,
 } from "lucide-react";
 import { DAY_COMPLETION_THRESHOLD, VIDEO_COMPLETION_THRESHOLD } from "@/lib/program";
 import { durationLabel } from "@/lib/library";
@@ -100,6 +102,8 @@ export default function VideoPlayer({
   const finishInFlightRef = useRef(false);
   const autoCoachOpenedRef = useRef(false);
   const hideTimerRef = useRef(null);
+  const remoteHandlersRef = useRef({});
+  const tvRef = useRef(null);
 
   const [index, setIndex] = useState(() =>
     Math.min(Math.max(startIndex, 0), Math.max(videos.length - 1, 0))
@@ -125,6 +129,7 @@ export default function VideoPlayer({
   const [completionError, setCompletionError] = useState("");
   const [transition, setTransition] = useState(null);
   const [coachMode, setCoachMode] = useState(false);
+  const [fullScreenAvailable, setFullScreenAvailable] = useState(false);
 
   const reduceMotion = usePrefersReducedMotion();
   const current = videos[index] || null;
@@ -132,15 +137,25 @@ export default function VideoPlayer({
   const isLast = index >= videos.length - 1;
   const savedSet = useMemo(() => new Set(savedIds), [savedIds]);
   const guidance = useMemo(() => exerciseGuidance(current, { goalId }), [current, goalId]);
+  const tv = useTVPlayback({ videoRef, video: finished ? null : current, revision: playbackRevision, volume, muted,
+    onSample: (value) => remoteHandlersRef.current.sample?.(value),
+    onEnded: (value) => remoteHandlersRef.current.ended?.(value),
+    onDisconnect: (position) => { lastTimeRef.current = position; setTime(position); setPlaying(false); setWaiting(false); },
+  });
+  tvRef.current = tv;
+  const pauseActive = useCallback(() => {
+    videoRef.current?.pause();
+    if (tvRef.current?.activeRef.current) tvRef.current.pause();
+    setPlaying(false);
+  }, []);
   const shouldHoldForCoach = shouldOpenCoachMode && !autoCoachOpenedRef.current;
   useEffect(() => {
     if (shouldOpenCoachMode && !finished && !autoCoachOpenedRef.current) {
       autoCoachOpenedRef.current = true;
-      videoRef.current?.pause();
-      setPlaying(false);
+      pauseActive();
       setCoachMode(true);
     }
-  }, [shouldOpenCoachMode, finished]);
+  }, [shouldOpenCoachMode, finished, pauseActive]);
 
   // --- Progress bookkeeping ------------------------------------------------
 
@@ -188,7 +203,7 @@ export default function VideoPlayer({
     el.load();
     el.volume = volume;
     el.muted = muted;
-    if (shouldHoldForCoach || coachMode) return;
+    if (shouldHoldForCoach || coachMode || tvRef.current?.activeRef.current) return;
     const attempt = el.play();
     if (attempt?.catch) attempt.catch(() => setPlaying(false));
     // volume and muted are applied, not depended on: their own effect below
@@ -202,9 +217,12 @@ export default function VideoPlayer({
       el.volume = volume;
       el.muted = muted;
     }
-  }, [volume, muted]);
+    if (tv.connected) tv.volume(volume, muted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [volume, muted, tv.connected, tv.loading]);
 
   const handleTimeUpdate = useCallback(() => {
+    if (tvRef.current?.activeRef.current) return;
     const el = videoRef.current;
     if (!el) return;
     const now = el.currentTime;
@@ -228,18 +246,19 @@ export default function VideoPlayer({
   const goTo = useCallback((nextIndex) => {
     if (nextIndex < 0 || nextIndex >= videos.length) return;
     if (nextIndex !== index) void flushVideoEvent(index);
+    pauseActive();
     setPractice(null);
     setTransition(null);
     setFinished(false);
     if (nextIndex === index) setPlaybackRevision((value) => value + 1);
     setIndex(nextIndex);
-  }, [videos.length, index, flushVideoEvent]);
+  }, [videos.length, index, flushVideoEvent, pauseActive]);
 
   // This explicit finish path is the sole place that can bank a program day.
   const finishSession = useCallback(async ({ credit = false } = {}) => {
     if (credit) markWatched(index);
-    videoRef.current?.pause();
-    setPlaying(false);
+    pauseActive();
+    tvRef.current?.stop();
     setFinished(true);
     setChromeVisible(true);
     setCompletionError("");
@@ -264,33 +283,46 @@ export default function VideoPlayer({
       if (result.saveFailed) setCompletionError(`Your exercise is finished, but your ${dayContext?.day ? "day" : "session"} could not be saved. Try saving again.`);
     } finally { finishInFlightRef.current = false; setSavingCompletion(false); }
   }, [index, markWatched, flushVideoEvent, dayContext?.day, onDayComplete, logSessionComplete,
-    videos.length, playbackContext, prescriptionDay]);
+    videos.length, playbackContext, prescriptionDay, pauseActive]);
 
   const advanceAfterExercise = useCallback(() => {
     void flushVideoEvent(index);
     if (isLast) { void finishSession(); return; }
     const next = exerciseTransition(current, videos[index + 1], { member, goalId, focusId, difficulty, programDay: prescriptionDay });
-    videoRef.current?.pause();
-    setPlaying(false);
+    pauseActive();
     setTransition({ ...next, nextIndex: index + 1, remaining: next.seconds });
-  }, [flushVideoEvent, index, isLast, finishSession, current, videos, member, goalId, focusId, difficulty, prescriptionDay]);
+  }, [flushVideoEvent, index, isLast, finishSession, current, videos, member, goalId, focusId, difficulty, prescriptionDay, pauseActive]);
 
-  const handleEnded = useCallback(() => {
+  const handleEnded = useCallback((source = {}) => {
+    const remote = source.remote === true;
+    if (tvRef.current?.activeRef.current && !remote) return;
     const el = videoRef.current;
+    if (looping && remote) { tvRef.current.replay(); return; }
     if (looping && el) {
       el.currentTime = 0;
       lastTimeRef.current = 0;
       el.play().catch(() => {});
       return;
     }
-    markWatched(index);
+    const total = remote ? source.duration : el?.duration;
+    if (Number.isFinite(total) && total > 0 && bucket(index).seconds >= total * VIDEO_COMPLETION_THRESHOLD) markWatched(index);
     if (prescription?.offersGuidedPractice && !bucket(index).practiceResolved) {
-      setPlaying(false);
+      pauseActive();
       setPractice({ index });
       return;
     }
     advanceAfterExercise();
-  }, [looping, markWatched, index, prescription, bucket, advanceAfterExercise]);
+  }, [looping, markWatched, index, prescription, bucket, advanceAfterExercise, pauseActive]);
+
+  remoteHandlersRef.current = {
+    sample(value) {
+      if (!tvRef.current?.activeRef.current || value.contentId !== current?.url) return;
+      const entry = addPlaybackDelta(ledgerRef.current, index, value.delta, value.playing);
+      setTime(value.time); setDuration(value.duration); setPlaying(value.playing); setWaiting(value.waiting);
+      if (value.duration > 0 && entry.seconds >= value.duration * VIDEO_COMPLETION_THRESHOLD) markWatched(index);
+    },
+    ended(value) { handleEnded({ remote: true, duration: value.duration }); },
+  };
 
   const finishPractice = useCallback((seconds = 0) => {
     if (!practice || practice.index !== index) return;
@@ -310,6 +342,7 @@ export default function VideoPlayer({
   }, [transition, goTo]);
 
   const togglePlay = useCallback(() => {
+    if (tvRef.current?.activeRef.current) { tvRef.current.toggle(); return; }
     const el = videoRef.current;
     if (!el) return;
     if (el.paused) {
@@ -321,15 +354,17 @@ export default function VideoPlayer({
   }, []);
 
   const skip = useCallback((seconds) => {
+    if (tvRef.current?.activeRef.current) { tvRef.current.seek(time + seconds); return; }
     const el = videoRef.current;
     if (!el || !Number.isFinite(el.duration)) return;
     const next = Math.min(Math.max(el.currentTime + seconds, 0), el.duration);
     el.currentTime = next;
     lastTimeRef.current = next;
     setTime(next);
-  }, []);
+  }, [time]);
 
   const seekTo = useCallback((seconds) => {
+    if (tvRef.current?.activeRef.current) { tvRef.current.seek(seconds); setTime(seconds); return; }
     const el = videoRef.current;
     if (!el) return;
     el.currentTime = seconds;
@@ -340,10 +375,11 @@ export default function VideoPlayer({
   // --- Leaving -------------------------------------------------------------
 
   const close = useCallback(() => {
-    videoRef.current?.pause();
+    pauseActive();
+    tvRef.current?.stop();
     for (const i of ledgerRef.current.entries.keys()) void flushVideoEvent(i, { partial: true });
     onClose?.();
-  }, [flushVideoEvent, onClose]);
+  }, [flushVideoEvent, onClose, pauseActive]);
 
   // --- Keyboard ------------------------------------------------------------
 
@@ -353,6 +389,8 @@ export default function VideoPlayer({
       if (tag === "INPUT" || tag === "TEXTAREA" || event.target?.isContentEditable) return;
       const key = event.key.toLowerCase();
       const handled = () => { event.preventDefault(); event.stopPropagation(); };
+
+      if (tv.open) { if (event.key === "Escape") { handled(); tv.setOpen(false); } return; }
 
       if (practice) { if (event.key === "Escape") { handled(); setPractice(null); } return; }
       if (coachMode) { if (event.key === "Escape") { handled(); setCoachMode(false); } return; }
@@ -369,7 +407,7 @@ export default function VideoPlayer({
         case "arrowdown": handled(); setVolume((v) => Math.max(0, Math.round((v - 0.1) * 10) / 10)); break;
         case "n": handled(); if (!isLast) goTo(index + 1); break;
         case "p": handled(); if (index > 0) goTo(index - 1); break;
-        case "m": handled(); setMirrored((v) => !v); break;
+        case "m": handled(); if (!tvRef.current?.activeRef.current && !tvRef.current?.airPlaying) setMirrored((v) => !v); break;
         case "l": handled(); setLooping((v) => !v); break;
         default: break;
       }
@@ -377,16 +415,16 @@ export default function VideoPlayer({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [close, finished, togglePlay, skip, isLast, index, goTo, practice, coachMode, transition, savingCompletion]);
+  }, [close, finished, togglePlay, skip, isLast, index, goTo, practice, coachMode, transition, savingCompletion, tv.open]);
 
   // --- Chrome auto-hide ----------------------------------------------------
 
   const wakeChrome = useCallback(() => {
     setChromeVisible(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    if (!playing || finished) return;
+    if (!playing || finished || tv.connected || tv.airPlaying) return;
     hideTimerRef.current = setTimeout(() => setChromeVisible(false), 3200);
-  }, [playing, finished]);
+  }, [playing, finished, tv.connected, tv.airPlaying]);
 
   useEffect(() => {
     wakeChrome();
@@ -398,7 +436,7 @@ export default function VideoPlayer({
   useEffect(() => {
     let sentinel = null;
     let cancelled = false;
-    if ((playing || practice) && typeof navigator !== "undefined" && navigator.wakeLock?.request) {
+    if ((playing || practice || tv.connected) && typeof navigator !== "undefined" && navigator.wakeLock?.request) {
       navigator.wakeLock
         .request("screen")
         .then((lock) => { if (cancelled) lock.release().catch(() => {}); else sentinel = lock; })
@@ -408,10 +446,17 @@ export default function VideoPlayer({
       cancelled = true;
       sentinel?.release?.().catch(() => {});
     };
-  }, [playing, practice]);
+  }, [playing, practice, tv.connected]);
 
   // Focus the panel so the keyboard map works without a click first.
   useEffect(() => { shellRef.current?.focus(); }, []);
+  useEffect(() => { setFullScreenAvailable(Boolean(shellRef.current?.requestFullscreen || videoRef.current?.webkitEnterFullscreen)); }, [finished]);
+
+  const fullScreen = () => {
+    const request = shellRef.current?.requestFullscreen?.bind(shellRef.current)
+      || videoRef.current?.webkitEnterFullscreen?.bind(videoRef.current);
+    try { request?.()?.catch?.(() => {}); } catch { /* Browser decides availability. */ }
+  };
 
   if (!videos.length) return null;
 
@@ -434,10 +479,11 @@ export default function VideoPlayer({
       onTouchStart={wakeChrome}
     >
       <style>{PLAYER_CSS}</style>
+      <WatchOnTV tv={tv} onFullScreen={fullScreen} fullScreenAvailable={fullScreenAvailable} />
       {coachMode && <div onKeyDown={containModalTab} role="dialog" aria-modal="true" aria-label="Coach Mode" className="fixed inset-0 z-[75] overflow-y-auto bg-atelier-paper px-5 py-6 text-atelier-ink"><div className="mx-auto max-w-xl"><button type="button" autoFocus onClick={() => setCoachMode(false)} className="min-h-11 px-2 font-semibold text-atelier-rosewood">Back to exercise</button><p className="mt-4 text-xs uppercase tracking-widest text-atelier-rosewood">Coach Mode</p><h2 className="mt-2 font-serif text-[32px]">{current?.title}</h2><p className="mt-3 text-sm text-atelier-ink2">{prescription?.doseLine} · {prescription?.restLine}</p><p className="mt-2 text-sm text-atelier-ink2">{prescription?.setup}</p>{[["Why this helps", guidance.purpose], ["What to feel", guidance.feel], ["How to breathe", guidance.breathe], ["What to avoid", guidance.avoid], ["Make it easier", guidance.easier]].map(([label, text]) => <section key={label} className="mt-4 rounded-2xl border border-atelier-line bg-atelier-card p-4"><h3 className="font-semibold">{label}</h3><p className="mt-2 text-[15px] leading-relaxed text-atelier-ink2">{text}</p></section>)}<button type="button" onClick={() => setCoachMode(false)} className="my-6 min-h-[52px] w-full rounded-full bg-atelier-rosewood font-semibold text-white">Continue Exercise</button></div></div>}
       {practice && prescription && <ExercisePractice key={`${current?.id}-${index}`} video={current} prescription={prescription}
         onClose={() => setPractice(null)}
-        onWatch={() => { setPractice(null); const el = videoRef.current; if (el) { el.currentTime = 0; lastTimeRef.current = 0; el.play().catch(() => {}); } }}
+        onWatch={() => { setPractice(null); if (tvRef.current?.activeRef.current) { tvRef.current.replay(); return; } const el = videoRef.current; if (el) { el.currentTime = 0; lastTimeRef.current = 0; el.play().catch(() => {}); } }}
         onSkip={() => finishPractice(0)}
         onFinish={finishPractice} />}
       {transition && <div onKeyDown={containModalTab} role="dialog" aria-modal="true" aria-label="Next exercise" className="fixed inset-0 z-[65] flex flex-col items-center justify-center bg-black/95 px-6 text-center text-white">
@@ -480,17 +526,19 @@ export default function VideoPlayer({
               className="absolute inset-0 h-full w-full object-contain"
               style={{ transform: mirrored ? "scaleX(-1)" : undefined }}
               playsInline
+              x-webkit-airplay="allow"
               preload="auto"
-              onLoadedMetadata={(e) => { setDuration(e.currentTarget.duration || 0); setWaiting(false); }}
+              onLoadedMetadata={(e) => { if (!tvRef.current?.activeRef.current) { setDuration(e.currentTarget.duration || 0); setWaiting(false); } }}
               onTimeUpdate={handleTimeUpdate}
-              onPlay={() => { setPlaying(true); setWaiting(false); }}
+              onPlay={() => { if (tvRef.current?.activeRef.current) { videoRef.current?.pause(); return; } setPlaying(true); setWaiting(false); }}
               // Pausing always brings the controls back, whatever paused it.
               // The transport must never be hidden behind a still frame.
-              onPause={() => { setPlaying(false); setChromeVisible(true); }}
-              onWaiting={() => setWaiting(true)}
-              onPlaying={() => setWaiting(false)}
+              onPause={() => { if (!tvRef.current?.activeRef.current) setPlaying(false); setChromeVisible(true); }}
+              onWaiting={() => { if (!tvRef.current?.activeRef.current) setWaiting(true); }}
+              onPlaying={() => { if (!tvRef.current?.activeRef.current) setWaiting(false); }}
               onEnded={handleEnded}
               onError={(e) => {
+                if (tvRef.current?.activeRef.current) return;
                 // A dropped connection and a codec this browser cannot open are
                 // different problems with different fixes. Telling a woman on a
                 // train to install Safari is not help.
@@ -501,7 +549,9 @@ export default function VideoPlayer({
               }}
             />
 
-            {failed ? (
+            {tv.connected && <div className="absolute inset-0 flex flex-col items-center justify-center bg-black px-6 text-center"><Tv className="h-12 w-12 text-white/80" aria-hidden="true" /><p role="status" className="mt-5 text-lg font-semibold">{tv.loading ? "Opening this exercise on your TV…" : `Playing on ${tv.name}`}</p><p className="mt-3 max-w-sm text-sm leading-relaxed text-white/60">Use the controls below. Keep this page open for guided practice and your next exercise.</p></div>}
+
+            {!tv.connected && failed ? (
               <PlaybackProblem
                 kind={failureKind}
                 isLast={isLast}
@@ -518,7 +568,7 @@ export default function VideoPlayer({
                 onClose={close}
               />
             ) : (
-              waiting && (
+              !tv.connected && waiting && (
                 <div className="pointer-events-none absolute inset-0 grid place-items-center">
                   <Loader2
                     className={`h-9 w-9 text-white/80 ${reduceMotion ? "" : "animate-spin"}`}
@@ -549,6 +599,7 @@ export default function VideoPlayer({
                   {subtitle ? `${subtitle} · ` : ""}Exercise {index + 1} of {videos.length}
                 </p>
               </div>
+              <button type="button" onClick={() => tv.setOpen(true)} aria-label={tv.connected || tv.airPlaying ? "TV playback options, connected" : "Watch on TV"} className={`grid h-11 w-11 shrink-0 place-items-center rounded-full backdrop-blur active:bg-white/25 ${tv.connected || tv.airPlaying ? "bg-ios-pink text-white" : "bg-white/15"}`}><Tv className="h-5 w-5" aria-hidden="true" /></button>
               {onToggleSaved && current && (
                 <button
                   type="button"
@@ -577,9 +628,9 @@ export default function VideoPlayer({
                 longer trip for the mouse, and the transport ends up nowhere
                 near the video it controls. */}
             <div className="mx-auto w-full max-w-[1100px]">
-            {prescription && (prescription.offersGuidedPractice ? <button type="button" onClick={() => { videoRef.current?.pause(); setPlaying(false); setPractice({ index }); }} className="mx-4 mt-3 flex w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-left" aria-label={`Exercise plan, ${prescription.doseLine}. ${prescription.setup}`}><span className="flex-1"><span className="block text-[15px] font-semibold">{prescription.doseLine}</span><span className="mt-1 block text-xs text-white/70">{prescription.setup}</span></span><Play className="h-5 w-5 shrink-0" aria-hidden="true" /></button>
+            {prescription && (prescription.offersGuidedPractice ? <button type="button" onClick={() => { pauseActive(); setPractice({ index }); }} className="mx-4 mt-3 flex w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-left" aria-label={`Exercise plan, ${prescription.doseLine}. ${prescription.setup}`}><span className="flex-1"><span className="block text-[15px] font-semibold">{prescription.doseLine}</span><span className="mt-1 block text-xs text-white/70">{prescription.setup}</span></span><Play className="h-5 w-5 shrink-0" aria-hidden="true" /></button>
               : <div className="mx-4 mt-3 rounded-2xl border border-white/20 bg-white/10 px-4 py-3"><p className="text-[15px] font-semibold">{prescription.doseLine}</p><p className="mt-1 text-xs text-white/70">{prescription.setup}</p></div>)}
-            {prescription && <button type="button" onClick={() => { videoRef.current?.pause(); setPlaying(false); setCoachMode(true); }} className="mx-4 mt-2 min-h-[44px] rounded-full border border-white/20 px-5 text-sm font-semibold text-white">Coach Mode: what to feel</button>}
+            {prescription && <button type="button" onClick={() => { pauseActive(); setCoachMode(true); }} className="mx-4 mt-2 min-h-[44px] rounded-full border border-white/20 px-5 text-sm font-semibold text-white">Coach Mode: what to feel</button>}
             {/* Scrubber */}
             <div className="px-4 pt-2">
               <input
@@ -588,6 +639,7 @@ export default function VideoPlayer({
                   "--pv-track": `linear-gradient(to right, #FF2D55 ${progressPercent}%, rgba(255,255,255,0.28) ${progressPercent}%)`,
                 }}
                 type="range"
+                disabled={tv.connected && tv.loading}
                 min={0}
                 max={Math.max(duration, 0.1)}
                 step={0.1}
@@ -607,20 +659,21 @@ export default function VideoPlayer({
               <ControlButton label="Previous exercise" onClick={() => goTo(index - 1)} disabled={index === 0}>
                 <ChevronLeft className="h-6 w-6" aria-hidden="true" />
               </ControlButton>
-              <ControlButton label="Back 10 seconds" onClick={() => skip(-SKIP_SECONDS)}>
+              <ControlButton label="Back 10 seconds" onClick={() => skip(-SKIP_SECONDS)} disabled={tv.connected && tv.loading}>
                 <RotateCcw className="h-5 w-5" aria-hidden="true" />
                 <span className="absolute text-[9px] font-bold">10</span>
               </ControlButton>
               <button
                 type="button"
                 onClick={togglePlay}
-                aria-label={playing ? "Pause" : "Play"}
-                className="grid h-16 w-16 place-items-center rounded-full bg-ios-pink text-white shadow-lg shadow-ios-pink/40 active:scale-95"
+                disabled={tv.connected && tv.loading}
+                aria-label={tv.connected && tv.loading ? "Connecting to your TV" : playing ? "Pause" : "Play"}
+                className="grid h-16 w-16 place-items-center rounded-full bg-ios-pink text-white shadow-lg shadow-ios-pink/40 active:scale-95 disabled:opacity-50"
               >
                 {playing ? <Pause className="h-7 w-7 fill-current" aria-hidden="true" />
                          : <Play className="h-7 w-7 translate-x-0.5 fill-current" aria-hidden="true" />}
               </button>
-              <ControlButton label="Forward 10 seconds" onClick={() => skip(SKIP_SECONDS)}>
+              <ControlButton label="Forward 10 seconds" onClick={() => skip(SKIP_SECONDS)} disabled={tv.connected && tv.loading}>
                 <RotateCw className="h-5 w-5" aria-hidden="true" />
                 <span className="absolute text-[9px] font-bold">10</span>
               </ControlButton>
@@ -636,8 +689,9 @@ export default function VideoPlayer({
             <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2 pt-1 no-scrollbar">
               <ToggleChip
                 on={mirrored}
+                disabled={tv.connected || tv.airPlaying}
                 onClick={() => setMirrored((v) => !v)}
-                label="Mirror the video"
+                label={tv.connected || tv.airPlaying ? "Mirror is available on this screen only" : "Mirror the video"}
                 hint="Mirror"
                 icon={<FlipHorizontal2 className="h-4 w-4" aria-hidden="true" />}
               />
@@ -688,7 +742,7 @@ export default function VideoPlayer({
                     const done = watchRef.current.get(i)?.logged;
                     const isCurrent = i === index;
                     return (
-                      <li key={video.id}>
+                      <li key={`${video.id}-${i}`}>
                         <button
                           type="button"
                           onClick={() => goTo(i)}
@@ -734,7 +788,7 @@ export default function VideoPlayer({
                   const done = watchRef.current.get(i)?.logged;
                   const isCurrent = i === index;
                   return (
-                    <li key={video.id}>
+                    <li key={`${video.id}-${i}`}>
                       <button
                         type="button"
                         onClick={() => goTo(i)}
@@ -790,14 +844,15 @@ function ControlButton({ label, onClick, disabled, children }) {
   );
 }
 
-function ToggleChip({ on, onClick, label, hint, icon }) {
+function ToggleChip({ on, onClick, label, hint, icon, disabled }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={on}
+      disabled={disabled}
       aria-label={label}
-      className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium ${
+      className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium disabled:opacity-40 ${
         on ? "bg-ios-pink text-white" : "bg-white/10 text-white/80 active:bg-white/20"
       }`}
     >
@@ -825,7 +880,7 @@ function PlaybackProblem({ kind, isLast, url, onRetry, onSkip, onClose }) {
         <p className="mt-2 text-sm text-white/70">
           {network
             ? "Your connection dropped part way through. Try it again, or skip ahead and come back to it."
-            : "Some of our older videos need Safari or the app. Everything else in this session plays fine here."}
+            : "This older video format may need Safari. Try it there, retry this clip, or continue with another exercise."}
         </p>
         {/* Retry is offered either way. Chrome reports a clip that simply failed
             to download as "not supported" too, and one more go costs nothing. */}

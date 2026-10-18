@@ -426,8 +426,8 @@ function Results({ results, onPlay, onToggleSaved, savedSet, watchedSet, onClear
           would put four 168px cards there, and a still frame that small tells
           you nothing about which movement it is. */}
       <ul className="mt-3 divide-y divide-black/[0.06] tab:grid tab:grid-cols-2 tab:gap-x-5 tab:gap-y-6 tab:divide-y-0 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5">
-        {results.slice(0, shown).map((item) => (
-          <li key={item.id} className="pv-defer-paint py-2.5 tab:py-0">
+        {results.slice(0, shown).map((item, position) => (
+          <li key={`${item.id}:${position}`} className="pv-defer-paint py-2.5 tab:py-0">
             <ExerciseCard
               item={item}
               layout="responsive"
@@ -578,8 +578,8 @@ function BrowseByCategory({
       </ul>
 
       <ul className="mt-3 flex gap-3 overflow-x-auto px-1 pb-2 no-scrollbar">
-        {current.items.map((item) => (
-          <li key={item.id}>
+        {current.items.map((item, position) => (
+          <li key={`${item.id}:${position}`}>
             <ExerciseCard
               item={item}
               onPlay={() => onPlay(item, current.items, current.title)}
