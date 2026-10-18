@@ -228,8 +228,9 @@ export function ExerciseShelf({ title, subtitle, items, onPlay, onToggleSaved, s
         }
       />
       <ul className="mt-3 flex gap-3 overflow-x-auto px-1 pb-2 no-scrollbar">
-        {items.map((item) => (
-          <li key={item.id}>
+        {/* Authored playlists can repeat a clip; each position is its own card. */}
+        {items.map((item, position) => (
+          <li key={`${item.id}:${position}`}>
             <ExerciseCard
               item={item}
               onPlay={() => onPlay(item, items)}

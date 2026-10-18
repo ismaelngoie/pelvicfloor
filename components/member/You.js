@@ -49,6 +49,7 @@ import ResourceCenter from "./ResourceCenter";
 import HelpSupport from "./HelpSupport";
 import FeelingTrendsSheet from "./FeelingTrends";
 import YouSettings from "./YouSettings";
+import WebAppInstall from "./WebAppInstall";
 import ProfilePhoto from "./ProfilePhoto";
 import PersonalArchive from "./PersonalArchive";
 import { CredentialsSheet } from "@/components/funnel/ReedSheets";
@@ -403,6 +404,13 @@ export default function You() {
               value="Contact us, refunds, and help"
               onClick={() => setSheet("help")}
             />
+            <Row
+              icon={Smartphone}
+              tint="gray"
+              label="Add to Home Screen"
+              value="Open your plan in one tap"
+              onClick={() => setSheet("web-app")}
+            />
             {offerTheApp ? (
               <Row
                 icon={Smartphone}
@@ -569,6 +577,7 @@ export default function You() {
       <ResourceCenter open={sheet === "resources"} onClose={close} />
 
       <YouSettings open={sheet === "reminders"} onClose={close} />
+      <WebAppInstall open={sheet === "web-app"} onClose={close} />
 
       <HelpSupport
         open={sheet === "help"}
