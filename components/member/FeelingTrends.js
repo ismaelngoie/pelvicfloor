@@ -21,7 +21,8 @@
 import { useMemo } from "react";
 import { Droplet, HeartPulse, Smile, Zap, Target, FileText, ChevronRight } from "lucide-react";
 import { Sheet } from "./ui";
-import { goalFeelingTitle } from "@/lib/goalCopy";
+import { dailyTrackingPlan, trackingSeries } from "@/lib/dailyTracking";
+import { focusData } from "@/components/funnel/appCopy";
 
 // UIKit system colours, the same ones the phone's charts use.
 const COLOR = {
@@ -40,11 +41,10 @@ const MOOD_VALUE = { "😊": 2, "😐": 1 };
  * You tab's progress card. `onOpenReport` hands off to the doctor's report,
  * which is the phone's providerReportLink at the bottom of the same screen.
  */
-export default function FeelingTrendsSheet({ open, onClose, checkIns, goalId, focusId = null, onOpenReport }) {
-  const series = useMemo(() => buildSeries(checkIns), [checkIns]);
-  const hasAnyData =
-    series.leak.length || series.pain.length || series.mood.length ||
-    series.energy.length || series.feeling.length;
+export default function FeelingTrendsSheet({ open, onClose, checkIns, goalId, focusId = null, pathway = "womensPelvicHealth", onOpenReport }) {
+  const plan = useMemo(() => dailyTrackingPlan(goalId, pathway, focusData(pathway, goalId, focusId)), [goalId, pathway, focusId]);
+  const series = useMemo(() => trackingSeries(checkIns, plan), [checkIns, plan]);
+  const hasAnyData = series.length > 0;
 
   return (
     <Sheet open={open} onClose={onClose} title="How You're Feeling">
@@ -56,53 +56,7 @@ export default function FeelingTrendsSheet({ open, onClose, checkIns, goalId, fo
         {!hasAnyData ? (
           <EmptyState />
         ) : (
-          <>
-            {series.leak.length > 0 && (
-              <TrendChart
-                title="Leaks"
-                icon={Droplet}
-                color={COLOR.leak}
-                data={series.leak}
-                yLabels={["None", "A Few", "Several"]}
-              />
-            )}
-            {series.pain.length > 0 && (
-              <TrendChart
-                title="Discomfort"
-                icon={HeartPulse}
-                color={COLOR.pain}
-                data={series.pain}
-                yMax={10}
-              />
-            )}
-            {series.mood.length > 0 && (
-              <TrendChart
-                title="Mood"
-                icon={Smile}
-                color={COLOR.mood}
-                data={series.mood}
-                yLabels={["Sad", "Neutral", "Happy"]}
-              />
-            )}
-            {series.energy.length > 0 && (
-              <TrendChart
-                title="Energy"
-                icon={Zap}
-                color={COLOR.energy}
-                data={series.energy}
-                yMax={5}
-              />
-            )}
-            {series.feeling.length > 0 && (
-              <TrendChart
-                title={goalFeelingTitle(goalId, focusId)}
-                icon={Target}
-                color={COLOR.feeling}
-                data={series.feeling}
-                yMax={5}
-              />
-            )}
-          </>
+          <>{series.map((item) => <TrendChart key={item.slot} title={item.title} icon={item.slot === "leak" ? Droplet : item.slot === "discomfort" ? HeartPulse : item.slot === "secondary" ? Zap : Target} color={item.slot === "leak" ? COLOR.leak : item.slot === "discomfort" ? COLOR.pain : item.slot === "secondary" ? COLOR.energy : COLOR.feeling} data={item.data} yMax={item.valueLabels ? undefined : item.maximum} yLabels={item.valueLabels} higherIsBetter={item.higherIsBetter} />)}</>
         )}
 
         {onOpenReport && (
@@ -139,7 +93,7 @@ export default function FeelingTrendsSheet({ open, onClose, checkIns, goalId, fo
 // gradient fill under it, a dot on every check-in, categorical or numeric
 // y-labels down the left, and dates along the bottom. A one-line read of the
 // trend sits above it, matching the phone's trendDescription copy exactly.
-function TrendChart({ title, icon: Icon, color, data, yLabels, yMax }) {
+function TrendChart({ title, icon: Icon, color, data, yLabels, yMax, higherIsBetter }) {
   const max = yMax != null ? yMax : (yLabels ? yLabels.length - 1 : 1);
 
   // The plot box, in viewBox units. Fixed geometry that scales to the container
@@ -188,7 +142,7 @@ function TrendChart({ title, icon: Icon, color, data, yLabels, yMax }) {
         <Icon className="h-[18px] w-[18px]" style={{ color }} aria-hidden="true" />
         <h3 className="text-[15px] font-bold" style={{ color }}>{title}</h3>
       </div>
-      <p className="mt-1 text-[12.5px] text-app-textSecondary">{trendDescription(data)}</p>
+      <p className="mt-1 text-[12.5px] text-app-textSecondary">{trendDescription(data, higherIsBetter)}</p>
 
       <svg
         viewBox={`0 0 ${W} ${H}`}
@@ -324,17 +278,12 @@ function buildSeries(checkIns) {
  * The phone's trendDescription, ported verbatim so the copy under each chart is
  * the same sentence on both devices.
  */
-function trendDescription(data) {
+function trendDescription(data, higherIsBetter = false) {
   if (data.length < 2) return "Log another day to see your trend.";
-  const first = data[0].value;
-  const last = data[data.length - 1].value;
-  if (last < first) {
-    if (first <= 0) return "Holding steady. Keep up the great work!";
-    const pct = ((first - last) / first) * 100;
-    return `Down ${Math.round(pct)}% this period. Great work!`;
-  }
-  if (last > first) return "Trending up slightly. Stay consistent!";
-  return "Holding steady. Keep up the great work!";
+  const delta = data.at(-1).value - data[0].value;
+  if (!delta) return "No change across this period.";
+  const better = higherIsBetter ? delta > 0 : delta < 0;
+  return better ? `Improved by ${Math.abs(delta)} ${Math.abs(delta) === 1 ? "point" : "points"} across this period.` : `Changed by ${Math.abs(delta)} ${Math.abs(delta) === 1 ? "point" : "points"} in the other direction. Keep tracking the pattern.`;
 }
 
 /** A yyyy-MM-dd key as a local Date, or null if it is not one. */

@@ -34,7 +34,7 @@
 // page — that is what `main, .pv-member-shell, .pv-member-scroll` is doing
 // there, and it is the one place this file knows something about MemberShell.
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Printer } from "lucide-react";
 import { Sheet } from "./ui";
 import { Segmented } from "./youUI";
@@ -44,6 +44,11 @@ import {
 } from "./youStore";
 import { PFDI_SUBSCALES, iciqSeverity } from "./outcomeMeasures";
 import { SESSIONS_PER_WEEK } from "@/lib/guaranteeCopy";
+import { archiveSnapshot, archiveDate, archiveDuration, bodyTrackingEntries, reportAdherence } from "@/lib/personalArchive";
+import { dailyTrackingPlan, trackingLabel, trackingRows, trackingSeries, trackingDate, memberPathway } from "@/lib/dailyTracking";
+import { focusData } from "@/components/funnel/appCopy";
+import { readAudioJourney } from "@/lib/audioJourney";
+import { readAudioRituals } from "./AudioRituals";
 
 export const REPORT_RANGES = [
   { id: "week", title: "7 days", days: 7, documentTitle: "Last 7 days", caption: "Good for a first appointment, along with your 3-day bladder diary." },
@@ -102,8 +107,10 @@ export const REPORT_CSS = `
 
 export default function DoctorReport({
   open, onClose, range, onRangeChange, member, goal, currentDayNumber, planLength,
-  completions, totalSeconds, streak, checkIns, diaryEntries, outcomeChecks,
+  completions, totalSeconds, streak, checkIns, diaryEntries, outcomeChecks, events = [],
 }) {
+  const [privateRecords, setPrivateRecords] = useState({ audioRecords: [], ritualRecords: [] });
+  useEffect(() => { if (open) setPrivateRecords({ audioRecords: readAudioJourney(member?.id).records, ritualRecords: readAudioRituals(member?.id).records || [] }); }, [open, member?.id]);
   const rangeMeta = REPORT_RANGES.find((r) => r.id === range) || REPORT_RANGES[1];
 
   const print = useCallback(() => {
@@ -123,6 +130,8 @@ export default function DoctorReport({
       checkIns={checkIns}
       diaryEntries={diaryEntries}
       outcomeChecks={outcomeChecks}
+      events={events}
+      privateRecords={privateRecords}
     />
   );
 
@@ -183,31 +192,41 @@ export default function DoctorReport({
 
 function ReportBody({
   rangeMeta, member, goal, currentDayNumber, planLength, completions, totalSeconds,
-  streak, checkIns, diaryEntries, outcomeChecks,
+  streak, checkIns, diaryEntries, outcomeChecks, events, privateRecords,
 }) {
   const now = new Date();
+  const goalId = member?.goal || goal?.id || "coreStrength";
+  const pathway = memberPathway(member, goalId);
+  const plan = dailyTrackingPlan(goalId, pathway, focusData(pathway, goalId, member?.focus));
+  const snapshot = archiveSnapshot({ member, goalId, completions, events, checkIns, diaryEntries, outcomeChecks, ...privateRecords, retainedDays: Infinity, now });
   const start = useMemo(() => {
-    if (!rangeMeta.days) return new Date(0);
     const d = new Date(now);
-    d.setDate(d.getDate() - rangeMeta.days);
+    if (!rangeMeta.days) {
+      d.setDate(d.getDate() - 89); d.setHours(0, 0, 0, 0);
+      const earliest = snapshot.entries.map((entry) => archiveDate(entry.date)).filter(Boolean).sort((a, b) => a - b)[0];
+      return earliest && earliest < d ? earliest : d;
+    }
+    d.setDate(d.getDate() - (rangeMeta.days - 1));
     d.setHours(0, 0, 0, 0);
     return d;
   }, [rangeMeta.days, now.getTime()]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const inRange = (value) => {
-    const d = toDate(value);
+    const d = archiveDate(value);
     return d ? d >= start && d <= now : false;
   };
 
   const rangeCompletions = (completions || []).filter((c) => inRange(c.completedAt));
-  const rangeSeconds = rangeCompletions.reduce((sum, c) => sum + (Number(c.secondsWatched) || 0), 0);
-  const practiceMinutes = Math.round((rangeSeconds || totalSeconds || 0) / 60);
-  const spanDays = rangeMeta.days || Math.max(1, Math.round((now - firstDate(completions, now)) / 86400000));
-  const weeks = Math.max(spanDays / 7, 1 / 7);
-  const adherence = Math.min(
-    100,
-    Math.round((rangeCompletions.length / weeks / SESSIONS_PER_WEEK) * 100)
-  );
+  const rangeEntries = snapshot.entries.filter((entry) => inRange(entry.date));
+  const workouts = rangeEntries.filter((entry) => entry.kind === "workout");
+  const rangeSeconds = workouts.reduce((sum, entry) => sum + (entry.durationSeconds || 0), 0);
+  const practiceMinutes = Math.floor(rangeSeconds / 60);
+  const sessions = workouts.reduce((sum, entry) => sum + (entry.sessionCount || 0), 0);
+  const completedAudio = rangeEntries.filter((entry) => entry.kind === "audio" && entry.goal === goalId);
+  const audioSeconds = completedAudio.reduce((sum, entry) => sum + (entry.durationSeconds || 0), 0);
+  const bodyEntries = bodyTrackingEntries(member, goalId).filter((entry) => (!entry.goal || entry.goal === goalId) && inRange(entry.date));
+  const ritualCount = rangeEntries.filter((entry) => entry.kind === "ritual" && entry.goal === goalId).length;
+  const adherence = reportAdherence(sessions, start, now, SESSIONS_PER_WEEK);
 
   const diaryDays = useMemo(
     () => summariseDiary((diaryEntries || []).filter((e) => inRange(e.timestamp))),
@@ -222,9 +241,8 @@ function ReportBody({
     return d && d <= now && (c.iciqTotal != null || c.pfdiTotal != null);
   });
 
-  const rangeCheckIns = (checkIns || [])
-    .filter((c) => inRange(c.date) || inRange(c.id))
-    .sort((a, b) => (toDate(a.date) || 0) - (toDate(b.date) || 0));
+  const rangeCheckIns = trackingRows(checkIns, goalId).filter((record) => inRange(trackingDate(record)));
+  const trendSeries = trackingSeries(rangeCheckIns, plan);
 
   const unit = volumeUnit();
 
@@ -248,7 +266,7 @@ function ReportBody({
           value={planLength ? `Day ${Math.min(currentDayNumber, planLength)} of ${planLength}` : "—"}
           caption={goal?.title}
         />
-        <Cell label="Sessions completed" value={`${rangeCompletions.length}`} caption="In this period" />
+        <Cell label="Sessions completed" value={`${sessions}`} caption="In this period" />
         <Cell label="Practice time" value={durationText(practiceMinutes)} caption="In this period" />
         <Cell label="Current streak" value={`${streak?.current ?? 0} ${plural(streak?.current ?? 0, "day")}`} />
         <Cell label="Best streak" value={`${streak?.best ?? 0} ${plural(streak?.best ?? 0, "day")}`} />
@@ -257,7 +275,16 @@ function ReportBody({
           value={`${adherence}%`}
           caption={`vs ${SESSIONS_PER_WEEK} sessions a week`}
         />
+        <Cell label="Coach Mia audio" value={`${completedAudio.length} sessions`} caption={archiveDuration(audioSeconds)} />
+        <Cell label={pathway === "mensPelvicHealth" ? "Men's health check-ins" : member?.trackers?.womens?.mode === "menopause" ? "Menopause check-ins" : "Cycle and body context"} value={`${bodyEntries.length}`} caption="In this period" />
+        <Cell label="Private routines" value={`${ritualCount}`} caption="Recorded routines only" />
       </dl>
+
+      <h2>Symptom trends</h2>
+      {!trendSeries.length ? <p className="pv-empty">No symptom trend data in this range.</p> : <table><thead><tr><th>Measure</th><th className="pv-num">Answers</th><th className="pv-num">First</th><th className="pv-num">Latest</th><th>Direction</th></tr></thead><tbody>{trendSeries.map((series) => <tr key={series.slot}><td>{series.title}</td><td className="pv-num">{series.data.length}</td><td className="pv-num">{series.valueLabels?.[series.data[0].value] ?? series.data[0].value}</td><td className="pv-num">{series.valueLabels?.[series.data.at(-1).value] ?? series.data.at(-1).value}</td><td>{series.higherIsBetter ? "Higher is better" : "Lower is better"}</td></tr>)}</tbody></table>}
+      {sessions > 0 && <><h2>Weekly consistency</h2><table><thead><tr><th>Week beginning</th><th className="pv-num">Recorded sessions</th><th className="pv-num">Recorded practice</th></tr></thead><tbody>{snapshot.weeklyReports.filter((week) => week.end >= start && week.start <= now).map((week) => { const rows = workouts.filter((entry) => { const date = archiveDate(entry.date); return date >= week.start && date <= week.end; }); return <tr key={week.id}><td>{shortDate(week.start)}</td><td className="pv-num">{rows.reduce((sum, entry) => sum + (entry.sessionCount || 0), 0)}</td><td className="pv-num">{archiveDuration(rows.reduce((sum, entry) => sum + (entry.durationSeconds || 0), 0))}</td></tr>; })}</tbody></table></>}
+      {bodyEntries.length > 0 && <><h2>Body tracking</h2><table><thead><tr><th>Date</th><th>Entry</th><th>Recorded signals</th></tr></thead><tbody>{bodyEntries.map((entry) => <tr key={entry.id}><td>{shortDate(entry.date)}</td><td>{entry.title}</td><td>{entry.detail}</td></tr>)}</tbody></table></>}
+      {completedAudio.length > 0 && <><h2>Guided audio</h2><table><thead><tr><th>Date</th><th>Completed session</th><th>Time and response</th></tr></thead><tbody>{completedAudio.map((entry) => <tr key={entry.id}><td>{shortDate(entry.date)}</td><td>{entry.title}</td><td>{entry.detail}</td></tr>)}</tbody></table></>}
 
       <h2>Outcome measures</h2>
       {checks.length === 0 ? (
@@ -380,20 +407,14 @@ function ReportBody({
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Leaks</th>
-                <th className="pv-num">Discomfort (0–10)</th>
-                <th className="pv-num">Energy (1–5)</th>
-                <th>Mood</th>
+                {trendSeries.map((series) => <th key={series.slot}>{series.title}</th>)}
               </tr>
             </thead>
             <tbody>
               {rangeCheckIns.map((row) => (
                 <tr key={row.id}>
-                  <td>{row.id || shortDate(row.date)}</td>
-                  <td>{row.leakLevel || "—"}</td>
-                  <td className="pv-num">{row.painLevel ?? "—"}</td>
-                  <td className="pv-num">{row.energyLevel ?? "—"}</td>
-                  <td>{row.mood || "—"}</td>
+                  <td>{shortDate(trackingDate(row))}</td>
+                  {trendSeries.map((series) => <td key={series.slot}>{row.goal ? trackingLabel(plan.prompts.find((prompt) => prompt.slot === series.slot) || { slot: series.slot, choices: [] }, row) ?? "—" : ({ leak: row.leakLevel, discomfort: row.painLevel, secondary: row.energyLevel, confidence: row.goalFeeling })[series.slot] ?? "—"}</td>)}
                 </tr>
               ))}
             </tbody>
@@ -431,7 +452,7 @@ function Cell({ label, value, caption }) {
 // --- Helpers ---------------------------------------------------------------
 
 function shortDate(value) {
-  const d = toDate(value);
+  const d = archiveDate(value);
   if (!d) return "—";
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" });
 }

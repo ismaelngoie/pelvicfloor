@@ -27,14 +27,23 @@ import {
   fetchCompletions, recordDayCompletion, recordWorkoutEvent, resolveMember, updateMember,
 } from "@/lib/memberStore";
 import {
-  allDays, dateKey, goalById, loadCatalog, loadProgram, programState, totalDays,
-  videosForDay,
+  allDays, dateKey, memberGoalById, loadCatalog, loadProgram, programState, totalDays,
+  videosForDay, PROGRAM_GOALS, personalizeProgram, refreshNativeContent,
 } from "@/lib/program";
+import {
+  adaptPlaylist as adaptNativePlaylist, adaptedProgramVideos, adaptationSummary as nativeAdaptationSummary,
+  continuationState, difficultyAfterFeedback, emptyPlanPreferences, latestSessionFeedback,
+  mergePlanPreferences, SESSION_RESPONSES, WORKOUT_DIFFICULTIES,
+} from "@/lib/planAdaptation";
+import { exercisePrescription } from "@/lib/exercisePrescription";
+import { AUDIO_JOURNEY_EVENT, latestAudioOutcome } from "@/lib/audioJourney";
+import { queuePostWorkout } from "@/lib/ai/proactiveCoach";
 import { entitlementState } from "@/lib/memberEntitlement";
 import { fetchEntitlement } from "@/lib/memberBilling";
-import { fetchRecentEvents, savedIdsOf, setSavedIds, summarizeEvents } from "@/lib/memberData";
+import { fetchRecentCheckIns, fetchRecentEvents, savedIdsOf, setSavedIds, summarizeEvents } from "@/lib/memberData";
 import { FIXTURES_ON } from "@/lib/devFixtures";
 import { readPlan } from "@/lib/postPurchase";
+import { createAccountEpoch } from "@/lib/accountEpoch";
 
 const MemberContext = createContext(null);
 
@@ -46,11 +55,7 @@ export function useMember() {
 
 const DEFAULT_GOAL = "coreStrength";
 
-// The nine files in public/content. Anything else would 404 the plan fetch.
-const PROGRAM_GOALS = new Set([
-  "pregnancyPrep", "postpartum", "coreStrength", "bladderLeaks", "pelvicPain",
-  "intimacy", "fitness", "stability", "diastasisRecti",
-]);
+const EMPTY_PREFERENCES = emptyPlanPreferences();
 
 export function MemberProvider({ children }) {
   const [authState, setAuthState] = useState("loading"); // loading | signedOut | signedIn
@@ -82,10 +87,43 @@ export function MemberProvider({ children }) {
   const [catalog, setCatalog] = useState(null);
   const [completions, setCompletions] = useState([]);
   const [events, setEvents] = useState([]);
+  const [checkIns, setCheckIns] = useState([]);
+  const [preferenceRecord, setPreferenceRecord] = useState({ memberId: null, data: EMPTY_PREFERENCES });
+  const [audioChangeToken, setAudioChangeToken] = useState(0);
   const [contentError, setContentError] = useState(null);
 
   const configured = isFirebaseConfigured();
   const loadedGoalRef = useRef(null);
+  const pendingCompletionsRef = useRef(new Set());
+  const remoteContentRef = useRef(null);
+  const appliedRemoteContentRef = useRef(null);
+  const accountEpochRef = useRef(createAccountEpoch());
+  const checkedForRef = useRef(null);
+
+  const clearMemberUI = useCallback(() => {
+    setMember(null);
+    setMemberError(null);
+    setProgram(null);
+    setCatalog(null);
+    setCompletions([]);
+    setEvents([]);
+    setCheckIns([]);
+    setPreferenceRecord({ memberId: null, data: EMPTY_PREFERENCES });
+    setContentError(null);
+    loadedGoalRef.current = null;
+    appliedRemoteContentRef.current = null;
+    pendingCompletionsRef.current.clear();
+  }, []);
+
+  const clearAccountUI = useCallback(() => {
+    clearMemberUI();
+    setLinkRedeeming(false);
+    setLinkState({ status: "idle", email: "", message: null });
+    // Reset account-scoped answers; the existing billing check owns reloading.
+    checkedForRef.current = null;
+    setLive(null);
+    setEntitlementChecked(false);
+  }, [clearMemberUI]);
 
   // --- Auth ----------------------------------------------------------------
 
@@ -100,6 +138,8 @@ export function MemberProvider({ children }) {
       let mounted = true;
       import("@/lib/devFixtureData").then((f) => {
         if (!mounted) return;
+        accountEpochRef.current.switchUser(f.fixtureUser.uid);
+        accountEpochRef.current.bindMember(f.fixtureMember.id);
         setUser(f.fixtureUser);
         setMember(f.fixtureMember);
         setAuthState("signedIn");
@@ -126,11 +166,12 @@ export function MemberProvider({ children }) {
       .then((result) => (result ? captureProviderName(result) : null))
       .catch(() => {});
     return onAuthStateChanged(auth(), (next) => {
+      if (accountEpochRef.current.switchUser(next?.uid)) clearAccountUI();
       setUser(next || null);
       setAuthState(next ? "signedIn" : "signedOut");
       if (!next) setMember(null);
     });
-  }, [configured]);
+  }, [configured, clearAccountUI]);
 
   // A link from her inbox can land on any page of the member app, so it is
   // redeemed here rather than on one screen that happens to know about it.
@@ -223,28 +264,33 @@ export function MemberProvider({ children }) {
     // not to a person, so a name that outlived the session it came from would
     // be written onto whoever signs in next on this laptop — which for this
     // product is a real scenario and not a theoretical one.
-    forgetAppleName();
-    setMember(null);
-    setCompletions([]);
-    setEvents([]);
-    setLinkState({ status: "idle", email: "", message: null });
-  }, [configured]);
+    if (accountEpochRef.current.currentUID == null) {
+      forgetAppleName();
+      clearAccountUI();
+    }
+  }, [configured, clearAccountUI]);
 
   // --- Member record -------------------------------------------------------
 
   const loadMember = useCallback(async (nextUser) => {
+    const scope = accountEpochRef.current.beginProfileLoad(nextUser?.uid);
+    if (!accountEpochRef.current.isCurrentProfile(scope)) return null;
     try {
       const record = await resolveMember(nextUser);
+      if (!accountEpochRef.current.isCurrentProfile(scope)) return null;
+      if (accountEpochRef.current.currentMemberId && accountEpochRef.current.currentMemberId !== record.id) clearMemberUI();
+      accountEpochRef.current.bindMember(record.id);
       setMember(record);
       setMemberError(null);
       return record;
     } catch (err) {
+      if (!accountEpochRef.current.isCurrentProfile(scope)) return null;
       setMemberError(
         "We could not open your account. Check your connection and try again."
       );
       return null;
     }
-  }, []);
+  }, [clearMemberUI]);
 
   useEffect(() => {
     if (FIXTURES_ON) return;
@@ -261,8 +307,11 @@ export function MemberProvider({ children }) {
   const patchMember = useCallback(
     async (patch) => {
       if (!member?.id) return;
+      const scope = accountEpochRef.current.captureMember(member.id);
+      if (!accountEpochRef.current.isCurrentMember(scope)) return;
       if (!FIXTURES_ON) await updateMember(member.id, patch);
-      setMember((prev) => (prev ? { ...prev, ...patch } : prev));
+      if (!accountEpochRef.current.isCurrentMember(scope)) return;
+      setMember((prev) => (prev?.id === scope.memberId ? { ...prev, ...patch } : prev));
     },
     [member?.id]
   );
@@ -307,14 +356,17 @@ export function MemberProvider({ children }) {
     if (!member?.id) return;
     const stashed = peekAppleName();
     if (!stashed) return;
+    const scope = accountEpochRef.current.captureMember(member.id);
+    if (!accountEpochRef.current.isCurrentMember(scope)) return;
     if ((member.name || "").trim()) {
       forgetAppleName();
       return;
     }
     updateMember(member.id, { name: stashed })
       .then(() => {
+        if (!accountEpochRef.current.isCurrentMember(scope)) return;
         forgetAppleName();
-        setMember((prev) => (prev && !prev.name ? { ...prev, name: stashed } : prev));
+        setMember((prev) => (prev?.id === scope.memberId && !prev.name ? { ...prev, name: stashed } : prev));
       })
       .catch(() => {
         // Leave it in the stash. The next load tries again, and a member
@@ -329,8 +381,6 @@ export function MemberProvider({ children }) {
   //
   // The answer comes from Stripe, live, through /api/entitlement. There is no
   // copy of it in Firestore any more and nothing to keep in sync.
-
-  const checkedForRef = useRef(null);
 
   /**
    * Ask Stripe. Resolves to the answer, or null when we could not get one.
@@ -399,13 +449,74 @@ export function MemberProvider({ children }) {
   // `stability` is not on the goal grid any more but a member who chose it
   // before the swap still has a real 90 day program, so it stays loadable.
   const goalId = PROGRAM_GOALS.has(member?.goal) ? member.goal : DEFAULT_GOAL;
+  const pathway = member?.pathway === "mensPelvicHealth" || ["prostateRecovery", "bowelControl"].includes(goalId)
+    ? "mensPelvicHealth" : "womensPelvicHealth";
+
+  // Native preferences use device storage plus iCloud. The browser keeps an
+  // account-scoped local copy and mirrors it to this member's document so web
+  // preferences survive changing browsers without leaking between accounts.
+  const planPreferences = preferenceRecord.memberId === member?.id ? preferenceRecord.data : EMPTY_PREFERENCES;
+  useEffect(() => {
+    if (!member?.id) return;
+    const scope = accountEpochRef.current.captureMember(member.id);
+    if (!accountEpochRef.current.isCurrentMember(scope)) return;
+    const local = readPlanPreferences(member.id);
+    const merged = mergePlanPreferences(local, member.planPreferences);
+    setPreferenceRecord({ memberId: member.id, data: merged });
+    storePlanPreferences(member.id, merged);
+  }, [member?.id, member?.planPreferences]);
+
+  useEffect(() => {
+    const changed = (event) => {
+      if (!event.detail?.memberId || event.detail.memberId === member?.id) setAudioChangeToken((value) => value + 1);
+    };
+    window.addEventListener(AUDIO_JOURNEY_EVENT, changed);
+    window.addEventListener("storage", changed);
+    return () => {
+      window.removeEventListener(AUDIO_JOURNEY_EVENT, changed);
+      window.removeEventListener("storage", changed);
+    };
+  }, [member?.id]);
+
+  const persistPreferences = useCallback(async (next) => {
+    if (!member?.id) return;
+    const scope = accountEpochRef.current.captureMember(member.id);
+    if (!accountEpochRef.current.isCurrentMember(scope)) return;
+    const data = { ...next, modifiedAt: new Date().toISOString() };
+    setPreferenceRecord({ memberId: member.id, data });
+    storePlanPreferences(member.id, data);
+    try { await patchMember({ planPreferences: data }); } catch { /* The account-scoped local copy remains usable offline. */ }
+  }, [member?.id, patchMember]);
+
+  const difficulty = WORKOUT_DIFFICULTIES.some((item) => item.id === planPreferences.difficultyByGoal?.[goalId])
+    ? planPreferences.difficultyByGoal[goalId] : "easy";
+  const sessionFeedback = useMemo(() => latestSessionFeedback(planPreferences.feedbackRecords, goalId), [planPreferences, goalId]);
+  const setDifficulty = useCallback(async (value) => {
+    if (!WORKOUT_DIFFICULTIES.some((item) => item.id === value)) return;
+    await persistPreferences({ ...planPreferences, difficultyByGoal: { ...planPreferences.difficultyByGoal, [goalId]: value } });
+  }, [goalId, planPreferences, persistPreferences]);
+
+  const saveSessionFeedback = useCallback(async (response, { programDay = null, graduation = false } = {}) => {
+    if (!SESSION_RESPONSES.some((item) => item.id === response)) return;
+    const now = new Date().toISOString();
+    const record = { id: globalThis.crypto?.randomUUID?.() || `web_${Date.now()}_${Math.random().toString(36).slice(2)}`, goal: goalId, programDay, response, date: now };
+    await persistPreferences({
+      ...planPreferences,
+      feedbackRecords: [...(planPreferences.feedbackRecords || []), record].slice(-180),
+      difficultyByGoal: { ...planPreferences.difficultyByGoal, [goalId]: difficultyAfterFeedback(response, difficulty, graduation) },
+      graduationCheckIns: { ...planPreferences.graduationCheckIns, ...(graduation ? { [goalId]: true } : {}) },
+    });
+  }, [goalId, difficulty, planPreferences, persistPreferences]);
 
   useEffect(() => {
     if (!member?.id || !entitlement.active) return undefined;
-    if (loadedGoalRef.current === goalId && program && catalog) return undefined;
+    const scope = accountEpochRef.current.captureMember(member.id);
+    if (!accountEpochRef.current.isCurrentMember(scope)) return undefined;
+    const contentKey = `${goalId}:${pathway}`;
+    if (loadedGoalRef.current === contentKey && program && catalog) return undefined;
 
     let cancelled = false;
-    loadedGoalRef.current = goalId;
+    loadedGoalRef.current = contentKey;
     setContentError(null);
 
     (async () => {
@@ -414,11 +525,11 @@ export function MemberProvider({ children }) {
           loadCatalog(),
           loadProgram(goalId),
         ]);
-        if (cancelled) return;
+        if (cancelled || !accountEpochRef.current.isCurrentMember(scope)) return;
         setCatalog(nextCatalog);
-        setProgram(nextProgram);
+        setProgram(personalizeProgram(nextProgram, pathway));
       } catch {
-        if (!cancelled) {
+        if (!cancelled && accountEpochRef.current.isCurrentMember(scope)) {
           setContentError("We could not load your plan. Check your connection and try again.");
           loadedGoalRef.current = null;
         }
@@ -426,22 +537,47 @@ export function MemberProvider({ children }) {
     })();
 
     return () => { cancelled = true; };
-  }, [member?.id, entitlement.active, goalId, program, catalog]);
+  }, [member?.id, entitlement.active, goalId, pathway, program, catalog]);
+
+  useEffect(() => {
+    if (!member?.id || !entitlement.active || !program || !catalog) return undefined;
+    const scope = accountEpochRef.current.captureMember(member.id);
+    if (!accountEpochRef.current.isCurrentMember(scope)) return undefined;
+    const contentKey = `${member.id}:${goalId}:${pathway}`;
+    if (appliedRemoteContentRef.current === contentKey || FIXTURES_ON) return undefined;
+    if (!remoteContentRef.current) remoteContentRef.current = refreshNativeContent();
+    let cancelled = false;
+    remoteContentRef.current.then((pair) => {
+      if (cancelled || !pair || !accountEpochRef.current.isCurrentMember(scope)) return;
+      const nextProgram = pair.programs.programs.find((item) => item.goal === goalId);
+      if (!nextProgram) return;
+      appliedRemoteContentRef.current = contentKey;
+      setCatalog(pair.catalog);
+      setProgram(personalizeProgram(nextProgram, pathway));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [member?.id, entitlement.active, program, catalog, goalId, pathway]);
 
   const reloadHistory = useCallback(async () => {
     if (!member?.id) return;
+    const scope = accountEpochRef.current.captureMember(member.id);
+    if (!accountEpochRef.current.isCurrentMember(scope)) return;
     if (process.env.NODE_ENV !== "production" && FIXTURES_ON) {
       const f = await import("@/lib/devFixtureData");
+      if (!accountEpochRef.current.isCurrentMember(scope)) return;
       setEvents(f.fixtureEvents(catalog));
       return;
     }
     try {
-      const [nextCompletions, nextEvents] = await Promise.all([
+      const [nextCompletions, nextEvents, nextCheckIns] = await Promise.allSettled([
         fetchCompletions(member.id),
         fetchRecentEvents(member.id),
+        fetchRecentCheckIns(member.id),
       ]);
-      setCompletions(nextCompletions);
-      setEvents(nextEvents);
+      if (!accountEpochRef.current.isCurrentMember(scope)) return;
+      if (nextCompletions.status === "fulfilled") setCompletions(nextCompletions.value);
+      if (nextEvents.status === "fulfilled") setEvents(nextEvents.value);
+      if (nextCheckIns.status === "fulfilled") setCheckIns(nextCheckIns.value);
     } catch {
       // History is additive. A failed read leaves what she already sees.
     }
@@ -450,6 +586,22 @@ export function MemberProvider({ children }) {
   useEffect(() => {
     if (!member?.id || !entitlement.active) return;
     reloadHistory();
+  }, [member?.id, member?.programDay, member?.lastActiveAt, entitlement.active, reloadHistory]);
+
+  useEffect(() => {
+    if (!member?.id || !entitlement.active) return undefined;
+    let lastRefresh = 0;
+    const refreshVisibleHistory = () => {
+      if (document.visibilityState === "hidden" || Date.now() - lastRefresh < 1000) return;
+      lastRefresh = Date.now();
+      void reloadHistory(); // The captured member epoch rejects stale results.
+    };
+    window.addEventListener("focus", refreshVisibleHistory);
+    document.addEventListener("visibilitychange", refreshVisibleHistory);
+    return () => {
+      window.removeEventListener("focus", refreshVisibleHistory);
+      document.removeEventListener("visibilitychange", refreshVisibleHistory);
+    };
   }, [member?.id, entitlement.active, reloadHistory]);
 
   // --- Derived program state ----------------------------------------------
@@ -526,8 +678,14 @@ export function MemberProvider({ children }) {
   );
   const {
     currentDayNumber, currentDayUnlocked, graduated, replayDayNumber,
-    sessionDayNumber, bankableDayNumber, completedDayCount, highestUnlockedDay,
+    sessionDayNumber: stateSessionDayNumber, bankableDayNumber, completedDayCount, highestUnlockedDay,
   } = state;
+
+  const continuation = useMemo(() => graduated ? {
+    ...continuationState(completions, goalId, new Date()),
+    needsCheckIn: !planPreferences.graduationCheckIns?.[goalId],
+  } : null, [graduated, completions, goalId, planPreferences, dayChangeToken]);
+  const sessionDayNumber = continuation?.sourceDayNumber || stateSessionDayNumber;
 
   const currentDay = useMemo(() => {
     if (!days.length) return null;
@@ -547,10 +705,21 @@ export function MemberProvider({ children }) {
     return days[index] || null;
   }, [days, currentDayNumber]);
 
-  const todaysVideos = useMemo(
-    () => videosForDay(currentDay, catalog),
-    [currentDay, catalog]
-  );
+  const audioOutcome = useMemo(() => latestAudioOutcome(member?.id, goalId), [member?.id, goalId, audioChangeToken, dayChangeToken]);
+  const adaptationOptions = useMemo(() => ({ goalId, focusId, catalog, difficulty, feedback: sessionFeedback, audioOutcome }),
+    [goalId, focusId, catalog, difficulty, sessionFeedback, audioOutcome]);
+  const adaptPlaylist = useCallback((videos, { programDay } = {}) => adaptNativePlaylist(videos, { ...adaptationOptions, programDay }), [adaptationOptions]);
+  const videosForProgramDay = useCallback((day, { includeForm = false } = {}) => {
+    const authored = videosForDay(day, catalog);
+    const options = { ...adaptationOptions, programDay: day?.day };
+    return includeForm ? adaptedProgramVideos(authored, options) : adaptNativePlaylist(authored, options);
+  }, [catalog, adaptationOptions]);
+  const todaysVideos = useMemo(() => videosForProgramDay(currentDay, { includeForm: !graduated }),
+    [currentDay, graduated, videosForProgramDay]);
+  const adaptationSummary = useMemo(() => nativeAdaptationSummary(adaptationOptions), [adaptationOptions]);
+  const shouldOpenCoachMode = sessionFeedback?.response === "couldNotFeel";
+  const prescriptionForVideo = useCallback((video, { programDay = sessionDayNumber } = {}) => exercisePrescription(video,
+    { member, goalId, focusId, difficulty, programDay }), [member, goalId, focusId, difficulty, sessionDayNumber]);
 
   const history = useMemo(() => summarizeEvents(events), [events]);
   const savedIds = useMemo(() => savedIdsOf(member), [member]);
@@ -558,17 +727,20 @@ export function MemberProvider({ children }) {
   const toggleSaved = useCallback(
     async (videoId) => {
       if (!member?.id || !videoId) return;
+      const scope = accountEpochRef.current.captureMember(member.id);
+      if (!accountEpochRef.current.isCurrentMember(scope)) return;
       const current = savedIdsOf(member);
       const next = current.includes(videoId)
         ? current.filter((id) => id !== videoId)
         : [videoId, ...current];
-      setMember((prev) => (prev ? { ...prev, savedExerciseIDs: next } : prev));
+      setMember((prev) => (prev?.id === scope.memberId ? { ...prev, savedExerciseIDs: next } : prev));
       if (FIXTURES_ON) return;
       try {
         await setSavedIds(member.id, next);
       } catch {
+        if (!accountEpochRef.current.isCurrentMember(scope)) return;
         // Put it back rather than let the heart lie about what was saved.
-        setMember((prev) => (prev ? { ...prev, savedExerciseIDs: current } : prev));
+        setMember((prev) => (prev?.id === scope.memberId ? { ...prev, savedExerciseIDs: current } : prev));
       }
     },
     [member]
@@ -578,7 +750,11 @@ export function MemberProvider({ children }) {
   // Completions are the source of truth, not a counter that only goes up. Miss
   // a week and the streak is what the calendar says it is.
 
-  const streak = useMemo(() => computeStreak(completions), [completions]);
+  const dailySessionCompletions = useMemo(() => events.filter((event) => event.sessionCompleted
+    && ["program", "continuation", "replay"].includes(event.playbackContext))
+    .map((event) => ({ ...event, completedAt: event.date })), [events]);
+  const streak = useMemo(() => computeStreak([...completions, ...dailySessionCompletions]),
+    [completions, dailySessionCompletions, dayChangeToken]);
 
   // `bestStreak` is the longest run in her whole history, which is the field the
   // phone and /admin read back. Deriving it from `streak.current` meant a member
@@ -587,6 +763,8 @@ export function MemberProvider({ children }) {
   useEffect(() => {
     if (FIXTURES_ON) return;
     if (!member?.id || !completions.length) return;
+    const scope = accountEpochRef.current.captureMember(member.id);
+    if (!accountEpochRef.current.isCurrentMember(scope)) return;
     const best = Math.max(Number(member.bestStreak) || 0, streak.best);
     if (streak.current === member.streak && best === member.bestStreak) return;
     updateMember(member.id, { streak: streak.current, bestStreak: best }).catch(() => {});
@@ -595,50 +773,86 @@ export function MemberProvider({ children }) {
   // --- Writes the player makes --------------------------------------------
 
   const logVideoWatched = useCallback(
-    async ({ video, secondsWatched, completed, programDay }) => {
-      if (!member?.id || !video) return;
+    async ({ video, secondsWatched, completed, programDay, playbackContext = "library" }) => {
+      if (!member?.id || !video) return false;
+      const scope = accountEpochRef.current.captureMember(member.id);
+      if (!accountEpochRef.current.isCurrentMember(scope)) return false;
       try {
-        await recordWorkoutEvent(member.id, {
+        const event = {
           videoID: video.id,
           videoTitle: video.title,
           secondsWatched: Math.max(0, Math.round(secondsWatched || 0)),
           completed: Boolean(completed),
           programDay: programDay ?? null,
           goal: goalId,
-        });
+          playbackContext,
+        };
+        const eventId = FIXTURES_ON ? `local_${Date.now()}_${video.id}` : await recordWorkoutEvent(member.id, event);
+        if (accountEpochRef.current.isCurrentMember(scope)) setEvents((current) => [{ ...event, id: eventId, date: new Date().toISOString() }, ...current]);
+        return true;
       } catch {
         // A lost event costs a "watched" tick, never her progress.
+        return false;
       }
     },
     [member?.id, goalId]
   );
 
+  const logSessionComplete = useCallback(async ({ secondsWatched, completedCount, videoCount, programDay, playbackContext = "library" }) => {
+    if (!member?.id) return false;
+    const scope = accountEpochRef.current.captureMember(member.id);
+    if (!accountEpochRef.current.isCurrentMember(scope)) return false;
+    const event = {
+      eventType: "session_completed", sessionCompleted: true, completed: true,
+      secondsWatched: 0, sessionSecondsWatched: Math.max(0, Math.round(secondsWatched || 0)),
+      completedCount, videoCount, programDay: programDay ?? null, playbackContext, goal: goalId,
+    };
+    try {
+      const eventId = FIXTURES_ON ? `local_session_${Date.now()}` : await recordWorkoutEvent(member.id, event);
+      if (accountEpochRef.current.isCurrentMember(scope)) setEvents((current) => [{ ...event, id: eventId, date: new Date().toISOString() }, ...current]);
+      if (["continuation", "replay"].includes(playbackContext)) queuePostWorkout({ memberId: member.id, goalId, pathway,
+        programDay, workoutTitle: currentDay?.title || "Your session", streak: streak.current });
+      return true;
+    } catch { return false; }
+  }, [member?.id, goalId, pathway, currentDay, streak.current]);
+
   const logDayComplete = useCallback(
     async ({ day, secondsWatched }) => {
-      if (!member?.id || !day) return;
+      if (!member?.id || !day) return false;
+      const scope = accountEpochRef.current.captureMember(member.id);
+      if (!accountEpochRef.current.isCurrentMember(scope)) return false;
       // ProgramEngine.completeDay opens with `guard !completedDays.contains(day)`.
       // Same guard, same reason: a replay must never write a second record over
       // the day it is replaying, and a graduate must never bank a 91st day.
-      if (day !== bankableDayNumber) return;
+      const completionKey = `${scope.uid}:${scope.memberId}:${goalId}:${day}`;
+      if (day !== bankableDayNumber || pendingCompletionsRef.current.has(completionKey)) return false;
+      pendingCompletionsRef.current.add(completionKey);
       try {
         await recordDayCompletion(member.id, {
           programID: goalId,
           day,
           secondsWatched,
         });
+        const completedAt = new Date().toISOString();
+        if (accountEpochRef.current.isCurrentMember(scope)) setCompletions((current) => [...current.filter((record) => !(record.programID === goalId && Number(record.day) === day)),
+          { id: `${goalId}_${day}`, programID: goalId, day, secondsWatched, completedAt }]);
+        queuePostWorkout({ memberId: member.id, goalId, pathway, programDay: day, workoutTitle: currentDay?.title || "Your session", streak: streak.current });
         await updateMember(member.id, {
           // The same number the phone syncs (CloudSync writes
           // `engine.currentDayNumber`, which the engine caps at the plan
           // length). `day + 1` unguarded is how /admin came to show "Day 91 of 90".
           programDay: Math.min(day + 1, planLength || day + 1),
           ...(member.programStartedAt ? {} : { programStartedAt: new Date().toISOString() }),
-        });
+        }).catch(() => {});
       } catch {
-        // Fall through: reloadHistory below simply finds nothing new.
+        return false;
+      } finally {
+        pendingCompletionsRef.current.delete(completionKey);
       }
       await reloadHistory();
+      return true;
     },
-    [member?.id, member?.programStartedAt, goalId, reloadHistory, bankableDayNumber, planLength]
+    [member?.id, member?.programStartedAt, goalId, pathway, currentDay, streak.current, reloadHistory, bankableDayNumber, planLength]
   );
 
   const value = useMemo(
@@ -662,7 +876,19 @@ export function MemberProvider({ children }) {
       patchMember,
       goalId,
       focusId,
-      goal: goalById(goalId),
+      pathway,
+      goal: memberGoalById(goalId, pathway),
+      difficulty,
+      setDifficulty,
+      sessionFeedback,
+      saveSessionFeedback,
+      adaptationSummary,
+      shouldOpenCoachMode,
+      continuation,
+      adaptPlaylist,
+      videosForProgramDay,
+      prescriptionForVideo,
+      checkIns,
       program,
       catalog,
       days,
@@ -690,6 +916,7 @@ export function MemberProvider({ children }) {
       todaysVideos,
       graduated,
       completions,
+      dailySessionCompletions,
       events,
       history,
       streak,
@@ -697,6 +924,7 @@ export function MemberProvider({ children }) {
       toggleSaved,
       reloadHistory,
       logVideoWatched,
+      logSessionComplete,
       logDayComplete,
     }),
     [
@@ -704,12 +932,15 @@ export function MemberProvider({ children }) {
       entitlement, entitlementChecking, linkRedeeming, linkState,
       signIn, confirmLinkEmail, signOutMember, refreshMember,
       refreshEntitlement, patchMember, goalId, focusId,
+      pathway, difficulty, setDifficulty, sessionFeedback, saveSessionFeedback,
+      adaptationSummary, shouldOpenCoachMode, continuation, adaptPlaylist,
+      videosForProgramDay, prescriptionForVideo, checkIns,
       program, catalog, days, planLength, todayKey,
       currentDayNumber, currentDayUnlocked, replayDayNumber, sessionDayNumber,
       bankableDayNumber, completedDayCount, highestUnlockedDay,
       currentDay, headlineDay, todaysVideos,
-      graduated, completions, events, history, streak, savedIds, toggleSaved,
-      reloadHistory, logVideoWatched, logDayComplete,
+      graduated, completions, dailySessionCompletions, events, history, streak, savedIds, toggleSaved,
+      reloadHistory, logVideoWatched, logSessionComplete, logDayComplete,
     ]
   );
 
@@ -717,6 +948,16 @@ export function MemberProvider({ children }) {
 }
 
 // --- Helpers ---------------------------------------------------------------
+
+function readPlanPreferences(memberId) {
+  try { return JSON.parse(window.localStorage.getItem(`pelvi.planPreferences.v1:${memberId}`) || "null"); }
+  catch { return null; }
+}
+
+function storePlanPreferences(memberId, preferences) {
+  try { window.localStorage.setItem(`pelvi.planPreferences.v1:${memberId}`, JSON.stringify(preferences)); }
+  catch { /* Storage can be unavailable in a private browser. */ }
+}
 
 function toDate(value) {
   if (!value) return null;

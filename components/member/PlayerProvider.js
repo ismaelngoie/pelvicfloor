@@ -7,9 +7,11 @@
 // Firestore, so a day finished from the Coach Mia hand-off card counts exactly
 // like a day finished from the Today tab.
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import VideoPlayer from "./VideoPlayer";
 import { useMember } from "./MemberProvider";
+import { normalizePlaybackRequest } from "@/lib/playbackLedger";
+import { memberIdentity, ownsMemberIdentity } from "@/lib/accountEpoch";
 
 const PlayerContext = createContext(null);
 
@@ -20,8 +22,16 @@ export function usePlayer() {
 }
 
 export function PlayerProvider({ children }) {
-  const { logVideoWatched, logDayComplete, toggleSaved, savedIds } = useMember();
+  const { user, member, authState, logVideoWatched, logDayComplete, toggleSaved, savedIds } = useMember();
   const [request, setRequest] = useState(null);
+  const ownerIdentity = authState === "signedIn" ? memberIdentity(user?.uid, member?.id) : null;
+  const ownerRef = useRef(ownerIdentity);
+  ownerRef.current = ownerIdentity;
+  const activeRequest = request && ownsMemberIdentity(request.ownerIdentity, ownerIdentity) ? request : null;
+  useEffect(() => {
+    if (ownerIdentity !== ownerRef.current) return;
+    setRequest((current) => current && !ownsMemberIdentity(current.ownerIdentity, ownerIdentity) ? null : current);
+  }, [ownerIdentity]);
 
   /**
    * @param {object}   options
@@ -32,27 +42,21 @@ export function PlayerProvider({ children }) {
    * @param {object}   [options.dayContext] { day } when this is a program day
    */
   const openPlayer = useCallback((options) => {
-    const videos = (options?.videos || []).filter(Boolean);
-    if (!videos.length) return;
-    setRequest({
-      videos,
-      startIndex: Math.min(Math.max(options.startIndex || 0, 0), videos.length - 1),
-      title: options.title || "Your session",
-      subtitle: options.subtitle || "",
-      dayContext: options.dayContext || null,
-    });
-  }, []);
+    if (!ownsMemberIdentity(ownerIdentity, ownerRef.current)) return;
+    const request = normalizePlaybackRequest(options);
+    if (request.videos.length) setRequest({ ...request, ownerIdentity });
+  }, [ownerIdentity]);
 
   const closePlayer = useCallback(() => setRequest(null), []);
 
-  const value = useMemo(() => ({ openPlayer, closePlayer, isOpen: Boolean(request) }), [
-    openPlayer, closePlayer, request,
+  const value = useMemo(() => ({ openPlayer, closePlayer, isOpen: Boolean(activeRequest) }), [
+    openPlayer, closePlayer, activeRequest,
   ]);
 
   return (
     <PlayerContext.Provider value={value}>
       {children}
-      {request && (
+      {activeRequest && (
         <VideoPlayer
           key={`${request.title}-${request.startIndex}-${request.videos[0]?.id}`}
           videos={request.videos}
@@ -60,11 +64,15 @@ export function PlayerProvider({ children }) {
           title={request.title}
           subtitle={request.subtitle}
           dayContext={request.dayContext}
+          prescriptionDay={request.prescriptionDay}
+          playbackContext={request.playbackContext}
           savedIds={savedIds}
-          onToggleSaved={toggleSaved}
-          onVideoWatched={logVideoWatched}
-          onDayComplete={logDayComplete}
-          onClose={closePlayer}
+          onToggleSaved={(id) => ownsMemberIdentity(activeRequest.ownerIdentity, ownerRef.current) ? toggleSaved(id) : undefined}
+          onVideoWatched={(event) => ownsMemberIdentity(activeRequest.ownerIdentity, ownerRef.current) ? logVideoWatched(event) : false}
+          onDayComplete={(event) => ownsMemberIdentity(activeRequest.ownerIdentity, ownerRef.current) ? logDayComplete(event) : false}
+          onClose={() => {
+            if (ownsMemberIdentity(activeRequest.ownerIdentity, ownerRef.current)) setRequest((current) => current?.ownerIdentity === activeRequest.ownerIdentity ? null : current);
+          }}
         />
       )}
     </PlayerContext.Provider>

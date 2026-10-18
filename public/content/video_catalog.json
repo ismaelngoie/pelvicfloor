@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "videos": [
     {
       "id": "daily-exercise-plans-day-1-donkey-kicks-left",
@@ -1991,10 +1991,10 @@
     },
     {
       "id": "exercise-categories-pelvic-yoga-pigeon-pose",
-      "title": "Pigeon Stretch",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Exercise%20Categories%2FPelvic%20Yoga%2FPigeon%20Pose.mp4?alt=media&token=75423a82-7a25-4014-9ccd-b673657d2cb2",
-      "durationSeconds": 90,
-      "coach": "",
+      "title": "Dead Pigeon Stretch",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FYoga%20with%20Coach%20Maya%2FYoga%20videos%20-B-1-%20Definitive%20Poses%20-1-%20Dead%20Pigeon.mp4?alt=media&token=1d4fe639-4e96-4dde-ad5d-ef2650f7da08",
+      "durationSeconds": 0,
+      "coach": "Maya",
       "format": "mp4",
       "tags": [
         "yoga"
@@ -5109,9 +5109,9 @@
     },
     {
       "id": "workout-with-coaches-leakproof-with-coach-laura-postpartum-and-pelvic-pain-seated-neck-isometrics-cervical-extension",
-      "title": "Seated Neck Isometrics - Extension",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Isometrics_Cervical%20Extension.mov?alt=media&token=9e9aa13c-e012-4cdd-a14c-e6e483aadcec",
-      "durationSeconds": 45,
+      "title": "Seated Neck Extension",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Extension.mov?alt=media&token=adcae45b-c28f-484e-8b07-2d38bfb7f292",
+      "durationSeconds": 40,
       "coach": "Laura",
       "format": "mov",
       "tags": [
@@ -5120,9 +5120,9 @@
     },
     {
       "id": "workout-with-coaches-leakproof-with-coach-laura-postpartum-and-pelvic-pain-seated-neck-isometrics-cervical-flexion",
-      "title": "Seated Neck Isometrics - Flexion",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Isometrics_Cervical%20Flexion.mov?alt=media&token=25aa99f5-8a5c-4c58-aed3-7faaec890785",
-      "durationSeconds": 45,
+      "title": "Seated Neck Flexion",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Flexion.mov?alt=media&token=cc44539b-2b8e-4c50-a6ff-f7791794dc4c",
+      "durationSeconds": 40,
       "coach": "Laura",
       "format": "mov",
       "tags": [
@@ -5131,9 +5131,9 @@
     },
     {
       "id": "workout-with-coaches-leakproof-with-coach-laura-postpartum-and-pelvic-pain-seated-neck-isometrics-cervical-rotation",
-      "title": "Seated Neck Isometrics - Rotation",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Isometrics_Cervical%20Rotation.mov?alt=media&token=85b6890d-4e20-4a93-b6db-d08439b141cf",
-      "durationSeconds": 45,
+      "title": "Seated Neck Rotation",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Rotation.mov?alt=media&token=429f61c8-92cb-4bf6-a025-8a6249bd4b26",
+      "durationSeconds": 40,
       "coach": "Laura",
       "format": "mov",
       "tags": [
@@ -5143,9 +5143,9 @@
     },
     {
       "id": "workout-with-coaches-leakproof-with-coach-laura-postpartum-and-pelvic-pain-seated-neck-isometrics-cervical-side-flexion",
-      "title": "Seated Neck Isometrics - Side Flexion",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Isometrics_Cervical%20Side%20Flexion.mov?alt=media&token=68d9bd2a-341a-464d-87c9-9ae29d01b96e",
-      "durationSeconds": 45,
+      "title": "Seated Neck Side Flexion",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Side%20Flexion.mov?alt=media&token=ef20e65f-bd27-4e6e-b222-b60886b98cc7",
+      "durationSeconds": 40,
       "coach": "Laura",
       "format": "mov",
       "tags": [
@@ -5177,8 +5177,8 @@
     },
     {
       "id": "workout-with-coaches-leakproof-with-coach-laura-postpartum-and-pelvic-pain-seated-neck-stretch-levator-scapulae",
-      "title": "Seated Neck Stretch - Levator Scapulae",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Stretch_Levator%20Scapulae.mov?alt=media&token=aa8feb85-a780-422f-9ddc-ea495eb3be4a",
+      "title": "Seated Neck Retraction with Elongation",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Cervical%20Retraction%20with%20Neck%20Elongation.mov?alt=media&token=a5314528-365f-4abb-80c8-d221f11393c3",
       "durationSeconds": 40,
       "coach": "Laura",
       "format": "mov",
@@ -5189,8 +5189,8 @@
     },
     {
       "id": "workout-with-coaches-leakproof-with-coach-laura-postpartum-and-pelvic-pain-seated-neck-stretch-scm",
-      "title": "Seated Neck Stretch - SCM",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Stretch_SCM.mov?alt=media&token=4cba2021-a493-4468-9d17-364e9854f0d6",
+      "title": "Seated Neck Retraction and Extension",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Cervical%20Retraction%20and%20Extension.mov?alt=media&token=0c1410f2-4e07-453a-952b-4db7169eb6dc",
       "durationSeconds": 40,
       "coach": "Laura",
       "format": "mov",
@@ -5201,9 +5201,9 @@
     },
     {
       "id": "workout-with-coaches-leakproof-with-coach-laura-postpartum-and-pelvic-pain-seated-neck-stretch-upper-trapezius",
-      "title": "Seated Neck Stretch Upper Trapezius",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FSeated_Neck_Stretch_Upper%20Trapezius.mov?alt=media&token=beb66e12-cf40-436a-9d4b-209ce94840bf",
-      "durationSeconds": 0,
+      "title": "Shoulder Mobility",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FLeakproof%20with%20Coach%20Laura%2Fpostpartum%20and%20pelvic%20pain%2FScapula%20%20CARS.mov?alt=media&token=d0fcfaa9-bfe7-4a40-8506-f4a22843d797",
+      "durationSeconds": 40,
       "coach": "Laura",
       "format": "mov",
       "tags": [
@@ -5580,10 +5580,10 @@
     },
     {
       "id": "workout-with-coaches-strength-weight-loss-cardio-core-workout-7",
-      "title": "Cardio & Core Workout (7)",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FStrength%20%26%20Weight%20Loss%2FCardio%20%26%20Core%20Workout%20(7).mp4?alt=media&token=fb7dcfde-e44e-4214-80b6-ac588b1ca9e7",
+      "title": "Easy Cardio Moves",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FCore%20%26%20Cardio%20with%20Coach%20Elena%2FFitness%20videos%20-A-7-%20Easy%20Cardio%20Moves.mp4?alt=media&token=e934a3ec-f487-42b1-affb-9b10ab6090b9",
       "durationSeconds": 0,
-      "coach": "",
+      "coach": "Elena",
       "format": "mp4",
       "tags": [
         "cardio",
@@ -5593,10 +5593,10 @@
     },
     {
       "id": "workout-with-coaches-strength-weight-loss-cardio-core-workout-8",
-      "title": "Cardio & Core Workout (8)",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FStrength%20%26%20Weight%20Loss%2FCardio%20%26%20Core%20Workout%20(8).mp4?alt=media&token=d82a6160-513f-4663-a2ff-a2651b21839f",
+      "title": "Great Abs in Less Time",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FCore%20%26%20Cardio%20with%20Coach%20Elena%2FFitness%20videos%20-A-8-%20Great%20Abs%20in%20Less%20Time.mp4?alt=media&token=e0197a51-bdce-43c8-9f65-c071ea46b3b4",
       "durationSeconds": 0,
-      "coach": "",
+      "coach": "Elena",
       "format": "mp4",
       "tags": [
         "cardio",
@@ -5606,8 +5606,8 @@
     },
     {
       "id": "workout-with-coaches-strength-weight-loss-cardio-core-workout-9",
-      "title": "Cardio & Core Workout (9)",
-      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Workout%20with%20Coaches%2FStrength%20%26%20Weight%20Loss%2FCardio%20%26%20Core%20Workout%20(9).mp4?alt=media&token=499437f0-88ca-45a6-a072-6cf9eecd7744",
+      "title": "Instant Metabolism Workout",
+      "url": "https://firebasestorage.googleapis.com/v0/b/pelvic-floor-exercise-908ed.appspot.com/o/Perfect%20Your%20Form%2F1Instant%20Metabolism%20Boosting%20Workout.mp4?alt=media&token=0b078dda-f85a-4bd2-8a23-41fce118e9e0",
       "durationSeconds": 0,
       "coach": "",
       "format": "mp4",

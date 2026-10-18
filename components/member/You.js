@@ -32,10 +32,11 @@
 // Everything else on the phone's You tab is on this page and works.
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Bell, BookHeart, CalendarDays, ChevronRight, ClipboardList, Clock, CreditCard,
   Crown, Droplets, FileText, Flame, Footprints, Gift, LifeBuoy, LineChart, LogOut,
-  RefreshCw, Ruler, Scale, ShieldCheck, ShoppingBag, Smartphone, User as UserIcon,
+  RefreshCw, Ruler, Scale, ShieldCheck, ShoppingBag, Smartphone, User as UserIcon, Moon, Droplet, MapPin, SlidersHorizontal, Activity,
 } from "lucide-react";
 import { useMember } from "./MemberProvider";
 import { Card, PrimaryButton, Sheet } from "./ui";
@@ -48,11 +49,16 @@ import ResourceCenter from "./ResourceCenter";
 import HelpSupport from "./HelpSupport";
 import FeelingTrendsSheet from "./FeelingTrends";
 import YouSettings from "./YouSettings";
+import ProfilePhoto from "./ProfilePhoto";
+import PersonalArchive from "./PersonalArchive";
+import { CredentialsSheet } from "@/components/funnel/ReedSheets";
+import { CycleQuickCard, MenopauseQuickCard, MensQuickCard, WaterQuickCard } from "./TrackerCards";
+import { DifficultyPicker, PathwayPicker, NightWaking, TherapistFinder, DIFFICULTIES } from "./MemberTools";
 import { MinutesSheet, StreakJourneySheet, WorkoutHistorySheet } from "./ProgressDetail";
 import { fetchDiaryEntries, fetchOutcomeChecks, owedMilestone, toDate } from "./youStore";
 import { fetchRecentCheckIns } from "@/lib/memberData";
 import { openBillingPortal, restorePurchase } from "@/lib/memberBilling";
-import { GOALS, goalById } from "@/lib/program";
+import { memberGoalById, selectableGoalsForPathway } from "@/lib/program";
 import { goalAccentCSS, pathwaySubtitle, pathwayTitle } from "@/lib/goalCopy";
 import {
   CLAIM_EMAIL, COVERAGE_TITLE, LADDER_LINE, coverageBody, day90String,
@@ -85,15 +91,19 @@ import { APP_HANDOFF_READY, appStoreURL, isIOSDevice } from "@/lib/appStore";
 
 export default function You() {
   const {
-    member, user, goalId, focusId, entitlement, patchMember, refreshMember, refreshEntitlement,
+    member, user, goalId, focusId, pathway, entitlement, patchMember, refreshMember, refreshEntitlement,
     signIn, signOut,
     // `currentDayNumber` is the day she is on, and the only value allowed to
     // print as "Day N of 90". See lib/program.js, above `programState`.
-    completions, events, history, streak, planLength, currentDayNumber, catalog,
+    completions, events, history, streak, planLength, currentDayNumber, catalog, difficulty,
   } = useMember();
 
+  const requestedTool = useSearchParams().get("tool");
   const [sheet, setSheet] = useState(null); // one slot, never two open at once
   const [reportRange, setReportRange] = useState("month");
+  const mens = member?.pathway === "mensPelvicHealth" || ["prostateRecovery", "bowelControl"].includes(goalId);
+  const trackingMode = member?.trackers?.womens?.mode || ((member?.age || 0) >= 45 ? "menopause" : "cycle");
+  useEffect(() => { if (["night", "water", "cycle", "menopause", "mens", "difficulty", "pathway", "therapist", "archive"].includes(requestedTool)) setSheet(requestedTool); }, [requestedTool]);
 
   // Her own logs, read once when the tab opens. The diary and the progress
   // check are the only two record types this tab owns; check-ins are read so
@@ -137,9 +147,11 @@ export default function You() {
   }, []);
 
   const email = (member?.email || user?.email || "").trim();
-  const goal = goalById(goalId);
+  const goal = memberGoalById(goalId, member?.pathway);
   const name = (member?.name || "").trim();
-  const minutes = Math.round(history.totalSeconds / 60);
+  const sessionEvents = (events || []).filter((event) => event.sessionCompleted && ["program", "replay", "continuation"].includes(event.playbackContext));
+  const sessionCount = sessionEvents.length + completions.filter((completion) => !sessionEvents.some((event) => Number(event.programDay) === Number(completion.day) && (!event.goal || event.goal === completion.programID) && toDate(event.date)?.toDateString() === toDate(completion.completedAt)?.toDateString())).length;
+  const minutes = Math.floor(history.totalSeconds / 60);
   // The phone's own estimate: minutes × 4 (ProfileViewModel.fetchData). Labelled
   // as an estimate here, because that is what it is.
   const calories = minutes * 4;
@@ -165,37 +177,12 @@ export default function You() {
         </p>
       </header>
 
-      {/* The phone's header: the circle, the name with its crown, and the
-          "Member since" pill.
-
-          There is no photo picker, and that is not an omission. The phone
-          uploads her picture to Firebase Storage and keeps the URL in
-          UserDataManager — CloudSync.pushProfileSummary does not carry
-          `imageUrl`, so it never reaches the member record this site reads.
-          A picker here would upload a photo that the phone would never show
-          and this page would lose on the next device. Her initial stands in. */}
       <div className="mt-5 flex flex-col items-center text-center">
-        <span
-          className="grid h-[84px] w-[84px] place-items-center rounded-full text-[32px] font-bold text-white ring-4 ring-white"
-          style={{ backgroundImage: "linear-gradient(150deg, #F68AA2 0%, #C33A5C 100%)" }}
-          aria-hidden="true"
-        >
-          {(name || email || "P").trim().charAt(0).toUpperCase()}
-        </span>
-        <p className="mt-3 flex items-center gap-2 text-[24px] font-bold leading-tight text-app-textPrimary">
-          {name || "Pelvi Member"}
-          <Crown className="h-5 w-5 fill-ios-yellow text-ios-yellow" aria-hidden="true" />
-        </p>
-        {memberSince && (
-          <p
-            className="mt-2 rounded-full px-3 py-1.5 text-[12px] font-semibold text-white"
-            style={{ backgroundImage: "linear-gradient(135deg, #E65473cc 0%, #FF2D55e6 100%)" }}
-          >
-            ★ {memberSince}
-          </p>
-        )}
+        <ProfilePhoto member={member} patchMember={patchMember} />
+        <p className="mt-3 font-serif text-[30px] leading-tight text-atelier-ink">{name || "Pelvi Member"}</p>
+        {memberSince && <p className="mt-3 rounded-full border border-atelier-line bg-atelier-card px-[13px] py-[7px] font-mono text-[11px] uppercase tracking-[0.12em] text-atelier-ink2">{memberSince}</p>}
       </div>
-
+      <button type="button" onClick={() => setSheet("reviewer")} className="mt-5 flex w-full items-center gap-4 rounded-[22px] border border-atelier-rose/20 bg-atelier-card p-4 text-left"><img src="/dr-evelyn-reed.jpg" alt="" className="h-14 w-14 rounded-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} /><span className="flex-1"><span className="block text-xs font-semibold text-atelier-ink2">Clinically reviewed by</span><span className="mt-1 block text-[17px] font-bold text-atelier-ink">Dr Evelyn Reed, PT</span><span className="mt-1 block text-xs text-atelier-ink2">Pelvic health guidance you can trust</span></span><ChevronRight className="h-4 w-4 text-atelier-ink3" /></button>
       {/* Two columns from 1024, in the same reading order as the phone: who she
           is on the left, what she can do about her subscription on the right.
           `items-start` so a short column does not stretch its last card. */}
@@ -210,7 +197,7 @@ export default function You() {
               <StatPill
                 icon={Footprints}
                 tint="#4E9BE6"
-                value={completions.length}
+                value={sessionCount}
                 label="Sessions"
                 onClick={() => setSheet("history")}
               />
@@ -246,13 +233,10 @@ export default function You() {
               value="Your daily check-ins over time"
               onClick={() => setSheet("feeling")}
             />
-            <Row
-              icon={Droplets}
-              tint="teal"
-              label="Bladder Diary"
-              value={diarySubtitle(diaryEntries)}
-              onClick={() => setSheet("diary")}
-            />
+            <Row icon={Activity} tint="pink" label={mens ? "Men's Pelvic Health" : trackingMode === "menopause" ? "Menopause" : "Track your cycle"} value={mens ? "Your private pelvic health timeline" : trackingMode === "menopause" ? "Symptoms, sleep, mood and your private timeline" : "Period logging, predictions and your private timeline"} onClick={() => setSheet(mens ? "mens" : trackingMode)} />
+            <Row icon={Moon} tint="indigo" label="Your Nights" value="One morning tap: how many times did you get up?" onClick={() => setSheet("night")} />
+            <Row icon={Droplet} tint="green" label="Water" value="Steady sips, calmer bladder, easier nights" onClick={() => setSheet("water")} />
+            {["bladderLeaks", "prostateRecovery"].includes(goalId) && <Row icon={Droplets} tint="teal" label="Bladder Diary" value={diarySubtitle(diaryEntries)} onClick={() => setSheet("diary")} />}
             <Row
               icon={ClipboardList}
               tint="mint"
@@ -272,15 +256,17 @@ export default function You() {
               value="Share your progress with your doctor or therapist"
               onClick={() => setSheet("report")}
             />
+            <Row icon={MapPin} tint="pink" label="Find a Pelvic Therapist" value="See nearby specialists, addresses and contact details" onClick={() => setSheet("therapist")} />
           </GroupCard>
 
+          <GroupCard className="mt-5"><Row icon={FileText} tint="indigo" label="Your Personal Archive" value="Activity history, weekly reports, saved audio and answers" onClick={() => setSheet("archive")} /></GroupCard>
           {/* --- The goal card, then her details ---------------------------- */}
           <div
             className="mt-5 rounded-[20px] p-4 text-white shadow-[0_5px_14px_rgba(0,0,0,0.14)] ring-1 ring-inset ring-white/30"
             style={{ backgroundImage: goalAccentCSS(goalId) }}
           >
             <p className="text-[11px] font-bold uppercase tracking-wider text-white/80">Your goal</p>
-            <p className="mt-1 text-[20px] font-bold leading-tight">{goalId === "intimacy" && focusId === "intimacy.tightening" ? "Tighten Vaginal Canal" : goal?.title}</p>
+            <p className="mt-1 text-[20px] font-bold leading-tight">{goal?.title}</p>
             <p className="mt-1 text-[13px] text-white/90">{pathwaySubtitle(goalId, focusId)}</p>
             <p className="mt-2 text-[12.5px] font-semibold text-white/90">
               {pathwayTitle(goalId, focusId)}
@@ -302,6 +288,9 @@ export default function You() {
               iPhone are writing the same field, so neither overwrites the other
               with a different shape. */}
           <GroupCard className="mt-5" title="About you">
+            <Row icon={UserIcon} tint="pink" label="Pelvic Health Plan" value={mens ? "Men’s pelvic health" : "Women’s pelvic health"} onClick={() => setSheet("pathway")} />
+            <Row icon={SlidersHorizontal} tint="pink" label="Workout Difficulty" value={`${DIFFICULTIES.find((d) => d.id === difficulty)?.title || "Easy"}: ${DIFFICULTIES.find((d) => d.id === difficulty)?.detail || DIFFICULTIES[0].detail}`} onClick={() => setSheet("difficulty")} />
+            {!mens && <Row icon={Activity} tint="pink" label="Women's Health Tracking" value={trackingMode === "menopause" ? "Menopause" : "Cycle"} onClick={() => setSheet("tracking-mode")} />}
             <Row
               icon={UserIcon}
               tint="gray"
@@ -519,6 +508,17 @@ export default function You() {
 
       {/* --- Sheets ------------------------------------------------------- */}
 
+      <PersonalArchive open={sheet === "archive"} onClose={close} member={member} events={events} completions={completions} checkIns={checkIns} outcomeChecks={outcomeChecks} diaryEntries={diaryEntries} />
+      <CredentialsSheet open={sheet === "reviewer"} onClose={close} />
+      <DifficultyPicker open={sheet === "difficulty"} onClose={close} />
+      <PathwayPicker open={sheet === "pathway"} onClose={close} />
+      <NightWaking open={sheet === "night"} onClose={close} />
+      <TherapistFinder open={sheet === "therapist"} onClose={close} />
+      {sheet === "cycle" && <CycleQuickCard roomOnly goalId={goalId} focusId={focusId} member={member} patchMember={patchMember} onClose={close} />}
+      {sheet === "menopause" && <MenopauseQuickCard roomOnly member={member} patchMember={patchMember} onClose={close} />}
+      {sheet === "mens" && <MensQuickCard roomOnly goalId={goalId} focusId={focusId} member={member} patchMember={patchMember} onClose={close} />}
+      {sheet === "water" && <WaterQuickCard roomOnly member={member} patchMember={patchMember} onClose={close} />}
+      <Sheet open={sheet === "tracking-mode"} onClose={close} title="Women's Health Tracking"><div className="space-y-3 pb-5"><p className="text-sm text-atelier-ink2">Choose the timeline that fits your body.</p>{["cycle", "menopause"].map((mode) => <button type="button" key={mode} aria-pressed={trackingMode === mode} className="min-h-[56px] w-full rounded-2xl border border-atelier-line bg-atelier-card px-4 text-left font-semibold text-atelier-ink" onClick={async () => { await patchMember({ trackers: { ...member?.trackers, womens: { ...member?.trackers?.womens, mode } } }); close(); }}>{mode === "cycle" ? "Cycle: periods, predictions and your private timeline" : "Menopause: symptoms, sleep and mood"}</button>)}</div></Sheet>
       <Boutique open={sheet === "boutique"} onClose={close} name={name} />
 
       <BladderDiary
@@ -549,6 +549,7 @@ export default function You() {
         planLength={planLength}
         completions={completions}
         totalSeconds={history.totalSeconds}
+        events={events}
         streak={streak}
         checkIns={checkIns}
         diaryEntries={diaryEntries}
@@ -556,6 +557,7 @@ export default function You() {
       />
 
       <FeelingTrendsSheet
+        pathway={pathway}
         open={sheet === "feeling"}
         onClose={close}
         checkIns={checkIns}
@@ -596,6 +598,7 @@ export default function You() {
         open={sheet === "goals"}
         onClose={close}
         currentGoalId={goalId}
+        pathway={pathway}
         onChoose={async (nextGoal) => {
           // A new goal is a new question set; the old focus belongs to the old one.
           await patchMember({ goal: nextGoal.id, goalTitle: nextGoal.title, focus: null });
@@ -829,7 +832,8 @@ function StatPill({ icon: Icon, tint, value, label, onClick, estimate }) {
   );
 }
 
-function GoalSheet({ open, onClose, currentGoalId, onChoose }) {
+function GoalSheet({ open, onClose, currentGoalId, pathway, onChoose }) {
+  const options = selectableGoalsForPathway(pathway);
   const [pending, setPending] = useState(null);
   useEffect(() => { if (!open) setPending(null); }, [open]);
 
@@ -844,8 +848,8 @@ function GoalSheet({ open, onClose, currentGoalId, onChoose }) {
             Are you sure you want to switch to {pending.title}?
           </p>
           <p className="mt-3 text-[13px] leading-snug text-app-textSecondary">
-            Your sessions and your streak stay exactly as they are. Your daily plan changes
-            from tomorrow.
+            Your saved sessions and streak stay in your history. Your daily plan follows
+            the goal you choose.
           </p>
           <div className="mt-6 space-y-2.5">
             <PrimaryButton onClick={() => onChoose(pending)}>Change Goal</PrimaryButton>
@@ -869,7 +873,7 @@ function GoalSheet({ open, onClose, currentGoalId, onChoose }) {
           Pick the one that matters most. Your plan is built around it.
         </p>
         <ul className="mt-4 grid grid-cols-2 gap-3">
-          {GOALS.map((option) => {
+          {options.map((option) => {
             const selected = option.id === currentGoalId;
             return (
               <li key={option.id}>
