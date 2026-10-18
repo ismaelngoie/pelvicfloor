@@ -119,12 +119,12 @@ export default function StartClient() {
   const working = ["authenticating", "checking"].includes(status);
   const needsSignIn = ["signin", "waiting", "mismatch"].includes(status);
   return <div className="fixed inset-0 overflow-y-auto bg-[#FAF7F4] px-5 py-[max(2rem,env(safe-area-inset-top))] text-[#3A2F44]">
-    <main className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center pb-[max(2rem,env(safe-area-inset-bottom))]">
+    <section aria-labelledby="dr-setup-title" className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center pb-[max(2rem,env(safe-area-inset-bottom))]">
       <a href="/diastasis-recti" className="font-serif text-2xl tracking-tight">pelvi<span className="text-[#B64B69]">.</span></a>
       <div className="mt-9 rounded-[28px] border border-[#3A2F44]/10 bg-white p-6 shadow-[0_20px_70px_-40px_#3A2F4455] sm:p-8">
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#B64B69]/10 text-[#963B57]">{working ? <LoaderCircle className="h-6 w-6 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : status === "ready" ? <Check className="h-6 w-6" aria-hidden="true" /> : <ShieldCheck className="h-6 w-6" aria-hidden="true" />}</div>
         <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.19em] text-[#963B57]">Your private Pelvi plan</p>
-        <h1 className="mt-3 font-serif text-[34px] leading-[1.06]">{status === "authenticating" ? "Checking your payment" : status === "checking" ? "Preparing your plan" : needsSignIn ? "One step to your account" : status === "ready" ? "Your plan is ready" : "Let’s finish setting up"}</h1>
+        <h1 id="dr-setup-title" className="mt-3 font-serif text-[34px] leading-[1.06]">{status === "authenticating" ? "Checking your payment" : status === "checking" ? "Preparing your plan" : needsSignIn ? "One step to your account" : status === "ready" ? "Your plan is ready" : "Let’s finish setting up"}</h1>
         <p role="status" className="mt-4 text-sm leading-relaxed text-[#3A2F44]/75">{working ? "We are verifying your account and keeping any existing plan unchanged." : needsSignIn ? "Continue with the email you used at checkout. Your plan is applied only after your account and access are verified." : status === "payment_pending" ? "The billing system has not confirmed active access yet. This can take a moment. Retry, or open your payment confirmation." : message || "We could not finish this check. Your payment confirmation remains available. Retry or continue below."}</p>
         {payerEmail && <p className="mt-3 break-all rounded-xl bg-[#FAF7F4] px-3 py-2 text-sm font-semibold">{payerEmail}</p>}
         {needsSignIn && message && <p role="alert" className="mt-3 text-xs leading-relaxed text-[#963B57]">{message}</p>}
@@ -137,6 +137,6 @@ export default function StartClient() {
         <button type="button" onClick={() => { scopeRef.current = null; if (entryRef.current) clearDiastasisEntry(entryRef.current.id); forwardToReceipt(); }} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 text-sm font-semibold underline underline-offset-4">Open payment confirmation <ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
       </div>
       <p className="mt-5 text-center text-xs leading-relaxed text-[#3A2F44]/60">Need a hand? <a className="underline" href="mailto:contact@pelvi.health">contact@pelvi.health</a></p>
-    </main>
+    </section>
   </div>;
 }
