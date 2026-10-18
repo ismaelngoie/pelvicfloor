@@ -9,7 +9,7 @@ import { diastasisSuccessPath } from "@/lib/diastasisEntry";
 import InlineExercisePreview from "@/components/diastasis/InlineExercisePreview";
 import styles from "./diastasis.module.css";
 
-const CheckoutSheet = dynamic(() => import("@/components/funnel/CheckoutSheet"), { ssr: false });
+const CheckoutSheet = dynamic(() => import("@/components/diastasis/DiastasisCheckoutSheet"), { ssr: false });
 const GOAL_ID = "diastasisRecti";
 const CTA = "Start Fixing My Diastasis Recti";
 

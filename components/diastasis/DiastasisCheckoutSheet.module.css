@@ -1,0 +1,72 @@
+.dialog {
+  --paper: #F6F1EA;
+  --ink: #1C1820;
+  --muted: #746C71;
+  --rose: #A33752;
+  position: fixed;
+  inset: auto 0 0;
+  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100dvh - 16px);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid #E4D8D9;
+  border-bottom: 0;
+  border-radius: 26px 26px 0 0;
+  box-shadow: 0 22px 100px #1C182040;
+  font-family: Figtree,Arial,sans-serif;
+  overflow: hidden;
+}
+.dialog::backdrop { background: #1C18206B; backdrop-filter: blur(5px); }
+.dialog * { box-sizing: border-box; }
+.panel { display: flex; flex-direction: column; max-height: calc(100dvh - 18px); }
+.header { display: flex; justify-content: space-between; gap: 8px; padding: 20px 22px 18px; border-bottom: 1px solid #E4D8D9; flex-shrink: 0; }
+.brand { color: var(--rose); font: 35px/1 'Instrument Serif',Georgia,serif; letter-spacing: -1.5px; display: inline-block; margin-bottom: 14px; }
+.brand span { font: 10px/1 Arial,sans-serif; vertical-align: top; margin-left: 3px; letter-spacing: 0; }
+.header h2 { margin: 0; font-size: 22px; font-weight: 600; line-height: 1.2; letter-spacing: -.5px; }
+.header p { margin: 9px 0 0; font-size: 14px; color: var(--muted); }
+.header p strong { font-size: 18px; font-weight: 650; color: var(--ink); }
+.dialog button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.dialog button:focus-visible,.dialog a:focus-visible { outline: 3px solid #E65473; outline-offset: 3px; }
+.dialog button:disabled { cursor: default; opacity: .6; }
+.close { display: grid; place-items: center; height: 44px; width: 44px; flex-shrink: 0; margin: -7px -9px 0 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink); }
+.close:hover { background: #E9E0DA; }
+.content { padding: 22px; padding-bottom: calc(24px + env(safe-area-inset-bottom,0px)); overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.form { display: flex; flex-direction: column; gap: 17px; }
+.email { margin-top: 19px; }
+.fields[inert] { opacity: .65; }
+.loading { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); margin: 0 0 12px; }
+.loading svg,.pay:disabled svg { animation: turn 1s linear infinite; }
+.pay { width: 100%; min-height: 56px; padding: 14px 18px; border: 0; border-radius: 100px; background: #E65473; color: #FFF; font-size: 17px; font-weight: 650; display: flex; justify-content: center; align-items: center; gap: 9px; box-shadow: 0 4px 16px #E654731F; }
+.pay:hover:not(:disabled) { background: #D94868; }
+.pay:active:not(:disabled) { transform: scale(.99); }
+.renewal { font-size: 12px; line-height: 1.6; color: #665C62; margin: -2px 0 0; }
+.renewal a { color: var(--rose); text-decoration: underline; text-underline-offset: 2px; display: inline-block; }
+.guarantee { display: flex; align-items: center; gap: 11px; padding: 16px 0 0; border-top: 1px solid #E4D8D9; color: var(--rose); }
+.guarantee svg { flex-shrink: 0; }
+.guarantee p { margin: 0; }
+.guarantee strong { display: block; font-size: 14px; font-weight: 650; line-height: 1.4; }
+.guarantee span { display: block; margin-top: 3px; color: #665C62; font-size: 12px; line-height: 1.5; }
+.error { margin: 0; padding: 13px 14px; border: 1px solid #E5B5C0; border-radius: 12px; background: #FFF0F3; color: #8F2942; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.member { display: flex; flex-direction: column; gap: 18px; }
+.member > svg { color: var(--rose); }
+.member > p { margin: 0; font-size: 15px; line-height: 1.6; overflow-wrap: anywhere; }
+.textButton { min-height: 44px; background: transparent; border: 0; color: var(--rose); text-decoration: underline; text-underline-offset: 3px; }
+@keyframes turn { to { transform: rotate(360deg); } }
+@media(min-width: 600px) {
+  .dialog { inset: 0; margin: auto; max-height: calc(100dvh - 48px); border-radius: 26px; border-bottom: 1px solid #E4D8D9; }
+  .panel { max-height: calc(100dvh - 50px); }
+  .header { padding: 24px 26px 20px; }
+  .content { padding: 24px 26px 28px; }
+}
+@media(max-width: 359px) {
+  .header { padding: 18px 16px 16px; }
+  .header h2 { font-size: 20px; }
+  .content { padding-left: 16px; padding-right: 16px; }
+}
+@media(prefers-reduced-motion: reduce) {
+  .loading svg,.pay:disabled svg { animation: none; }
+  .pay:active:not(:disabled) { transform: none; }
+}
