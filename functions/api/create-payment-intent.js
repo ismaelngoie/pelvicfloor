@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { buildMetaAttribution } from "../../functions-lib/metaConversions.js";
 import {
   BILLING_INTERVAL, BILLING_INTERVAL_COUNT, PRICE_AMOUNT_CENTS, PRICE_CURRENCY,
   DEFAULT_STRIPE_PRICE_ID,
@@ -93,7 +94,9 @@ const REUSABLE_INTENT_STATUSES = new Set([
   "requires_action",
 ]);
 
-export async function onRequestPost(context) {
+export async function onRequestPost(context) { return handleCheckout(context); }
+
+export async function handleCheckout(context, { stripeFactory = makeStripe } = {}) {
   const { request, env } = context;
 
   if (!originAllowed(request, env)) {
@@ -139,7 +142,7 @@ export async function onRequestPost(context) {
   const memberId = clean(body.memberId, 200);
   const goalId = clean(body.goalId, 40).replace(/[^A-Za-z0-9_-]/g, "");
 
-  const stripe = makeStripe(env.STRIPE_SECRET_KEY);
+  const stripe = stripeFactory(env.STRIPE_SECRET_KEY);
 
   let priceId;
   try {
@@ -167,6 +170,8 @@ export async function onRequestPost(context) {
     goalId: goalId || "",
     source: "web",
   };
+  const metaAttribution = buildMetaAttribution(body.marketing, request);
+  const purchaseMetadata = { ...metadata, ...metaAttribution };
 
   try {
     const { customer, owned } = await findOrCreateCustomer(stripe, { email, name, metadata });
@@ -201,6 +206,21 @@ export async function onRequestPost(context) {
         REUSABLE_INTENT_STATUSES.has(sub.latest_invoice?.payment_intent?.status)
     );
     if (reusable) {
+      // Refresh consent on a retry; a previously opted-in draft must not keep
+      // advertising permission after this browser has withdrawn it.
+      const previous = reusable.metadata || {};
+      const refreshed = {};
+      const metaKeys = new Set([...Object.keys(previous).filter((key) => key.startsWith("meta_")), ...Object.keys(metaAttribution)]);
+      for (const key of metaKeys) {
+        const value = metaAttribution[key] || "";
+        if ((previous[key] || "") !== value) refreshed[key] = value;
+      }
+      // Current consent is checked in the server registry before any conversion
+      // is sent, so advertising metadata maintenance cannot block a payment.
+      if (Object.keys(refreshed).length) {
+        try { await stripe.subscriptions.update(reusable.id, { metadata: refreshed }); }
+        catch { /* Retained metadata grants nothing without current consent. */ }
+      }
       return respond(reusable, customer, priceId);
     }
 
@@ -213,7 +233,7 @@ export async function onRequestPost(context) {
         payment_behavior: "default_incomplete",
         payment_settings: { save_default_payment_method: "on_subscription" },
         expand: ["latest_invoice.payment_intent"],
-        metadata,
+        metadata: purchaseMetadata,
       },
       { idempotencyKey }
     );
@@ -255,9 +275,8 @@ export async function onRequestPost(context) {
   }
 }
 
-// Only onRequestPost is exported on purpose. Cloudflare Pages answers every
-// other method on this path itself, and a catch-all onRequest here would be one
-// more thing that could shadow the POST handler.
+// Only POST is registered with Cloudflare Pages. The injectable handler above
+// lets regression tests exercise this endpoint without Stripe network calls.
 
 // --- The price --------------------------------------------------------------
 

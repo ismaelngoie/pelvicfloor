@@ -39,6 +39,7 @@
 import LegalPage, { Contents, Summary, Callout } from "@/components/legal/LegalPage";
 import { CLAIM_EMAIL } from "@/lib/guaranteeCopy";
 import { DEFAULT_PRICE_LABEL, DEFAULT_PRICE_PERIOD } from "@/lib/pricing";
+import { PrivacyChoicesButton } from "@/components/MarketingChoices";
 
 export const metadata = {
   title: "Privacy Policy",
@@ -55,7 +56,7 @@ export const metadata = {
   },
 };
 
-const UPDATED = "August 11, 2026";
+const UPDATED = "October 18, 2026";
 
 const SECTIONS = [
   { id: "who-we-are", label: "Who we are" },
@@ -244,14 +245,14 @@ export default function PrivacyPolicy() {
       {/* ------------------------------------------------------------------ */}
       <h2 id="recording">4. Session recording</h2>
       <p>
-        We use <strong>Microsoft Clarity</strong> on this website. Clarity records your visit: the
+        With your analytics permission, we use <strong>Microsoft Clarity</strong> on this website. Clarity records your visit: the
         pages you open, where you move and tap, how far you scroll, and how long you stay. Those
         recordings can be played back like a video, and they are grouped into heatmaps. We use them
         to find the screens where people get stuck.
       </p>
       <h3>Where it records, and where it does not</h3>
       <p>
-        Recording is on for the public part of the site: the landing page, the plan builder, the
+        After you allow website analytics, recording is on for the public part of the site: the landing page, the plan builder, the
         plan, the paywall, the page after you pay, the blog, and these legal pages.
       </p>
       <p>
@@ -294,21 +295,21 @@ export default function PrivacyPolicy() {
         </a>.
       </p>
       <p>
-        If you would rather not be recorded, block <strong>clarity.ms</strong> in your browser, or
-        use a tracker blocker, or use private browsing and clear it afterwards. Blocking it does
-        not break anything on this site: the plan builder, the checkout and the member area all
-        work exactly the same. And if you have already visited, email us and we will ask Microsoft
-        to delete recordings tied to you.
+        Choose Essential only or turn Website analytics off in Privacy choices to stop new
+        recordings. You can also block <strong>clarity.ms</strong> in your browser. Your plan,
+        payment and account work without analytics. Email us to ask for deletion of a past
+        recording that can be tied to you.
       </p>
+      <PrivacyChoicesButton />
 
       {/* ------------------------------------------------------------------ */}
       <h2 id="advertising">5. Advertising</h2>
       <p>
-        We advertise. This site loads the <strong>Google Ads</strong> tag, which tells Google that
-        somebody who clicked one of our ads reached our site. It lets Google measure whether an ad
-        worked and it can be used to show you our ads again elsewhere. It sets its own cookies. It
-        loads on every page of this site, including the member area, where all it sees is which
-        page you opened.
+        With your ad measurement permission, this site can load the <strong>Google Ads</strong>
+        tag on public pages and the <strong>Meta Pixel</strong> on eligible general pages.
+        These tools help measure which ads bring visits and purchases. They can set advertising
+        cookies. We do not load these tags inside the member area, admin screens or payment-secret
+        return pages. The Meta Pixel is also excluded from condition-specific landing pages.
       </p>
       <p>
         We do not send Google your health answers, your check-ins or your messages. We do not build
@@ -323,31 +324,33 @@ export default function PrivacyPolicy() {
         , and you can block the tag with any tracker blocker. Nothing on this site depends on it.
       </p>
 
-      <h3>Your email address in our advertising audiences</h3>
+      <h3>Purchase measurement and optional matching</h3>
       <p>
-        Google and Meta both let an advertiser upload a list of email addresses, so that it can
-        show ads to those people, deliberately stop showing ads to them, or ask the platform to
-        find new people who resemble them. Google calls it Customer Match; Meta calls it a Custom
-        Audience, and the find-people-like-them version a Lookalike Audience. We may use the
-        addresses we have collected this way, <strong>including the address of somebody who
-        started the checkout and did not pay</strong>.
+        When Meta measurement is enabled, our server can send a confirmed first membership
+        payment to Meta through its Conversions API. Stripe supplies the amount and currency.
+        A transaction code prevents the same payment being counted twice. This can cover the
+        first payment and later paid renewals while your advertising permission remains active. With ad permission,
+        the event can include an advertising click or browser identifier, IP address and browser
+        type. We send a general website address, not the condition page, health answers or a
+        payment secret. We keep an anonymous first-party record of your privacy choices so
+        withdrawing permission also stops future server purchase reports.
       </p>
       <p>
-        <strong>We have not uploaded any list yet.</strong> This is written down before we do it
-        rather than after, so that none of it is a surprise. When we do, here is the whole of it:
-        your address is scrambled into a fingerprint before it leaves us, the platform compares
-        fingerprints against its own users, and a match decides whether you are shown an ad. The
-        platform is told nothing about your health, because we send it nothing about your health.
+        Email matching is off unless the integration is eligible and you separately choose
+        Purchase matching in Privacy choices. If enabled, we normalize your verified receipt
+        email and hash it with SHA-256 before sending it to Meta. Meta can compare the hash to
+        its users to match a purchase to an ad. Hashing is a matching method, not anonymization.
+        This integration does not upload abandoned-checkout email lists.
       </p>
       <p>
-        What we will never do is build an audience out of your goal, the conditions you ticked,
-        your check-ins or your messages to Coach Mia. That is a promise we are making to you and it
-        is also a rule Google enforces on advertisers. The list of addresses our own staff can
-        export carries no health information of any kind, by design.
+        We do not send health goals, assessment answers, check-ins, exercise history or coach
+        messages to advertising platforms. We keep Meta’s data-sharing restrictions in place.
+        Global Privacy Control and Do Not Track signals keep the new advertising integration off.
       </p>
       <p>
-        To be left out, email <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a>. We will remove
-        you from anything we have already uploaded and keep you out of anything we upload later.
+        You can turn future ad measurement off through Privacy choices. This does not remove
+        events already delivered to an advertising platform. To request deletion or help with
+        a past event, email <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a>.
       </p>
 
       {/* ------------------------------------------------------------------ */}
@@ -374,6 +377,15 @@ export default function PrivacyPolicy() {
         <li>
           <strong>Google Ads cookies</strong> (including <strong>_gcl_au</strong>), which measure
           whether an ad led to a signup.
+        </li>
+        <li>
+          <strong>Meta advertising cookies</strong> (such as <strong>_fbp</strong> and <strong>_fbc</strong>),
+          used only with ad permission to match eligible visits and purchases to ads.
+        </li>
+        <li>
+          <strong>Your privacy choices.</strong> Stored for up to 180 days with a random
+          first-party consent code. An essential denial cookie helps retain a withdrawal
+          if your browser blocks local storage. These choices do not contain health answers.
         </li>
         <li>
           <strong>Stripe cookies</strong> on the checkout, which Stripe uses to detect fraud.
@@ -662,19 +674,11 @@ export default function PrivacyPolicy() {
 //     Ads reviewers look for one. Give me the state of registration and the
 //     business address and I will add a line to section 1.
 //
-//  2. NO CONSENT BANNER EXISTS. Clarity is now route gated by app/Clarity.jsx
-//     and lib/analytics.js, which is a real improvement and section 4 describes
-//     it accurately: it is off in the member area, inputs are masked, and the
-//     condition ids are never tagged. What is still true is that both Clarity
-//     and the Google Ads tag load on the first paint of a public page, before
-//     anybody has agreed to anything. In the UK and the EU that is a PECR /
-//     ePrivacy problem regardless of what this page says, because the rule is
-//     about the act of storing on the device, not about disclosure. This page
-//     therefore describes what actually happens and tells people how to block
-//     it. It does NOT claim you ask for consent, because you do not. Two ways
-//     to close it: region-gate both scripts behind a banner, or do not
-//     advertise into the UK and EU. Clarity supports the first natively with
-//     clarity("consent", false).
+//  2. CONSENT CONTROLS. MarketingChoices and the canonical marketing-consent
+//     helper now gate Next Clarity/Google/Meta loading. Static Clarity uses the
+//     same stored analytics permission. Clarity consentv2 grants analytics
+//     only; Microsoft Ads storage remains denied. Keep these controls and the
+//     notice in sections 4 and 5 in sync with later integrations.
 //
 //  2b. SECTION 4 IS A DESCRIPTION OF lib/analytics.js. Every specific claim in
 //     it maps to a line of that file: the allowlist, data-clarity-mask on the

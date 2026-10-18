@@ -57,6 +57,9 @@ const ALLOWED_EXACT = new Set([
   // begin mid-funnel. It is noindex for organic search, but indexing and
   // recording are separate decisions made in separate files.
   "/stop-bladder-leaks",
+  // Public diastasis marketing page only. Its payment/auth setup route stays
+  // private; checkout crosses there with a fresh document after payment.
+  "/diastasis-recti",
   "/welcome", // post-purchase confirmation
   "/blog",
   "/privacy-policy",
@@ -121,6 +124,15 @@ export function isTrackedPath(pathname, search = "") {
   }
 
   const query = String(search || "").toLowerCase();
+  // The new public entry also refuses URL-encoded sensitive key names before
+  // its first pageview. Keep existing routes' rules unchanged.
+  if (path === "/diastasis-recti" && query) {
+    try {
+      for (const name of new URLSearchParams(query).keys()) {
+        if (SENSITIVE_PARAMS.some((param) => name.toLowerCase().includes(param))) return false;
+      }
+    } catch { return false; }
+  }
   if (query) {
     for (const param of SENSITIVE_PARAMS) {
       if (query.includes(`${param}=`)) return false;
