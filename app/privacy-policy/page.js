@@ -94,7 +94,7 @@ export default function PrivacyPolicy() {
           Microsoft Clarity on eligible public pages. Analytics cookies and Google or Meta ad
           measurement can start automatically for eligible visits after a server country check.
           Other undecided visits use cookieless Clarity only. Saved opt-outs and browser privacy
-          signals are respected, and email matching is off by default. The
+          signals are respected. Purchase email matching requires your separate saved permission. The
           email address you type in the checkout is kept whether or not you pay, and we may use it
           to write to you and in advertising audiences — never with any health information attached.
           Your pelvic health answers are sensitive data and we treat them that way. We do not sell
@@ -357,7 +357,7 @@ export default function PrivacyPolicy() {
         settings from user choices. Opting out also stops future server purchase reports.
       </p>
       <p>
-        Email matching is off by default. It is used only if the integration is eligible and
+        Purchase email matching is enabled for eligible integrations and used only if
         your previously saved, separate purchase-matching permission remains active. The current
         privacy settings can turn measurement off and do not offer an opt-in. Automatic
         measurement never enables email matching. If enabled under a separate saved matching

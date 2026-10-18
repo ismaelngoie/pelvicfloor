@@ -62,8 +62,10 @@ test("public configuration is disabled by default and never exposes secret field
     assert.equal(response.headers.get("Cache-Control"), "no-store");
     assert.deepEqual(await response.json(), { enabled: false, datasetId: "", emailMatchingEnabled: false, automaticMeasurement: { eligible: false, basis: "automatic" } });
   }
-  const response = configAPI.onRequestGet({ env: { META_TRACKING_ENABLED: "true", META_DATASET_ID: config.datasetId, META_EMAIL_MATCHING_ENABLED: "true", META_ACCESS_TOKEN: "never-expose-this" } });
-  assert.deepEqual(await response.json(), { ...config, emailMatchingEnabled: true, automaticMeasurement: { eligible: false, basis: "automatic" } });
+  for (const retiredSwitch of [undefined, "false", "true"]) {
+    const response = configAPI.onRequestGet({ env: { META_TRACKING_ENABLED: "true", META_DATASET_ID: config.datasetId, META_EMAIL_MATCHING_ENABLED: retiredSwitch, META_ACCESS_TOKEN: "never-expose-this" } });
+    assert.deepEqual(await response.json(), { ...config, emailMatchingEnabled: true, automaticMeasurement: { eligible: false, basis: "automatic" } });
+  }
   assert.deepEqual(normalizeMetaConfig({ enabled: "true", datasetId: config.datasetId, accessToken: "never" }), { enabled: false, datasetId: "", emailMatchingEnabled: false });
 });
 

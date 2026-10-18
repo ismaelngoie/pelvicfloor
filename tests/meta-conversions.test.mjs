@@ -75,7 +75,7 @@ test("canonical settled invoice supplies price and anonymous event ID without se
   assert.equal(event.event_name, "Purchase"); assert.equal(event.action_source, "website");
   const serialized = JSON.stringify(context.sent[0].body);
   assert.doesNotMatch(serialized, /private@example|Verified@Example|diastasis|Private Name|client_secret|secret_exampleProof|goalId|subscription_create|in_invoice123|sub_example|eb942c3a/);
-  assert.equal(event.user_data.em, undefined, "email matching is off unless separately approved in server configuration");
+  assert.deepEqual(event.user_data.em, [createHash("sha256").update("verified@example.com").digest("hex")]);
   assert.deepEqual(Object.keys(context.receipts.get(result.eventId)).sort(), ["currency", "sentAt", "value"]);
 });
 
@@ -95,14 +95,16 @@ test("automatic measurement sends a verified sale with its recorded basis and ne
   assert.doesNotMatch(JSON.stringify(context.sent[0].body), /automatic|basis|consentId|diastasis/);
 });
 
-test("email matching requires both shopper choice and server eligibility and hashes Stripe email", async () => {
-  const context = fixture();
-  await reportMetaInvoicePurchase({ ...context.options, env: { ...env, META_EMAIL_MATCHING_ENABLED: "true" } });
-  const event = context.sent[0].body.data[0];
-  assert.deepEqual(event.user_data.em, [createHash("sha256").update("verified@example.com").digest("hex")]);
-  assert.doesNotMatch(JSON.stringify(event), /@/);
+test("permitted purchases hash Stripe email without the retired owner feature switch", async () => {
+  for (const retiredSwitch of [undefined, "false", "true"]) {
+    const context = fixture();
+    await reportMetaInvoicePurchase({ ...context.options, env: { ...env, META_EMAIL_MATCHING_ENABLED: retiredSwitch } });
+    const event = context.sent[0].body.data[0];
+    assert.deepEqual(event.user_data.em, [createHash("sha256").update("verified@example.com").digest("hex")]);
+    assert.doesNotMatch(JSON.stringify(event), /@|diastasis|goalId|Private Name/);
+  }
   const denied = fixture(); delete denied.invoice.subscription.metadata.meta_email_match;
-  await reportMetaInvoicePurchase({ ...denied.options, env: { ...env, META_EMAIL_MATCHING_ENABLED: "true" } });
+  await reportMetaInvoicePurchase(denied.options);
   assert.equal(denied.sent[0].body.data[0].user_data.em, undefined);
 });
 

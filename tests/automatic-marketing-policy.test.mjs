@@ -40,7 +40,7 @@ test("public bootstrap exposes eligibility and basis without country, credential
   assert.equal(response.headers.get("cache-control"), "no-store");
   const body = await response.json();
   assert.deepEqual(body.automaticMeasurement, { eligible: true, basis: "automatic" });
-  assert.equal(body.emailMatchingEnabled, false);
+  assert.equal(body.emailMatchingEnabled, true, "feature availability does not grant visitor matching permission");
   assert.doesNotMatch(JSON.stringify(body), /country|region|must-stay-private/);
   assert.deepEqual((await onRequestGet({ request: incoming({ country: "FR" }) }).json()).automaticMeasurement, { eligible: false, basis: "automatic" });
 });

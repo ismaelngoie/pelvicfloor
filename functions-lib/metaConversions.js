@@ -133,8 +133,10 @@ export async function reportMetaInvoicePurchase({ stripe, invoiceId, env, ledger
   if (validIp(metadata.meta_client_ip || "")) userData.client_ip_address = metadata.meta_client_ip;
   const userAgent = clean(metadata.meta_user_agent, 400);
   if (userAgent) userData.client_user_agent = userAgent;
+  // The owner has enabled matching for permitted purchases. Automatic
+  // measurement and payment-email collection do not grant matching permission.
   if (emailMatchingAllowed && metadata.meta_basis !== "automatic" && currentConsent.basis !== "automatic"
-    && currentConsent.matching === true && env.META_EMAIL_MATCHING_ENABLED === "true" && metadata.meta_email_match === "1") {
+    && currentConsent.matching === true && metadata.meta_email_match === "1") {
     const customer = typeof invoice.customer === "object" ? invoice.customer : await stripe.customers.retrieve(invoice.customer);
     const email = clean(customer?.email, 254).toLowerCase();
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
