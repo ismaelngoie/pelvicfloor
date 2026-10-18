@@ -216,7 +216,7 @@ function PaymentForm({ goalId, name, email, uid, memberId, successPath, onPaid, 
     </div>
     {message && <p className={styles.error} role="alert">{message}</p>}
     <button type="submit" disabled={busy || !stripe || !ready || loadFailed} className={styles.pay}>
-      {busy ? <><LoaderCircle size={19} aria-hidden="true" /> Processing…</> : <><LockKeyhole size={17} aria-hidden="true" /> Pay {DEFAULT_PRICE_LABEL}</>}
+      {busy ? <><LoaderCircle size={19} aria-hidden="true" /> Processing…</> : <><LockKeyhole size={17} aria-hidden="true" /> Start Fixing Diastasis</>}
     </button>
     <p className={styles.renewal}>{DEFAULT_PRICE_LABEL} {PRICE_CURRENCY} today, then every {DEFAULT_PRICE_PERIOD} until you cancel. Cancel anytime in your account. By paying, you agree to our <a href="/terms-of-service" target="_blank" rel="noopener noreferrer">Terms</a> and <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
     <div className={styles.guarantee}><ShieldCheck size={23} aria-hidden="true" /><p><strong>Your progress. Or your money back.</strong><span>Not happy within 12 weeks? Get a full refund.</span></p></div>
