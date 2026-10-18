@@ -23,7 +23,7 @@ export default function DiastasisGuaranteePage() {
       <h2>Your membership</h2>
       <p>Your membership renews monthly until you cancel. You can stop future payments in You → Subscription → Manage or cancel. Canceling a renewal does not send a refund request; email us to claim this offer.</p>
       <h2>About this offer</h2>
-      <p>This offer extends the standard refund window for the diastasis recti web membership. The <a href="/terms">standard subscription terms</a> still apply to other matters. The guarantee is a refund promise if you are unhappy with your progress; individual exercise results vary.</p>
+      <p>This offer extends the standard refund window for the diastasis recti web membership. The <a href="/terms-of-service">standard subscription terms</a> still apply to other matters. The guarantee is a refund promise if you are unhappy with your progress; individual exercise results vary.</p>
       <p><a href="/diastasis-recti">← Back to the diastasis recti plan</a></p>
     </article>
   </div>;
