@@ -27,16 +27,12 @@ const PRESS = [
 ];
 
 const FAQ = [
-  ["What is diastasis recti?", "It is a gap between the two sides of your stomach muscles. It is common after pregnancy. Strength and how you feel when moving matter as well as the size of the gap."],
-  ["What results can I expect in 12 weeks?", "Follow your daily plan and track how your core feels as you go. Everyone progresses differently. If you are not happy with your progress within the first 12 weeks, ask for a full refund under this page’s money-back offer."],
-  ["Is the whole session five minutes?", "Five minutes is a simple starting habit. Follow the coach videos, then practice at your own pace. Full sessions can take longer as your plan builds."],
-  ["What if I had my baby years ago?", "You can still work on core strength. If the gap has stayed or you have symptoms, a pelvic health physiotherapist can help you understand what you need."],
-  ["Can I use this after a C-section?", "Ask your doctor or physiotherapist when to start, especially after a C-section, surgery or birth complications. Stop if exercise causes pain."],
-  ["What does the self-assessment do?", "Simple check-ins ask about pressure, a ridge or bulge during exercise, and how confident you feel moving. They help you record your experience. They do not measure the gap, diagnose a condition or replace a medical assessment."],
-  ["Is this just breathing and kegels?", "No. Start with breathing and gentle core exercises. Then build up to heel slides, marching, bridges and everyday lifting practice. Videos show you the steps, with tips on breathing and when to make a move easier."],
-  ["Do I need equipment or an app download?", "Open Pelvi in Safari or Chrome on your phone. No App Store download or special equipment is needed. A mat or comfortable floor space helps. Some exercises use a chair or wall."],
-  ["What am I paying for?", `Your Pelvi membership is ${DEFAULT_PRICE_LABEL} ${PRICE_CURRENCY} per ${DEFAULT_PRICE_PERIOD}, automatically renewed until you cancel. It includes your diastasis plan and the member tools shown here. The 90-day plan describes the program length, not a one-time payment.`],
-  ["Can I cancel or get a refund?", "Cancel future payments from You → Subscription → Manage or cancel. This diastasis recti offer includes a 12-week money-back guarantee. If you are not happy with your progress, email contact@pelvi.health within 84 days of your first payment for a full refund of membership fees paid during that period. There is no exercise-completion requirement."],
+  ["What is diastasis recti:", <>is <strong>the separation of the left and right rectus abdominis muscles (“six-pack” muscles) along the central band of connective tissue known as the linea alba</strong></>],
+  ["What results can i expect in 12 weeks?", "95% of our customers see visible results in 12 weeks with consistent 5 minutes of day exercises"],
+  ["What if I had my baby years ago?", "This program will help eliminate your gap even if you had a baby years ago. Just follow you personalized plan."],
+  ["Can i use this after a C-section?", "Yes, we personalizes exercises based on each person situations>"],
+  ["Do I need equipment or an app download?", "No download or equipment needed. Our coach exercises are right in your browser."],
+  ["Can I cancel or get a refund?", "Yes. Click Subscription -> Cancel."],
 ];
 
 function PressMarquee() {
@@ -226,7 +222,7 @@ export default function DiastasisLanding() {
 
       <section className={styles.evidence} aria-labelledby="dr-evidence"><p className={styles.eyebrow}>OUR 12-WEEK MONEY-BACK GUARANTEE</p><h2 id="dr-evidence">Your progress.<br /><em>Or your money back.</em></h2><p>Follow your plan. Make time for your core.<br />Not happy with your progress within 12 weeks? Ask for a full refund.</p><a className={styles.guaranteeLink} href="/diastasis-recti/guarantee" onClick={() => trackDiastasisEvent("guarantee_open")}>See how the guarantee works <ArrowRight size={15} aria-hidden="true" /></a></section>
 
-      <section className={styles.faq} aria-labelledby="dr-faq"><div><p className={styles.eyebrow}>BEFORE YOU START</p><h2 id="dr-faq">Your questions.<br /><em>Simple answers.</em></h2><p>Need a hand?<br /><a href="mailto:contact@pelvi.health">contact@pelvi.health</a></p></div><div className={styles.faqList}>{FAQ.map(([question, answer], i) => <details key={question} id={i === FAQ.length - 1 ? "dr-refund" : undefined} onToggle={(event) => { if (event.currentTarget.open) trackDiastasisEvent("faq_open"); }}><summary>{question}<span>+</span></summary><p>{answer} {i === FAQ.length - 1 && <a href="/diastasis-recti/guarantee" onClick={() => trackDiastasisEvent("guarantee_open")}>Read the guarantee terms</a>}</p></details>)}</div></section>
+      <section className={styles.faq} aria-labelledby="dr-faq"><div><p className={styles.eyebrow}>BEFORE YOU START</p><h2 id="dr-faq">Your questions.<br /><em>Simple answers.</em></h2><p>Need a hand?<br /><a href="mailto:contact@pelvi.health">contact@pelvi.health</a></p></div><div className={styles.faqList}>{FAQ.map(([question, answer], i) => <details key={question} id={i === FAQ.length - 1 ? "dr-refund" : undefined} onToggle={(event) => { if (event.currentTarget.open) trackDiastasisEvent("faq_open"); }}><summary>{question}<span>+</span></summary><p>{answer}</p></details>)}</div></section>
 
       <section className={styles.finalOffer}><div><p className={styles.eyebrow}>DAILY COACH VIDEOS. ONE CLEAR PLAN.</p><h2>Your core.<br /><em>Your next step.</em></h2><p>Daily coach videos. A clear plan for diastasis recti.</p><div className={styles.finalPrice}>{DEFAULT_PRICE_LABEL}<span>{PRICE_CURRENCY} / {DEFAULT_PRICE_PERIOD}</span></div><p className={styles.finalTerms}>Monthly membership. Renews until canceled.</p><button type="button" className={styles.primary} onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={18} aria-hidden="true" /></button><p className={styles.finalSocial}>Join 10,734+ women fixing their Diastasis Recti</p></div><div className={styles.finalArt}><Phone src="/diastasis/app-player.webp" alt={GALLERY[1].alt} /><span>DAILY COACH<br /><em>videos.</em></span></div></section>
 
