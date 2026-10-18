@@ -6,6 +6,7 @@ import ProviderButtons from "@/components/auth/ProviderButtons";
 import { allowedDiastasisAttribution, canonicalDiastasisReceiptPath, clearDiastasisEntry,
   completeDiastasisSetup, createDiastasisEntry, entryForVerifiedDiastasisPayer, readDiastasisEntry } from "@/lib/diastasisEntry";
 import { readPaidIntent, signInFromPayment, stashPaidIntent } from "@/lib/identity";
+import { reportVerifiedMetaPurchase } from "@/lib/metaPixel";
 
 // The canonical /welcome remains the receipt/conversion UI. Its provider
 // callbacks navigate to /app, so it must not be mounted before setup finishes.
@@ -24,7 +25,7 @@ export default function StartClient() {
   const secretRef = useRef(typeof window === "undefined" ? ""
     : new URLSearchParams(window.location.search).get("payment_intent_client_secret") || readPaidIntent());
 
-  const forwardToReceipt = () => {
+  const forwardToReceipt = async () => {
     if (forwardingRef.current) return;
     forwardingRef.current = true;
     const secret = secretRef.current;
@@ -32,6 +33,9 @@ export default function StartClient() {
     const target = canonicalDiastasisReceiptPath(attributionRef.current, {
       paid: Boolean(secret), clientSecret: secret && readPaidIntent() !== secret ? secret : "",
     });
+    // Bounded, first-party receipt verification; failures never block access.
+    // The signed Stripe webhook covers browser closes and delayed settlement.
+    if (secret) await reportVerifiedMetaPurchase(secret);
     window.location.replace(target);
   };
 

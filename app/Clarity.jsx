@@ -43,6 +43,8 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 import { CLARITY_PROJECT_ID, isTrackedPath, stopClarity } from "@/lib/analytics";
+import { MARKETING_CONSENT_EVENT, marketingPersistenceBlocked, readMarketingConsent, syncMarketingConsent } from "@/lib/marketingConsent";
+import { deferMarketingReload, markMarketingNavigationStarted } from "@/lib/marketingNavigation";
 
 // Module scope, so it is per document rather than per mount. A hard navigation
 // gives a fresh module and therefore a fresh decision, which is exactly the
@@ -60,6 +62,9 @@ function injectTag() {
     function clarityQueue() {
       (window.clarity.q = window.clarity.q || []).push(arguments);
     };
+  // Replay consent is separate from permission to share replay data with
+  // Microsoft Ads. This integration grants analytics only.
+  window.clarity("consentv2", { analytics_Storage: "granted", ad_Storage: "denied" });
 
   const script = document.createElement("script");
   script.async = true;
@@ -81,29 +86,38 @@ export default function Clarity() {
     // bailout and needs its own Suspense boundary; this reads the same value
     // after mount with none of that. The gate is a client-side decision either
     // way, because nothing is injected during prerender.
-    const allowed = isTrackedPath(pathname || window.location.pathname, window.location.search);
-
-    if (allowed) {
-      if (!injected) {
-        injected = true;
-        injectTag();
+    const applyChoice = () => {
+      const publicDocument = isTrackedPath(pathname || window.location.pathname, window.location.search);
+      const choice = readMarketingConsent();
+      const allowed = publicDocument && choice.analytics;
+      if (allowed) {
+        if (!injected) {
+          injected = true;
+          injectTag();
+        }
+        return;
       }
-      return;
-    }
-
-    // Private route. On a fresh document nothing was ever injected and there is
-    // nothing to do, which is the normal path for /app and /admin.
-    if (!injected) return;
-
-    // Layer 3. We are here because a client-side route change carried a live
-    // recorder into a private area.
-    stopClarity();
-    if (bailedOut) return;
-    bailedOut = true;
-    // Replace, not assign, so the back button does not bounce her between the
-    // two states. The reload cannot loop: the new document injects nothing on
-    // this path, so this branch is unreachable in it.
-    window.location.replace(window.location.href);
+      if (!injected) return;
+      try { window.clarity?.("consentv2", { analytics_Storage: "denied", ad_Storage: "denied" }); } catch { /* A blocked tag does not affect the page. */ }
+      stopClarity();
+      if (marketingPersistenceBlocked()) return;
+      if (bailedOut && publicDocument) return;
+      bailedOut = true;
+      // A fresh document discards the live recorder after withdrawal or entry
+      // into a private route. It will not inject again without permission.
+      const safe = () => !marketingPersistenceBlocked();
+      if (publicDocument && !choice.analytics) void syncMarketingConsent(choice).finally(() => {
+        deferMarketingReload({ canReload: safe });
+      });
+      else {
+        markMarketingNavigationStarted();
+        if (safe()) window.location.replace(window.location.href);
+      }
+    };
+    applyChoice();
+    window.addEventListener(MARKETING_CONSENT_EVENT, applyChoice);
+    window.addEventListener("storage", applyChoice);
+    return () => { window.removeEventListener(MARKETING_CONSENT_EVENT, applyChoice); window.removeEventListener("storage", applyChoice); };
   }, [pathname]);
 
   return null;

@@ -43,44 +43,114 @@
 // recorded, which is the safe direction to fail in.
 
 import { CLARITY_PROJECT_ID, isTrackedPath } from "/clarity-gate.js";
+import { MARKETING_CONSENT_EVENT, MARKETING_CONSENT_KEY, marketingPersistenceBlocked,
+  readMarketingConsent, syncMarketingConsent } from "/marketing-consent.js";
 
 // The gate, asked exactly as app/Clarity.jsx asks it. Deny by default: if this
 // document is not on the allowlist, or its URL carries anything sensitive,
 // nothing below runs and no tag is ever added to the page.
-if (isTrackedPath(window.location.pathname, window.location.search)) {
-  // Idempotent. A module URL is only evaluated once per document, so this
-  // guards against the line being paired with a stray hand-pasted snippet
-  // rather than against itself.
-  if (!window.__pelviClarityInjected) {
-    window.__pelviClarityInjected = true;
+export function installStaticClarity({ scope = window, doc = document,
+  getConsent = readMarketingConsent, syncConsent = syncMarketingConsent,
+  persistenceBlocked = marketingPersistenceBlocked, tracked = isTrackedPath,
+} = {}) {
+  if (scope.__pelviStaticClarityLifecycle) return scope.__pelviStaticClarityLifecycle;
+  let injected = Boolean(scope.__pelviClarityInjected);
+  let stopped = false;
+  let disposed = false;
+  let transition = 0;
+  let replacing = false;
+  const call = (...args) => { try { scope.clarity?.(...args); } catch { /* Optional analytics never blocks the article. */ } };
+  const publicDocument = () => tracked(scope.location.pathname, scope.location.search);
+  const snapshot = (choice) => [choice.decided, choice.consentId, choice.decidedAt, choice.analytics, choice.advertising, choice.matching];
 
-    // Clarity's own snippet, kept recognisable so it can be diffed against the
-    // one Microsoft hands out, and identical to the copy in app/Clarity.jsx.
-    // window.clarity is a queue until the real implementation replaces it,
-    // which is what makes the call below safe before the CDN answers.
-    window.clarity =
-      window.clarity ||
-      function clarityQueue() {
-        (window.clarity.q = window.clarity.q || []).push(arguments);
-      };
-
-    const script = document.createElement("script");
-    script.async = true;
-    script.src = `https://www.clarity.ms/tag/${CLARITY_PROJECT_ID}`;
-    // An ad blocker will refuse this request. That is fine and expected: the
-    // queue above absorbs the call below and nothing on the page notices.
-    script.onerror = () => {};
-    document.head.appendChild(script);
-
-    // The one tag these pages set. Not personal data, and not about the reader:
-    // it says which build of the site drew the page, so a session list can be
-    // split into "the hand-written articles" and "the app router" without
-    // matching URLs by hand. It is also the fastest way to confirm from the
-    // Clarity dashboard that this file is live on the articles.
+  function reloadAfterSync(choice) {
+    const expected = snapshot(choice);
+    const publicBefore = publicDocument();
+    const generation = ++transition;
+    // The shared helper bounds registry delivery to two seconds. Stop happens
+    // synchronously; reload waits so a withdrawal can reach the first party.
     try {
-      window.clarity("set", "surface", "static_html");
-    } catch {
-      // Analytics must never be able to break a page. Nothing to do with this.
+      Promise.resolve(syncConsent(choice)).catch(() => {}).finally(() => {
+        if (disposed || replacing || generation !== transition || persistenceBlocked()) return;
+        const latest = getConsent();
+        if (publicDocument() !== publicBefore || !snapshot(latest).every((value, index) => value === expected[index])) return;
+        replacing = true;
+        scope.location.replace(scope.location.href);
+      }).catch(() => {});
+    } catch { /* Keep a stopped recorder if optional consent sync cannot run. */ }
+  }
+
+  function inject() {
+    // Idempotent. A module URL is only evaluated once per document, so this
+    // guards against the line being paired with a stray hand-pasted snippet
+    // rather than against itself.
+    if (!scope.__pelviClarityInjected) {
+      scope.__pelviClarityInjected = true;
+      injected = true;
+
+      // Clarity's own snippet, kept recognisable so it can be diffed against the
+      // one Microsoft hands out, and identical to the copy in app/Clarity.jsx.
+      // window.clarity is a queue until the real implementation replaces it,
+      // which is what makes the call below safe before the CDN answers.
+      scope.clarity =
+        scope.clarity ||
+        function clarityQueue() {
+          (scope.clarity.q = scope.clarity.q || []).push(arguments);
+        };
+      call("consentv2", { analytics_Storage: "granted", ad_Storage: "denied" });
+
+      const script = doc.createElement("script");
+      script.async = true;
+      script.src = `https://www.clarity.ms/tag/${CLARITY_PROJECT_ID}`;
+      // An ad blocker will refuse this request. That is fine and expected: the
+      // queue above absorbs the call below and nothing on the page notices.
+      script.onerror = () => {};
+      doc.head.appendChild(script);
+
+      // The one tag these pages set. Not personal data, and not about the reader:
+      // it says which build of the site drew the page, so a session list can be
+      // split into "the hand-written articles" and "the app router" without
+      // matching URLs by hand. It is also the fastest way to confirm from the
+      // Clarity dashboard that this file is live on the articles.
+      call("set", "surface", "static_html");
     }
   }
+
+  function applyChoice(event) {
+    if (disposed || (event?.type === "storage" && event.key !== null && event.key !== MARKETING_CONSENT_KEY)) return;
+    try {
+      const choice = getConsent();
+      const allowed = publicDocument() && choice.analytics === true;
+      if (allowed && !stopped) { inject(); return; }
+      if (!injected) return;
+      if (!stopped) {
+        call("consentv2", { analytics_Storage: "denied", ad_Storage: "denied" });
+        call("stop");
+        stopped = true;
+      }
+      // A stopped recorder is never resumed. A later explicit grant also needs
+      // a fresh document, provided the consent snapshot is still current.
+      reloadAfterSync(choice);
+    } catch {
+      call("consentv2", { analytics_Storage: "denied", ad_Storage: "denied" });
+      call("stop");
+      stopped = true;
+    }
+  }
+
+  const lifecycle = {
+    dispose() {
+      disposed = true; transition += 1;
+      scope.removeEventListener(MARKETING_CONSENT_EVENT, applyChoice);
+      scope.removeEventListener("storage", applyChoice);
+      if (scope.__pelviStaticClarityLifecycle === lifecycle) delete scope.__pelviStaticClarityLifecycle;
+    },
+  };
+  scope.__pelviStaticClarityLifecycle = lifecycle;
+  scope.addEventListener(MARKETING_CONSENT_EVENT, applyChoice);
+  scope.addEventListener("storage", applyChoice);
+  applyChoice();
+  return lifecycle;
 }
+
+if (typeof window !== "undefined" && typeof document !== "undefined") installStaticClarity();

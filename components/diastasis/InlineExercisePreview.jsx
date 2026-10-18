@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { SAMPLE_VIDEO } from "./sampleVideo";
+import { trackDiastasisEvent } from "@/lib/diastasisAnalytics";
 import styles from "./InlineExercisePreview.module.css";
 
 const NEARBY_PIXELS = 360;
@@ -166,10 +167,11 @@ export default function InlineExercisePreview() {
               onPlay={() => {
                 if (!policyRef.current.visible || !policyRef.current.pageVisible) { pauseVideo(); return; }
                 userPausedRef.current = false;
+                trackDiastasisEvent("video_play");
                 setAutoplayBlocked(false);
               }}
               onPause={() => { if (policyRef.current.automatic) userPausedRef.current = true; }}
-              onError={() => setMediaError(true)}
+              onError={() => { trackDiastasisEvent("video_error"); setMediaError(true); }}
             >
               Your browser cannot play this video. Use the preview link below.
             </video>

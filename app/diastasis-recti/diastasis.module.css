@@ -819,13 +819,16 @@
   justify-content: flex-end;
   align-content: center;
 }
-.footer nav a {
+.footer nav a,.footer nav button {
   font-size: 11px;
   color: var(--ink);
   text-decoration: none;
   min-height: 30px;
   display: flex;
   align-items: center;
+  border: 0;
+  background: transparent;
+  padding: 0;
 }
 .suitability {
   font-size: 10px;
@@ -1291,7 +1294,7 @@
     align-items: flex-end;
     justify-content: center;
   }
-  .footer nav a {
+  .footer nav a,.footer nav button {
     font-size: 10px;
     min-height: 26px;
   }

@@ -6,6 +6,7 @@ import { ArrowDown, ArrowRight, Check, ChevronLeft, ChevronRight, CircleCheck, H
 import { DEFAULT_PRICE_LABEL, DEFAULT_PRICE_PERIOD, PRICE_CURRENCY } from "@/lib/pricing";
 import { rememberPlan } from "@/lib/postPurchase";
 import { diastasisSuccessPath } from "@/lib/diastasisEntry";
+import { trackDiastasisEvent } from "@/lib/diastasisAnalytics";
 import InlineExercisePreview from "@/components/diastasis/InlineExercisePreview";
 import styles from "./diastasis.module.css";
 
@@ -95,7 +96,25 @@ export default function DiastasisLanding() {
   const offerRef = useRef(null);
   const scrollRef = useRef(null);
   const touchX = useRef(null);
-  const closeCheckout = useCallback(() => setCheckoutOpen(false), []);
+  const closeCheckout = useCallback(() => {
+    trackDiastasisEvent("checkout_close");
+    setCheckoutOpen(false);
+  }, []);
+
+  useEffect(() => {
+    const view = () => trackDiastasisEvent("landing_view");
+    view();
+    // Opting in starts the anonymous view; declining never queues it. Calling
+    // the helper on withdrawal also clears any pending loader retry.
+    window.addEventListener("pelvi:privacy-choice", view);
+    return () => window.removeEventListener("pelvi:privacy-choice", view);
+  }, []);
+
+  const previousGallery = useRef(active);
+  useEffect(() => {
+    if (previousGallery.current !== active) trackDiastasisEvent("gallery_view");
+    previousGallery.current = active;
+  }, [active]);
 
   useEffect(() => {
     const target = offerRef.current;
@@ -107,6 +126,7 @@ export default function DiastasisLanding() {
 
   const beginCheckout = (event) => {
     event?.preventDefault();
+    trackDiastasisEvent("checkout_open");
     rememberPlan({ goalId: GOAL_ID, name: "" });
     setCheckoutPath(diastasisSuccessPath(window.location.search));
     setCheckoutOpen(true);
@@ -204,13 +224,13 @@ export default function DiastasisLanding() {
         </ol>
       </section>
 
-      <section className={styles.evidence} aria-labelledby="dr-evidence"><p className={styles.eyebrow}>OUR 12-WEEK MONEY-BACK GUARANTEE</p><h2 id="dr-evidence">Your progress.<br /><em>Or your money back.</em></h2><p>Follow your plan. Make time for your core.<br />Not happy with your progress within 12 weeks? Ask for a full refund.</p><a className={styles.guaranteeLink} href="/diastasis-recti/guarantee">See how the guarantee works <ArrowRight size={15} aria-hidden="true" /></a></section>
+      <section className={styles.evidence} aria-labelledby="dr-evidence"><p className={styles.eyebrow}>OUR 12-WEEK MONEY-BACK GUARANTEE</p><h2 id="dr-evidence">Your progress.<br /><em>Or your money back.</em></h2><p>Follow your plan. Make time for your core.<br />Not happy with your progress within 12 weeks? Ask for a full refund.</p><a className={styles.guaranteeLink} href="/diastasis-recti/guarantee" onClick={() => trackDiastasisEvent("guarantee_open")}>See how the guarantee works <ArrowRight size={15} aria-hidden="true" /></a></section>
 
-      <section className={styles.faq} aria-labelledby="dr-faq"><div><p className={styles.eyebrow}>BEFORE YOU START</p><h2 id="dr-faq">Your questions.<br /><em>Simple answers.</em></h2><p>Need a hand?<br /><a href="mailto:contact@pelvi.health">contact@pelvi.health</a></p></div><div className={styles.faqList}>{FAQ.map(([question, answer], i) => <details key={question} id={i === FAQ.length - 1 ? "dr-refund" : undefined}><summary>{question}<span>+</span></summary><p>{answer} {i === FAQ.length - 1 && <a href="/diastasis-recti/guarantee">Read the guarantee terms</a>}</p></details>)}</div></section>
+      <section className={styles.faq} aria-labelledby="dr-faq"><div><p className={styles.eyebrow}>BEFORE YOU START</p><h2 id="dr-faq">Your questions.<br /><em>Simple answers.</em></h2><p>Need a hand?<br /><a href="mailto:contact@pelvi.health">contact@pelvi.health</a></p></div><div className={styles.faqList}>{FAQ.map(([question, answer], i) => <details key={question} id={i === FAQ.length - 1 ? "dr-refund" : undefined} onToggle={(event) => { if (event.currentTarget.open) trackDiastasisEvent("faq_open"); }}><summary>{question}<span>+</span></summary><p>{answer} {i === FAQ.length - 1 && <a href="/diastasis-recti/guarantee" onClick={() => trackDiastasisEvent("guarantee_open")}>Read the guarantee terms</a>}</p></details>)}</div></section>
 
       <section className={styles.finalOffer}><div><p className={styles.eyebrow}>DAILY COACH VIDEOS. ONE CLEAR PLAN.</p><h2>Your core.<br /><em>Your next step.</em></h2><p>Daily coach videos. A clear plan for diastasis recti.</p><div className={styles.finalPrice}>{DEFAULT_PRICE_LABEL}<span>{PRICE_CURRENCY} / {DEFAULT_PRICE_PERIOD}</span></div><p className={styles.finalTerms}>Monthly membership. Renews until canceled.</p><button type="button" className={styles.primary} onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={18} aria-hidden="true" /></button><p className={styles.finalSocial}>Join 10,734+ women fixing their Diastasis Recti</p></div><div className={styles.finalArt}><Phone src="/diastasis/app-player.webp" alt={GALLERY[1].alt} /><span>DAILY COACH<br /><em>videos.</em></span></div></section>
 
-      <footer className={styles.footer}><div><a href="/" className={styles.logo}>pelvi<span>®</span></a><p>Core care. In your corner.</p></div><nav aria-label="Landing page footer"><a href="/app">Member log in</a><a href="mailto:contact@pelvi.health">Contact</a><a href="/diastasis-recti/guarantee">12-week guarantee</a><a href="/terms-of-service">Terms</a><a href="/privacy-policy">Privacy</a></nav><p className={styles.suitability}>Recently had a C-section or abdominal surgery, have pain, a known hernia or clinician restrictions? Ask your clinician before starting. Stop if exercise causes pain. Pelvi provides exercise guidance and education, not diagnosis or medical care.</p><p className={styles.copyright}>© {new Date().getFullYear()} Pelvi Health. Lifestyle imagery is illustrative.</p></footer>
+      <footer className={styles.footer}><div><a href="/" className={styles.logo}>pelvi<span>®</span></a><p>Core care. In your corner.</p></div><nav aria-label="Landing page footer"><a href="/app">Member log in</a><a href="mailto:contact@pelvi.health">Contact</a><a href="/diastasis-recti/guarantee" onClick={() => trackDiastasisEvent("guarantee_open")}>12-week guarantee</a><a href="/terms-of-service">Terms</a><a href="/privacy-policy">Privacy</a><button type="button" onClick={() => window.dispatchEvent(new Event("pelvi:open-privacy-choices"))}>Privacy choices</button></nav><p className={styles.suitability}>Recently had a C-section or abdominal surgery, have pain, a known hernia or clinician restrictions? Ask your clinician before starting. Stop if exercise causes pain. Pelvi provides exercise guidance and education, not diagnosis or medical care.</p><p className={styles.copyright}>© {new Date().getFullYear()} Pelvi Health. Lifestyle imagery is illustrative.</p></footer>
 
       {!offerVisible && !checkoutOpen && <div className={styles.stickyOffer}><div><strong>{DEFAULT_PRICE_LABEL}<small> / {DEFAULT_PRICE_PERIOD}</small></strong><span>12-week money-back guarantee</span></div><button type="button" onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={17} aria-hidden="true" /></button></div>}
       {checkoutOpen && <CheckoutSheet open onClose={closeCheckout} goalId={GOAL_ID} successPath={checkoutPath} />}

@@ -3,6 +3,8 @@ import "./globals.css";
 import Clarity from "./Clarity";
 import GoogleAds from "./GoogleAds";
 import ServiceWorker from "./ServiceWorker";
+import MetaPixel from "./MetaPixel";
+import MarketingChoices from "@/components/MarketingChoices";
 import { OPEN_PLAN_SCRIPT } from "@/lib/openPlanScript";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -128,6 +130,8 @@ export default function RootLayout({ children }) {
             Clarity. Provider keys, scripts and unpublished productions under
             /video are therefore never sent to Google Ads. */}
         <GoogleAds />
+        <MetaPixel />
+        <MarketingChoices />
 
         {/* --- MICROSOFT CLARITY ---
             The tag used to be inlined here, unconditionally, which put session

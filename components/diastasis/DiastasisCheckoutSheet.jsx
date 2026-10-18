@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, LinkAuthenticationElement, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { CheckCircle2, LoaderCircle, LockKeyhole, ShieldCheck, X } from "lucide-react";
@@ -10,6 +9,8 @@ import ProviderButtons from "@/components/auth/ProviderButtons";
 import { createSubscriptionIntent, newAttemptKey } from "@/lib/checkout";
 import { BILLING_INTERVAL, DEFAULT_PRICE_LABEL, DEFAULT_PRICE_PERIOD, PRICE_AMOUNT_CENTS, PRICE_CURRENCY } from "@/lib/pricing";
 import { submitDiastasisPayment } from "@/lib/diastasisPayment";
+import { trackDiastasisEvent } from "@/lib/diastasisAnalytics";
+import { reportVerifiedMetaPurchase } from "@/lib/metaPixel";
 import { markEntitlementActive } from "@/lib/entitlement";
 import { readPaidIntent, stashPaidIntent } from "@/lib/identity";
 import { rememberPrice } from "@/lib/postPurchase";
@@ -99,6 +100,7 @@ export default function DiastasisCheckoutSheet({ open, onClose, goalId = "", nam
       className={styles.dialog}
       aria-labelledby="dr-checkout-title"
       aria-describedby="dr-checkout-price"
+      data-clarity-mask="true"
       onCancel={(event) => { event.preventDefault(); requestClose(); }}
       onClick={(event) => {
         if (event.target !== event.currentTarget) return;
@@ -134,7 +136,6 @@ export default function DiastasisCheckoutSheet({ open, onClose, goalId = "", nam
 function PaymentForm({ goalId, name, email, uid, memberId, successPath, onPaid, onSetupError, onBusy, onKnownMember }) {
   const stripe = useStripe();
   const elements = useElements();
-  const router = useRouter();
   const submitting = useRef(false);
   const attemptKey = useRef(newAttemptKey());
   const emailRef = useRef(email || "");
@@ -168,7 +169,7 @@ function PaymentForm({ goalId, name, email, uid, memberId, successPath, onPaid, 
         beforeConfirm: rememberPrice,
       });
       if (result.kind === "validation_error" || result.kind === "payment_error") {
-        if (result.kind === "payment_error") trackPaymentFailed(result.error);
+        if (result.kind === "payment_error") { trackPaymentFailed(result.error); trackDiastasisEvent("payment_failed"); }
         setMessage(result.error.message || "Please check your payment details and try again.");
       } else if (result.kind === "setup_error") {
         if (result.result.code === "already_subscribed") onKnownMember(address);
@@ -184,12 +185,13 @@ function PaymentForm({ goalId, name, email, uid, memberId, successPath, onPaid, 
         paid = true;
         const { intent, status } = result;
         trackPurchaseCompleted(status);
+        if (status === "succeeded") { trackDiastasisEvent("payment_completed"); void reportVerifiedMetaPurchase(intent.clientSecret); }
         markEntitlementActive({ source: "stripe", priceId: intent.priceId || null, subscriptionId: intent.subscriptionId || null, currentPeriodEnd: intent.currentPeriodEnd || null, email: address, pending: status === "processing" });
         stashPaidIntent(intent.clientSecret);
         try { await onPaid?.({ email: address, status, subscriptionId: intent.subscriptionId || null, customerId: intent.customerId || null, priceId: intent.priceId || null }); } catch { /* A paid member must still reach her plan. */ }
         const destination = new URL(successPath, window.location.origin);
         if (readPaidIntent() !== intent.clientSecret) destination.searchParams.set("payment_intent_client_secret", intent.clientSecret);
-        router.push(`${destination.pathname}${destination.search}`);
+        window.location.assign(`${destination.pathname}${destination.search}`);
       } else {
         setMessage("Your payment is not confirmed yet. Check your payment details and try again.");
       }
@@ -208,7 +210,7 @@ function PaymentForm({ goalId, name, email, uid, memberId, successPath, onPaid, 
     <div className={styles.fields} inert={busy ? true : undefined}>
       {!ready && !loadFailed && <p role="status" className={styles.loading}><LoaderCircle size={18} aria-hidden="true" /> Loading payment options…</p>}
       <PaymentElement id="dr-payment-element" options={paymentOptions}
-        onReady={() => { setReady(true); setLoadFailed(false); trackCardFormShown(); }}
+        onReady={() => { setReady(true); setLoadFailed(false); trackCardFormShown(); trackDiastasisEvent("checkout_ready"); }}
         onLoadError={() => { setLoadFailed(true); setMessage("Payment could not load. Please refresh the page and try again."); }} />
       <div className={styles.email} data-clarity-mask="true">
         <LinkAuthenticationElement options={{ defaultValues: { email: email || "" } }} onChange={(event) => { emailRef.current = event.value.email; }} />
