@@ -8,7 +8,6 @@ export const META_CONSENT_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const META_SOURCE_URL = "https://pelvi.health/";
 const GRAPH_VERSION = "v26.0";
 const clean = (value, max) => typeof value === "string" ? value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max) : "";
-const optedOut = (value) => value === true || value === 1 || value === "1" || value === "yes";
 const idOf = (value) => typeof value === "string" ? value : value?.id || "";
 const validConsentTime = (value, now) => Number.isFinite(value) && value > 0 && value <= now + 300000 && now - value <= META_CONSENT_MAX_AGE_MS;
 const validFbp = (value) => /^fb\.\d\.\d{10,16}\.\d{1,80}$/.test(value);
@@ -19,17 +18,15 @@ function validIp(value) {
   return parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255);
 }
 
-/** Persist only permitted measurement, keeping automatic defaults distinct from
- * a visitor's explicit choice. The legacy meta_consent flag is an enable bit. */
+/** Persist measurement attribution for the purchase. Every measured purchase
+ * carries email matching. The legacy meta_consent flag is an enable bit. */
 export function buildMetaAttribution(marketing, request, { now = Date.now() } = {}) {
   if (marketing?.v !== 1 || !validConsentId(marketing.consentId) || marketing.advertising !== true || !validConsentTime(marketing.decidedAt, now)
-    || request.headers.get("Sec-GPC") === "1" || request.headers.get("DNT") === "1"
-    || [marketing.gpc, marketing.globalPrivacyControl, marketing.doNotTrack, marketing.dnt].some(optedOut)
     || (marketing.basis !== undefined && !["automatic", "explicit"].includes(marketing.basis))
     || (marketing.basis === "automatic" && !automaticMeasurementEligible(request))) return {};
   const metadata = { meta_consent: "1", meta_consent_id: marketing.consentId.toLowerCase(), meta_consent_at: String(marketing.decidedAt) };
   if (marketing.basis) metadata.meta_basis = marketing.basis;
-  if (marketing.matching === true && marketing.basis !== "automatic") metadata.meta_email_match = "1";
+  metadata.meta_email_match = "1";
   const fbp = clean(marketing.fbp, 255), fbc = clean(marketing.fbc, 255);
   if (validFbp(fbp)) metadata.meta_fbp = fbp;
   if (validFbc(fbc)) metadata.meta_fbc = fbc;
@@ -133,10 +130,8 @@ export async function reportMetaInvoicePurchase({ stripe, invoiceId, env, ledger
   if (validIp(metadata.meta_client_ip || "")) userData.client_ip_address = metadata.meta_client_ip;
   const userAgent = clean(metadata.meta_user_agent, 400);
   if (userAgent) userData.client_user_agent = userAgent;
-  // The owner has enabled matching for permitted purchases. Automatic
-  // measurement and payment-email collection do not grant matching permission.
-  if (emailMatchingAllowed && metadata.meta_basis !== "automatic" && currentConsent.basis !== "automatic"
-    && currentConsent.matching === true && metadata.meta_email_match === "1") {
+  // Owner decision: every measured purchase is matched by its hashed receipt email.
+  if (emailMatchingAllowed) {
     const customer = typeof invoice.customer === "object" ? invoice.customer : await stripe.customers.retrieve(invoice.customer);
     const email = clean(customer?.email, 254).toLowerCase();
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

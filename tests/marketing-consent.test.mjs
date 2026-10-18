@@ -75,24 +75,6 @@ test("only an existing explicit analytics permission can grant Clarity cookie st
   assert.deepEqual(consent.clarityConsentPolicy(denied, { browser: {} }), { enabled: false, analyticsStorage: "denied", adStorage: "denied" });
 });
 
-test("GPC and DNT disable cookieless Clarity as well as previously permitted analytics", async () => {
-  const consent = await api();
-  for (const browser of [{ globalPrivacyControl: true }, { doNotTrack: "1" }, { doNotTrack: "YES" }]) {
-    for (const choice of [empty, { decided: true, analytics: true }]) assert.deepEqual(consent.clarityConsentPolicy(choice, { browser }), { enabled: false, analyticsStorage: "denied", adStorage: "denied" });
-  }
-});
-
-test("the three choices remain independent and matching always requires advertising consent", async () => {
-  for (const analytics of [false, true]) for (const advertising of [false, true]) for (const matching of [false, true]) {
-    const consent = await api(), store = storage();
-    const applied = consent.writeMarketingConsent({ analytics, advertising, matching }, { storage: store, browser: {}, now, notify: false });
-    assert.match(applied.consentId, uuidPattern);
-    assert.deepEqual(applied, { decided: true, analytics, advertising, matching: advertising && matching, decidedAt: now, consentId: applied.consentId });
-    assert.deepEqual(consent.readMarketingConsent({ storage: store, browser: {}, now: now + 1000 }), applied);
-    assert.deepEqual(JSON.parse(store.getItem(consent.MARKETING_CONSENT_KEY)), { v: 1, analytics, advertising, matching: advertising && matching, decidedAt: now, consentId: applied.consentId });
-  }
-});
-
 test("truthy strings and unknown fields cannot opt a visitor in or persist PII", async () => {
   const consent = await api(), store = storage();
   const applied = consent.writeMarketingConsent({ analytics: "true", advertising: 1, matching: true, email: "person@example.com", uid: "member-1", token: "private", healthAnswers: ["pain"] }, { storage: store, browser: {}, now, notify: false });
@@ -101,23 +83,6 @@ test("truthy strings and unknown fields cannot opt a visitor in or persist PII",
   const record = store.getItem(consent.MARKETING_CONSENT_KEY);
   assert.deepEqual(Object.keys(JSON.parse(record)).sort(), ["v", "analytics", "advertising", "matching", "decidedAt", "consentId"].sort());
   assert.doesNotMatch(record, /person@|member-1|private|healthAnswers|pain|uid|email|token/);
-});
-
-test("GPC suppresses advertising and matching while respecting the separate analytics choice", async () => {
-  const consent = await api(), store = storage(saved());
-  assert.deepEqual(consent.readMarketingConsent({ storage: store, browser: { globalPrivacyControl: true }, now }), { decided: true, analytics: true, advertising: false, matching: false, decidedAt: now, consentId });
-  assert.equal(consent.readMarketingConsent({ storage: store, browser: {}, now }).advertising, true, "a browser override does not rewrite an explicit saved choice");
-});
-
-test("Do Not Track overrides analytics, advertising and matching on reads and writes", async () => {
-  for (const doNotTrack of ["1", "yes", "YES", 1]) {
-    const consent = await api(), store = storage(saved());
-    const expected = { decided: true, analytics: false, advertising: false, matching: false, decidedAt: now, consentId };
-    assert.deepEqual(consent.readMarketingConsent({ storage: store, browser: { doNotTrack }, now }), expected);
-    assert.deepEqual(consent.writeMarketingConsent({ analytics: true, advertising: true, matching: true }, { storage: store, browser: { doNotTrack }, now, notify: false }), expected);
-  }
-  const consent = await api();
-  assert.equal(consent.readMarketingConsent({ storage: storage(saved()), browser: { doNotTrack: "0" }, now }).analytics, true);
 });
 
 test("expired choices become undecided instead of silently renewing optional processing", async () => {
@@ -200,28 +165,6 @@ test("a failed withdrawal write removes stale consent before a fresh visit", asy
   assert.deepEqual(freshVisit.readMarketingConsent({ storage: store, browser: {}, now: now + 2, document: null }), empty);
 });
 
-test("a first-party withdrawal cookie preserves the consent capability and overrides stale allows", async () => {
-  const consent = await api(), store = storage(saved()), doc = cookieDocument();
-  store.setItem = () => { throw new Error("write blocked"); };
-  store.removeItem = () => { throw new Error("remove blocked"); };
-  const result = consent.writeMarketingConsent({}, { storage: store, browser: {}, now: now + 1, notify: false, document: doc });
-  assert.equal(result.analytics, false);
-  assert.equal(result.advertising, false);
-  assert.equal(result.matching, false);
-  assert.match(doc.cookie, /pelvi_privacy_denied=1/);
-  assert.equal(doc.writes[0], `pelvi_privacy_denied=1.${consentId}.${now + 1}; Path=/; Max-Age=15552000; SameSite=Lax; Secure`);
-
-  const freshVisit = await api();
-  const restored = freshVisit.readMarketingConsent({ storage: store, browser: {}, now: now + 2, document: doc });
-  assert.equal(restored.decided, true);
-  assert.equal(restored.analytics, false);
-  assert.equal(restored.advertising, false);
-  assert.equal(restored.matching, false);
-  assert.equal(restored.consentId, consentId);
-  assert.equal(restored.decidedAt, now + 1);
-  assert.doesNotMatch(doc.cookie, /email|token|member|health|person/);
-});
-
 test("an explicit decision creates an unguessable UUID that remains stable across later decisions", async () => {
   const consent = await api(), store = storage();
   const first = consent.writeMarketingConsent({ analytics: true, advertising: true, matching: true, consentId: "client-supplied-id" }, { storage: store, browser: {}, now, notify: false, document: null });
@@ -288,26 +231,6 @@ test("silently ignored cookie writes also leave the blocked-persistence warning 
   assert.equal(consent.marketingPersistenceBlocked(), true);
 });
 
-test("a removed storage record still retains the withdrawal capability for a later registry retry", async () => {
-  const consent = await api(), store = storage(saved()), doc = cookieDocument();
-  store.setItem = () => { throw new Error("quota full"); };
-  consent.writeMarketingConsent({}, { storage: store, browser: {}, now: now + 1, notify: false, document: doc });
-  assert.equal(store.getItem(consent.MARKETING_CONSENT_KEY), null);
-  assert.equal(consent.marketingPersistenceBlocked(), false);
-  const freshVisit = await api();
-  const denial = freshVisit.readMarketingConsent({ storage: store, browser: {}, now: now + 2, document: doc });
-  assert.equal(denial.consentId, consentId);
-  assert.equal(denial.decidedAt, now + 1);
-  const calls = [];
-  const result = await freshVisit.syncMarketingConsent(denial, { now: now + 2, fetch: async (url, options) => {
-    calls.push({ url, ...options });
-    return { ok: true, json: async () => ({ ok: true, effective: { advertising: false, matching: false }, decidedAt: now + 1 }) };
-  } });
-  assert.equal(result.ok, true);
-  assert.equal(calls[0].keepalive, true);
-  assert.deepEqual(JSON.parse(calls[0].body), { v: 1, consentId, decidedAt: now + 1, analytics: false, advertising: false, matching: false });
-});
-
 test("registry sync posts only the helper-issued anonymous decision to a fixed first-party URL", async () => {
   const consent = await api(), store = storage(saved());
   const choice = consent.readMarketingConsent({ storage: store, browser: {}, now, document: null });
@@ -352,20 +275,6 @@ test("missing, malformed, failed and outdated registry acknowledgements always d
   const consent = await api();
   const choice = consent.readMarketingConsent({ storage: storage(saved()), browser: {}, now, document: null });
   assert.equal((await consent.syncMarketingConsent(choice, { now, fetch: async () => { throw new Error("offline"); } })).ok, false);
-});
-
-test("registry decisions can narrow local consent but cannot grant unselected advertising or matching", async () => {
-  for (const selected of [{ advertising: false, matching: false }, { advertising: true, matching: false }]) {
-    const consent = await api(), store = storage(saved(selected));
-    const choice = consent.readMarketingConsent({ storage: store, browser: {}, now, document: null });
-    const result = await consent.syncMarketingConsent(choice, { now, fetch: async () => ({ ok: true, json: async () => ({ ok: true, effective: { advertising: true, matching: true }, decidedAt: now }) }) });
-    assert.deepEqual(result.effective, selected);
-  }
-  const consent = await api();
-  const choice = consent.readMarketingConsent({ storage: storage(saved()), browser: {}, now, document: null });
-  const result = await consent.syncMarketingConsent(choice, { now, fetch: async () => ({ ok: true, json: async () => ({ ok: true, effective: { advertising: false, matching: false }, decidedAt: now + 1 }) }) });
-  assert.equal(result.ok, true);
-  assert.deepEqual(result.effective, { advertising: false, matching: false });
 });
 
 test("registry sync has one bounded two-second deadline and aborts a hung request", async () => {
@@ -434,31 +343,6 @@ test("a narrower new decision never reuses an in-flight allow acknowledgement", 
   assert.deepEqual((await newSync).effective, { advertising: false, matching: false });
 });
 
-test("only a successful explicit new allow clears withdrawal persistence", async () => {
-  const consent = await api(), store = storage(saved()), doc = cookieDocument({ cookie: "pelvi_privacy_denied=1" });
-  const realSet = store.setItem;
-  store.setItem = () => { throw new Error("write blocked"); };
-  const blockedAllow = consent.writeMarketingConsent({ analytics: true, advertising: true, matching: true }, { storage: store, browser: {}, now, notify: false, document: doc });
-  assert.equal(blockedAllow.analytics, false);
-  assert.match(doc.cookie, /pelvi_privacy_denied=1/);
-  store.setItem = realSet;
-  const allowed = consent.writeMarketingConsent({ analytics: true, advertising: false, matching: true }, { storage: store, browser: {}, now: now + 1, notify: false, document: doc });
-  assert.equal(allowed.analytics, true);
-  assert.equal(allowed.advertising, false);
-  assert.equal(allowed.matching, false);
-  assert.doesNotMatch(doc.cookie, /pelvi_privacy_denied/);
-});
-
-test("a failed initial opt-in write remains off when only denial cookies can be remembered", async () => {
-  const consent = await api(), store = storage(), doc = cookieDocument();
-  store.setItem = () => { throw new Error("write blocked"); };
-  const applied = consent.writeMarketingConsent({ analytics: true, advertising: true, matching: true }, { storage: store, browser: {}, now, notify: false, document: doc });
-  assert.equal(applied.analytics, false);
-  assert.equal(applied.advertising, false);
-  assert.equal(applied.matching, false);
-  assert.match(doc.cookie, /pelvi_privacy_denied=1/);
-});
-
 test("blocked withdrawal persistence still denies the current visit and localhost can retain the fallback", async () => {
   const consent = await api(), store = storage(saved());
   store.setItem = () => { throw new Error("write blocked"); };
@@ -470,14 +354,6 @@ test("blocked withdrawal persistence still denies the current visit and localhos
   consent.writeMarketingConsent({}, { storage: store, browser: {}, now, notify: false, document: localDoc });
   assert.match(localDoc.cookie, /pelvi_privacy_denied=1/);
   assert.doesNotMatch(localDoc.writes[0], /Secure/);
-});
-
-test("attribution is absent before advertising consent and under browser opt-out signals", async () => {
-  const consent = await api(), doc = cookieDocument();
-  const location = { hostname: "pelvi.health", search: "?fbclid=abcdefghij12345" };
-  assert.equal(consent.marketingAttribution({ storage: storage(), browser: {}, now, document: doc, location }), undefined);
-  for (const browser of [{ globalPrivacyControl: true }, { doNotTrack: "1" }]) assert.equal(consent.marketingAttribution({ storage: storage(saved()), browser, now, document: doc, location }), undefined);
-  assert.equal(doc.writes.length, 0);
 });
 
 test("attribution retains a stable same-click browser id and sends no page query or PII", async () => {

@@ -101,14 +101,6 @@ test("malformed, expired, future and guessable consent capabilities are rejected
   }
 });
 
-test("privacy signals force denial and normalization drops all extra body fields", () => {
-  const gpc = normalizeMarketingDecision({ ...grant, email: "private@example.com", goalId: "private-goal" }, incoming(grant, { "Sec-GPC": "1" }), { now });
-  assert.equal(gpc.advertising, false); assert.equal(gpc.matching, false); assert.equal(gpc.analytics, true);
-  assert.deepEqual(Object.keys(gpc).sort(), ["advertising", "analytics", "consentId", "decidedAt", "matching", "v"]);
-  const dnt = normalizeMarketingDecision(grant, incoming(grant, { DNT: "1" }), { now });
-  assert.equal(dnt.advertising, false); assert.equal(dnt.analytics, false);
-});
-
 test("endpoint persists only normalized decisions and returns no capability", async () => {
   const store = await firestore();
   const response = await handleMarketingConsent({ request: incoming({ ...grant, email: "private@example.com" }), env: {} }, { registry: store.registry, now });

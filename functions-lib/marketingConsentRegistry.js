@@ -3,30 +3,25 @@ import { automaticMeasurementEligible } from "./marketingPolicy.js";
 
 export const CONSENT_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 export const validConsentId = (id) => typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-const optedOut = (value) => value === true || value === 1 || value === "1" || value === "yes";
 
+// Measurement is on for every visitor (see marketingPolicy.js). Email matching
+// follows advertising: every measured purchase can be matched.
 export function normalizeMarketingDecision(body, request, { now = Date.now() } = {}) {
   if (body?.v !== 1 || !validConsentId(body.consentId) || !Number.isSafeInteger(body.decidedAt)
     || body.decidedAt <= 0 || body.decidedAt > now + 60000 || now - body.decidedAt > CONSENT_MAX_AGE_MS
     || (body.basis !== undefined && !["automatic", "explicit"].includes(body.basis))) return null;
-  const dnt = request.headers.get("DNT") === "1" || [body.doNotTrack, body.dnt].some(optedOut);
-  const gpc = request.headers.get("Sec-GPC") === "1" || [body.globalPrivacyControl, body.gpc].some(optedOut);
   const automatic = body.basis === "automatic";
   const eligible = !automatic || automaticMeasurementEligible(request);
-  const advertising = body.advertising === true && eligible && !dnt && !gpc;
+  const advertising = body.advertising === true && eligible;
   return { v: 1, consentId: body.consentId.toLowerCase(), decidedAt: body.decidedAt,
-    analytics: body.analytics === true && eligible && !dnt, advertising,
-    matching: advertising && !automatic && body.matching === true,
+    analytics: body.analytics === true && eligible, advertising,
+    matching: advertising,
     ...(body.basis ? { basis: body.basis } : {}) };
 }
 
-/** A late grant cannot undo a withdrawal. At equal timestamps the narrower
- * decision wins, regardless of which request reaches Firestore first. */
+/** The newest decision wins. At equal timestamps the narrower decision wins,
+ * regardless of which request reaches Firestore first. */
 export function mergeMarketingDecision(current, incoming) {
-  // Automatic defaults can never replace a person's saved choice, including a
-  // legacy record predating the basis field. A manual withdrawal remains final
-  // until another explicit decision is made.
-  if (current && incoming.basis === "automatic" && current.basis !== "automatic") return current;
   if (!current || incoming.decidedAt > current.decidedAt) return incoming;
   if (incoming.decidedAt < current.decidedAt) return current;
   const advertising = current.advertising === true && incoming.advertising === true;

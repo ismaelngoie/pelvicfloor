@@ -40,6 +40,8 @@ import {
   trackPaymentFailed,
   trackPurchaseCompleted,
 } from "@/lib/analytics";
+import { trackMetaInitiateCheckout } from "@/lib/metaPixel";
+import { PRICE_AMOUNT_CENTS, PRICE_CURRENCY } from "@/lib/pricing";
 import { useDialogBehaviour } from "./paywallHooks";
 
 // Loaded on first open, never on paywall paint. stripe.js is ~200 KB and the
@@ -109,6 +111,10 @@ export default function CheckoutSheet({
 
   const dialogRef = useDialogBehaviour(open, requestClose);
   const stripe = getStripe();
+
+  useEffect(() => {
+    if (open) trackMetaInitiateCheckout({ value: PRICE_AMOUNT_CENTS / 100, currency: PRICE_CURRENCY });
+  }, [open]);
 
   // Reset every time the sheet opens so a member who backed out and came back
   // is not looking at last attempt's error.

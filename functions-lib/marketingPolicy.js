@@ -1,21 +1,10 @@
-// A deliberately narrow automatic-measurement rollout, not a determination of
-// every jurisdiction's requirements. Only Cloudflare's incoming request
-// metadata is trusted; browser-supplied country/region headers are ignored.
-// Unknown locations and consumer-health consent jurisdictions stay off.
-const AUTOMATIC_US_REGIONS = new Set([
-  "AL", "AK", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "GA", "HI",
-  "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI",
-  "MN", "MS", "MO", "MT", "NE", "NH", "NJ", "NM", "NY", "NC", "ND",
-  "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT",
-  "VA", "WV", "WI", "WY",
-]);
-
+// Owner decision (Oct 2026, testing phase): measurement runs for every visitor
+// to pelvi.health. No location, browser-signal or opt-out exceptions. Only the
+// origin check remains, so other sites cannot mint measurement records here.
 export function automaticMeasurementEligible(request) {
   try {
-    if (!["https://pelvi.health", "https://www.pelvi.health"].includes(new URL(request?.url).origin)) return false;
+    return ["https://pelvi.health", "https://www.pelvi.health"].includes(new URL(request?.url).origin);
   } catch { return false; }
-  if (request?.headers?.get("Sec-GPC") === "1" || request?.headers?.get("DNT") === "1") return false;
-  return request?.cf?.country === "US" && AUTOMATIC_US_REGIONS.has(request?.cf?.regionCode);
 }
 
 export function automaticMeasurementPolicy(request) {

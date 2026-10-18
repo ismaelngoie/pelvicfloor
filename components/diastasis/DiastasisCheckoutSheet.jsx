@@ -10,7 +10,7 @@ import { createSubscriptionIntent, newAttemptKey } from "@/lib/checkout";
 import { BILLING_INTERVAL, DEFAULT_PRICE_LABEL, DEFAULT_PRICE_PERIOD, PRICE_AMOUNT_CENTS, PRICE_CURRENCY } from "@/lib/pricing";
 import { submitDiastasisPayment } from "@/lib/diastasisPayment";
 import { trackDiastasisEvent } from "@/lib/diastasisAnalytics";
-import { reportVerifiedMetaPurchase } from "@/lib/metaPixel";
+import { reportVerifiedMetaPurchase, trackMetaInitiateCheckout } from "@/lib/metaPixel";
 import { markEntitlementActive } from "@/lib/entitlement";
 import { readPaidIntent, stashPaidIntent } from "@/lib/identity";
 import { rememberPrice } from "@/lib/postPurchase";
@@ -71,6 +71,10 @@ export default function DiastasisCheckoutSheet({ open, onClose, goalId = "", nam
   const requestClose = useCallback(() => {
     if (!busyRef.current) onClose?.();
   }, [onClose]);
+
+  useEffect(() => {
+    if (open) trackMetaInitiateCheckout({ value: PRICE_AMOUNT_CENTS / 100, currency: PRICE_CURRENCY });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;

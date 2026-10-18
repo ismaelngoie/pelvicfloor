@@ -44,20 +44,6 @@ function fixture() {
   return { invoice, stripe, sent, receipts, options: { stripe, invoiceId: invoice.id, env, ledger, registry, fetcher, now } };
 }
 
-test("checkout attribution contains only consented bounded Meta fields and actual request context", () => {
-  const incoming = request({}, { "CF-Connecting-IP": "203.0.113.42", "User-Agent": "Actual browser" });
-  const metadata = buildMetaAttribution({ ...marketing, email: "private@example.com", name: "Private Name", goalId: "private-goal", meta_client_ip: "10.0.0.1", url: "https://pelvi.health/diastasis-recti?email=private@example.com" }, incoming, { now });
-  assert.deepEqual(metadata, { meta_consent: "1", meta_consent_id: marketing.consentId, meta_consent_at: String(marketing.decidedAt), meta_email_match: "1", meta_fbp: marketing.fbp, meta_fbc: marketing.fbc, meta_client_ip: "203.0.113.42", meta_user_agent: "Actual browser" });
-  assert.deepEqual(buildMetaAttribution({ ...marketing, matching: false }, incoming, { now }).meta_email_match, undefined);
-});
-
-test("missing, denied, expired and future consent cannot persist matching context", () => {
-  for (const choice of [null, {}, { ...marketing, v: 2 }, { ...marketing, advertising: false }, { ...marketing, decidedAt: now - META_CONSENT_MAX_AGE_MS - 1 }, { ...marketing, decidedAt: now + 300001 }, { ...marketing, gpc: true }, { ...marketing, doNotTrack: "1" }]) {
-    assert.deepEqual(buildMetaAttribution(choice, request({}), { now }), {});
-  }
-  for (const header of [{ "Sec-GPC": "1" }, { DNT: "1" }]) assert.deepEqual(buildMetaAttribution(marketing, request({}, header), { now }), {});
-});
-
 test("malformed cookies and untrusted forwarded IP do not become attribution", () => {
   const metadata = buildMetaAttribution({ ...marketing, fbp: "health_answer", fbc: "not-a-click-id" }, request({}, { "CF-Connecting-IP": "not-an-ip", "X-Forwarded-For": "203.0.113.44", "User-Agent": "x".repeat(700) }), { now });
   assert.equal(metadata.meta_fbp, undefined); assert.equal(metadata.meta_fbc, undefined); assert.equal(metadata.meta_client_ip, undefined);
@@ -77,35 +63,6 @@ test("canonical settled invoice supplies price and anonymous event ID without se
   assert.doesNotMatch(serialized, /private@example|Verified@Example|diastasis|Private Name|client_secret|secret_exampleProof|goalId|subscription_create|in_invoice123|sub_example|eb942c3a/);
   assert.deepEqual(event.user_data.em, [createHash("sha256").update("verified@example.com").digest("hex")]);
   assert.deepEqual(Object.keys(context.receipts.get(result.eventId)).sort(), ["currency", "sentAt", "value"]);
-});
-
-test("automatic measurement sends a verified sale with its recorded basis and never expands to email matching", async () => {
-  const context = fixture();
-  const incoming = request({});
-  Object.defineProperty(incoming, "cf", { value: { country: "US", regionCode: "NY" } });
-  const attribution = buildMetaAttribution({ ...marketing, basis: "automatic", matching: true }, incoming, { now });
-  context.invoice.subscription.metadata = { source: "web", ...attribution };
-  const registry = { get: async () => ({ decidedAt: marketing.decidedAt, basis: "automatic", advertising: true, matching: true }) };
-  const result = await reportMetaInvoicePurchase({ ...context.options, registry, env: { ...env, META_EMAIL_MATCHING_ENABLED: "true" } });
-  assert.equal(result.status, "sent"); assert.equal(result.value, 24.99);
-  assert.equal(context.invoice.subscription.metadata.meta_basis, "automatic");
-  assert.equal(context.invoice.subscription.metadata.meta_email_match, undefined);
-  assert.equal(context.sent[0].body.data[0].user_data.em, undefined);
-  assert.deepEqual(context.sent[0].body.data[0].custom_data, { value: 24.99, currency: "USD" });
-  assert.doesNotMatch(JSON.stringify(context.sent[0].body), /automatic|basis|consentId|diastasis/);
-});
-
-test("permitted purchases hash Stripe email without the retired owner feature switch", async () => {
-  for (const retiredSwitch of [undefined, "false", "true"]) {
-    const context = fixture();
-    await reportMetaInvoicePurchase({ ...context.options, env: { ...env, META_EMAIL_MATCHING_ENABLED: retiredSwitch } });
-    const event = context.sent[0].body.data[0];
-    assert.deepEqual(event.user_data.em, [createHash("sha256").update("verified@example.com").digest("hex")]);
-    assert.doesNotMatch(JSON.stringify(event), /@|diastasis|goalId|Private Name/);
-  }
-  const denied = fixture(); delete denied.invoice.subscription.metadata.meta_email_match;
-  await reportMetaInvoicePurchase(denied.options);
-  assert.equal(denied.sent[0].body.data[0].user_data.em, undefined);
 });
 
 for (const [name, mutate] of [
@@ -150,14 +107,6 @@ test("missing or older consent registry decision waits for synchronization witho
     assert.equal((await reportMetaInvoicePurchase({ ...context.options, registry: { get: async () => choice } })).status, "pending_consent");
     assert.equal(context.sent.length, 0);
   }
-});
-
-test("a registry withdrawal blocks retained checkout attribution and registry matching narrows email use", async () => {
-  const context = fixture();
-  assert.equal((await reportMetaInvoicePurchase({ ...context.options, registry: { get: async () => ({ decidedAt: now, advertising: false, matching: false }) } })).status, "no_consent");
-  assert.equal(context.sent.length, 0);
-  await reportMetaInvoicePurchase({ ...context.options, env: { ...env, META_EMAIL_MATCHING_ENABLED: "true" }, registry: { get: async () => ({ decidedAt: now, advertising: true, matching: false }) } });
-  assert.equal(context.sent[0].body.data[0].user_data.em, undefined);
 });
 
 test("a sent ledger prevents replay even after a new request or process", async () => {
@@ -206,22 +155,6 @@ test("wrong, unsettled, stale or foreign-origin receipt proofs never reach conve
     assert.equal(response.status, expected);
   }
   assert.equal(reports, 0);
-});
-
-test("receipt fallback respects fresh consent and privacy signals, and matching choice can only restrict", async () => {
-  let reports = 0;
-  for (const [choice, headers] of [[undefined, {}], [{ ...marketing, advertising: false }, {}], [marketing, { "Sec-GPC": "1" }], [marketing, { DNT: "1" }]]) {
-    const context = fixture();
-    const response = await handleMetaPurchase({ request: request({ clientSecret: paymentSecret, marketing: choice }, headers), env }, { stripe: context.stripe, now, report: async () => { reports += 1; } });
-    assert.equal((await response.json()).status, "no_consent");
-  }
-  assert.equal(reports, 0);
-  const context = fixture();
-  await handleMetaPurchase({ request: request({ clientSecret: paymentSecret, marketing: { ...marketing, matching: false } }), env }, { stripe: context.stripe, now, report: async (options) => {
-    assert.equal(options.emailMatchingAllowed, false);
-    return reportMetaInvoicePurchase({ ...context.options, env: { ...env, META_EMAIL_MATCHING_ENABLED: "true" }, emailMatchingAllowed: options.emailMatchingAllowed });
-  } });
-  assert.equal(context.sent[0].body.data[0].user_data.em, undefined);
 });
 
 const signer = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" });
