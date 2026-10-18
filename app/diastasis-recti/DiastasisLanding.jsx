@@ -28,11 +28,11 @@ const PRESS = [
 
 const FAQ = [
   ["What is diastasis recti?", "It is the separation of the left and right rectus abdominis muscles (“six-pack” muscles) along the central band of connective tissue known as the linea alba."],
-  ["What results can i expect in 12 weeks?", "95% of our customers see visible results in 12 weeks with consistent 5 minutes of day exercises"],
-  ["What if I had my baby years ago?", "This program will help eliminate your gap even if you had a baby years ago. Just follow you personalized plan."],
-  ["Can i use this after a C-section?", "Yes, we personalizes exercises based on each person situations>"],
+  ["What results can I expect in 12 weeks?", "95% of our customers see visible results in 12 weeks with consistent exercise for 5 minutes a day."],
+  ["What if I had my baby years ago?", "This program will help eliminate your gap even if you had a baby years ago. Just follow your personalized plan."],
+  ["Can I use this after a C-section?", "Yes. We personalize your exercises based on your situation."],
   ["Do I need equipment or an app download?", "No download or equipment needed. Our coach exercises are right in your browser."],
-  ["Can I cancel or get a refund?", "Yes. Click Subscription -> Cancel."],
+  ["Can I cancel or get a refund?", "Yes. Click Subscription → Cancel."],
 ];
 
 function PressMarquee() {
@@ -135,7 +135,7 @@ export default function DiastasisLanding() {
       <header className={styles.header}>
         <a href="/" className={styles.logo} aria-label="Pelvi Health home">pelvi<span>®</span></a>
         <span className={styles.headerNote}>YOUR DAILY DIASTASIS RECTI PLAN</span>
-        <a href="/app" className={styles.login}>Member log in <ArrowRight size={14} aria-hidden="true" /></a>
+        <a href="/app" className={styles.login}>Member login <ArrowRight size={14} aria-hidden="true" /></a>
       </header>
 
       <section id="dr-product" className={styles.product} aria-labelledby="dr-title">
@@ -163,7 +163,7 @@ export default function DiastasisLanding() {
         <div className={styles.offerColumn}>
           <p className={styles.eyebrow}>YOUR DIASTASIS RECTI EXERCISE PLAN</p>
           <h1 id="dr-title">Heal Your Abdominal Separation.<br /><em>Without Surgery.</em></h1>
-          <p className={styles.heroCopy}>Get visible results with 5 minutes daily coach videos. Simple exercises for your abdominal separation.</p>
+          <p className={styles.heroCopy}>Get visible results with 5 minutes of daily coach videos. Simple exercises for your abdominal separation.</p>
           <div className={styles.price}><strong>{DEFAULT_PRICE_LABEL}</strong><span>{PRICE_CURRENCY} / {DEFAULT_PRICE_PERIOD}<small>Full Pelvi membership</small></span></div>
           <p className={styles.billingTerms}>Monthly membership. Renews until canceled.</p>
           <ul className={styles.benefits}>
@@ -226,7 +226,7 @@ export default function DiastasisLanding() {
 
       <section className={styles.finalOffer}><div><p className={styles.eyebrow}>DAILY COACH VIDEOS. ONE CLEAR PLAN.</p><h2>Your core.<br /><em>Your next step.</em></h2><p>Daily coach videos. A clear plan for diastasis recti.</p><div className={styles.finalPrice}>{DEFAULT_PRICE_LABEL}<span>{PRICE_CURRENCY} / {DEFAULT_PRICE_PERIOD}</span></div><p className={styles.finalTerms}>Monthly membership. Renews until canceled.</p><button type="button" className={styles.primary} onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={18} aria-hidden="true" /></button><p className={styles.finalSocial}>Join 10,734+ women fixing their Diastasis Recti</p></div><div className={styles.finalArt}><Phone src="/diastasis/app-player.webp" alt={GALLERY[1].alt} /><span>DAILY COACH<br /><em>videos.</em></span></div></section>
 
-      <footer className={styles.footer}><div><a href="/" className={styles.logo}>pelvi<span>®</span></a><p>Core care. In your corner.</p></div><nav aria-label="Landing page footer"><a href="/app">Member log in</a><a href="mailto:contact@pelvi.health">Contact</a><a href="/terms-of-service">Terms</a><a href="/privacy-policy">Privacy</a><button type="button" onClick={() => window.dispatchEvent(new Event("pelvi:open-privacy-choices"))}>Privacy settings</button></nav><p className={styles.suitability}>Recently had a C-section or abdominal surgery, have pain, a known hernia or clinician restrictions? Ask your clinician before starting. Stop if exercise causes pain. Pelvi provides exercise guidance and education, not diagnosis or medical care.</p><p className={styles.copyright}>© {new Date().getFullYear()} Pelvi Health. Lifestyle imagery is illustrative.</p></footer>
+      <footer className={styles.footer}><div><a href="/" className={styles.logo}>pelvi<span>®</span></a><p>Core care. In your corner.</p></div><nav aria-label="Landing page footer"><a href="/app">Member login</a><a href="mailto:contact@pelvi.health">Contact</a><a href="/terms-of-service">Terms</a><a href="/privacy-policy">Privacy</a><button type="button" onClick={() => window.dispatchEvent(new Event("pelvi:open-privacy-choices"))}>Privacy settings</button></nav><p className={styles.suitability}>Have you recently had a C-section or abdominal surgery, or do you have pain, a known hernia, or restrictions from your clinician? Ask your clinician before starting. Stop if exercise causes pain. Pelvi provides exercise guidance and education, not diagnosis or medical care.</p><p className={styles.copyright}>© {new Date().getFullYear()} Pelvi Health. Lifestyle imagery is illustrative.</p></footer>
 
       {!offerVisible && !checkoutOpen && <div className={styles.stickyOffer}><div><strong>{DEFAULT_PRICE_LABEL}<small> / {DEFAULT_PRICE_PERIOD}</small></strong><span>12-week money-back guarantee</span></div><button type="button" onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={17} aria-hidden="true" /></button></div>}
       {checkoutOpen && <CheckoutSheet open onClose={closeCheckout} goalId={GOAL_ID} successPath={checkoutPath} />}
