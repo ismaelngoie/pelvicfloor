@@ -1,0 +1,151 @@
+.dialog {
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: rgb(38 31 43 / 65%);
+  color: #3a2f44;
+  overscroll-behavior: contain;
+}
+
+.dialog[open] {
+  display: grid;
+  place-items: center;
+}
+
+.dialog::backdrop {
+  background: transparent;
+}
+
+.panel {
+  box-sizing: border-box;
+  width: min(100%, 640px);
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #e7ded8;
+  border-radius: 24px;
+  padding: 22px;
+  background: #faf7f5;
+  box-shadow: 0 20px 70px rgb(0 0 0 / 25%);
+  -webkit-overflow-scrolling: touch;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 7px;
+  color: #695a67;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(25px, 1.3rem + 1vw, 32px);
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.close {
+  display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid #ded3cd;
+  border-radius: 50%;
+  background: #fff;
+  color: #3a2f44;
+  font: inherit;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:focus-visible,
+.directLink:focus-visible,
+.video:focus-visible {
+  outline: 3px solid #92465a;
+  outline-offset: 4px;
+}
+
+.description {
+  margin: 14px 0 18px;
+  color: #695a67;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  max-height: 55dvh;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  background: #19161c;
+  object-fit: contain;
+}
+
+.directLink {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-top: 6px;
+  color: #8a3d53;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.guidance {
+  margin-top: 12px;
+  border-top: 1px solid #e7ded8;
+  padding-top: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.guidance h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.guidance p {
+  margin: 10px 0 0;
+}
+
+.easier {
+  color: #695a67;
+}
+
+.error {
+  margin: 12px 0 0;
+  color: #843b44;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 420px) {
+  .panel {
+    border-radius: 20px;
+    padding: 18px;
+  }
+}
