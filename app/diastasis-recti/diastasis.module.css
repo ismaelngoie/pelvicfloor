@@ -392,23 +392,16 @@
   color: var(--clay);
 }
 .guarantee strong {
-  font-size: 12px;
+  font-size: 17px;
   display: block;
   font-weight: 600;
 }
 .guarantee span {
   display: block;
-  font-size: 10px;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--muted);
-  margin-top: 4px;
-}
-.guarantee a {
-  color: inherit;
-  text-underline-offset: 3px;
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  white-space: nowrap;
+  margin-top: 6px;
 }
 
 .trustStrip {
@@ -1054,10 +1047,10 @@
     padding-top: 17px;
   }
   .guarantee strong {
-    font-size: 12px;
+    font-size: 17px;
   }
   .guarantee span {
-    font-size: 10px;
+    font-size: 13px;
   }
 
   .trustStrip {
@@ -1580,7 +1573,7 @@
 }
 @keyframes pressScroll {
   from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  to { transform: translateX(-33.333333%); }
 }
 .tvImage {
   padding: 0;

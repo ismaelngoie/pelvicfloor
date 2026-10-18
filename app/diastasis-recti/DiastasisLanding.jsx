@@ -20,9 +20,9 @@ const GALLERY = [
 ];
 
 const PRESS = [
-  ["CafeMom", "cafe-mom.png"], ["Women’s Health", "womens-health.png"],
+  ["Women’s Health", "womens-health.png"],
   ["TODAY", "today.png"], ["NPR", "npr-rose.svg"],
-  ["USA TODAY", "usa-today.png"], ["Mother Muse", "mother-muse.png"],
+  ["USA TODAY", "usa-today.png"],
 ];
 
 const FAQ = [
@@ -75,7 +75,7 @@ function PressMarquee() {
     </div>
     <div className={styles.pressViewport} role="group" aria-label="Publication logos" tabIndex={0}>
       <div id="dr-press-track" className={styles.pressTrack}>
-        {[0, 1].map(group => <ul key={group} className={`${styles.pressGroup} ${group === 1 ? styles.pressDuplicate : ""}`} aria-hidden={group === 1 ? true : undefined}>
+        {[0, 1, 2].map(group => <ul key={group} className={`${styles.pressGroup} ${group > 0 ? styles.pressDuplicate : ""}`} aria-hidden={group > 0 ? true : undefined}>
           {PRESS.map(([name, file]) => <li key={file}><img className={file.endsWith(".svg") ? styles.pressNpr : undefined} src={`/diastasis/press/${file}`} alt={group === 0 ? name : ""} width="196" height="54" loading="lazy" decoding="async" /></li>)}
         </ul>)}
       </div>
@@ -159,7 +159,7 @@ export default function DiastasisLanding() {
             <button type="button" className={styles.primary} onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={18} aria-hidden="true" /></button>
             <p className={styles.socialProof}>Join <strong>10,734+ women</strong> fixing their Diastasis Recti</p>
           </div>
-          <div className={styles.guarantee}><ShieldCheck size={23} /><p><strong>Your progress. Or your money back.</strong><span>Not happy within 12 weeks? Get a full refund. <a href="/diastasis-recti/guarantee">How it works</a></span></p></div>
+          <div className={styles.guarantee}><ShieldCheck size={28} /><p><strong>Your progress. Or your money back.</strong><span>Not happy within 12 weeks? Get a full refund.</span></p></div>
         </div>
       </section>
 
