@@ -44,13 +44,14 @@ import { usePathname } from "next/navigation";
 
 import { CLARITY_PROJECT_ID, isTrackedPath } from "@/lib/analytics";
 import { MARKETING_CONSENT_EVENT, MARKETING_CONSENT_KEY, clarityConsentPolicy,
-  marketingPersistenceBlocked, readMarketingConsent, syncMarketingConsent } from "@/lib/marketingConsent";
+  bootstrapMarketingConsent, marketingPersistenceBlocked, readMarketingConsent, syncMarketingConsent } from "@/lib/marketingConsent";
 import { deferMarketingReload, markMarketingNavigationStarted } from "@/lib/marketingNavigation";
 import { stopClarityRecording } from "../public/clarity-stop.js";
 
 export function createClarityController({ scope = window, doc = document,
   getConsent = readMarketingConsent, getPolicy = clarityConsentPolicy,
   syncConsent = syncMarketingConsent, persistenceBlocked = marketingPersistenceBlocked,
+  bootstrapConsent = bootstrapMarketingConsent,
   tracked = isTrackedPath, deferReload = deferMarketingReload,
   markNavigation = markMarketingNavigationStarted,
 } = {}) {
@@ -61,14 +62,15 @@ export function createClarityController({ scope = window, doc = document,
   let currentPath = scope.location.pathname;
   const call = (...args) => { try { scope.clarity?.(...args); } catch { /* Analytics never blocks the page. */ } };
   const publicDocument = () => tracked(currentPath, scope.location.search);
-  const snapshot = (choice) => [choice.decided, choice.consentId, choice.decidedAt, choice.analytics, choice.advertising, choice.matching];
+  const snapshot = (choice) => [choice.decided, choice.consentId, choice.decidedAt, choice.analytics, choice.advertising, choice.matching, choice.basis];
 
   function inject(policy) {
     scope.clarity = scope.clarity || function clarityQueue() {
       (scope.clarity.q = scope.clarity.q || []).push(arguments);
     };
-    // Undecided visits use no cookie storage; only an existing explicit saved
-    // analytics permission can grant it. Microsoft Ads sharing stays denied.
+    // Unverified/undecided visits use no cookie storage. First-party automatic
+    // policy or an explicit saved setting can enable analytics storage.
+    // Microsoft Ads sharing stays denied.
     call("consentv2", { analytics_Storage: policy.analyticsStorage, ad_Storage: "denied" });
     storageMode = policy.analyticsStorage;
     const script = doc.createElement("script");
@@ -103,6 +105,10 @@ export function createClarityController({ scope = window, doc = document,
         const choice = getConsent();
         const policy = getPolicy(choice);
         const isPublic = publicDocument();
+        if (isPublic) {
+          try { void Promise.resolve(bootstrapConsent({ allowed: () => publicDocument() && tracked(scope.location.pathname, scope.location.search) })).catch(() => {}); }
+          catch { /* Keep cookieless analytics if the first-party policy cannot load. */ }
+        }
         if (isPublic && policy.enabled && !stopped) {
           if (!injected) inject(policy);
           else if (storageMode !== policy.analyticsStorage) {

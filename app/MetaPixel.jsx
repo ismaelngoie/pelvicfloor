@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { captureWelcomePaymentProof, createMetaPixelController, reportVerifiedMetaPurchase } from "../lib/metaPixel.js";
-import { MARKETING_CONSENT_KEY, readMarketingConsent } from "../lib/marketingConsent.js";
+import { captureWelcomePaymentProof, createMetaPixelController, metaPixelPageAllowed, reportVerifiedMetaPurchase } from "../lib/metaPixel.js";
+import { bootstrapMarketingConsent, MARKETING_CONSENT_KEY, readMarketingConsent } from "../lib/marketingConsent.js";
 import { readPaidIntent } from "../lib/identity.js";
 
 export default function MetaPixel() {
@@ -22,6 +22,9 @@ export default function MetaPixel() {
     const active = createMetaPixelController({ getConsent: readMarketingConsent });
     controller.current = active;
     void active.start();
+    void bootstrapMarketingConsent({
+      allowed: () => metaPixelPageAllowed({ href: window.location.href, referrer: document.referrer }),
+    }).then(() => { if (controller.current === active) void active.refresh(); }).catch(() => {});
     return () => { active.dispose(); if (controller.current === active) controller.current = null; };
   }, []);
   useEffect(() => { void controller.current?.refresh(); }, [pathname]);

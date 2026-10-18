@@ -43,7 +43,7 @@
 // recorded, which is the safe direction to fail in.
 
 import { CLARITY_PROJECT_ID, isTrackedPath } from "/clarity-gate.js";
-import { MARKETING_CONSENT_EVENT, MARKETING_CONSENT_KEY, clarityConsentPolicy, marketingPersistenceBlocked,
+import { MARKETING_CONSENT_EVENT, MARKETING_CONSENT_KEY, bootstrapMarketingConsent, clarityConsentPolicy, marketingPersistenceBlocked,
   readMarketingConsent, syncMarketingConsent } from "/marketing-consent.js";
 import { stopClarityRecording } from "/clarity-stop.js";
 
@@ -53,6 +53,7 @@ import { stopClarityRecording } from "/clarity-stop.js";
 export function installStaticClarity({ scope = window, doc = document,
   getConsent = readMarketingConsent, syncConsent = syncMarketingConsent,
   getPolicy = clarityConsentPolicy, persistenceBlocked = marketingPersistenceBlocked, tracked = isTrackedPath,
+  bootstrapConsent = bootstrapMarketingConsent,
 } = {}) {
   if (scope.__pelviStaticClarityLifecycle) return scope.__pelviStaticClarityLifecycle;
   let injected = Boolean(scope.__pelviClarityInjected);
@@ -63,7 +64,7 @@ export function installStaticClarity({ scope = window, doc = document,
   let storageMode = null;
   const call = (...args) => { try { scope.clarity?.(...args); } catch { /* Optional analytics never blocks the article. */ } };
   const publicDocument = () => tracked(scope.location.pathname, scope.location.search);
-  const snapshot = (choice) => [choice.decided, choice.consentId, choice.decidedAt, choice.analytics, choice.advertising, choice.matching];
+  const snapshot = (choice) => [choice.decided, choice.consentId, choice.decidedAt, choice.analytics, choice.advertising, choice.matching, choice.basis];
 
   function reloadAfterSync(choice) {
     const expected = snapshot(choice);
@@ -125,6 +126,10 @@ export function installStaticClarity({ scope = window, doc = document,
     try {
       const choice = getConsent();
       const policy = getPolicy(choice);
+      if (publicDocument()) {
+        try { void Promise.resolve(bootstrapConsent({ allowed: () => !disposed && publicDocument() })).catch(() => {}); }
+        catch { /* The current cookieless or off state remains effective. */ }
+      }
       const allowed = publicDocument() && policy.enabled;
       if (allowed && !stopped) {
         inject(policy);

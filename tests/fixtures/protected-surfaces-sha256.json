@@ -14,7 +14,7 @@
     "components/funnel/videoPaywallCopy.js": "fb7c609aeb9e100199b43d539938555e26e70d7c3048abcd57af6d35f89f63e2",
     "components/funnel/funnel.css": "cef6b29cf7578fee97429d29c783d0bb53ee8b6e2ab273f88d544810f032338b",
     "components/funnel/DrReedVideo.js": "2d9147e2aa1debeccbd4bed061906f6ed6be25915ea30ab282fc9a6407ee0445",
-    "lib/checkout.js": "7a304bb9fbcf249b086b674070df3670158a74b01e2d884272f2a442c239c823",
+    "lib/checkout.js": "3754ebbb934c44a83e77776da954b0c261eb41c923ad0d4a180cbb82bbbfecbc",
     "lib/pricing.js": "ccd23016e47b2dc4d2c7f4bba8599d07236a3a5ff6689f3d510ec31ce78fbbbf",
     "lib/paywallCopy.js": "40523c8a4197bdeef85d679ba9671a8763f367c9e7f4c0847e78669f2cc90acb",
     "lib/guaranteeCopy.js": "082b7cc1dd52ffe530e1ea23d0ff688650bf7371b115b8f6f9fda179a83e8bae",

@@ -91,9 +91,10 @@ export default function PrivacyPolicy() {
           browser until you pay. Paying sends your email, your name if you gave one, and the goal
           you picked to Stripe. Once you sign in, your sessions, your daily check-ins and your
           messages to Coach Mia are stored in Google Firebase. We record website sessions with
-          Microsoft Clarity on eligible public pages, using no analytics cookies by default.
-          Your saved opt-out and browser privacy signals are respected. Google and Meta ad
-          measurement require a previously saved advertising permission. The
+          Microsoft Clarity on eligible public pages. Analytics cookies and Google or Meta ad
+          measurement can start automatically for eligible visits after a server country check.
+          Other undecided visits use cookieless Clarity only. Saved opt-outs and browser privacy
+          signals are respected, and email matching is off by default. The
           email address you type in the checkout is kept whether or not you pay, and we may use it
           to write to you and in advertising audiences — never with any health information attached.
           Your pelvic health answers are sensitive data and we treat them that way. We do not sell
@@ -248,9 +249,12 @@ export default function PrivacyPolicy() {
       <h2 id="recording">4. Session recording</h2>
       <p>
         We use <strong>Microsoft Clarity</strong> on eligible public pages of this website.
-        Unless you previously saved permission for analytics storage, it runs in cookieless mode.
-        Opening a page or privacy settings does not grant storage, advertising or email-matching
-        permission. Clarity can record your visit: the
+        When our server country check permits automatic measurement, Clarity can use analytics
+        cookies. We record this as an automatic setting, not as your opt-in or acceptance.
+        Other undecided visits use cookieless Clarity. A previously saved analytics permission
+        can still permit analytics storage. Automatic cookie and ad measurement stay off when
+        country eligibility is unknown or restricted, and saved opt-outs and browser privacy
+        signals are respected. Clarity can record your visit: the
         pages you open, where you move and tap, how far you scroll, and how long you stay. Those
         recordings can be played back like a video, and they are grouped into heatmaps. We use them
         to find the screens where people get stuck.
@@ -316,10 +320,15 @@ export default function PrivacyPolicy() {
       {/* ------------------------------------------------------------------ */}
       <h2 id="advertising">5. Advertising</h2>
       <p>
-        With your previously saved ad measurement permission, this site can load the <strong>Google Ads</strong>
+        For eligible visits, a server country check can enable advertising measurement
+        automatically. A previously saved advertising permission can also remain active.
+        An automatic setting does not mean you opted in. When measurement is active, this site
+        can load the <strong>Google Ads</strong>
         tag on public pages and the <strong>Meta Pixel</strong> on eligible general pages.
         These tools help measure which ads bring visits and purchases. They can set advertising
-        cookies. We do not load these tags inside the member area, admin screens or payment-secret
+        cookies. Automatic cookie and ad measurement stay off when country eligibility is unknown
+        or restricted. Saved opt-outs, Global Privacy Control and Do Not Track remain effective.
+        We do not load these tags inside the member area, admin screens or payment-secret
         return pages. The Meta Pixel is also excluded from condition-specific landing pages.
       </p>
       <p>
@@ -340,16 +349,19 @@ export default function PrivacyPolicy() {
         When Meta measurement is enabled, our server can send a confirmed first membership
         payment to Meta through its Conversions API. Stripe supplies the amount and currency.
         A transaction code prevents the same payment being counted twice. This can cover the
-        first payment and later paid renewals while your advertising permission remains active. With ad permission,
+        first payment and later paid renewals while advertising measurement remains active.
+        Where measurement is active,
         the event can include an advertising click or browser identifier, IP address and browser
         type. We send a general website address, not the condition page, health answers or a
-        payment secret. We keep an anonymous first-party record of your privacy choices so
-        withdrawing permission also stops future server purchase reports.
+        payment secret. We keep an anonymous first-party record that distinguishes automatic
+        settings from user choices. Opting out also stops future server purchase reports.
       </p>
       <p>
         Email matching is off by default. It is used only if the integration is eligible and
         your previously saved, separate purchase-matching permission remains active. The current
-        privacy settings can withdraw permissions and do not grant new ones. If enabled, we normalize your verified receipt
+        privacy settings can turn measurement off and do not offer an opt-in. Automatic
+        measurement never enables email matching. If enabled under a separate saved matching
+        permission, we normalize your verified receipt
         email and hash it with SHA-256 before sending it to Meta. Meta can compare the hash to
         its users to match a purchase to an ad. Hashing is a matching method, not anonymization.
         This integration does not upload abandoned-checkout email lists.
@@ -384,24 +396,27 @@ export default function PrivacyPolicy() {
         </li>
         <li>
           <strong>Microsoft Clarity cookies</strong> (named <strong>_clck</strong> and{" "}
-          <strong>_clsk</strong>), which tie the pages of one visit together, are permitted only
-          under a previously saved analytics-storage permission. By default, Clarity is sent a
-          denied analytics-storage signal and runs without these analytics cookies.
+          <strong>_clsk</strong>), which tie the pages of one visit together, can be used for an
+          eligible automatic measurement setting or a previously saved analytics-storage
+          permission. Other undecided visits use Clarity without these analytics cookies.
         </li>
         <li>
           <strong>Google Ads cookies</strong> (including <strong>_gcl_au</strong>), which measure
-          whether an ad led to a signup, are used only with advertising permission.
+          whether an ad led to a signup, are used only while eligible automatic measurement or
+          a saved advertising permission is active.
         </li>
         <li>
           <strong>Meta advertising cookies</strong> (such as <strong>_fbp</strong> and <strong>_fbc</strong>),
-          used only with ad permission to match eligible visits and purchases to ads.
+          used only while eligible automatic measurement or a saved advertising permission is
+          active, to connect eligible visits and purchases to ads.
         </li>
         <li>
-          <strong>Your privacy choices.</strong> Stored for up to 180 days with a random
-          first-party consent code when you make an explicit choice. An essential denial cookie
-          helps retain a withdrawal if your browser blocks local storage. A visit or opening
-          Privacy settings does not create a consent code or save a new permission. These choices
-          do not contain health answers.
+          <strong>Measurement settings and privacy choices.</strong> Stored for up to 180 days
+          with a random first-party code. An eligible automatic setting can create this code;
+          it is marked as automatic and is not a record of your acceptance. Explicit choices are
+          marked as user choices. An essential denial cookie helps retain an opt-out
+          if your browser blocks local storage. Opening Privacy settings does not save a choice.
+          These records do not contain health answers.
         </li>
         <li>
           <strong>Stripe cookies</strong> on the checkout, which Stripe uses to detect fraud.
@@ -483,8 +498,8 @@ export default function PrivacyPolicy() {
           </a>
         </li>
         <li>
-          <strong>Meta</strong> receives eligible advertising measurement only while the required
-          advertising permission is active. A hashed receipt email is included only under the
+          <strong>Meta</strong> receives eligible advertising measurement only while an eligible
+          automatic setting or saved advertising permission is active. A hashed receipt email is included only under the
           separate matching conditions in <a href="#advertising">section 5</a>. We do not send
           health answers or private member activity to Meta.
         </li>
@@ -692,11 +707,13 @@ export default function PrivacyPolicy() {
 //     business address and I will add a line to section 1.
 //
 //  2. PRIVACY CONTROLS. MarketingChoices opens only on an explicit request and
-//     can only withdraw permissions. The canonical clarityConsentPolicy permits
-//     cookieless Clarity on eligible public routes for an undecided visit, while
-//     saved denials, GPC and DNT disable it. Only a prior explicit analytics allow
-//     grants analytics storage. Google/Meta consent gates remain separate and
-//     Microsoft Ads storage remains denied. Keep sections 4 and 5 in sync.
+//     can only turn measurement off. The shared lifecycle may record an eligible
+//     server-country-informed automatic setting with analytics/advertising on
+//     and matching off. It must retain basis: automatic, never label that as a
+//     user opt-in, and preserve explicit opt-outs/GPC/DNT. Other undecided visits
+//     use cookieless Clarity. Prior user permissions remain distinct. Google/Meta
+//     gates remain separate; Microsoft Ads storage remains denied. Keep sections
+//     4 and 5 in sync.
 //
 //  2b. SECTION 4 IS A DESCRIPTION OF lib/analytics.js. Every specific claim in
 //     it maps to a line of that file: the allowlist, data-clarity-mask on the

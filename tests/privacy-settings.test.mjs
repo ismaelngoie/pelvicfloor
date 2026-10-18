@@ -8,7 +8,7 @@ const source = await readFile(new URL("../components/MarketingChoices.jsx", impo
 const start = source.indexOf("export function privacyOptOutChoice(");
 const end = source.indexOf("export function PrivacyChoicesButton(", start);
 assert.ok(start >= 0 && end > start);
-const { privacyOptOutChoice } = await import(`data:text/javascript;base64,${Buffer.from(source.slice(start, end)).toString("base64")}`);
+const { privacyOptOutChoice, privacySettingsText } = await import(`data:text/javascript;base64,${Buffer.from(source.slice(start, end)).toString("base64")}`);
 
 test("every privacy-settings action can only narrow currently effective permissions", () => {
   for (const analytics of [false, true]) for (const advertising of [false, true]) for (const matching of [false, true]) {
@@ -37,4 +37,32 @@ test("a targeted opt-out preserves only the other currently active permissions",
   assert.deepEqual(privacyOptOutChoice(current, "advertising"), { analytics: true, advertising: false, matching: false });
   assert.deepEqual(privacyOptOutChoice(current, "matching"), { analytics: true, advertising: true, matching: false });
   assert.deepEqual(current, { analytics: true, advertising: true, matching: true });
+});
+
+test("automatic analytics and advertising are described as automatic, never as the visitor's saved permission", () => {
+  const current = { basis: "automatic", decided: true, analytics: true, advertising: true, matching: false };
+  const text = privacySettingsText(current, { enabled: true, analyticsStorage: "granted" });
+  for (const value of [text.analytics, text.advertising]) {
+    assert.match(value, /automatically.*eligible visit/);
+    assert.doesNotMatch(value, /previously saved|your permission|you accepted|you chose/i);
+  }
+  assert.match(text.matching, /^Off\./);
+  assert.deepEqual(privacyOptOutChoice(current, "advertising"), { analytics: true, advertising: false, matching: false });
+  assert.equal(current.basis, "automatic", "reading settings or deriving an opt-out does not mutate the stored record");
+});
+
+test("explicit and legacy active choices retain saved-permission descriptions", () => {
+  for (const basis of ["explicit", undefined]) {
+    const text = privacySettingsText({ basis, analytics: true, advertising: true, matching: true }, { enabled: true, analyticsStorage: "granted" });
+    for (const value of Object.values(text)) { assert.match(value, /previously saved/); assert.doesNotMatch(value, /automatically/); }
+  }
+});
+
+test("undecided and opted-out states do not claim automatic advertising or analytics cookies are active", () => {
+  const undecided = privacySettingsText({ decided: false, analytics: false, advertising: false, matching: false }, { enabled: true, analyticsStorage: "denied" });
+  assert.match(undecided.analytics, /without analytics cookies/);
+  assert.match(undecided.analytics, /not enabled for this visit/);
+  assert.match(undecided.advertising, /^Off/);
+  const off = privacySettingsText({ basis: "automatic", analytics: false, advertising: false, matching: false }, { enabled: false, analyticsStorage: "denied" });
+  assert.ok(Object.values(off).every(value => value.startsWith("Off")));
 });

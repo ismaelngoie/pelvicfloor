@@ -2,6 +2,7 @@ import {
   accessToken, parseServiceAccount, patchDocument, projectIdFrom, typedValue,
 } from "./stripeSync.js";
 import { createMarketingConsentRegistry, validConsentId } from "./marketingConsentRegistry.js";
+import { automaticMeasurementEligible } from "./marketingPolicy.js";
 
 export const META_CONSENT_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const META_SOURCE_URL = "https://pelvi.health/";
@@ -18,13 +19,17 @@ function validIp(value) {
   return parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255);
 }
 
-/** Only explicit advertising consent can persist attribution to Stripe. */
+/** Persist only permitted measurement, keeping automatic defaults distinct from
+ * a visitor's explicit choice. The legacy meta_consent flag is an enable bit. */
 export function buildMetaAttribution(marketing, request, { now = Date.now() } = {}) {
   if (marketing?.v !== 1 || !validConsentId(marketing.consentId) || marketing.advertising !== true || !validConsentTime(marketing.decidedAt, now)
     || request.headers.get("Sec-GPC") === "1" || request.headers.get("DNT") === "1"
-    || [marketing.gpc, marketing.globalPrivacyControl, marketing.doNotTrack, marketing.dnt].some(optedOut)) return {};
+    || [marketing.gpc, marketing.globalPrivacyControl, marketing.doNotTrack, marketing.dnt].some(optedOut)
+    || (marketing.basis !== undefined && !["automatic", "explicit"].includes(marketing.basis))
+    || (marketing.basis === "automatic" && !automaticMeasurementEligible(request))) return {};
   const metadata = { meta_consent: "1", meta_consent_id: marketing.consentId.toLowerCase(), meta_consent_at: String(marketing.decidedAt) };
-  if (marketing.matching === true) metadata.meta_email_match = "1";
+  if (marketing.basis) metadata.meta_basis = marketing.basis;
+  if (marketing.matching === true && marketing.basis !== "automatic") metadata.meta_email_match = "1";
   const fbp = clean(marketing.fbp, 255), fbc = clean(marketing.fbc, 255);
   if (validFbp(fbp)) metadata.meta_fbp = fbp;
   if (validFbc(fbc)) metadata.meta_fbc = fbc;
@@ -103,6 +108,7 @@ export async function reportMetaInvoicePurchase({ stripe, invoiceId, env, ledger
   const metadata = subscription?.metadata || {};
   const consentAt = Number(metadata.meta_consent_at);
   if (metadata.source !== "web" || metadata.meta_consent !== "1"
+    || (metadata.meta_basis !== undefined && !["automatic", "explicit"].includes(metadata.meta_basis))
     || !validConsentId(metadata.meta_consent_id) || !Number.isFinite(consentAt) || consentAt <= 0 || consentAt > now + 300000) return { sent: false, status: "no_consent" };
   const consentStore = registry || await createMarketingConsentRegistry(env);
   const currentConsent = await consentStore.get(metadata.meta_consent_id);
@@ -127,7 +133,8 @@ export async function reportMetaInvoicePurchase({ stripe, invoiceId, env, ledger
   if (validIp(metadata.meta_client_ip || "")) userData.client_ip_address = metadata.meta_client_ip;
   const userAgent = clean(metadata.meta_user_agent, 400);
   if (userAgent) userData.client_user_agent = userAgent;
-  if (emailMatchingAllowed && currentConsent.matching === true && env.META_EMAIL_MATCHING_ENABLED === "true" && metadata.meta_email_match === "1") {
+  if (emailMatchingAllowed && metadata.meta_basis !== "automatic" && currentConsent.basis !== "automatic"
+    && currentConsent.matching === true && env.META_EMAIL_MATCHING_ENABLED === "true" && metadata.meta_email_match === "1") {
     const customer = typeof invoice.customer === "object" ? invoice.customer : await stripe.customers.retrieve(invoice.customer);
     const email = clean(customer?.email, 254).toLowerCase();
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
