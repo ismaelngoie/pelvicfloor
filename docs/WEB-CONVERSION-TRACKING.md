@@ -1,5 +1,9 @@
 # Web conversion tracking
 
+## Owner decision, October 18, 2026 (testing phase)
+
+Measurement runs for every visitor to pelvi.health. Removed: the Privacy settings panel and footer link, Global Privacy Control and Do Not Track handling, saved opt-outs, and the location rules (US-only, Washington and Nevada excluded, unknown locations excluded). A newer automatic setting now replaces any older saved choice in the consent registry. Purchase email matching (SHA-256 of the receipt email) is on for every measured purchase. The Meta Pixel runs on every page except `/admin`, with full URLs and query strings, sends `InitiateCheckout` when either checkout sheet opens, and flushes verified browser purchases on any page. The privacy policy (sections 4, 5, 6, 7 and 8) describes this. The owner will add production privacy controls before launch. Sections below describe the earlier consent design and are kept for history.
+
 Owner request: connect the website to the existing Pelvic Floor & Kegel Coach app’s Meta reporting, measure actual paid sales, preserve payment flow and make Clarity work on the diastasis landing page. App ID: `1057030602450173`.
 
 ## Release state

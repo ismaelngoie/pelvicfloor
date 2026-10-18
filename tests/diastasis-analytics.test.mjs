@@ -190,10 +190,11 @@ test("protected sources outside the explicitly authorized tracking changes retai
     "public/clarity-gate.js", "public/clarity-static.js", "lib/analytics.js", "app/Clarity.jsx", "app/GoogleAds.jsx",
     "app/layout.js", "app/privacy-policy/page.js", "functions/api/create-payment-intent.js", "lib/checkout.js", "lib/firebase.js",
     "app/diastasis-recti/start/StartClient.jsx", "components/diastasis/DiastasisCheckoutSheet.jsx",
+    "components/funnel/CheckoutSheet.jsx",
   ]);
   const unchanged = Object.entries(fixture.files).filter(([file]) => !authorized.has(file)).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
-  assert.equal(unchanged.length, 57);
-  assert.equal(createHash("sha256").update(JSON.stringify(unchanged)).digest("hex"), "483ad984fa8cf07917d8f5b36b0110b3d3e420a488a3e8c62b86f756c7df1afd");
+  assert.equal(unchanged.length, 56);
+  assert.equal(createHash("sha256").update(JSON.stringify(unchanged)).digest("hex"), "6631fd7df97ef69990823020684f1af5e9de150ca174da50c1b18fec23676463");
   for (const [file, expected] of unchanged) {
     assert.equal(createHash("sha256").update(await readFile(new URL(file, root))).digest("hex"), expected, file);
   }

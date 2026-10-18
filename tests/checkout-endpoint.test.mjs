@@ -95,12 +95,6 @@ test("unchanged consent on a reused draft does not create an unnecessary Stripe 
   assert.equal(callsNamed(context, "subscription.update").length, 0);
 });
 
-test("changed matching choice updates only the changed Meta field on the draft", async () => {
-  const context = await fixture({ subscriptions: [draft({ source: "web", ...buildMetaAttribution(consent, purchaseRequest()) })] });
-  assert.equal((await context.run({ ...buyer, marketing: { ...consent, matching: false } })).status, 200);
-  assert.deepEqual(callsNamed(context, "subscription.update")[0][2], { metadata: { meta_email_match: "" } });
-});
-
 test("optional metadata update failure cannot block a retained checkout or create a second subscription", async () => {
   const context = await fixture({ subscriptions: [draft({ source: "web", meta_consent: "1" })], updateFailure: true });
   const response = await context.run();

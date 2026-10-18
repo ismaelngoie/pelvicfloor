@@ -68,15 +68,6 @@ test("an undecided static visit starts cookieless analytics without a permission
   lifecycle.dispose();
 });
 
-test("static cookieless analytics remains off under GPC and DNT", () => {
-  for (const browser of [{ globalPrivacyControl: true }, { doNotTrack: "1" }]) {
-    const h = harness({ analytics: false, decided: false, browser }), lifecycle = h.install();
-    assert.equal(h.scripts.length, 0);
-    assert.deepEqual(h.calls, []);
-    lifecycle.dispose();
-  }
-});
-
 test("opting out of a cookieless static visit stops collection immediately", async () => {
   const h = harness({ analytics: false, decided: false }), lifecycle = h.install();
   h.choose({ decided: true, analytics: false, decidedAt: 1001 }); h.emit(choiceEvent);

@@ -47,16 +47,6 @@ test("a fresh direct landing checkout registers automatic measurement before req
   assert.doesNotMatch(JSON.stringify(marketing), /buyer@example|diastasis|goalId|clientSecret/);
 });
 
-test("unavailable tracking, saved opt-outs and private routes cannot block checkout or attach attribution", async () => {
-  for (const options of [{ eligible: false }, { registryFailure: true }, { denied: true }, { path: "/app" }]) {
-    const api = await fixture(options);
-    assert.equal((await api.createSubscriptionIntent({ email: "buyer@example.com" })).ok, true);
-    const payment = api.harness.requests.find(item => item.url === "/api/create-payment-intent");
-    assert.equal(payment.body.marketing, undefined);
-    if (options.denied || options.path) assert.equal(api.harness.requests.length, 1);
-  }
-});
-
 test("an explicitly omitted attribution bypasses bootstrap and invalid email makes no network requests", async () => {
   const api = await fixture();
   assert.equal((await api.createSubscriptionIntent({ email: "invalid" })).code, "invalid_email");

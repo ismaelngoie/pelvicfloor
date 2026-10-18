@@ -60,14 +60,6 @@ test("existing explicit analytics permission is preserved with Microsoft Ads sha
   assert.equal(h.scripts.length, 1);
 });
 
-test("explicit denials, GPC, DNT, private routes and sensitive queries all prevent loading", () => {
-  for (const options of [{ decided: true, analytics: false }, { browser: { globalPrivacyControl: true } }, { browser: { doNotTrack: "1" } }, { path: "/app" }, { path: "/admin" }, { path: "/diastasis-recti/start" }, { search: "?payment_intent_client_secret=private" }]) {
-    const h = harness(options); h.apply();
-    assert.deepEqual(h.scripts, [], JSON.stringify(options));
-    assert.deepEqual(h.calls, []);
-  }
-});
-
 test("an explicit opt-out stops cookieless collection immediately and syncs before the safe reload", async () => {
   const pending = deferred(), h = harness({ sync: () => pending.promise }); h.apply();
   h.choose({ decided: true, analytics: false, decidedAt: 1001 }); h.apply({ type: "pelvi:privacy-choice" });

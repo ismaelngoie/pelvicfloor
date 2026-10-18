@@ -39,7 +39,6 @@
 import LegalPage, { Contents, Summary, Callout } from "@/components/legal/LegalPage";
 import { CLAIM_EMAIL } from "@/lib/guaranteeCopy";
 import { DEFAULT_PRICE_LABEL, DEFAULT_PRICE_PERIOD } from "@/lib/pricing";
-import { PrivacyChoicesButton } from "@/components/MarketingChoices";
 
 export const metadata = {
   title: "Privacy Policy",
@@ -91,10 +90,9 @@ export default function PrivacyPolicy() {
           browser until you pay. Paying sends your email, your name if you gave one, and the goal
           you picked to Stripe. Once you sign in, your sessions, your daily check-ins and your
           messages to Coach Mia are stored in Google Firebase. We record website sessions with
-          Microsoft Clarity on eligible public pages. Analytics cookies and Google or Meta ad
-          measurement can start automatically for eligible visits after a server country check.
-          Other undecided visits use cookieless Clarity only. Saved opt-outs and browser privacy
-          signals are respected. Purchase email matching requires your separate saved permission. The
+          Microsoft Clarity on public pages. Analytics cookies, Google Ads and the Meta Pixel run
+          for every visitor. This site has no opt-out controls and does not act on browser privacy
+          signals. Purchases are reported to Meta with your receipt email, hashed. The
           email address you type in the checkout is kept whether or not you pay, and we may use it
           to write to you and in advertising audiences — never with any health information attached.
           Your pelvic health answers are sensitive data and we treat them that way. We do not sell
@@ -248,13 +246,9 @@ export default function PrivacyPolicy() {
       {/* ------------------------------------------------------------------ */}
       <h2 id="recording">4. Session recording</h2>
       <p>
-        We use <strong>Microsoft Clarity</strong> on eligible public pages of this website.
-        When our server country check permits automatic measurement, Clarity can use analytics
-        cookies. We record this as an automatic setting, not as your opt-in or acceptance.
-        Other undecided visits use cookieless Clarity. A previously saved analytics permission
-        can still permit analytics storage. Automatic cookie and ad measurement stay off when
-        country eligibility is unknown or restricted, and saved opt-outs and browser privacy
-        signals are respected. Clarity can record your visit: the
+        We use <strong>Microsoft Clarity</strong> on the public pages of this website, for every
+        visitor, with analytics cookies. Browser privacy signals do not switch it off. Clarity
+        can record your visit: the
         pages you open, where you move and tap, how far you scroll, and how long you stay. Those
         recordings can be played back like a video, and they are grouped into heatmaps. We use them
         to find the screens where people get stuck.
@@ -307,29 +301,22 @@ export default function PrivacyPolicy() {
         </a>.
       </p>
       <p>
-        Open Privacy settings and choose Turn off website analytics to stop new recordings.
-        There is no automatic privacy popup or opt-in control. A previously saved analytics
-        denial, Global Privacy Control or Do Not Track keeps Clarity off. We always deny
-        Microsoft advertising storage in this integration. You can also block
-        <strong> clarity.ms</strong> in your browser. Your plan,
+        This site has no privacy settings panel. We always deny Microsoft advertising storage in
+        this integration. You can block <strong>clarity.ms</strong> in your browser. Your plan,
         payment and account work without analytics. Email us to ask for deletion of a past
         recording that can be tied to you.
       </p>
-      <PrivacyChoicesButton />
 
       {/* ------------------------------------------------------------------ */}
       <h2 id="advertising">5. Advertising</h2>
       <p>
-        For eligible visits, a server country check can enable advertising measurement
-        automatically. A previously saved advertising permission can also remain active.
-        An automatic setting does not mean you opted in. When measurement is active, this site
-        can load the <strong>Google Ads</strong>
-        tag on public pages and the <strong>Meta Pixel</strong> on eligible general pages.
-        These tools help measure which ads bring visits and purchases. They can set advertising
-        cookies. Automatic cookie and ad measurement stay off when country eligibility is unknown
-        or restricted. Saved opt-outs, Global Privacy Control and Do Not Track remain effective.
-        We do not load these tags inside the member area, admin screens or payment-secret
-        return pages. The Meta Pixel is also excluded from condition-specific landing pages.
+        Advertising measurement runs for every visitor. This site loads the{" "}
+        <strong>Google Ads</strong> tag on public pages and the <strong>Meta Pixel</strong> on
+        every page except our admin screens, including condition-specific landing pages and the
+        member area. The Meta Pixel sends Meta the address of each page you open. These tools
+        measure which ads bring visits and purchases, and they set advertising cookies. This site
+        does not offer an opt-out and does not act on Global Privacy Control or Do Not Track
+        signals.
       </p>
       <p>
         We do not send Google your health answers, your check-ins or your messages. We do not build
@@ -344,37 +331,29 @@ export default function PrivacyPolicy() {
         , and you can block the tag with any tracker blocker. Nothing on this site depends on it.
       </p>
 
-      <h3>Purchase measurement and optional matching</h3>
+      <h3>Purchase measurement and email matching</h3>
       <p>
-        When Meta measurement is enabled, our server can send a confirmed first membership
-        payment to Meta through its Conversions API. Stripe supplies the amount and currency.
-        A transaction code prevents the same payment being counted twice. This can cover the
-        first payment and later paid renewals while advertising measurement remains active.
-        Where measurement is active,
-        the event can include an advertising click or browser identifier, IP address and browser
-        type. We send a general website address, not the condition page, health answers or a
-        payment secret. We keep an anonymous first-party record that distinguishes automatic
-        settings from user choices. Opting out also stops future server purchase reports.
+        Our server sends each confirmed membership payment to Meta through its Conversions API.
+        Stripe supplies the amount and currency. A transaction code prevents the same payment
+        being counted twice. The event can include an advertising click or browser identifier,
+        IP address and browser type. In this server report we send a general website address,
+        not health answers or a payment secret. We keep an anonymous first-party measurement
+        record. The Meta Pixel also reports opening the checkout and completing a purchase.
       </p>
       <p>
-        Purchase email matching is enabled for eligible integrations and used only if
-        your previously saved, separate purchase-matching permission remains active. The current
-        privacy settings can turn measurement off and do not offer an opt-in. Automatic
-        measurement never enables email matching. If enabled under a separate saved matching
-        permission, we normalize your verified receipt
-        email and hash it with SHA-256 before sending it to Meta. Meta can compare the hash to
-        its users to match a purchase to an ad. Hashing is a matching method, not anonymization.
-        This integration does not upload abandoned-checkout email lists.
+        Every purchase reported to Meta includes your verified receipt email, normalized and
+        hashed with SHA-256. Meta can compare the hash to its users to match a purchase to an ad.
+        Hashing is a matching method, not anonymization. This integration does not upload
+        abandoned-checkout email lists.
       </p>
       <p>
-        We do not send health goals, assessment answers, check-ins, exercise history or coach
-        messages to advertising platforms. We keep Meta’s data-sharing restrictions in place.
-        Global Privacy Control and Do Not Track signals keep the new advertising integration off.
+        Apart from the page addresses the Meta Pixel sees, we do not send health goals,
+        assessment answers, check-ins, exercise history or coach messages to advertising
+        platforms.
       </p>
       <p>
-        You can turn future ad measurement or purchase matching off through Privacy settings. This does not remove
-        events already delivered to an advertising platform. To request deletion or help with
-        a past event, email <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a>.
+        To request deletion or help with a past event, email{" "}
+        <a href={`mailto:${CLAIM_EMAIL}`}>{CLAIM_EMAIL}</a>.
       </p>
 
       {/* ------------------------------------------------------------------ */}
@@ -396,27 +375,19 @@ export default function PrivacyPolicy() {
         </li>
         <li>
           <strong>Microsoft Clarity cookies</strong> (named <strong>_clck</strong> and{" "}
-          <strong>_clsk</strong>), which tie the pages of one visit together, can be used for an
-          eligible automatic measurement setting or a previously saved analytics-storage
-          permission. Other undecided visits use Clarity without these analytics cookies.
+          <strong>_clsk</strong>), which tie the pages of one visit together, set for every visitor.
         </li>
         <li>
           <strong>Google Ads cookies</strong> (including <strong>_gcl_au</strong>), which measure
-          whether an ad led to a signup, are used only while eligible automatic measurement or
-          a saved advertising permission is active.
+          whether an ad led to a signup, set for every visitor.
         </li>
         <li>
           <strong>Meta advertising cookies</strong> (such as <strong>_fbp</strong> and <strong>_fbc</strong>),
-          used only while eligible automatic measurement or a saved advertising permission is
-          active, to connect eligible visits and purchases to ads.
+          set for every visitor, to connect visits and purchases to ads.
         </li>
         <li>
-          <strong>Measurement settings and privacy choices.</strong> Stored for up to 180 days
-          with a random first-party code. An eligible automatic setting can create this code;
-          it is marked as automatic and is not a record of your acceptance. Explicit choices are
-          marked as user choices. An essential denial cookie helps retain an opt-out
-          if your browser blocks local storage. Opening Privacy settings does not save a choice.
-          These records do not contain health answers.
+          <strong>Measurement record.</strong> A random first-party code, stored for up to 180
+          days, links your visits to purchase measurement. It does not contain health answers.
         </li>
         <li>
           <strong>Stripe cookies</strong> on the checkout, which Stripe uses to detect fraud.
@@ -445,9 +416,8 @@ export default function PrivacyPolicy() {
           answering, and withdrawable at any time.
         </li>
         <li>
-          <strong>Session recording and analytics:</strong> your consent where local law requires
-          it, and otherwise our interest in a website that works. You can opt out as described in{" "}
-          <a href="#recording">section 4</a>.
+          <strong>Session recording and analytics:</strong> our interest in a website that works,
+          as described in <a href="#recording">section 4</a>.
         </li>
         <li>
           <strong>Advertising measurement:</strong> your consent where local law requires it, and
@@ -498,10 +468,10 @@ export default function PrivacyPolicy() {
           </a>
         </li>
         <li>
-          <strong>Meta</strong> receives eligible advertising measurement only while an eligible
-          automatic setting or saved advertising permission is active. A hashed receipt email is included only under the
-          separate matching conditions in <a href="#advertising">section 5</a>. We do not send
-          health answers or private member activity to Meta.
+          <strong>Meta</strong> receives advertising measurement for every visit: the address of
+          each page you open, checkout openings and purchases, with a hashed receipt email on
+          purchases, as described in <a href="#advertising">section 5</a>. We do not send health
+          answers, check-ins or coach messages to Meta.
         </li>
         <li>
           <strong>Microsoft</strong> runs Clarity, described in <a href="#recording">section 4</a>.
@@ -706,14 +676,12 @@ export default function PrivacyPolicy() {
 //     Ads reviewers look for one. Give me the state of registration and the
 //     business address and I will add a line to section 1.
 //
-//  2. PRIVACY CONTROLS. MarketingChoices opens only on an explicit request and
-//     can only turn measurement off. The shared lifecycle may record an eligible
-//     server-country-informed automatic setting with analytics/advertising on
-//     and matching off. It must retain basis: automatic, never label that as a
-//     user opt-in, and preserve explicit opt-outs/GPC/DNT. Other undecided visits
-//     use cookieless Clarity. Prior user permissions remain distinct. Google/Meta
-//     gates remain separate; Microsoft Ads storage remains denied. Keep sections
-//     4 and 5 in sync.
+//  2. PRIVACY CONTROLS. Removed by owner decision (Oct 2026, testing phase):
+//     no settings panel, no opt-outs, no GPC/DNT or location exceptions.
+//     Measurement and purchase email matching run for every visitor; the Meta
+//     Pixel runs on every page except /admin. Microsoft Ads storage remains
+//     denied. Keep sections 4 and 5 in sync with lib/metaPixel.js and
+//     public/marketing-consent.js.
 //
 //  2b. SECTION 4 IS A DESCRIPTION OF lib/analytics.js. Every specific claim in
 //     it maps to a line of that file: the allowlist, data-clarity-mask on the
