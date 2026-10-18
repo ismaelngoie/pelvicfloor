@@ -73,6 +73,7 @@ export default function DiastasisLanding() {
   };
 
   const goToOffer = () => {
+    if (isValidEmail(email)) { beginCheckout(); return; }
     offerRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
     emailRef.current?.focus({ preventScroll: true });
   };
@@ -129,7 +130,7 @@ export default function DiastasisLanding() {
             <div className={styles.wallets} aria-label="Secure Stripe checkout. Apple Pay and Google Pay appear on eligible devices; card payment is available."><LockKeyhole size={13} /><span>Secure checkout</span><b>Apple Pay</b><b>Google Pay</b><b>Card</b></div>
             <p className={styles.walletNote}>Wallet availability depends on your device and Stripe.</p>
           </form>
-          <div className={styles.guarantee}><ShieldCheck size={23} /><p><strong>7 days to make sure it’s for you.</strong><span>Money back for any reason. <a href="#dr-refund">How it works</a></span></p></div>
+          <div className={styles.guarantee}><ShieldCheck size={23} /><p><strong>7 days to make sure it’s for you.</strong><span>Money back for any reason. <a href="#dr-refund" onClick={() => { const details = document.getElementById("dr-refund"); if (details) details.open = true; }}>How it works</a></span></p></div>
           <button type="button" className={styles.previewLink} onClick={() => setPreviewOpen(true)}><Play size={14} fill="currentColor" /> Take a look inside first</button>
         </div>
       </section>
