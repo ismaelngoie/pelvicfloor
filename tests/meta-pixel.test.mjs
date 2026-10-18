@@ -7,7 +7,7 @@ const source = (await readFile(new URL("../lib/metaPixel.js", import.meta.url), 
   .replace('"./marketingConsent.js"', JSON.stringify(new URL("../lib/marketingConsent.js", import.meta.url).href))
   .replace('"./marketingNavigation.js"', JSON.stringify(new URL("../lib/marketingNavigation.js", import.meta.url).href));
 const api = await import(asModule(source));
-const configAPI = await import(asModule(await readFile(new URL("../functions/api/marketing-config.js", import.meta.url), "utf8")));
+const configAPI = await import(new URL("../functions/api/marketing-config.js", import.meta.url));
 const { metaPixelPageAllowed, normalizeMetaConfig, registryMetaConsentAllowed, captureWelcomePaymentProof, createMetaPurchaseStore, createMetaPixelController,
   reportVerifiedMetaPurchase, META_PURCHASE_KEY, META_PURCHASE_TTL_MS } = api;
 const event = { eventId: "purchase_abcdefgh1234", value: 29.99, currency: "USD" };
@@ -60,10 +60,10 @@ test("public configuration is disabled by default and never exposes secret field
   for (const env of [{}, { META_TRACKING_ENABLED: "TRUE", META_DATASET_ID: config.datasetId }, { META_TRACKING_ENABLED: "true", META_DATASET_ID: "bad-id" }]) {
     const response = configAPI.onRequestGet({ env });
     assert.equal(response.headers.get("Cache-Control"), "no-store");
-    assert.deepEqual(await response.json(), { enabled: false, datasetId: "", emailMatchingEnabled: false });
+    assert.deepEqual(await response.json(), { enabled: false, datasetId: "", emailMatchingEnabled: false, automaticMeasurement: { eligible: false, basis: "automatic" } });
   }
   const response = configAPI.onRequestGet({ env: { META_TRACKING_ENABLED: "true", META_DATASET_ID: config.datasetId, META_EMAIL_MATCHING_ENABLED: "true", META_ACCESS_TOKEN: "never-expose-this" } });
-  assert.deepEqual(await response.json(), { ...config, emailMatchingEnabled: true });
+  assert.deepEqual(await response.json(), { ...config, emailMatchingEnabled: true, automaticMeasurement: { eligible: false, basis: "automatic" } });
   assert.deepEqual(normalizeMetaConfig({ enabled: "true", datasetId: config.datasetId, accessToken: "never" }), { enabled: false, datasetId: "", emailMatchingEnabled: false });
 });
 

@@ -79,6 +79,22 @@ test("canonical settled invoice supplies price and anonymous event ID without se
   assert.deepEqual(Object.keys(context.receipts.get(result.eventId)).sort(), ["currency", "sentAt", "value"]);
 });
 
+test("automatic measurement sends a verified sale with its recorded basis and never expands to email matching", async () => {
+  const context = fixture();
+  const incoming = request({});
+  Object.defineProperty(incoming, "cf", { value: { country: "US", regionCode: "NY" } });
+  const attribution = buildMetaAttribution({ ...marketing, basis: "automatic", matching: true }, incoming, { now });
+  context.invoice.subscription.metadata = { source: "web", ...attribution };
+  const registry = { get: async () => ({ decidedAt: marketing.decidedAt, basis: "automatic", advertising: true, matching: true }) };
+  const result = await reportMetaInvoicePurchase({ ...context.options, registry, env: { ...env, META_EMAIL_MATCHING_ENABLED: "true" } });
+  assert.equal(result.status, "sent"); assert.equal(result.value, 24.99);
+  assert.equal(context.invoice.subscription.metadata.meta_basis, "automatic");
+  assert.equal(context.invoice.subscription.metadata.meta_email_match, undefined);
+  assert.equal(context.sent[0].body.data[0].user_data.em, undefined);
+  assert.deepEqual(context.sent[0].body.data[0].custom_data, { value: 24.99, currency: "USD" });
+  assert.doesNotMatch(JSON.stringify(context.sent[0].body), /automatic|basis|consentId|diastasis/);
+});
+
 test("email matching requires both shopper choice and server eligibility and hashes Stripe email", async () => {
   const context = fixture();
   await reportMetaInvoicePurchase({ ...context.options, env: { ...env, META_EMAIL_MATCHING_ENABLED: "true" } });

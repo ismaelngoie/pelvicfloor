@@ -14,7 +14,10 @@ let memoryChoice = null;
 let memoryOnly = false;
 let persistenceBlocked = false;
 let decisionEpoch = 0;
+let automaticEligibility = null;
+let automaticBootstrap = null;
 const issuedChoices = new WeakMap();
+const browserOptOut = (browser) => browser.globalPrivacyControl === true || ["1", "yes"].includes(String(browser.doNotTrack || "").toLowerCase());
 
 function newConsentId(crypto) {
   try {
@@ -67,20 +70,26 @@ export function readMarketingConsent({ storage = browserStorage(), browser = bro
   if (denied) return expose({ ...EMPTY, decided: true, consentId: denied.consentId || validConsentId(choice?.consentId), decidedAt: denied.decidedAt || (Number.isFinite(choice?.decidedAt) ? choice.decidedAt : 0) }, context);
   if (choice?.v !== 1 || !Number.isFinite(choice.decidedAt) || choice.decidedAt > now + 60000 || now - choice.decidedAt > MARKETING_CONSENT_TTL) return expose(EMPTY, context);
   const consentId = validConsentId(choice.consentId);
+  const basis = ["automatic", "explicit"].includes(choice.basis) ? choice.basis : "";
+  // A prior automatic setting is not user consent. Recheck the first-party
+  // policy on each new document before exposing its stored permissions.
+  if (basis === "automatic" && automaticEligibility !== true) return expose({ ...EMPTY, consentId, decidedAt: choice.decidedAt, basis }, context);
   const optedOut = browser.globalPrivacyControl === true || ["1", "yes"].includes(String(browser.doNotTrack || "").toLowerCase());
   // Legacy choices without a revocable capability require a new explicit ad
   // decision. Existing anonymous analytics preference is still respected.
   const advertising = Boolean(consentId) && choice.advertising === true && !optedOut;
-  return expose({ decided: true, analytics: choice.analytics === true && !["1", "yes"].includes(String(browser.doNotTrack || "").toLowerCase()), advertising, matching: advertising && choice.matching === true, decidedAt: choice.decidedAt, consentId }, context);
+  return expose({ decided: true, analytics: choice.analytics === true && !["1", "yes"].includes(String(browser.doNotTrack || "").toLowerCase()), advertising, matching: advertising && basis !== "automatic" && choice.matching === true, decidedAt: choice.decidedAt, consentId, ...(basis ? { basis } : {}) }, context);
 }
 
-export function writeMarketingConsent(choice, { storage = browserStorage(), browser = browserNavigator(), now = Date.now(), notify = true, document: doc = browserDocument(), crypto = browserCrypto() } = {}) {
+function persistMarketingConsent(choice, { storage = browserStorage(), browser = browserNavigator(), now = Date.now(), notify = true, document: doc = browserDocument(), crypto = browserCrypto() } = {}, automatic = false) {
   let previous = memoryChoice;
   try { previous = JSON.parse(storage?.getItem(MARKETING_CONSENT_KEY) || "null") || previous; } catch { /* In-memory capability remains available. */ }
   const priorDenial = deniedCookie(doc, now);
   const consentId = priorDenial?.consentId || validConsentId(previous?.consentId) || newConsentId(crypto);
+  if (automatic && !consentId) return readMarketingConsent({ storage, browser, now, document: doc });
+  const basis = automatic ? "automatic" : ["automatic", "explicit"].includes(previous?.basis) ? "explicit" : "";
   decisionEpoch += 1;
-  memoryChoice = { v: 1, analytics: choice?.analytics === true, advertising: Boolean(consentId) && choice?.advertising === true, matching: Boolean(consentId) && choice?.advertising === true && choice?.matching === true, decidedAt: now, consentId };
+  memoryChoice = { v: 1, analytics: choice?.analytics === true, advertising: Boolean(consentId) && choice?.advertising === true, matching: !automatic && Boolean(consentId) && choice?.advertising === true && choice?.matching === true, decidedAt: now, consentId, ...(basis ? { basis } : {}) };
   memoryOnly = !storage;
   let persisted = false;
   try {
@@ -108,10 +117,84 @@ export function writeMarketingConsent(choice, { storage = browserStorage(), brow
   return applied;
 }
 
+export function writeMarketingConsent(choice, options) {
+  // Explicit settings actions can restrict an automatic setting, but callers
+  // cannot label arbitrary input as a policy-approved automatic grant.
+  return persistMarketingConsent(choice, options);
+}
+
 export function marketingPersistenceBlocked() { return persistenceBlocked; }
 
+// Only a public-route caller may ask for the first-party geographic policy.
+// This is an automatic measurement setting, never a claim of user acceptance.
+// A saved explicit decision (including a legacy record) always takes priority.
+export async function bootstrapMarketingConsent({
+  allowed = false, storage = browserStorage(), browser = browserNavigator(),
+  now = Date.now(), notify = true, document: doc = browserDocument(), crypto = browserCrypto(),
+  fetch: request = typeof fetch === "undefined" ? null : fetch,
+  schedule = (callback, delay) => setTimeout(callback, delay), cancel = (timer) => clearTimeout(timer),
+} = {}) {
+  const context = { storage, browser, now, document: doc };
+  const publicRoute = () => { try { return (typeof allowed === "function" ? allowed() : allowed) === true; } catch { return false; } };
+  const permitted = () => publicRoute() && !browserOptOut(browser);
+  const initial = readMarketingConsent(context);
+  if (!publicRoute() || typeof request !== "function") return initial;
+  if (browserOptOut(browser)) {
+    if (initial.basis === "automatic" && initial.consentId) {
+      const denied = persistMarketingConsent({}, { ...context, notify, crypto });
+      await syncMarketingConsent(denied, { fetch: request, now, schedule, cancel });
+      return readMarketingConsent(context);
+    }
+    return initial;
+  }
+  if (initial.decided && initial.basis !== "automatic") return initial;
+  if (automaticEligibility === true && initial.basis === "automatic" && initial.decided && initial.analytics && initial.advertising) return initial;
+  if (automaticBootstrap) { await automaticBootstrap; return readMarketingConsent(context); }
+  const epoch = decisionEpoch;
+  const apply = async (eligible) => {
+    const current = readMarketingConsent(context);
+    if (!permitted() || epoch !== decisionEpoch || !sameChoice(initial, current)) return current;
+    automaticEligibility = eligible;
+    if (!eligible) {
+      if (initial.basis === "automatic" && initial.consentId) {
+        // Geography can narrow an earlier automatic setting. Retained Stripe
+        // attribution also needs this denial in the durable first-party registry.
+        const denial = expose({ ...initial, decided: true, analytics: false, advertising: false, matching: false, decidedAt: now }, context);
+        issuedChoices.get(denial).observedValue = { ...initial };
+        await syncMarketingConsent(denial, { fetch: request, now, schedule, cancel });
+      }
+      return readMarketingConsent(context);
+    }
+    // Refresh an existing automatic ID's timestamp on a newly eligible
+    // document. This can supersede automatic geography restrictions only;
+    // server-side explicit and legacy decisions retain priority.
+    return persistMarketingConsent({ analytics: true, advertising: true, matching: false }, { ...context, notify, crypto }, true);
+  };
+  if (automaticEligibility !== null) return apply(automaticEligibility);
+  const operation = (async () => {
+    let timer;
+    const controller = typeof AbortController === "undefined" ? null : new AbortController();
+    try {
+      const timeout = new Promise((resolve) => {
+        timer = schedule(() => { controller?.abort(); resolve(null); }, 2000);
+      });
+      const policy = Promise.resolve().then(() => request("/api/marketing-config", {
+        credentials: "same-origin", cache: "no-store", redirect: "error", headers: { Accept: "application/json" },
+        ...(controller ? { signal: controller.signal } : {}),
+      })).then(async (response) => response?.ok ? await response.json() : null).catch(() => null);
+      const config = await Promise.race([policy, timeout]);
+      if (config?.automaticMeasurement?.basis !== "automatic" || typeof config.automaticMeasurement.eligible !== "boolean") return apply(false);
+      return apply(config.automaticMeasurement.eligible);
+    } catch { return apply(false); }
+    finally { if (timer !== undefined) cancel(timer); }
+  })();
+  automaticBootstrap = operation;
+  try { return await operation; }
+  finally { if (automaticBootstrap === operation) automaticBootstrap = null; }
+}
+
 // Clarity can collect limited, per-page analytics without cookie storage. An
-// undecided visit does not grant any marketing permission or create an ID.
+// unknown/restricted undecided visit does not grant storage or create an ID.
 // Existing explicit opt-outs and browser privacy signals still stop Clarity.
 export function clarityConsentPolicy(choice = readMarketingConsent(), { browser = browserNavigator() } = {}) {
   const browserOptOut = browser.globalPrivacyControl === true || ["1", "yes"].includes(String(browser.doNotTrack || "").toLowerCase());
@@ -124,7 +207,7 @@ export function clarityConsentPolicy(choice = readMarketingConsent(), { browser 
 }
 
 const syncDenied = () => ({ ok: false, effective: { advertising: false, matching: false }, decidedAt: 0 });
-const sameChoice = (a, b) => ["consentId", "decidedAt", "analytics", "advertising", "matching", "decided"].every((key) => a[key] === b[key]);
+const sameChoice = (a, b) => ["consentId", "decidedAt", "analytics", "advertising", "matching", "decided", "basis"].every((key) => a[key] === b[key]);
 const syncingChoices = new Map();
 
 // The capability is sent only to this same-origin consent registry. Arbitrary
@@ -139,9 +222,9 @@ export async function syncMarketingConsent(choice = readMarketingConsent(), {
   const issued = choice && typeof choice === "object" ? issuedChoices.get(choice) : null;
   if (!issued || !issued.value.decided || !validConsentId(issued.value.consentId) || typeof request !== "function") return syncDenied();
   const value = issued.value;
-  const current = () => { try { return issued.epoch === decisionEpoch && sameChoice(value, choice) && sameChoice(value, readMarketingConsent({ ...issued.context, now })); } catch { return false; } };
+  const current = () => { try { return issued.epoch === decisionEpoch && sameChoice(value, choice) && sameChoice(issued.observedValue || value, readMarketingConsent({ ...issued.context, now })); } catch { return false; } };
   if (!current()) return syncDenied();
-  const key = JSON.stringify([issued.epoch, value.consentId, value.decidedAt, value.analytics, value.advertising, value.matching]);
+  const key = JSON.stringify([issued.epoch, value.consentId, value.decidedAt, value.analytics, value.advertising, value.matching, value.basis]);
   const existing = syncingChoices.get(key);
   if (existing) {
     const result = await existing;
@@ -159,7 +242,7 @@ export async function syncMarketingConsent(choice = readMarketingConsent(), {
         method: "POST", credentials: "same-origin", redirect: "error", cache: "no-store",
         headers: { "Content-Type": "application/json" }, keepalive: !value.advertising,
         ...(controller ? { signal: controller.signal } : {}),
-        body: JSON.stringify({ v: 1, consentId: value.consentId, decidedAt: value.decidedAt, analytics: value.analytics, advertising: value.advertising, matching: value.matching }),
+        body: JSON.stringify({ v: 1, consentId: value.consentId, decidedAt: value.decidedAt, analytics: value.analytics, advertising: value.advertising, matching: value.matching, ...(value.basis ? { basis: value.basis } : {}) }),
       })).then(async (response) => {
         if (!response?.ok) return syncDenied();
         const result = await response.json();
@@ -190,8 +273,25 @@ export function marketingAttribution({ storage = browserStorage(), browser = bro
         if (["pelvi.health", "www.pelvi.health"].includes(location.hostname) && doc) doc.cookie = `_fbc=${encodeURIComponent(fbc)}; Path=/; Max-Age=7776000; SameSite=Lax; Secure`;
       } catch { /* Browser cookie restrictions must never block checkout. */ }
     }
-    return { v: 1, advertising: true, matching: choice.matching, decidedAt: choice.decidedAt, consentId: choice.consentId, fbp: validBrowserId(readCookie("_fbp", doc)), fbc };
+    return { v: 1, advertising: true, matching: choice.matching, decidedAt: choice.decidedAt, consentId: choice.consentId, ...(choice.basis ? { basis: choice.basis } : {}), fbp: validBrowserId(readCookie("_fbp", doc)), fbc };
   } catch {
     return undefined;
   }
+}
+
+// Checkout waits for the bounded policy check and a current registry
+// acknowledgement before capturing optional conversion attribution.
+export async function marketingAttributionForCheckout(options = {}) {
+  try {
+    const allowed = () => (typeof options.allowed === "function" ? options.allowed() : options.allowed) === true;
+    if (!allowed()) return undefined;
+    await bootstrapMarketingConsent(options);
+    if (!allowed()) return undefined;
+    const choice = readMarketingConsent(options);
+    if (!choice.advertising) return undefined;
+    const registry = await syncMarketingConsent(choice, options);
+    if (!allowed() || !registry.ok || !registry.effective.advertising || !sameChoice(choice, readMarketingConsent(options))) return undefined;
+    const attribution = marketingAttribution(options);
+    return attribution ? { ...attribution, matching: attribution.matching && registry.effective.matching } : undefined;
+  } catch { return undefined; }
 }

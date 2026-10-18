@@ -1,4 +1,5 @@
 import { accessToken, parseServiceAccount, projectIdFrom } from "./stripeSync.js";
+import { automaticMeasurementEligible } from "./marketingPolicy.js";
 
 export const CONSENT_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 export const validConsentId = (id) => typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
@@ -6,22 +7,32 @@ const optedOut = (value) => value === true || value === 1 || value === "1" || va
 
 export function normalizeMarketingDecision(body, request, { now = Date.now() } = {}) {
   if (body?.v !== 1 || !validConsentId(body.consentId) || !Number.isSafeInteger(body.decidedAt)
-    || body.decidedAt <= 0 || body.decidedAt > now + 60000 || now - body.decidedAt > CONSENT_MAX_AGE_MS) return null;
+    || body.decidedAt <= 0 || body.decidedAt > now + 60000 || now - body.decidedAt > CONSENT_MAX_AGE_MS
+    || (body.basis !== undefined && !["automatic", "explicit"].includes(body.basis))) return null;
   const dnt = request.headers.get("DNT") === "1" || [body.doNotTrack, body.dnt].some(optedOut);
   const gpc = request.headers.get("Sec-GPC") === "1" || [body.globalPrivacyControl, body.gpc].some(optedOut);
-  const advertising = body.advertising === true && !dnt && !gpc;
+  const automatic = body.basis === "automatic";
+  const eligible = !automatic || automaticMeasurementEligible(request);
+  const advertising = body.advertising === true && eligible && !dnt && !gpc;
   return { v: 1, consentId: body.consentId.toLowerCase(), decidedAt: body.decidedAt,
-    analytics: body.analytics === true && !dnt, advertising, matching: advertising && body.matching === true };
+    analytics: body.analytics === true && eligible && !dnt, advertising,
+    matching: advertising && !automatic && body.matching === true,
+    ...(body.basis ? { basis: body.basis } : {}) };
 }
 
 /** A late grant cannot undo a withdrawal. At equal timestamps the narrower
  * decision wins, regardless of which request reaches Firestore first. */
 export function mergeMarketingDecision(current, incoming) {
+  // Automatic defaults can never replace a person's saved choice, including a
+  // legacy record predating the basis field. A manual withdrawal remains final
+  // until another explicit decision is made.
+  if (current && incoming.basis === "automatic" && current.basis !== "automatic") return current;
   if (!current || incoming.decidedAt > current.decidedAt) return incoming;
   if (incoming.decidedAt < current.decidedAt) return current;
   const advertising = current.advertising === true && incoming.advertising === true;
   return { ...current, analytics: current.analytics === true && incoming.analytics === true,
-    advertising, matching: advertising && current.matching === true && incoming.matching === true };
+    advertising, matching: advertising && current.matching === true && incoming.matching === true,
+    ...(current.basis === "automatic" && incoming.basis !== "automatic" ? { basis: "explicit" } : {}) };
 }
 
 export async function consentRegistryKey(consentId) {
@@ -39,12 +50,16 @@ function storedDecision(record) {
   const decidedAt = Number(fields.decidedAt?.integerValue ?? fields.decidedAt?.doubleValue);
   if (Number(fields.v?.integerValue) !== 1 || !Number.isSafeInteger(decidedAt) || decidedAt <= 0) return null;
   const advertising = fields.advertising?.booleanValue === true;
+  const basis = fields.basis?.stringValue;
+  if (basis !== undefined && !["automatic", "explicit"].includes(basis)) return null;
   return { v: 1, decidedAt, analytics: fields.analytics?.booleanValue === true,
-    advertising, matching: advertising && fields.matching?.booleanValue === true };
+    advertising, matching: advertising && fields.matching?.booleanValue === true,
+    ...(basis ? { basis } : {}) };
 }
 function decisionFields(decision) {
   return { v: { integerValue: "1" }, decidedAt: { integerValue: String(decision.decidedAt) },
-    analytics: { booleanValue: decision.analytics }, advertising: { booleanValue: decision.advertising }, matching: { booleanValue: decision.matching } };
+    analytics: { booleanValue: decision.analytics }, advertising: { booleanValue: decision.advertising }, matching: { booleanValue: decision.matching },
+    ...(decision.basis ? { basis: { stringValue: decision.basis } } : {}) };
 }
 
 // Consent IDs are first-party capabilities. Only their SHA256 keys reach this
@@ -69,7 +84,7 @@ export async function createMarketingConsentRegistry(env, { fetcher = fetch, aut
       for (let attempt = 0; attempt < 5; attempt += 1) {
         const snapshot = await read(incoming.consentId);
         const effective = mergeMarketingDecision(snapshot.decision, incoming);
-        if (snapshot.decision && ["decidedAt", "analytics", "advertising", "matching"].every((key) => snapshot.decision[key] === effective[key])) return effective;
+        if (snapshot.decision && ["decidedAt", "analytics", "advertising", "matching", "basis"].every((key) => snapshot.decision[key] === effective[key])) return effective;
         const precondition = snapshot.updateTime ? `currentDocument.updateTime=${encodeURIComponent(snapshot.updateTime)}` : "currentDocument.exists=false";
         const response = await fetcher(`${snapshot.url}?${precondition}`, { method: "PATCH", headers, body: JSON.stringify({ fields: decisionFields(effective) }) });
         if (response.ok) return effective;
