@@ -39,7 +39,7 @@
 .fields[inert] { opacity: .65; }
 .loading { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); margin: 0 0 12px; }
 .loading svg,.pay:disabled svg { animation: turn 1s linear infinite; }
-.pay { width: 100%; min-height: 56px; padding: 14px 18px; border: 0; border-radius: 100px; background: #E65473; color: #FFF; font-size: 17px; font-weight: 650; display: flex; justify-content: center; align-items: center; gap: 9px; box-shadow: 0 4px 16px #E654731F; }
+.pay { width: 100%; min-height: 56px; padding: 14px 18px; border: 0; border-radius: 100px; background: #E65473; color: var(--ink); font-size: 17px; font-weight: 650; display: flex; justify-content: center; align-items: center; gap: 9px; box-shadow: 0 4px 16px #E654731F; }
 .pay:hover:not(:disabled) { background: #D94868; }
 .pay:active:not(:disabled) { transform: scale(.99); }
 .renewal { font-size: 12px; line-height: 1.6; color: #665C62; margin: -2px 0 0; }
