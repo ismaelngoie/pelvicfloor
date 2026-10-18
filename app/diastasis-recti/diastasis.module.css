@@ -316,12 +316,6 @@
 .offerColumn h1 em {
   color: var(--accentInk);
 }
-.heroQualifier {
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--muted);
-  margin-top: 8px!important;
-}
 .price {
   display: flex;
   align-items: center;

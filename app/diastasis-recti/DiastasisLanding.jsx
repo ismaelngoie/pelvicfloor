@@ -148,7 +148,6 @@ export default function DiastasisLanding() {
           <p className={styles.eyebrow}>YOUR DIASTASIS RECTI EXERCISE PLAN</p>
           <h1 id="dr-title">Heal Your Abdominal Separation.<br /><em>Without Surgery.</em></h1>
           <p className={styles.heroCopy}>Get visible results with 5 minutes daily coach videos. Simple exercises for your abdominal separation.</p>
-          <p className={styles.heroQualifier}>Results vary. Full sessions can take longer.</p>
           <div className={styles.price}><strong>{DEFAULT_PRICE_LABEL}</strong><span>{PRICE_CURRENCY} / {DEFAULT_PRICE_PERIOD}<small>Full Pelvi membership</small></span></div>
           <p className={styles.billingTerms}>Monthly membership. Renews until canceled.</p>
           <ul className={styles.benefits}>
