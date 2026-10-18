@@ -110,6 +110,19 @@ export function writeMarketingConsent(choice, { storage = browserStorage(), brow
 
 export function marketingPersistenceBlocked() { return persistenceBlocked; }
 
+// Clarity can collect limited, per-page analytics without cookie storage. An
+// undecided visit does not grant any marketing permission or create an ID.
+// Existing explicit opt-outs and browser privacy signals still stop Clarity.
+export function clarityConsentPolicy(choice = readMarketingConsent(), { browser = browserNavigator() } = {}) {
+  const browserOptOut = browser.globalPrivacyControl === true || ["1", "yes"].includes(String(browser.doNotTrack || "").toLowerCase());
+  const enabled = !browserOptOut && !(choice?.decided === true && choice.analytics !== true);
+  return {
+    enabled,
+    analyticsStorage: enabled && choice?.decided === true && choice.analytics === true ? "granted" : "denied",
+    adStorage: "denied",
+  };
+}
+
 const syncDenied = () => ({ ok: false, effective: { advertising: false, matching: false }, decidedAt: 0 });
 const sameChoice = (a, b) => ["consentId", "decidedAt", "analytics", "advertising", "matching", "decided"].every((key) => a[key] === b[key]);
 const syncingChoices = new Map();

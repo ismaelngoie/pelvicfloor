@@ -5,24 +5,22 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const dataURL = (source) => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
 const gateURL = dataURL(await readFile(new URL("public/clarity-gate.js", root), "utf8"));
+const consentURL = dataURL(await readFile(new URL("public/marketing-consent.js", root), "utf8"));
+const stopURL = dataURL(await readFile(new URL("public/clarity-stop.js", root), "utf8"));
+const { clarityConsentPolicy } = await import(consentURL);
 const source = (await readFile(new URL("public/clarity-static.js", root), "utf8"))
   .replace('"/clarity-gate.js"', JSON.stringify(gateURL))
-  .replace(/import \{[^}]+\} from "\/marketing-consent.js";/, `
-    const MARKETING_CONSENT_KEY = "pelvi.privacy.v1";
-    const MARKETING_CONSENT_EVENT = "pelvi:privacy-choice";
-    const marketingPersistenceBlocked = () => false;
-    const readMarketingConsent = () => ({ analytics: false });
-    const syncMarketingConsent = async () => ({ ok: false });
-  `);
+  .replace('"/marketing-consent.js"', JSON.stringify(consentURL))
+  .replace('"/clarity-stop.js"', JSON.stringify(stopURL));
 const { installStaticClarity } = await import(dataURL(source));
 const consentKey = "pelvi.privacy.v1";
 const choiceEvent = "pelvi:privacy-choice";
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 
-function harness({ analytics = true, path = "/blog/example", search = "", blocked = false, sync } = {}) {
+function harness({ analytics = true, decided = true, browser = {}, path = "/blog/example", search = "", blocked = false, sync } = {}) {
   const calls = [], scripts = [], replacements = [], listeners = new Map(), syncs = [];
-  let choice = { decided: true, analytics, advertising: false, matching: false, consentId: "first-party-capability", decidedAt: 1000 };
+  let choice = { decided, analytics, advertising: false, matching: false, consentId: decided ? "first-party-capability" : "", decidedAt: decided ? 1000 : 0 };
   let persistenceBlocked = blocked;
   const scope = {
     location: { pathname: path, search, href: `https://pelvi.health${path}${search}`, replace: (url) => replacements.push(url) },
@@ -34,6 +32,7 @@ function harness({ analytics = true, path = "/blog/example", search = "", blocke
     scope,
     doc: { createElement: () => ({}), head: { appendChild: (script) => scripts.push(script) } },
     getConsent: () => choice,
+    getPolicy: (choice) => clarityConsentPolicy(choice, { browser }),
     persistenceBlocked: () => persistenceBlocked,
     syncConsent: (current) => { syncs.push(current); return sync ? sync(current) : Promise.resolve({ ok: true }); },
   };
@@ -58,6 +57,35 @@ test("an allowed static article loads one gated tag and one lifecycle", () => {
   first.dispose();
 });
 
+test("an undecided static visit starts cookieless analytics without a permission write or sync", () => {
+  const h = harness({ analytics: false, decided: false }), lifecycle = h.install();
+  assert.equal(h.scripts.length, 1);
+  assert.deepEqual(h.calls[0], ["consentv2", { analytics_Storage: "denied", ad_Storage: "denied" }]);
+  assert.equal(h.calls.some((call) => call[0] === "stop"), false);
+  assert.equal(h.syncs.length, 0);
+  assert.equal(h.getConsent().consentId, "");
+  assert.equal(h.getConsent().decided, false);
+  lifecycle.dispose();
+});
+
+test("static cookieless analytics remains off under GPC and DNT", () => {
+  for (const browser of [{ globalPrivacyControl: true }, { doNotTrack: "1" }]) {
+    const h = harness({ analytics: false, decided: false, browser }), lifecycle = h.install();
+    assert.equal(h.scripts.length, 0);
+    assert.deepEqual(h.calls, []);
+    lifecycle.dispose();
+  }
+});
+
+test("opting out of a cookieless static visit stops collection immediately", async () => {
+  const h = harness({ analytics: false, decided: false }), lifecycle = h.install();
+  h.choose({ decided: true, analytics: false, decidedAt: 1001 }); h.emit(choiceEvent);
+  assert.deepEqual(h.calls.slice(-2), [["stop"], ["consentv2", { analytics_Storage: "denied", ad_Storage: "denied" }]]);
+  await tick();
+  assert.equal(h.replacements.length, 1);
+  lifecycle.dispose();
+});
+
 test("denied consent and private or sensitive documents inject no static recorder", () => {
   for (const options of [{ analytics: false }, { path: "/app" }, { path: "/admin" }, { path: "/blog/example", search: "?email=person%40example.com" }]) {
     const h = harness(options), lifecycle = h.install();
@@ -73,7 +101,7 @@ test("cross-tab withdrawal denies and stops immediately, then waits for registry
   const lifecycle = h.install();
   h.choose({ analytics: false, decidedAt: 1001 });
   h.emit("storage", { key: consentKey });
-  assert.deepEqual(h.calls.slice(-2), [["consentv2", { analytics_Storage: "denied", ad_Storage: "denied" }], ["stop"]]);
+  assert.deepEqual(h.calls.slice(-2), [["stop"], ["consentv2", { analytics_Storage: "denied", ad_Storage: "denied" }]]);
   assert.equal(h.syncs.length, 1);
   assert.equal(h.syncs[0].analytics, false);
   assert.deepEqual(h.replacements, [], "reload cannot cancel the pending withdrawal sync");
@@ -97,7 +125,7 @@ test("storage.clear and same-document privacy events both stop an active recorde
     const h = harness(), lifecycle = h.install();
     h.choose({ analytics: false, decidedAt: 1001 });
     h.emit(type, values);
-    assert.equal(h.calls.at(-1)[0], "stop");
+    assert.equal(h.calls.at(-2)[0], "stop");
     await tick();
     assert.equal(h.replacements.length, 1);
     lifecycle.dispose();
@@ -107,7 +135,7 @@ test("storage.clear and same-document privacy events both stop an active recorde
 test("blocked withdrawal persistence stops and syncs without reloading into a stale stored grant", async () => {
   const h = harness({ blocked: true }), lifecycle = h.install();
   h.choose({ analytics: false, decidedAt: 1001 }); h.emit(choiceEvent);
-  assert.equal(h.calls.at(-1)[0], "stop");
+  assert.equal(h.calls.at(-2)[0], "stop");
   await tick();
   assert.equal(h.syncs.length, 1, "durable server withdrawal is still attempted");
   assert.deepEqual(h.replacements, []);
@@ -159,7 +187,7 @@ test("failed optional sync and throwing Clarity calls cannot prevent immediate s
   h.scope.clarity = (...args) => { attempts.push(args[0]); throw new Error("blocked tag"); };
   h.choose({ analytics: false, decidedAt: 1001 });
   assert.doesNotThrow(() => h.emit(choiceEvent));
-  assert.deepEqual(attempts, ["consentv2", "stop"]);
+  assert.deepEqual(attempts, ["stop", "consentv2"]);
   await tick();
   assert.equal(h.replacements.length, 1);
   lifecycle.dispose();

@@ -27,7 +27,7 @@ const PRESS = [
 ];
 
 const FAQ = [
-  ["What is diastasis recti:", <>is <strong>the separation of the left and right rectus abdominis muscles (“six-pack” muscles) along the central band of connective tissue known as the linea alba</strong></>],
+  ["What is diastasis recti?", "It is the separation of the left and right rectus abdominis muscles (“six-pack” muscles) along the central band of connective tissue known as the linea alba."],
   ["What results can i expect in 12 weeks?", "95% of our customers see visible results in 12 weeks with consistent 5 minutes of day exercises"],
   ["What if I had my baby years ago?", "This program will help eliminate your gap even if you had a baby years ago. Just follow you personalized plan."],
   ["Can i use this after a C-section?", "Yes, we personalizes exercises based on each person situations>"],
@@ -100,8 +100,8 @@ export default function DiastasisLanding() {
   useEffect(() => {
     const view = () => trackDiastasisEvent("landing_view");
     view();
-    // Opting in starts the anonymous view; declining never queues it. Calling
-    // the helper on withdrawal also clears any pending loader retry.
+    // Anonymous public views use the current Clarity policy. A withdrawal
+    // also clears any pending loader retry.
     window.addEventListener("pelvi:privacy-choice", view);
     return () => window.removeEventListener("pelvi:privacy-choice", view);
   }, []);
@@ -220,13 +220,13 @@ export default function DiastasisLanding() {
         </ol>
       </section>
 
-      <section className={styles.evidence} aria-labelledby="dr-evidence"><p className={styles.eyebrow}>OUR 12-WEEK MONEY-BACK GUARANTEE</p><h2 id="dr-evidence">Your progress.<br /><em>Or your money back.</em></h2><p>Follow your plan. Make time for your core.<br />Not happy with your progress within 12 weeks? Ask for a full refund.</p><a className={styles.guaranteeLink} href="/diastasis-recti/guarantee" onClick={() => trackDiastasisEvent("guarantee_open")}>See how the guarantee works <ArrowRight size={15} aria-hidden="true" /></a></section>
+      <section className={styles.evidence} aria-labelledby="dr-evidence"><p className={styles.eyebrow}>OUR 12-WEEK MONEY-BACK GUARANTEE</p><h2 id="dr-evidence">Your progress.<br /><em>Or your money back.</em></h2><p>Follow your plan. Make time for your core.<br />Not happy with your progress within 12 weeks? Ask for a full refund.</p></section>
 
       <section className={styles.faq} aria-labelledby="dr-faq"><div><p className={styles.eyebrow}>BEFORE YOU START</p><h2 id="dr-faq">Your questions.<br /><em>Simple answers.</em></h2><p>Need a hand?<br /><a href="mailto:contact@pelvi.health">contact@pelvi.health</a></p></div><div className={styles.faqList}>{FAQ.map(([question, answer], i) => <details key={question} id={i === FAQ.length - 1 ? "dr-refund" : undefined} onToggle={(event) => { if (event.currentTarget.open) trackDiastasisEvent("faq_open"); }}><summary>{question}<span>+</span></summary><p>{answer}</p></details>)}</div></section>
 
       <section className={styles.finalOffer}><div><p className={styles.eyebrow}>DAILY COACH VIDEOS. ONE CLEAR PLAN.</p><h2>Your core.<br /><em>Your next step.</em></h2><p>Daily coach videos. A clear plan for diastasis recti.</p><div className={styles.finalPrice}>{DEFAULT_PRICE_LABEL}<span>{PRICE_CURRENCY} / {DEFAULT_PRICE_PERIOD}</span></div><p className={styles.finalTerms}>Monthly membership. Renews until canceled.</p><button type="button" className={styles.primary} onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={18} aria-hidden="true" /></button><p className={styles.finalSocial}>Join 10,734+ women fixing their Diastasis Recti</p></div><div className={styles.finalArt}><Phone src="/diastasis/app-player.webp" alt={GALLERY[1].alt} /><span>DAILY COACH<br /><em>videos.</em></span></div></section>
 
-      <footer className={styles.footer}><div><a href="/" className={styles.logo}>pelvi<span>®</span></a><p>Core care. In your corner.</p></div><nav aria-label="Landing page footer"><a href="/app">Member log in</a><a href="mailto:contact@pelvi.health">Contact</a><a href="/diastasis-recti/guarantee" onClick={() => trackDiastasisEvent("guarantee_open")}>12-week guarantee</a><a href="/terms-of-service">Terms</a><a href="/privacy-policy">Privacy</a><button type="button" onClick={() => window.dispatchEvent(new Event("pelvi:open-privacy-choices"))}>Privacy choices</button></nav><p className={styles.suitability}>Recently had a C-section or abdominal surgery, have pain, a known hernia or clinician restrictions? Ask your clinician before starting. Stop if exercise causes pain. Pelvi provides exercise guidance and education, not diagnosis or medical care.</p><p className={styles.copyright}>© {new Date().getFullYear()} Pelvi Health. Lifestyle imagery is illustrative.</p></footer>
+      <footer className={styles.footer}><div><a href="/" className={styles.logo}>pelvi<span>®</span></a><p>Core care. In your corner.</p></div><nav aria-label="Landing page footer"><a href="/app">Member log in</a><a href="mailto:contact@pelvi.health">Contact</a><a href="/terms-of-service">Terms</a><a href="/privacy-policy">Privacy</a><button type="button" onClick={() => window.dispatchEvent(new Event("pelvi:open-privacy-choices"))}>Privacy settings</button></nav><p className={styles.suitability}>Recently had a C-section or abdominal surgery, have pain, a known hernia or clinician restrictions? Ask your clinician before starting. Stop if exercise causes pain. Pelvi provides exercise guidance and education, not diagnosis or medical care.</p><p className={styles.copyright}>© {new Date().getFullYear()} Pelvi Health. Lifestyle imagery is illustrative.</p></footer>
 
       {!offerVisible && !checkoutOpen && <div className={styles.stickyOffer}><div><strong>{DEFAULT_PRICE_LABEL}<small> / {DEFAULT_PRICE_PERIOD}</small></strong><span>12-week money-back guarantee</span></div><button type="button" onClick={beginCheckout}><span>{CTA}</span><ArrowRight size={17} aria-hidden="true" /></button></div>}
       {checkoutOpen && <CheckoutSheet open onClose={closeCheckout} goalId={GOAL_ID} successPath={checkoutPath} />}

@@ -43,15 +43,16 @@
 // recorded, which is the safe direction to fail in.
 
 import { CLARITY_PROJECT_ID, isTrackedPath } from "/clarity-gate.js";
-import { MARKETING_CONSENT_EVENT, MARKETING_CONSENT_KEY, marketingPersistenceBlocked,
+import { MARKETING_CONSENT_EVENT, MARKETING_CONSENT_KEY, clarityConsentPolicy, marketingPersistenceBlocked,
   readMarketingConsent, syncMarketingConsent } from "/marketing-consent.js";
+import { stopClarityRecording } from "/clarity-stop.js";
 
 // The gate, asked exactly as app/Clarity.jsx asks it. Deny by default: if this
 // document is not on the allowlist, or its URL carries anything sensitive,
 // nothing below runs and no tag is ever added to the page.
 export function installStaticClarity({ scope = window, doc = document,
   getConsent = readMarketingConsent, syncConsent = syncMarketingConsent,
-  persistenceBlocked = marketingPersistenceBlocked, tracked = isTrackedPath,
+  getPolicy = clarityConsentPolicy, persistenceBlocked = marketingPersistenceBlocked, tracked = isTrackedPath,
 } = {}) {
   if (scope.__pelviStaticClarityLifecycle) return scope.__pelviStaticClarityLifecycle;
   let injected = Boolean(scope.__pelviClarityInjected);
@@ -59,12 +60,14 @@ export function installStaticClarity({ scope = window, doc = document,
   let disposed = false;
   let transition = 0;
   let replacing = false;
+  let storageMode = null;
   const call = (...args) => { try { scope.clarity?.(...args); } catch { /* Optional analytics never blocks the article. */ } };
   const publicDocument = () => tracked(scope.location.pathname, scope.location.search);
   const snapshot = (choice) => [choice.decided, choice.consentId, choice.decidedAt, choice.analytics, choice.advertising, choice.matching];
 
   function reloadAfterSync(choice) {
     const expected = snapshot(choice);
+    const enabled = getPolicy(choice).enabled;
     const publicBefore = publicDocument();
     const generation = ++transition;
     // The shared helper bounds registry delivery to two seconds. Stop happens
@@ -73,14 +76,14 @@ export function installStaticClarity({ scope = window, doc = document,
       Promise.resolve(syncConsent(choice)).catch(() => {}).finally(() => {
         if (disposed || replacing || generation !== transition || persistenceBlocked()) return;
         const latest = getConsent();
-        if (publicDocument() !== publicBefore || !snapshot(latest).every((value, index) => value === expected[index])) return;
+        if (publicDocument() !== publicBefore || !snapshot(latest).every((value, index) => value === expected[index]) || getPolicy(latest).enabled !== enabled) return;
         replacing = true;
         scope.location.replace(scope.location.href);
       }).catch(() => {});
     } catch { /* Keep a stopped recorder if optional consent sync cannot run. */ }
   }
 
-  function inject() {
+  function inject(policy) {
     // Idempotent. A module URL is only evaluated once per document, so this
     // guards against the line being paired with a stray hand-pasted snippet
     // rather than against itself.
@@ -97,7 +100,8 @@ export function installStaticClarity({ scope = window, doc = document,
         function clarityQueue() {
           (scope.clarity.q = scope.clarity.q || []).push(arguments);
         };
-      call("consentv2", { analytics_Storage: "granted", ad_Storage: "denied" });
+      call("consentv2", { analytics_Storage: policy.analyticsStorage, ad_Storage: "denied" });
+      storageMode = policy.analyticsStorage;
 
       const script = doc.createElement("script");
       script.async = true;
@@ -120,20 +124,26 @@ export function installStaticClarity({ scope = window, doc = document,
     if (disposed || (event?.type === "storage" && event.key !== null && event.key !== MARKETING_CONSENT_KEY)) return;
     try {
       const choice = getConsent();
-      const allowed = publicDocument() && choice.analytics === true;
-      if (allowed && !stopped) { inject(); return; }
+      const policy = getPolicy(choice);
+      const allowed = publicDocument() && policy.enabled;
+      if (allowed && !stopped) {
+        inject(policy);
+        if (storageMode !== policy.analyticsStorage) {
+          call("consentv2", { analytics_Storage: policy.analyticsStorage, ad_Storage: "denied" });
+          storageMode = policy.analyticsStorage;
+        }
+        return;
+      }
       if (!injected) return;
       if (!stopped) {
-        call("consentv2", { analytics_Storage: "denied", ad_Storage: "denied" });
-        call("stop");
+        stopClarityRecording(scope, doc);
         stopped = true;
       }
       // A stopped recorder is never resumed. A later explicit grant also needs
       // a fresh document, provided the consent snapshot is still current.
       reloadAfterSync(choice);
     } catch {
-      call("consentv2", { analytics_Storage: "denied", ad_Storage: "denied" });
-      call("stop");
+      stopClarityRecording(scope, doc);
       stopped = true;
     }
   }

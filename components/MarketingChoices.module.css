@@ -1,17 +1,16 @@
-.card { position: fixed; z-index: 65; left: 16px; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom,0px)); width: calc(100% - 32px); max-width: 390px; padding: 20px; border: 1px solid #E4D8D9; border-radius: 20px; box-shadow: 0 12px 55px #1C182033; background: #F6F1EA; color: #1C1820; font-family: Figtree,Arial,sans-serif; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
-.card h2 { margin: 0 0 8px; font-size: 18px; font-weight: 650; letter-spacing: -.35px; }
+.card { position: fixed; width: min(430px,calc(100% - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 22px; border: 1px solid #E4D8D9; border-radius: 20px; box-shadow: 0 12px 55px #1C182033; background: #F6F1EA; color: #1C1820; font-family: Figtree,Arial,sans-serif; overflow-y: auto; overscroll-behavior: contain; }
+.card::backdrop { background: #1C182066; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.card h2 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -.35px; }
 .card p { margin: 0; font-size: 12px; color: #665C62; line-height: 1.55; }
 .card a { color: #A33752; text-decoration: underline; text-underline-offset: 2px; }
-.options { display: grid; gap: 4px; margin: 10px 0; }
-.options label { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; min-height: 44px; cursor: pointer; }
-.options input { width: 19px; height: 19px; flex-shrink: 0; margin-top: 2px; accent-color: #A33752; }
-.options input:disabled + span { opacity: .6; }
-.options strong { display: block; font-size: 13px; font-weight: 650; }
-.options small { display: block; color: #665C62; font-size: 11.5px; line-height: 1.45; margin-top: 3px; }
-.actions { display: flex; gap: 8px; margin-top: 13px; }
-.actions button { flex: 1; min-height: 44px; border-radius: 100px; padding: 10px 11px; font: 600 12px Figtree,Arial,sans-serif; border: 1px solid #D9C4C8; background: transparent; color: #1C1820; cursor: pointer; }
-.actions button:last-child { background: #E65473; border-color: #E65473; }
-.customize { border: 0; background: transparent; color: #A33752; font: 500 12px Figtree,Arial,sans-serif; padding: 10px 0 4px; min-height: 36px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.card a:focus-visible,.card button:focus-visible,.card input:focus-visible { outline: 3px solid #A33752; outline-offset: 3px; }
-.optOut { margin-top: 4px !important; color: #A33752 !important; }
-@media(min-width: 600px) { .card { left: 24px; right: auto; bottom: 24px; } }
+.card button { min-height: 44px; border-radius: 100px; padding: 10px 13px; font: 600 12px Figtree,Arial,sans-serif; border: 1px solid #D9C4C8; background: transparent; color: #1C1820; cursor: pointer; }
+.card button:disabled { color: #756B70; opacity: .6; cursor: default; }
+.card .close { border: 0; padding: 8px; color: #A33752; text-decoration: underline; text-underline-offset: 3px; }
+.options { display: grid; gap: 16px; margin: 18px 0; }
+.options section { border-top: 1px solid #E4D8D9; padding-top: 14px; }
+.options h3 { margin: 0 0 4px; font-size: 13px; font-weight: 650; }
+.options button { margin-top: 8px; }
+.actions { display: flex; margin-top: 14px; }
+.actions button { width: 100%; background: #E65473; border-color: #E65473; }
+.card a:focus-visible,.card button:focus-visible { outline: 3px solid #A33752; outline-offset: 3px; }

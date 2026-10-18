@@ -55,6 +55,33 @@ test("a new or browserless visit is undecided and all optional processing is off
   assert.deepEqual(consent.readMarketingConsent({ storage: null, browser: {}, now }), empty, "callers cannot mutate the default choice");
 });
 
+test("an undecided visit can run cookieless Clarity without saving consent, IDs or advertising permission", async () => {
+  const consent = await api(), store = storage();
+  const choice = consent.readMarketingConsent({ storage: store, browser: {}, now, document: null });
+  assert.deepEqual(consent.clarityConsentPolicy(choice, { browser: {} }), { enabled: true, analyticsStorage: "denied", adStorage: "denied" });
+  assert.equal(choice.decided, false);
+  assert.equal(choice.consentId, "");
+  assert.equal(choice.advertising, false);
+  assert.equal(choice.matching, false);
+  assert.equal(store.values.size, 0);
+});
+
+test("only an existing explicit analytics permission can grant Clarity cookie storage", async () => {
+  const consent = await api();
+  const prior = consent.readMarketingConsent({ storage: storage(saved()), browser: {}, now, document: null });
+  assert.deepEqual(consent.clarityConsentPolicy(prior, { browser: {} }), { enabled: true, analyticsStorage: "granted", adStorage: "denied" });
+  assert.deepEqual(consent.clarityConsentPolicy({ decided: false, analytics: true }, { browser: {} }), { enabled: true, analyticsStorage: "denied", adStorage: "denied" });
+  const denied = consent.readMarketingConsent({ storage: storage(saved({ analytics: false })), browser: {}, now, document: null });
+  assert.deepEqual(consent.clarityConsentPolicy(denied, { browser: {} }), { enabled: false, analyticsStorage: "denied", adStorage: "denied" });
+});
+
+test("GPC and DNT disable cookieless Clarity as well as previously permitted analytics", async () => {
+  const consent = await api();
+  for (const browser of [{ globalPrivacyControl: true }, { doNotTrack: "1" }, { doNotTrack: "YES" }]) {
+    for (const choice of [empty, { decided: true, analytics: true }]) assert.deepEqual(consent.clarityConsentPolicy(choice, { browser }), { enabled: false, analyticsStorage: "denied", adStorage: "denied" });
+  }
+});
+
 test("the three choices remain independent and matching always requires advertising consent", async () => {
   for (const analytics of [false, true]) for (const advertising of [false, true]) for (const matching of [false, true]) {
     const consent = await api(), store = storage();

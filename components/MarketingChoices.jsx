@@ -1,66 +1,99 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { MARKETING_CONSENT_EVENT, readMarketingConsent, syncMarketingConsent, writeMarketingConsent } from "@/lib/marketingConsent";
+import { MARKETING_CONSENT_EVENT, MARKETING_CONSENT_KEY, clarityConsentPolicy, readMarketingConsent, syncMarketingConsent, writeMarketingConsent } from "@/lib/marketingConsent";
 import { isTrackedPath } from "@/lib/analytics";
 import styles from "./MarketingChoices.module.css";
 
 export const OPEN_PRIVACY_CHOICES = "pelvi:open-privacy-choices";
 
+// Preserve only currently effective permissions. A stale open panel cannot
+// restore a permission withdrawn in another tab or by a browser privacy signal.
+export function privacyOptOutChoice(current, target) {
+  const analytics = current?.analytics === true;
+  const advertising = current?.advertising === true;
+  const matching = advertising && current?.matching === true;
+  if (target === "analytics") return { analytics: false, advertising, matching };
+  if (target === "advertising") return { analytics, advertising: false, matching: false };
+  if (target === "matching") return { analytics, advertising, matching: false };
+  return { analytics: false, advertising: false, matching: false };
+}
+
 export function PrivacyChoicesButton() {
-  return <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN_PRIVACY_CHOICES))} style={{ color: "#A33752", textDecoration: "underline", textUnderlineOffset: "3px", minHeight: "44px" }}>Change privacy choices</button>;
+  return <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN_PRIVACY_CHOICES))} style={{ color: "#A33752", textDecoration: "underline", textUnderlineOffset: "3px", minHeight: "44px" }}>Privacy settings</button>;
 }
 
 export default function MarketingChoices() {
   const path = usePathname();
   const [visible, setVisible] = useState(false);
-  const [analytics, setAnalytics] = useState(false);
-  const [advertising, setAdvertising] = useState(false);
-  const [matching, setMatching] = useState(false);
-  const [matchingAvailable, setMatchingAvailable] = useState(false);
-  const [optOut, setOptOut] = useState(false);
-  const [customizing, setCustomizing] = useState(false);
+  const [choice, setChoice] = useState(null);
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
   const allowed = isTrackedPath(path, typeof window === "undefined" ? "" : window.location.search);
 
   useEffect(() => {
-    if (!allowed) { setVisible(false); return; }
-    const populate = () => {
-      const choice = readMarketingConsent();
-      setAnalytics(choice.analytics); setAdvertising(choice.advertising); setMatching(choice.matching);
-      setOptOut(navigator.globalPrivacyControl === true || navigator.doNotTrack === "1");
-      return choice;
-    };
-    const current = populate();
-    setVisible(!current.decided);
-    if (current.decided) void syncMarketingConsent(current);
+    setVisible(false);
+    if (!allowed) return;
+    const populate = () => setChoice(readMarketingConsent());
     const open = () => { populate(); setVisible(true); };
-    const sync = () => { const choice = readMarketingConsent(); if (choice.decided) { setVisible(false); void syncMarketingConsent(choice); } };
+    const storageChanged = (event) => { if (event.key === MARKETING_CONSENT_KEY || event.key === null) populate(); };
+    // Visiting a page or opening settings only reads the current choices.
     window.addEventListener(OPEN_PRIVACY_CHOICES, open);
-    window.addEventListener(MARKETING_CONSENT_EVENT, sync);
-    window.addEventListener("storage", sync);
-    let active = true;
-    fetch("/api/marketing-config", { credentials: "same-origin", cache: "no-store" })
-      .then(r => r.ok ? r.json() : null).then(config => { if (active) setMatchingAvailable(config?.enabled === true && config?.emailMatchingEnabled === true); }).catch(() => {});
-    return () => { active = false; window.removeEventListener(OPEN_PRIVACY_CHOICES, open); window.removeEventListener(MARKETING_CONSENT_EVENT, sync); window.removeEventListener("storage", sync); };
-  }, [allowed]);
+    window.addEventListener(MARKETING_CONSENT_EVENT, populate);
+    window.addEventListener("storage", storageChanged);
+    return () => {
+      window.removeEventListener(OPEN_PRIVACY_CHOICES, open);
+      window.removeEventListener(MARKETING_CONSENT_EVENT, populate);
+      window.removeEventListener("storage", storageChanged);
+    };
+  }, [allowed, path]);
 
-  const save = (choices) => { const choice = writeMarketingConsent(choices); void syncMarketingConsent(choice); setVisible(false); };
-  if (!visible || !allowed || typeof document === "undefined") return null;
-  return createPortal(<aside className={styles.card} aria-labelledby="privacy-choice-title" data-clarity-mask="true">
-    <h2 id="privacy-choice-title">Your privacy choices</h2>
-    <p>Allow Clarity analytics and Meta/Google ad measurement? Personal text and payment fields stay hidden. Ad measurement excludes health answers. <a href="/privacy-policy#advertising" target="_blank" rel="noopener noreferrer">Privacy policy</a></p>
-    <button type="button" className={styles.customize} aria-expanded={customizing} onClick={() => setCustomizing(v => !v)}>Choose what to allow</button>
-    {customizing && <div className={styles.options}>
-      <label><input type="checkbox" checked={analytics} onChange={e => setAnalytics(e.target.checked)} /><span><strong>Website analytics</strong><small>Clarity replays with personal and payment fields hidden.</small></span></label>
-      <label><input type="checkbox" checked={advertising} disabled={optOut} onChange={e => { setAdvertising(e.target.checked); if (!e.target.checked) setMatching(false); }} /><span><strong>Ad measurement</strong><small>Share permitted visit and purchase signals with Meta and Google. No health answers.</small></span></label>
-      {matchingAvailable && <label><input type="checkbox" checked={matching} disabled={!advertising || optOut} onChange={e => setMatching(e.target.checked)} /><span><strong>Purchase matching</strong><small>Use a hashed receipt email to help Meta match your purchase to an ad.</small></span></label>}
-    </div>}
-    {optOut && <p className={styles.optOut}>Your browser’s privacy signal keeps ad tracking off.</p>}
-    <div className={styles.actions}>
-      <button type="button" onClick={() => save({ analytics: false, advertising: false, matching: false })}>Essential only</button>
-      <button type="button" onClick={() => save(customizing ? { analytics, advertising, matching: matchingAvailable && matching } : { analytics: true, advertising: !optOut, matching: false })}>{customizing ? "Save choices" : "Allow measurement"}</button>
+  useEffect(() => {
+    if (!visible || !allowed) return;
+    const dialog = dialogRef.current;
+    const returnFocus = document.activeElement;
+    dialog.showModal();
+    closeRef.current?.focus({ preventScroll: true });
+    return () => {
+      dialog.close();
+      if (returnFocus instanceof HTMLElement && returnFocus.isConnected) returnFocus.focus({ preventScroll: true });
+    };
+  }, [visible, allowed]);
+
+  const turnOff = (target) => {
+    const current = readMarketingConsent();
+    const applied = writeMarketingConsent(privacyOptOutChoice(current, target));
+    void syncMarketingConsent(applied);
+    setVisible(false);
+  };
+  if (!visible || !allowed || !choice || typeof document === "undefined") return null;
+  const analytics = clarityConsentPolicy(choice);
+  return createPortal(<dialog ref={dialogRef} className={styles.card} aria-labelledby="privacy-choice-title" aria-describedby="privacy-choice-description" data-clarity-mask="true" onCancel={(event) => { event.preventDefault(); setVisible(false); }}>
+    <header className={styles.header}>
+      <h2 id="privacy-choice-title">Privacy settings</h2>
+      <button ref={closeRef} type="button" className={styles.close} aria-label="Close privacy settings" onClick={() => setVisible(false)}>Close</button>
+    </header>
+    <p id="privacy-choice-description">Clarity helps us understand eligible public website visits. It runs without analytics cookies by default. Your account and payments work with measurement turned off.</p>
+    <div className={styles.options}>
+      <section>
+        <h3>Website analytics</h3>
+        <p>{!analytics.enabled ? "Off. Your saved choice or browser privacy signal is respected." : analytics.analyticsStorage === "granted" ? "On with your previously saved permission for analytics cookies." : "On without analytics cookies. No new storage permission is created."}</p>
+        <button type="button" disabled={!analytics.enabled} onClick={() => turnOff("analytics")}>Turn off website analytics</button>
+      </section>
+      <section>
+        <h3>Ad measurement</h3>
+        <p>{choice.advertising ? "On under your previously saved advertising permission." : "Off. Advertising permission is not enabled by visiting this site."}</p>
+        <button type="button" disabled={!choice.advertising} onClick={() => turnOff("advertising")}>Turn off ad measurement</button>
+      </section>
+      <section>
+        <h3>Purchase matching</h3>
+        <p>{choice.matching ? "On under your previously saved matching permission, where the integration is eligible." : "Off. Your receipt email is not used for matching by default."}</p>
+        <button type="button" disabled={!choice.matching} onClick={() => turnOff("matching")}>Turn off purchase matching</button>
+      </section>
     </div>
-  </aside>, document.body);
+    <p><a href="/privacy-policy#recording" target="_blank" rel="noopener noreferrer">Read the privacy policy</a></p>
+    <div className={styles.actions}><button type="button" onClick={() => turnOff("all")}>Turn off all measurement</button></div>
+  </dialog>, document.body);
 }
