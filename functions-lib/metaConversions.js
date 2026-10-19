@@ -4,12 +4,12 @@ import {
 import { createMarketingConsentRegistry, validConsentId } from "./marketingConsentRegistry.js";
 import { automaticMeasurementEligible } from "./marketingPolicy.js";
 
-export const META_CONSENT_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const META_SOURCE_URL = "https://pelvi.health/";
 const GRAPH_VERSION = "v26.0";
 const clean = (value, max) => typeof value === "string" ? value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max) : "";
 const idOf = (value) => typeof value === "string" ? value : value?.id || "";
-const validConsentTime = (value, now) => Number.isFinite(value) && value > 0 && value <= now + 300000 && now - value <= META_CONSENT_MAX_AGE_MS;
+// Retained measurement records stay valid for renewals regardless of their age.
+const validConsentTime = (value, now) => Number.isFinite(value) && value > 0 && value <= now + 300000;
 const validFbp = (value) => /^fb\.\d\.\d{10,16}\.\d{1,80}$/.test(value);
 const validFbc = (value) => /^fb\.\d\.\d{10,16}\.[A-Za-z0-9_-]{1,200}$/.test(value);
 function validIp(value) {

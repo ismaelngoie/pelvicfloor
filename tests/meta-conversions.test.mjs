@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import Stripe from "stripe";
-import { buildMetaAttribution, META_CONSENT_MAX_AGE_MS, metaPurchaseEventId, reportMetaInvoicePurchase } from "../functions-lib/metaConversions.js";
+import { buildMetaAttribution, metaPurchaseEventId, reportMetaInvoicePurchase } from "../functions-lib/metaConversions.js";
 import { handleMetaPurchase } from "../functions/api/meta-purchase.js";
 import { handleStripeEvents } from "../functions/api/stripe-events.js";
 
 const now = Date.parse("2026-10-18T16:00:00Z");
+const retainedDecisionAt = Date.parse("2010-10-18T16:00:00Z");
 const second = Math.floor(now / 1000);
 const marketing = { v: 1, consentId: "eb942c3a-a51c-4a04-822a-e79384423f11", advertising: true, matching: true, decidedAt: now - 60000, fbp: "fb.1.1792339100000.123456789", fbc: "fb.1.1792339100000.MetaClick_123" };
 const env = { META_TRACKING_ENABLED: "true", META_DATASET_ID: "123456789012345", META_CONVERSIONS_ACCESS_TOKEN: "unit-test-token", STRIPE_SECRET_KEY: "sk_test_unit_only", STRIPE_WEBHOOK_SECRET: "whsec_unit_only", FIREBASE_SERVICE_ACCOUNT: "unit-test-ledger-injected" };
@@ -135,22 +136,55 @@ for (const [name, mutate] of [
 }
 
 test("missing persisted consent prevents delayed webhook advertising", async () => {
-  for (const metadata of [{}, { source: "web", meta_consent: "1", meta_consent_at: String(now - META_CONSENT_MAX_AGE_MS - 1) }]) {
+  for (const metadata of [{}, { source: "web", meta_consent: "1", meta_consent_at: String(retainedDecisionAt) }]) {
     const context = fixture(); context.invoice.subscription.metadata = metadata;
     assert.equal((await reportMetaInvoicePurchase(context.options)).status, "no_consent"); assert.equal(context.sent.length, 0);
   }
 });
 
-test("renewal charges use a new invoice event and require current registry permission", async () => {
+test("retained measurement attribution has no age-based expiry", () => {
+  const metadata = buildMetaAttribution({ ...marketing, decidedAt: retainedDecisionAt }, request({}), { now });
+  assert.equal(metadata.meta_consent, "1");
+  assert.equal(metadata.meta_consent_at, String(retainedDecisionAt));
+  for (const decidedAt of [0, NaN, Infinity, now + 300001]) {
+    assert.deepEqual(buildMetaAttribution({ ...marketing, decidedAt }, request({}), { now }), {});
+  }
+});
+
+test("renewal charges report current payments even when the retained record is years old", async () => {
   const context = fixture();
   context.invoice.billing_reason = "subscription_cycle";
-  context.invoice.subscription.metadata.meta_consent_at = String(now - META_CONSENT_MAX_AGE_MS - 1);
+  context.invoice.subscription.metadata.meta_consent_at = String(retainedDecisionAt);
+  context.options.registry = { get: async () => ({ decidedAt: retainedDecisionAt, advertising: true, matching: true }) };
   assert.equal((await reportMetaInvoicePurchase(context.options)).status, "sent");
+  const event = context.sent[0].body.data[0];
+  assert.equal(event.event_time, second - 15);
+  assert.equal(event.event_id, await metaPurchaseEventId(context.invoice.id));
+  assert.deepEqual(event.custom_data, { value: 24.99, currency: "USD" });
+  assert.equal((await reportMetaInvoicePurchase(context.options)).status, "duplicate");
+  assert.equal(context.sent.length, 1);
+});
+
+test("retained renewals still require a valid allowed registry record", async () => {
   const denied = fixture(); denied.invoice.billing_reason = "subscription_cycle";
-  for (const choice of [{ decidedAt: now, advertising: false, matching: false }, { decidedAt: now - META_CONSENT_MAX_AGE_MS - 1, advertising: true, matching: true }]) {
+  denied.invoice.subscription.metadata.meta_consent_at = String(retainedDecisionAt);
+  for (const choice of [
+    { decidedAt: retainedDecisionAt, advertising: false, matching: false },
+    { decidedAt: now, advertising: false, matching: false },
+    { decidedAt: now + 300001, advertising: true, matching: true },
+  ]) {
     assert.equal((await reportMetaInvoicePurchase({ ...denied.options, registry: { get: async () => choice } })).sent, false);
   }
   assert.equal(denied.sent.length, 0);
+});
+
+test("removing record expiry does not allow stale or future paid-sale timestamps", async () => {
+  for (const paidAt of [second - 7 * 86400 - 1, second + 301]) {
+    const context = fixture();
+    context.invoice.status_transitions.paid_at = paidAt;
+    assert.equal((await reportMetaInvoicePurchase(context.options)).status, "expired");
+    assert.equal(context.sent.length, 0);
+  }
 });
 
 test("missing or older consent registry decision waits for synchronization without sending", async () => {
