@@ -138,6 +138,15 @@ export async function reportMetaInvoicePurchase({ stripe, invoiceId, env, ledger
       const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email));
       userData.em = [Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")];
     }
+    const name = clean(customer?.name, 254) || clean(invoice.customer_name, 254) || clean(charge.billing_details?.name, 254);
+    const nameParts = name.toLowerCase().split(/\s+/u).filter(Boolean);
+    // Stripe provides a full name; use its outer words and omit unavailable parts.
+    const names = { fn: nameParts[0], ln: nameParts.length > 1 ? nameParts[nameParts.length - 1] : "" };
+    for (const [field, value] of Object.entries(names)) {
+      if (!value) continue;
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+      userData[field] = [Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")];
+    }
   }
   if (!Object.keys(userData).length) return { sent: false, status: "no_matching_data" };
   const event = {

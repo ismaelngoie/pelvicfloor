@@ -65,6 +65,58 @@ test("canonical settled invoice supplies price and anonymous event ID without se
   assert.deepEqual(Object.keys(context.receipts.get(result.eventId)).sort(), ["currency", "sentAt", "value"]);
 });
 
+test("Purchase includes hashed customer first and last names without raw names or changed sale data", async () => {
+  const context = fixture();
+  context.invoice.customer.name = "  JANE   Mary DOE  ";
+  context.invoice.customer_name = "Other Person";
+  context.invoice.payment_intent.latest_charge.billing_details = { name: "Different Cardholder" };
+  const result = await reportMetaInvoicePurchase(context.options);
+  const event = context.sent[0].body.data[0];
+  assert.equal(result.status, "sent");
+  assert.deepEqual(event.user_data.fn, [createHash("sha256").update("jane").digest("hex")]);
+  assert.deepEqual(event.user_data.ln, [createHash("sha256").update("doe").digest("hex")]);
+  assert.deepEqual(event.user_data.em, [createHash("sha256").update("verified@example.com").digest("hex")]);
+  assert.deepEqual(event.custom_data, { value: 24.99, currency: "USD" });
+  assert.equal(event.event_id, await metaPurchaseEventId(context.invoice.id));
+  assert.doesNotMatch(JSON.stringify(context.sent[0].body), /jane|mary|doe|other person|different cardholder/i);
+  assert.deepEqual(Object.keys(context.receipts.get(result.eventId)).sort(), ["currency", "sentAt", "value"]);
+});
+
+test("missing customer names fall back to invoice and settled payment billing names", async () => {
+  for (const source of ["invoice", "charge"]) {
+    const context = fixture();
+    context.invoice.customer.name = "   ";
+    context.invoice.payment_intent.latest_charge.billing_details = { name: source === "invoice" ? "Different Cardholder" : "  ÉLODIE O’NEILL  " };
+    if (source === "invoice") context.invoice.customer_name = "  ÉLODIE O’NEILL  ";
+    assert.equal((await reportMetaInvoicePurchase(context.options)).status, "sent");
+    const userData = context.sent[0].body.data[0].user_data;
+    assert.deepEqual(userData.fn, [createHash("sha256").update("élodie").digest("hex")]);
+    assert.deepEqual(userData.ln, [createHash("sha256").update("o’neill").digest("hex")]);
+  }
+});
+
+test("single and missing names do not invent matching fields or prevent Purchase", async () => {
+  for (const name of ["Cher", "", undefined]) {
+    const context = fixture();
+    context.invoice.customer.name = name;
+    assert.equal((await reportMetaInvoicePurchase(context.options)).status, "sent");
+    const userData = context.sent[0].body.data[0].user_data;
+    assert.equal(userData.ln, undefined);
+    if (name) assert.deepEqual(userData.fn, [createHash("sha256").update("cher").digest("hex")]);
+    else assert.equal(userData.fn, undefined);
+  }
+});
+
+test("the existing matching guard also applies to customer names", async () => {
+  const context = fixture();
+  context.invoice.customer.name = "Jane Doe";
+  assert.equal((await reportMetaInvoicePurchase({ ...context.options, emailMatchingAllowed: false })).status, "sent");
+  const userData = context.sent[0].body.data[0].user_data;
+  assert.equal(userData.em, undefined);
+  assert.equal(userData.fn, undefined);
+  assert.equal(userData.ln, undefined);
+});
+
 for (const [name, mutate] of [
   ["subscription update invoices", (invoice) => { invoice.billing_reason = "subscription_update"; }],
   ["zero-value trials", (invoice) => { invoice.amount_paid = 0; }],
